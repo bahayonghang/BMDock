@@ -1,0 +1,58 @@
+name: G0 candidate bootstrap
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: g0-bootstrap-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  candidate:
+    name: Generated G0 candidate (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12.12'
+      - name: Install fixed bootstrap tools
+        run: |
+          python -m pip install uv==0.8.15
+          rustup toolchain install 1.90.0 --profile minimal --component rustfmt --component clippy
+          cargo install just --version 1.40.0 --locked
+      - name: Dependency-free checks
+        run: just ci-unit
+      - name: Generate review candidate (not a committed release lock)
+        run: |
+          just lock
+          cargo fmt --all
+      - name: Install immutable upstream fixtures
+        run: just setup
+      - name: Verify generated candidate
+        run: just ci
+      - name: Build current G0 executable
+        run: just build
+      - name: Save candidate evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g0-candidate-${{ matrix.os }}
+          path: |
+            Cargo.lock
+            crates/bmdock-probe/src/main.rs
+            artifacts/
+          if-no-files-found: warn
+          retention-days: 14

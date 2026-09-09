@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "purpose": "immutable G0 candidates; not verified production support",
+  "engines": {
+    "release": {
+      "repository": "https://github.com/basicmachines-co/basic-memory.git",
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "version": "0.23.2",
+      "expected_tools": ["basic_memory_diagnostics", "build_context", "create_memory_project", "delete_note", "delete_project", "edit_note", "fetch", "list_directory", "list_memory_projects", "list_workspaces", "move_note", "read_content", "read_note", "recent_activity", "schema_diff", "schema_infer", "schema_validate", "search", "search_notes", "view_note", "write_note"],
+      "verified_runtime": false,
+      "registry_source": "https://github.com/basicmachines-co/basic-memory/blob/c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048/src/basic_memory/mcp/tools/__init__.py"
+    },
+    "main-preview": {
+      "repository": "https://github.com/basicmachines-co/basic-memory.git",
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "version": null,
+      "expected_tools": ["basic_memory_diagnostics", "build_context", "cat", "create_memory_project", "delete_note", "delete_project", "edit_note", "fetch", "find", "grep", "list_directory", "list_memory_projects", "list_workspaces", "ls", "man", "move_note", "read_content", "read_note", "recent_activity", "schema_diff", "schema_infer", "schema_validate", "search", "search_notes", "tail", "view_note", "write_note"],
+      "verified_runtime": false,
+      "registry_source": "https://github.com/basicmachines-co/basic-memory/blob/3452c821d76c083823d020984d71e06904a1ff1e/src/basic_memory/mcp/tools/__init__.py"
+    }
+  }
+}
