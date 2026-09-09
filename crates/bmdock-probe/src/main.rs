@@ -20,15 +20,39 @@ fn emit(value: Value) -> Result<()> {
 
 fn validate_request(request: &Value) -> Result<()> {
     let method = request["method"].as_str().ok_or("Missing method")?;
-    if !matches!(method, "tools/list" | "resources/list" | "resources/templates/list" | "prompts/list" | "prompts/get" | "resources/read" | "tools/call") {
+    if !matches!(
+        method,
+        "tools/list"
+            | "resources/list"
+            | "resources/templates/list"
+            | "prompts/list"
+            | "prompts/get"
+            | "resources/read"
+            | "tools/call"
+    ) {
         return Err("Method not allowed in the G0 probe".into());
     }
     if method == "tools/call" {
-        let name = request["params"]["name"].as_str().ok_or("Missing tool name")?;
-        if !matches!(name, "list_memory_projects" | "read_note" | "read_content" | "search_notes" | "write_note" | "edit_note" | "search" | "fetch" | "__bmdock_missing_tool__") {
+        let name = request["params"]["name"]
+            .as_str()
+            .ok_or("Missing tool name")?;
+        if !matches!(
+            name,
+            "list_memory_projects"
+                | "read_note"
+                | "read_content"
+                | "search_notes"
+                | "write_note"
+                | "edit_note"
+                | "search"
+                | "fetch"
+                | "__bmdock_missing_tool__"
+        ) {
             return Err("Tool not allowed in the G0 probe".into());
         }
-        if matches!(name, "write_note" | "edit_note") && request["params"]["arguments"]["project"] != "bmdock-fixture" {
+        if matches!(name, "write_note" | "edit_note")
+            && request["params"]["arguments"]["project"] != "bmdock-fixture"
+        {
             return Err("Writes are restricted to the generated fixture project".into());
         }
     }
@@ -43,7 +67,9 @@ async fn main() -> Result<()> {
         return Ok(());
     }
     if args.len() != 3 {
-        return Err("usage: bmdock-probe <managed-python> <engine-worker.py> <owned-sandbox>".into());
+        return Err(
+            "usage: bmdock-probe <managed-python> <engine-worker.py> <owned-sandbox>".into(),
+        );
     }
     let python = PathBuf::from(&args[0]);
     let worker = PathBuf::from(&args[1]);
@@ -51,7 +77,8 @@ async fn main() -> Result<()> {
     if !python.is_absolute() || !python.is_file() || !worker.is_absolute() || !worker.is_file() {
         return Err("Absolute existing Python and worker paths are required".into());
     }
-    let marker: Value = serde_json::from_slice(&std::fs::read(sandbox.join(".bmdock-g0-sandbox.json"))?)?;
+    let marker: Value =
+        serde_json::from_slice(&std::fs::read(sandbox.join(".bmdock-g0-sandbox.json"))?)?;
     if marker["kind"] != "bmdock-g0" {
         return Err("Refusing a non-sandbox configuration".into());
     }
@@ -59,15 +86,24 @@ async fn main() -> Result<()> {
     if configured != sandbox.join("config").canonicalize()? {
         return Err("Configuration directory does not match the sandbox".into());
     }
-    for (key, value) in [("BASIC_MEMORY_AUTO_UPDATE", "false"), ("BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED", "false"), ("BASIC_MEMORY_FORCE_LOCAL", "true")] {
+    for (key, value) in [
+        ("BASIC_MEMORY_AUTO_UPDATE", "false"),
+        ("BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED", "false"),
+        ("BASIC_MEMORY_FORCE_LOCAL", "true"),
+    ] {
         if std::env::var(key).as_deref() != Ok(value) {
             return Err(format!("Required isolation setting missing: {key}").into());
         }
     }
     let mut child = Command::new(python)
-        .arg(worker).arg("serve").current_dir(&sandbox)
-        .stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::inherit())
-        .kill_on_drop(true).spawn()?;
+        .arg(worker)
+        .arg("serve")
+        .current_dir(&sandbox)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::inherit())
+        .kill_on_drop(true)
+        .spawn()?;
     let stdout = child.stdout.take().ok_or("No child stdout")?;
     let stdin = child.stdin.take().ok_or("No child stdin")?;
     let info: ClientInfo = serde_json::from_value(json!({
@@ -83,8 +119,13 @@ async fn main() -> Result<()> {
         buffer.clear();
         // take() also bounds allocation on a malicious/accidental giant control line.
         use tokio::io::AsyncReadExt;
-        let n = (&mut control).take((MAX_CONTROL_LINE + 1) as u64).read_until(b'\n', &mut buffer).await?;
-        if n == 0 { break; }
+        let n = (&mut control)
+            .take((MAX_CONTROL_LINE + 1) as u64)
+            .read_until(b'\n', &mut buffer)
+            .await?;
+        if n == 0 {
+            break;
+        }
         if n > MAX_CONTROL_LINE {
             result = Err("Control line too large".into());
             break;
@@ -99,14 +140,20 @@ async fn main() -> Result<()> {
         match serde_json::from_value(payload) {
             Ok(typed) => match timeout(RPC_TIMEOUT, service.send_request(typed)).await {
                 Ok(Ok(response)) => emit(json!({"id": id, "result": response}))?,
-                Ok(Err(error)) => emit(json!({"id": id, "error": {"kind": "rpc_or_transport", "message": error.to_string()}}))?,
+                Ok(Err(error)) => emit(
+                    json!({"id": id, "error": {"kind": "rpc_or_transport", "message": error.to_string()}}),
+                )?,
                 Err(_) => {
-                    emit(json!({"id": id, "error": {"kind": "timeout_unknown", "message": "Result unknown. No retry was performed."}}))?;
+                    emit(
+                        json!({"id": id, "error": {"kind": "timeout_unknown", "message": "Result unknown. No retry was performed."}}),
+                    )?;
                     // Stop this session: later replies must not be mistaken for a retry.
                     break;
                 }
             },
-            Err(error) => emit(json!({"id": id, "error": {"kind": "schema", "message": error.to_string()}}))?,
+            Err(error) => {
+                emit(json!({"id": id, "error": {"kind": "schema", "message": error.to_string()}}))?
+            }
         }
     }
     let sdk_closed = matches!(timeout(CLOSE_TIMEOUT, service.cancel()).await, Ok(Ok(_)));
@@ -118,8 +165,10 @@ async fn main() -> Result<()> {
             json!({"forced": true, "exitCode": status.code()})
         }
     };
-    emit(json!({"event": "shutdown", "sdkClosed": sdk_closed, "process": exit,
-        "materialization": "not_proven_by_process_exit"}))?;
+    emit(
+        json!({"event": "shutdown", "sdkClosed": sdk_closed, "process": exit,
+        "materialization": "not_proven_by_process_exit"}),
+    )?;
     if !sdk_closed || exit["forced"] == true || exit["exitCode"] != 0 {
         return Err("Engine did not shut down cleanly".into());
     }
@@ -135,7 +184,10 @@ mod tests {
     }
     #[test]
     fn unknown_tool_is_denied() {
-        assert!(validate_request(&json!({"method": "tools/call", "params": {"name": "delete_project"}})).is_err());
+        assert!(validate_request(
+            &json!({"method": "tools/call", "params": {"name": "delete_project"}})
+        )
+        .is_err());
     }
     #[test]
     fn fixture_write_requires_explicit_project() {
@@ -144,7 +196,12 @@ mod tests {
     }
     #[test]
     fn discovery_is_allowed() {
-        for method in ["tools/list", "resources/list", "resources/templates/list", "prompts/list"] {
+        for method in [
+            "tools/list",
+            "resources/list",
+            "resources/templates/list",
+            "prompts/list",
+        ] {
             assert!(validate_request(&json!({"method": method})).is_ok());
         }
     }

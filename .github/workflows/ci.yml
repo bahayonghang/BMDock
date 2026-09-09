@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  g0:
+    name: G0 contracts (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13.5'
+      - name: Install fixed bootstrap tools
+        run: python -m pip install uv==0.12.11
+      - name: Install Rust toolchain
+        run: rustup toolchain install 1.90.0 --profile minimal --component rustfmt --component clippy
+      - name: Install just
+        run: cargo install just --version 1.40.0 --locked
+      - name: Verify committed lock and formatting
+        run: |
+          cargo metadata --locked --no-deps --format-version 1
+          cargo fmt --all -- --check
+      - name: Install immutable upstream fixtures
+        run: just setup
+      - name: Run current-stage CI
+        run: just ci
+      - name: Build current G0 executable
+        run: just build
+      - name: Check tracked files were not rewritten
+        run: git diff --exit-code
+      - name: Save G0 evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: g0-evidence-${{ matrix.os }}
+          path: artifacts/
+          if-no-files-found: warn
+          retention-days: 14

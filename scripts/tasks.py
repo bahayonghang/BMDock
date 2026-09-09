@@ -51,11 +51,20 @@ def bootstrap_engines() -> None:
         actual = subprocess.check_output([git, "rev-parse", "HEAD"], cwd=destination, text=True).strip()
         if actual != selected["commit"]:
             raise RuntimeError("Unexpected checkout commit")
+        if selected["version"]:
+            # Dynamic package versioning needs the real release tag, not just HEAD.
+            tag = "v" + selected["version"]
+            run([git, "fetch", "--depth", "1", "origin", "tag", tag], cwd=destination)
+            tag_commit = subprocess.check_output(
+                [git, "rev-parse", tag + "^{commit}"], cwd=destination, text=True
+            ).strip()
+            if tag_commit != selected["commit"]:
+                raise RuntimeError("Upstream release tag moved; refusing an unpinned engine")
         run([git, "diff", "--exit-code"], cwd=destination)
         if not (destination / "uv.lock").is_file():
             raise RuntimeError("Pinned upstream checkout has no uv.lock")
         # Explicit setup is the ONLY task allowed to download an engine/Python.
-        run([uv, "sync", "--frozen", "--no-dev", "--no-editable", "--python", "3.12.12", "--prerelease", "allow"],
+        run([uv, "sync", "--frozen", "--no-dev", "--no-editable", "--python", "3.12.12", "--prerelease", "allow", "--reinstall-package", "basic-memory"],
             cwd=destination, timeout=1800)
 
 
