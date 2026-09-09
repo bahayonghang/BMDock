@@ -9,3 +9,13 @@ __pycache__/
 .env.*
 !.env.example
 .DS_Store
+
+.codex/
+.cursor/
+.kimi-code/
+.omp/
+.grok/
+.agents/
+.claude/
+
+ref/
