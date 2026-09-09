@@ -1,0 +1,50 @@
+{
+  "kind": "verified_g0_smoke_evidence",
+  "tested_code_commit": "03c2839f3182e177a0c8cc60354eafb28487103e",
+  "run_id": 34309026376,
+  "run_url": "https://github.com/bahayonghang/BMDock/actions/runs/34309026376",
+  "product_gate": "G0 not passed; smoke coverage only",
+  "local_python_unit_tests": {"passed": 42, "failed": 0, "skipped": 0},
+  "rust_unit_tests_per_runner": 4,
+  "runners": {
+    "ubuntu-latest": {
+      "job_id": 102331608947, "conclusion": "success", "ci": "passed", "build": "passed", "tracked_diff": "clean",
+      "artifact_id": 10087744111,
+      "artifact_sha256": "1a918df6dda275428479524aafb0c8755fc767d0c4bbf048d27151e2940baed7",
+      "profiles": {
+        "main-preview": {
+          "engine_commit": "3452c821d76c083823d020984d71e06904a1ff1e", "suite_status": "passed",
+          "tools": 27, "prompts": 4, "resources": 32, "resource_templates": 3, "cli_nodes": 122, "cli_leaves": 104, "api_paths": 49,
+          "checks": {"append_once": "passed", "create_read_materialize": "passed", "effective_isolation": "passed", "mcp_discovery": "passed", "registry_names": "passed", "shutdown_file_observation": "passed", "unknown_tool_error": "passed"},
+          "normal_exit": true, "report_sha256": "ee82313a9d2470fdae92f50559c462994e7c05426b0a702adaf78b24ec2fb44e"
+        },
+        "release": {
+          "engine_commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048", "suite_status": "passed",
+          "tools": 21, "prompts": 4, "resources": 1, "resource_templates": 1, "cli_nodes": 99, "cli_leaves": 83, "api_paths": 47,
+          "checks": {"append_once": "passed", "create_read_materialize": "passed", "effective_isolation": "passed", "mcp_discovery": "passed", "registry_names": "passed", "shutdown_file_observation": "passed", "unknown_tool_error": "passed"},
+          "normal_exit": true, "report_sha256": "29b04143220dcaeb8881dfe428fb8f63c6b66c7b6e260d20225fead26d57237f"
+        }
+      }
+    },
+    "windows-latest": {
+      "job_id": 102331608749, "conclusion": "success", "ci": "passed", "build": "passed", "tracked_diff": "clean",
+      "artifact_id": 10087830797,
+      "artifact_sha256": "4c4703cf4fd18841fb38f7704b097b1e234e405305691719002bab3fe4f5ce02",
+      "profiles": {
+        "main-preview": {
+          "engine_commit": "3452c821d76c083823d020984d71e06904a1ff1e", "suite_status": "passed",
+          "tools": 27, "prompts": 4, "resources": 32, "resource_templates": 3, "cli_nodes": 122, "cli_leaves": 104, "api_paths": 49,
+          "checks": {"append_once": "passed", "create_read_materialize": "passed", "effective_isolation": "passed", "mcp_discovery": "passed", "registry_names": "passed", "shutdown_file_observation": "passed", "unknown_tool_error": "passed"},
+          "normal_exit": true, "report_sha256": "5ded1770ee8adfa3271d5a285e1df47800529561e37fa46ebc1ffa586aff71c3"
+        },
+        "release": {
+          "engine_commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048", "suite_status": "passed",
+          "tools": 21, "prompts": 4, "resources": 1, "resource_templates": 1, "cli_nodes": 99, "cli_leaves": 83, "api_paths": 47,
+          "checks": {"append_once": "passed", "create_read_materialize": "passed", "effective_isolation": "passed", "mcp_discovery": "passed", "registry_names": "passed", "shutdown_file_observation": "passed", "unknown_tool_error": "passed"},
+          "normal_exit": true, "report_sha256": "031b1603c039493236ef1ddc58d8626dc2cce15f89657f5c9cce64fcfc6dd706"
+        }
+      }
+    }
+  },
+  "limitations": ["No desktop GUI or installer implemented", "No complete raw Markdown round-trip acceptance", "No concurrent-edit, lost-response, forced-kill or disk-failure acceptance", "CLI and API inventory is not a test of every operation", "No user vault, global config or Agent config used"]
+}

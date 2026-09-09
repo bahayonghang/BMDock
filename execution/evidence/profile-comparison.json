@@ -1,0 +1,23 @@
+{
+  "evidence_type": "observed_runtime_schema_comparison",
+  "tested_code_commit": "03c2839f3182e177a0c8cc60354eafb28487103e",
+  "run_id": 34309026376,
+  "runner": "ubuntu-latest",
+  "artifact_id": 10087744111,
+  "artifact_sha256": "1a918df6dda275428479524aafb0c8755fc767d0c4bbf048d27151e2940baed7",
+  "note": "Schema changes include documentation/default/shape changes; not every changed parameter is necessarily a breaking change. This evidence does not imply full capability implementation or G0 acceptance.",
+  "added_tools": ["cat", "find", "grep", "ls", "man", "tail"],
+  "removed_tools": [],
+  "changed_tool_input_schemas": [
+    {"tool": "build_context", "added_parameters": ["compact"], "removed_parameters": [], "changed_parameters": ["url"], "required_before": ["url"], "required_after": ["url"]},
+    {"tool": "edit_note", "added_parameters": [], "removed_parameters": [], "changed_parameters": ["identifier", "metadata"], "required_before": ["identifier", "operation", "content"], "required_after": ["identifier", "operation", "content"]},
+    {"tool": "read_note", "added_parameters": ["end_line", "start_line"], "removed_parameters": [], "changed_parameters": ["identifier", "include_frontmatter", "output_format", "page", "page_size"], "required_before": ["identifier"], "required_after": ["identifier"]},
+    {"tool": "recent_activity", "added_parameters": [], "removed_parameters": [], "changed_parameters": ["project", "timeframe"], "required_before": [], "required_after": []},
+    {"tool": "search_notes", "added_parameters": ["compact", "time_kind", "valid_at", "valid_overlaps"], "removed_parameters": [], "changed_parameters": ["metadata_filters", "page", "page_size"], "required_before": [], "required_after": []},
+    {"tool": "write_note", "added_parameters": [], "removed_parameters": [], "changed_parameters": ["content", "directory", "metadata", "note_type", "output_format", "project", "title"], "required_before": ["title", "content", "directory"], "required_after": ["title", "content", "directory"]}
+  ],
+  "profile_commits": {
+    "release": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+    "main-preview": "3452c821d76c083823d020984d71e06904a1ff1e"
+  }
+}
