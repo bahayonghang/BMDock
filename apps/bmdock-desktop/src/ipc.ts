@@ -24,6 +24,10 @@ export type ReadNoteArgs = ExplicitRouteArgs & {
   identifier: string;
 };
 
+export type RestoreFixtureArgs = ExplicitRouteArgs & {
+  backup_id: string;
+};
+
 export type IpcCommand =
   | { command: "get_capabilities"; args: Record<string, never> }
   | { command: "get_runtime_state"; args: Record<string, never> }
@@ -32,7 +36,9 @@ export type IpcCommand =
   | { command: "run_preflight"; args: Record<string, never> }
   | { command: "discover_config"; args: Record<string, never> }
   | { command: "list_tree"; args: ListTreeArgs }
-  | { command: "read_note"; args: ReadNoteArgs };
+  | { command: "read_note"; args: ReadNoteArgs }
+  | { command: "list_backups"; args: ExplicitRouteArgs }
+  | { command: "restore_fixture"; args: RestoreFixtureArgs };
 
 export type IpcCommandName = IpcCommand["command"];
 export type IpcEventName = "runtime_state" | "policy";
@@ -162,6 +168,40 @@ export interface NoteReadDto {
   observation: NoteObservationDto;
 }
 
+export interface BackupRecordDto {
+  id: string;
+  kind: typeof OWNED_KIND;
+}
+
+export interface BackupCatalogDto {
+  backups: BackupRecordDto[];
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  cloud_or_credential_required: false;
+  local_offline: true;
+  files_written: boolean;
+}
+
+export type RestoreClass = "empty" | "disk_verified" | "accepted_unverified" | "unclassified";
+
+export interface RestoreObservationDto {
+  classified_as: RestoreClass;
+  disk_verified: boolean;
+  envelope_is_not_disk_proof: true;
+}
+
+export interface RestoredFileDto {
+  identifier: string;
+  kind: typeof OWNED_KIND;
+}
+
+export interface RestoreResultDto {
+  backup_id: string;
+  files: RestoredFileDto[];
+  files_written: boolean;
+  observation: RestoreObservationDto;
+}
+
 export type IpcResponse =
   | { kind: "capabilities"; commands: IpcCommandName[]; events: IpcEventName[]; policy: PolicyDto }
   | { kind: "runtime_state" } & RuntimeStateDto
@@ -171,6 +211,8 @@ export type IpcResponse =
   | { kind: "config_discovery" } & ConfigDiscoveryDto
   | { kind: "tree_page" } & TreePageDto
   | { kind: "note_read" } & NoteReadDto
+  | { kind: "backup_catalog" } & BackupCatalogDto
+  | { kind: "fixture_restored" } & RestoreResultDto
   | { kind: "error"; category: ErrorCategory; message: string };
 
 export interface RuntimeStateEvent {
@@ -200,6 +242,8 @@ function assertFixtureCommand(command: IpcCommand): void {
       return;
     case "list_tree":
     case "read_note":
+    case "list_backups":
+    case "restore_fixture":
       if (command.args.project !== FIXTURE_PROJECT || command.args.workspace !== OWNED_WORKSPACE) {
         throw new Error("Only the generated fixture project is allowed");
       }
@@ -277,6 +321,29 @@ export const readNote = (identifier: string) => {
       workspace: route.workspace,
       project: route.project,
       identifier,
+    },
+  });
+};
+
+export const listBackups = () => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "backup_catalog" } & BackupCatalogDto>({
+    command: "list_backups",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+    },
+  });
+};
+
+export const restoreFixture = (backup_id: string) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "fixture_restored" } & RestoreResultDto>({
+    command: "restore_fixture",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      backup_id,
     },
   });
 };

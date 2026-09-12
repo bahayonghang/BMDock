@@ -9,6 +9,7 @@ export const messages = {
   navRuntime: "运行状态",
   navProjects: "项目",
   navPreflight: "预检",
+  navBackups: "维护",
   navAbout: "说明",
   g0Notice: "G0 尚未通过。本界面是布局壳，不表示生产写入安全。",
   emptyBadge: "空态",
@@ -42,6 +43,8 @@ export const messages = {
   unexpectedCatalog: "项目目录响应格式不符合预期",
   unexpectedPreflight: "预检响应格式不符合预期",
   unexpectedDiscovery: "配置发现响应格式不符合预期",
+  unexpectedBackups: "备份清单响应格式不符合预期",
+  unexpectedRestore: "夹具恢复响应格式不符合预期",
   runtimeTitle: "运行状态",
   runtimeLoading: "正在读取运行状态…",
   runtimeEmptyTitle: "引擎尚未启动",
@@ -111,11 +114,38 @@ export const messages = {
   discoveryReadyTitle: "已列出 BMDock 自有候选",
   discoveryRootLabel: "发现根",
   discoveryNone: "无",
+  backupsTitle: "维护与备份",
+  backupsLoading: "正在读取 BMDock 自有备份清单…",
+  backupsEmptyTitle: "没有可恢复的夹具备份",
+  backupsEmptyBody:
+    "目录为空表示当前没有 BMDock 生成的夹具备份，而不是已扫描或打开用户 Obsidian vault。list_backups 只列出自有生成快照。",
+  backupsReadyTitle: "BMDock 自有夹具备份",
+  backupsReadyBody:
+    "下列标识来自 BMDock 自有生成备份。恢复会把生成的 Markdown 复制到自有目标目录。文案“已恢复”不能当作磁盘证据；必须观察物理文件。",
+  backupsErrorTitle: "无法完成备份操作",
+  backupsErrorBody:
+    "备份清单或夹具恢复失败。下面是分类后的错误。不会启动 Supervisor，也不会恢复到用户 vault、%APPDATA% 或全局 Basic Memory 配置。",
+  backupsRefresh: "重新读取备份",
+  backupsRestore: "恢复夹具",
+  backupsRestoreDenied: "只允许恢复 BMDock 自有夹具备份标识",
+  backupsRestoreTitle: "恢复观察",
+  backupsRestoreEmpty: "选择一条夹具备份后，这里显示磁盘观察分类，而不是“已恢复”文案。",
+  backupsIdLabel: "备份标识",
+  backupsNoVault: "未扫描用户 vault 或 Basic Memory 主目录",
+  backupsFilesWrittenLabel: "是否写入自有文件",
+  backupsWroteFiles: "是（已观察到自有目标文件）",
+  backupsNoWrite: "否",
+  backupsObservationDisk: "观察分类：已核对物理文件正文",
+  backupsObservationUnverified: "观察分类：仅信封成功，不能当作磁盘证据",
+  backupsObservationEmpty: "观察分类：快照中没有可恢复的 Markdown",
+  backupsObservationUnclassified: "观察分类：未分类",
+  backupsUnverifiedNote:
+    "强杀、Job Object、睡眠恢复和磁盘故障仍为未验证。夹具恢复成功不是 T17/T37/T38 的证据。",
   aboutTitle: "说明",
   aboutIntro:
-    "这是桌面布局壳加只读预检、显式项目路由、分页目录与笔记预览。默认界面语言为简体中文。写入、移动、删除和完整编辑器属于后续任务，帮助与无障碍完备性也不在本任务关闭。",
+    "这是桌面布局壳加只读预检、显式项目路由、分页目录、笔记预览和夹具备份恢复基线。默认界面语言为简体中文。完整写入、移动、删除和编辑器属于后续任务，帮助与无障碍完备性也不在本任务关闭。",
   aboutSafety:
-    "只读调用 get_capabilities、get_runtime_state、list_projects、run_preflight、discover_config、list_tree 与 read_note。选择项目仅允许 bmdock-fixture。list_tree 与 read_note 每次都携带显式 workspace 与 project。Markdown 以纯文本预览，不执行 HTML。不会 raw callTool、不会写入 vault。",
+    "只读或夹具恢复调用 get_capabilities、get_runtime_state、list_projects、run_preflight、discover_config、list_tree、read_note、list_backups 与 restore_fixture。选择项目仅允许 bmdock-fixture。list_tree、read_note、list_backups 与 restore_fixture 每次都携带显式 workspace 与 project。Markdown 以纯文本预览，不执行 HTML。不会 raw callTool、不会写入用户 vault。",
   aboutProfiles:
     "release（c0bd87c6，21 个工具）与 main-preview（3452c821，27 个工具）保持隔离。本界面不把工具清单或 just contract 当作功能验收。",
   aboutCommands:

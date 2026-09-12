@@ -1,0 +1,201 @@
+{
+  "task": "T12",
+  "title": "备份清单与fixture恢复基线",
+  "status": "accepted_with_limits",
+  "date": "2026-09-12",
+  "host_boundary": "T12 owns typed list_backups and restore_fixture on the existing ipc_invoke union. Both commands require ExplicitRouteArgs (workspace + project) on every call. list_backups lists only BMDock-owned generated fixture backups. restore_fixture copies generated markdown from a named snapshot into a generated BMDock-owned target. Tests observe physical files after restore; the word restored is not disk proof. Production default is EmptyBackupStore: empty catalog is empty state, restore is unsupported. Tests inject FixtureBackupStore over BMDock-owned temp snapshots/targets. T12 does not start rmcp, mix engine profiles, expose callTool or write_note, restore user vaults, scan Obsidian/%APPDATA%/global Basic Memory home, or start/stop Supervisor. Forced-kill, Job Object, sleep-resume, and disk-failure remain UNVERIFIED. A successful fixture restore is not T17/T37/T38 evidence. P0 bmdock-probe and just contract/contract-main stay independent. just build stays the G0 probe. just dev remains the T08 Tauri shell.",
+  "acceptance": {
+    "AC18": {
+      "status": "unverified_fault_injection",
+      "evidence": [
+        "scripts/probe.py:recovery_boundaries",
+        "execution/evidence/t03-markdown-concurrency-recovery.json",
+        "tests/test_core.py:InteropTests.test_recovery_boundaries_stay_unverified",
+        ".trellis/tasks/09-12-t12-backup-fixture-recovery/implement.md"
+      ],
+      "claim": "T12 is a fixture restore baseline, not T17/T37/T38. Forced-kill, Job Object/process-tree, sleep-resume, and disk-failure stay UNVERIFIED. A successful restore_fixture disk observation is not treated as those proofs. Clean shutdown, accepted_unverified envelopes, and fixture restore success were not inferred as crash recovery.",
+      "unverified": [
+        "forced_kill recovery",
+        "disk_failure injection",
+        "sleep/resume recovery",
+        "Windows Job Object / process-tree evidence",
+        "native GUI crash recovery",
+        "T17 graceful exit recovery",
+        "T37 install/upgrade recovery chain",
+        "T38 native installer regression"
+      ]
+    },
+    "AC40": {
+      "status": "fixture_backup_inventory_only",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/backups.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "list_backups returns BMDock-owned generated fixture backup ids only. scanned_user_obsidian_vault=false and scanned_user_basic_memory_home=false. files_written is true only after a restore that actually wrote owned files. Empty backups[] is empty state, not a user-vault success. Extra path/root is schema. Non-fixture routes and filesystem backup ids are policy and do not open the store. Restore button is shown only for fixture backup ids. T12 does not scan user Obsidian vaults or global Basic Memory home."
+    },
+    "AC52": {
+      "status": "fixture_restore_disk_observed",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/backups.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "restore_fixture copies generated markdown from backup id fixture-welcome into a generated owned target. Tests assert target/welcome.md exists and the body matches the snapshot, including Chinese text and a wiki link. classified_as=disk_verified, disk_verified=true, files_written=true, envelope_is_not_disk_proof=true. Envelope-only restored text is accepted_unverified and files_written=false. The command does not restore into %APPDATA%, user Obsidian, or global Basic Memory config. This is not installer, Cloud, or production-vault recovery."
+    },
+    "AC53": {
+      "status": "restore_checklist_documented",
+      "evidence": [
+        ".trellis/tasks/09-12-t12-backup-fixture-recovery/implement.md",
+        "execution/evidence/t12-backup-fixture-recovery.json",
+        "docs/VERIFICATION.md"
+      ],
+      "claim": "A restore checklist records what was restored (fixture-welcome / welcome.md), the observed owned temp path pattern, the disk_verified vs accepted_unverified classification, and the UNVERIFIED remainder (forced-kill, Job Object, sleep-resume, disk-failure, T17/T37/T38, user vault). Full user-facing help remains T39."
+    }
+  },
+  "restore_checklist": {
+    "backup_id": "fixture-welcome",
+    "files": ["welcome.md"],
+    "snapshot_pattern": "{temp}/bmdock-t12-*/snapshots/fixture-welcome/welcome.md",
+    "target_pattern": "{temp}/bmdock-t12-*/target/welcome.md",
+    "body_contains": ["中文夹具备份", "[[欢迎]]"],
+    "classified_as": "disk_verified",
+    "files_written": true,
+    "envelope_is_not_disk_proof": true,
+    "not_restored_into": [
+      "%APPDATA%",
+      "user Obsidian vault",
+      "global Basic Memory config"
+    ],
+    "unverified": [
+      "forced_kill",
+      "job_object",
+      "sleep_resume",
+      "disk_failure",
+      "T17",
+      "T37",
+      "T38",
+      "user_vault_restore"
+    ]
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t12-backup-fixture-recovery",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 59 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 6 passed"
+    },
+    {
+      "cmd": "python -m unittest discover -s tests -v",
+      "exit": 1,
+      "result": "66 tests: 65 ok, 1 ERROR test_repository_phase_order via check_source because G0 is in_progress while T05+ are completed. DesktopShellTests 6 passed. T05-T11 were not reverted."
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T12 proof. Official backup/restore MCP remain UNVERIFIED. Probe entries remain independent."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window, WebView2, or Job Object session was exercised."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_64_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_discover": "65_ok_1_error_phase_order",
+    "python_unittest_desktop_shell": "6_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "forced_kill": "UNVERIFIED",
+    "job_object": "UNVERIFIED",
+    "sleep_resume": "UNVERIFIED",
+    "disk_failure": "UNVERIFIED",
+    "official_backup_mcp": "UNVERIFIED",
+    "native_gui": "UNVERIFIED",
+    "webview2": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "rmcp_live_client": "not_added_in_t12"
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed_unchanged",
+    "T10": "completed_unchanged",
+    "T11": "completed_unchanged",
+    "T12": "completed"
+  },
+  "scope_limits": [
+    "list_backups and restore_fixture require ExplicitRouteArgs copied on every call. RouteState.project is not an implicit restore target.",
+    "Production EmptyBackupStore does not scan user vaults or global Basic Memory home. Empty list_backups is empty state. restore_fixture without a store is unsupported.",
+    "FixtureBackupStore is test-only. Tests generate BMDock-owned temp snapshots and compare restored files to physical disk.",
+    "files_written is true only after a restore that actually wrote owned files. Envelope-only restored text is accepted_unverified.",
+    "Capabilities advertise ten commands. call_tool, search_notes, and write_note remain absent. T14/T15 write/edit/move/delete are out of scope.",
+    "IPC error union stays policy/schema/unsupported. Runtime failure kinds stay on RuntimeStateDto.",
+    "just build stays scripts.tasks build. just contract* stay probe. just dev remains T08 Tauri.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "UI copy, tool lists, compiled exe, and just contract are not native GUI / WebView2 / Job Object / real vault / hosted CI / installer-recovery proof."
+  ],
+  "rollback": "Remove list_backups and restore_fixture from the IpcCommand union, restore the eight-command allowlist, drop backups.rs/EmptyBackupStore/FixtureBackupStore, and remove the 维护 nav section. Do not revert T05-T11 status to make unit green."
+}

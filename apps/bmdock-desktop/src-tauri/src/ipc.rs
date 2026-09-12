@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::backups::{self, BackupCatalogDto, BackupStore, RestoreResultDto};
 use crate::library::{self, NoteLibrary, NoteReadDto, TreePageDto};
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
@@ -18,6 +19,8 @@ pub enum IpcCommandName {
     DiscoverConfig,
     ListTree,
     ReadNote,
+    ListBackups,
+    RestoreFixture,
 }
 
 pub fn allowed_commands() -> Vec<IpcCommandName> {
@@ -30,6 +33,8 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::DiscoverConfig,
         IpcCommandName::ListTree,
         IpcCommandName::ReadNote,
+        IpcCommandName::ListBackups,
+        IpcCommandName::RestoreFixture,
     ]
 }
 
@@ -88,6 +93,23 @@ impl ReadNoteArgs {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct RestoreFixtureArgs {
+    pub workspace: String,
+    pub project: String,
+    pub backup_id: String,
+}
+
+impl RestoreFixtureArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(
     tag = "command",
     content = "args",
@@ -103,6 +125,8 @@ pub enum IpcCommand {
     DiscoverConfig(EmptyArgs),
     ListTree(ListTreeArgs),
     ReadNote(ReadNoteArgs),
+    ListBackups(ExplicitRouteArgs),
+    RestoreFixture(RestoreFixtureArgs),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -153,6 +177,8 @@ pub enum IpcResponse {
     ConfigDiscovery(ConfigDiscoveryDto),
     TreePage(TreePageDto),
     NoteRead(NoteReadDto),
+    BackupCatalog(BackupCatalogDto),
+    FixtureRestored(RestoreResultDto),
     Error(IpcError),
 }
 
@@ -204,7 +230,13 @@ pub fn dispatch_with_route(
     snapshot: RuntimeSnapshot,
     route: &mut RouteState,
 ) -> Result<IpcResponse, IpcError> {
-    dispatch_with_library(command, snapshot, route, &library::EmptyLibrary)
+    dispatch_with_library(
+        command,
+        snapshot,
+        route,
+        &library::EmptyLibrary,
+        &backups::EmptyBackupStore,
+    )
 }
 
 pub fn dispatch_with_library(
@@ -212,6 +244,7 @@ pub fn dispatch_with_library(
     snapshot: RuntimeSnapshot,
     route: &mut RouteState,
     library: &dyn NoteLibrary,
+    backups: &dyn BackupStore,
 ) -> Result<IpcResponse, IpcError> {
     match command {
         IpcCommand::GetCapabilities(_) => Ok(IpcResponse::Capabilities(CapabilitiesDto {
@@ -255,6 +288,17 @@ pub fn dispatch_with_library(
             require_explicit_fixture_route(&args.route())?;
             library::reject_filesystem_identifier(&args.identifier)?;
             Ok(IpcResponse::NoteRead(library.read_note(&args.identifier)?))
+        }
+        IpcCommand::ListBackups(route_args) => {
+            require_explicit_fixture_route(&route_args)?;
+            Ok(IpcResponse::BackupCatalog(backups.list_backups()?))
+        }
+        IpcCommand::RestoreFixture(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            backups::reject_backup_id(&args.backup_id).map_err(IpcError::from)?;
+            Ok(IpcResponse::FixtureRestored(
+                backups.restore_fixture(&args.backup_id)?,
+            ))
         }
     }
 }
@@ -305,20 +349,24 @@ mod tests {
                 IpcCommandName::DiscoverConfig,
                 IpcCommandName::ListTree,
                 IpcCommandName::ReadNote,
+                IpcCommandName::ListBackups,
+                IpcCommandName::RestoreFixture,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 8);
+        assert_eq!(capabilities.commands.len(), 10);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 8);
+        assert_eq!(commands.len(), 10);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
         assert!(commands.iter().any(|command| command == "read_note"));
+        assert!(commands.iter().any(|command| command == "list_backups"));
+        assert!(commands.iter().any(|command| command == "restore_fixture"));
         assert!(!commands.iter().any(|command| {
             command == "search_notes"
                 || command == "call_tool"
@@ -532,6 +580,26 @@ mod tests {
             r#"{"command":"list_tree","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","filesystem_path":"%APPDATA%\\\\Obsidian"}}"#,
         );
         assert!(extra_fs_path_on_tree.is_err());
+        let extra_path_on_backups = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_backups","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_backups.is_err());
+        let extra_root_on_backups = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_backups","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_backups.is_err());
+        let extra_path_on_restore = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"restore_fixture","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","backup_id":"fixture-welcome","path":"%APPDATA%\\\\Obsidian"}}"#,
+        );
+        assert!(extra_path_on_restore.is_err());
+        let extra_root_on_restore = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"restore_fixture","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","backup_id":"fixture-welcome","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_restore.is_err());
+        let incomplete_restore = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"restore_fixture","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(incomplete_restore.is_err());
         let well_formed_read = serde_json::from_str::<IpcCommand>(
             r#"{"command":"read_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome"}}"#,
         );
@@ -540,6 +608,14 @@ mod tests {
             r#"{"command":"list_tree","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","page_size":2}}"#,
         );
         assert!(well_formed_tree.is_ok());
+        let well_formed_backups = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_backups","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(well_formed_backups.is_ok());
+        let well_formed_restore = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"restore_fixture","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","backup_id":"fixture-welcome"}}"#,
+        );
+        assert!(well_formed_restore.is_ok());
     }
 
     #[test]
@@ -807,6 +883,7 @@ mod tests {
             idle_snapshot(),
             &mut route,
             &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
         )
         .unwrap() else {
             panic!("wrong response variant")
@@ -830,6 +907,7 @@ mod tests {
             idle_snapshot(),
             &mut route,
             &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
         )
         .unwrap_err();
         assert_eq!(error.category, ErrorCategory::Unsupported);
@@ -850,6 +928,7 @@ mod tests {
             snapshot.clone(),
             &mut route,
             &PanicLibrary,
+            &backups::EmptyBackupStore,
         )
         .unwrap_err();
         assert_eq!(tree.category, ErrorCategory::Policy);
@@ -863,6 +942,7 @@ mod tests {
             snapshot.clone(),
             &mut route,
             &PanicLibrary,
+            &backups::EmptyBackupStore,
         )
         .unwrap_err();
         assert_eq!(workspace.category, ErrorCategory::Policy);
@@ -875,6 +955,7 @@ mod tests {
             snapshot,
             &mut route,
             &PanicLibrary,
+            &backups::EmptyBackupStore,
         )
         .unwrap_err();
         assert_eq!(identifier.category, ErrorCategory::Policy);
@@ -889,6 +970,7 @@ mod tests {
             idle_snapshot(),
             &mut route,
             &PanicLibrary,
+            &backups::EmptyBackupStore,
         )
         .unwrap_err();
         assert_eq!(zero.category, ErrorCategory::Schema);
@@ -897,6 +979,7 @@ mod tests {
             idle_snapshot(),
             &mut route,
             &PanicLibrary,
+            &backups::EmptyBackupStore,
         )
         .unwrap_err();
         assert_eq!(huge.category, ErrorCategory::Schema);
@@ -905,6 +988,7 @@ mod tests {
             idle_snapshot(),
             &mut route,
             &PanicLibrary,
+            &backups::EmptyBackupStore,
         )
         .unwrap_err();
         assert_eq!(empty_cursor.category, ErrorCategory::Schema);
@@ -913,6 +997,7 @@ mod tests {
             idle_snapshot(),
             &mut route,
             &TruncatingLibrary,
+            &backups::EmptyBackupStore,
         )
         .unwrap_err();
         assert_eq!(truncated.category, ErrorCategory::Unsupported);
@@ -942,6 +1027,7 @@ mod tests {
             idle_snapshot(),
             &mut route,
             &library,
+            &backups::EmptyBackupStore,
         )
         .unwrap() else {
             panic!("wrong response variant")
@@ -955,6 +1041,7 @@ mod tests {
             idle_snapshot(),
             &mut route,
             &library,
+            &backups::EmptyBackupStore,
         )
         .unwrap();
         let IpcResponse::TreePage(second) = second else {
@@ -970,6 +1057,7 @@ mod tests {
             idle_snapshot(),
             &mut route,
             &library,
+            &backups::EmptyBackupStore,
         )
         .unwrap() else {
             panic!("wrong response variant")
@@ -1012,6 +1100,7 @@ mod tests {
             },
             &mut route,
             &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
         )
         .unwrap() else {
             panic!("wrong response variant")
@@ -1021,5 +1110,260 @@ mod tests {
         assert!(json.get("profile").is_none());
         assert!(json.get("tools").is_none());
         assert_eq!(json["entries"].as_array().unwrap().len(), 0);
+    }
+
+    struct PanicBackupStore;
+
+    impl BackupStore for PanicBackupStore {
+        fn list_backups(&self) -> Result<backups::BackupCatalogDto, library::LibraryError> {
+            panic!("policy rejection must not open the backup store")
+        }
+
+        fn restore_fixture(
+            &self,
+            _backup_id: &str,
+        ) -> Result<backups::RestoreResultDto, library::LibraryError> {
+            panic!("policy rejection must not open the backup store")
+        }
+    }
+
+    fn fixture_backup_args() -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+        }
+    }
+
+    fn fixture_restore_args(backup_id: &str) -> RestoreFixtureArgs {
+        RestoreFixtureArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            backup_id: backup_id.to_owned(),
+        }
+    }
+
+    #[test]
+    fn list_backups_empty_store_is_empty_not_user_vault() {
+        let mut route = RouteState::default();
+        let IpcResponse::BackupCatalog(catalog) = dispatch_with_library(
+            IpcCommand::ListBackups(fixture_backup_args()),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(catalog.backups.is_empty());
+        assert!(!catalog.scanned_user_obsidian_vault);
+        assert!(!catalog.scanned_user_basic_memory_home);
+        assert!(!catalog.files_written);
+        assert!(catalog.local_offline);
+        let json = serde_json::to_value(&IpcResponse::BackupCatalog(catalog)).unwrap();
+        assert_eq!(json["kind"], "backup_catalog");
+        assert_eq!(json["scanned_user_obsidian_vault"], false);
+        assert_eq!(json["files_written"], false);
+        assert!(json.get("path").is_none());
+        assert!(json.get("expected_tools").is_none());
+    }
+
+    #[test]
+    fn restore_without_store_is_unsupported() {
+        let mut route = RouteState::default();
+        let error = dispatch_with_library(
+            IpcCommand::RestoreFixture(fixture_restore_args("fixture-welcome")),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(error.category, ErrorCategory::Unsupported);
+        assert_eq!(error.message, backups::UNSUPPORTED_BACKUP_UNAVAILABLE);
+    }
+
+    #[test]
+    fn non_fixture_backup_and_restore_are_policy_and_do_not_open() {
+        let snapshot = idle_snapshot();
+        let mut route = RouteState::default();
+        let list = dispatch_with_library(
+            IpcCommand::ListBackups(ExplicitRouteArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &library::EmptyLibrary,
+            &PanicBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(list.category, ErrorCategory::Policy);
+        let workspace = dispatch_with_library(
+            IpcCommand::ListBackups(ExplicitRouteArgs {
+                workspace: "user-home".to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &library::EmptyLibrary,
+            &PanicBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(workspace.category, ErrorCategory::Policy);
+        let restore = dispatch_with_library(
+            IpcCommand::RestoreFixture(RestoreFixtureArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                backup_id: r"%APPDATA%\Obsidian\vault".to_owned(),
+            }),
+            snapshot,
+            &mut route,
+            &library::EmptyLibrary,
+            &PanicBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(restore.category, ErrorCategory::Policy);
+        assert_eq!(route.project, None);
+    }
+
+    #[test]
+    fn fixture_restore_observes_physical_files_not_restored_text() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t12-ipc-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let snapshots = dir.join("snapshots");
+        let target = dir.join("target");
+        let store = backups::FixtureBackupStore::new(snapshots, target.clone()).unwrap();
+        let body = "# 中文夹具备份\n\n这是 BMDock 自有恢复正文。参见 [[欢迎]]。\n";
+        store
+            .seed_backup("fixture-welcome", &[("welcome", body)])
+            .unwrap();
+        let mut route = RouteState::default();
+        let snapshot = idle_snapshot();
+        let before = snapshot.clone();
+        let IpcResponse::BackupCatalog(catalog) = dispatch_with_library(
+            IpcCommand::ListBackups(fixture_backup_args()),
+            snapshot.clone(),
+            &mut route,
+            &library::EmptyLibrary,
+            &store,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(snapshot, before);
+        assert_eq!(catalog.backups.len(), 1);
+        assert_eq!(catalog.backups[0].id, "fixture-welcome");
+        assert!(!catalog.files_written);
+        assert!(!catalog.scanned_user_obsidian_vault);
+        assert!(!catalog.scanned_user_basic_memory_home);
+
+        let IpcResponse::FixtureRestored(result) = dispatch_with_library(
+            IpcCommand::RestoreFixture(fixture_restore_args("fixture-welcome")),
+            snapshot.clone(),
+            &mut route,
+            &library::EmptyLibrary,
+            &store,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(snapshot, before);
+        let dest = target.join("welcome.md");
+        assert!(dest.is_file(), "restore must observe a physical owned file");
+        let disk = std::fs::read_to_string(&dest).unwrap();
+        assert_eq!(disk, body);
+        assert!(disk.contains("[[欢迎]]"));
+        assert!(result.files_written);
+        assert!(result.observation.disk_verified);
+        assert!(result.observation.envelope_is_not_disk_proof);
+        assert_eq!(
+            result.observation.classified_as,
+            backups::RestoreClass::DiskVerified
+        );
+        let json = serde_json::to_value(&IpcResponse::FixtureRestored(result)).unwrap();
+        assert_eq!(json["kind"], "fixture_restored");
+        assert_eq!(json["files_written"], true);
+        assert_eq!(json["observation"]["disk_verified"], true);
+        assert!(json.get("path").is_none());
+        assert!(json.get("expected_tools").is_none());
+        assert!(json.get("profile").is_none());
+
+        let IpcResponse::BackupCatalog(after) = dispatch_with_library(
+            IpcCommand::ListBackups(fixture_backup_args()),
+            snapshot,
+            &mut route,
+            &library::EmptyLibrary,
+            &store,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(after.files_written);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn envelope_restore_is_accepted_unverified_and_does_not_write() {
+        let store = backups::EnvelopeBackupStore {
+            backup_id: "fixture-welcome".to_owned(),
+        };
+        let mut route = RouteState::default();
+        let IpcResponse::FixtureRestored(result) = dispatch_with_library(
+            IpcCommand::RestoreFixture(fixture_restore_args("fixture-welcome")),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &store,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(!result.files_written);
+        assert!(!result.observation.disk_verified);
+        assert_eq!(
+            result.observation.classified_as,
+            backups::RestoreClass::AcceptedUnverified
+        );
+        let json = serde_json::to_value(&IpcResponse::FixtureRestored(result)).unwrap();
+        assert_eq!(json["kind"], "fixture_restored");
+        assert_eq!(json["files_written"], false);
+        assert_ne!(json["observation"]["classified_as"], "restored");
+    }
+
+    #[test]
+    fn backup_restore_does_not_merge_engine_profiles() {
+        let release = crate::supervisor::EngineProfile::Release;
+        let preview = crate::supervisor::EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(preview.commit(), "3452c821d76c083823d020984d71e06904a1ff1e");
+        assert_eq!(release.expected_tools(), 21);
+        assert_eq!(preview.expected_tools(), 27);
+        let mut route = RouteState::default();
+        let IpcResponse::BackupCatalog(catalog) = dispatch_with_library(
+            IpcCommand::ListBackups(fixture_backup_args()),
+            RuntimeSnapshot {
+                state: ConnectionState::Connected,
+                profile: Some(release),
+                child_pid: Some(7),
+                failure: None,
+                shutdown: None,
+            },
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let json = serde_json::to_value(&IpcResponse::BackupCatalog(catalog)).unwrap();
+        assert!(json.get("expected_tools").is_none());
+        assert!(json.get("profile").is_none());
+        assert!(json.get("tools").is_none());
+        assert_eq!(json["backups"].as_array().unwrap().len(), 0);
     }
 }

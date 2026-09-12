@@ -1,9 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
   FIXTURE_PROJECT,
+  OWNED_KIND,
   TREE_PAGE_SIZE,
   copyFixtureRoute,
   invokeTyped,
+  type BackupCatalogDto,
+  type BackupRecordDto,
   type CapabilitiesDto,
   type ConfigDiscoveryDto,
   type EngineProfile,
@@ -11,6 +14,7 @@ import {
   type NoteReadDto,
   type PreflightDto,
   type ProjectCatalogDto,
+  type RestoreResultDto,
   type RuntimeStateDto,
   type TreeEntryDto,
 } from "./ipc";
@@ -25,7 +29,7 @@ import {
   type ShellLoadState,
 } from "./shell";
 
-const SECTIONS = ["workbench", "runtime", "projects", "preflight", "about"] as const;
+const SECTIONS = ["workbench", "runtime", "projects", "preflight", "backups", "about"] as const;
 type SectionId = (typeof SECTIONS)[number];
 
 function sectionLabel(id: SectionId): string {
@@ -38,6 +42,8 @@ function sectionLabel(id: SectionId): string {
       return t("navProjects");
     case "preflight":
       return t("navPreflight");
+    case "backups":
+      return t("navBackups");
     case "about":
       return t("navAbout");
     default: {
@@ -137,6 +143,8 @@ function SectionBody({
       return <ProjectPanel load={load} onRefresh={onRefresh} />;
     case "preflight":
       return <PreflightPanel />;
+    case "backups":
+      return <BackupPanel />;
     case "about":
       return <AboutPanel />;
     default: {
@@ -245,6 +253,8 @@ function WorkbenchLibrary({ onRefresh }: { onRefresh: () => void }) {
           case "preflight":
           case "config_discovery":
           case "note_read":
+          case "backup_catalog":
+          case "fixture_restored":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
             return;
@@ -389,6 +399,8 @@ async function openNote(
       case "preflight":
       case "config_discovery":
       case "tree_page":
+      case "backup_catalog":
+      case "fixture_restored":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
         return;
@@ -447,6 +459,8 @@ async function loadMoreTree(
       case "preflight":
       case "config_discovery":
       case "note_read":
+      case "backup_catalog":
+      case "fixture_restored":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
         return;
@@ -703,6 +717,8 @@ function ProjectPanel({
                 case "config_discovery":
                 case "tree_page":
                 case "note_read":
+                case "backup_catalog":
+                case "fixture_restored":
                   setSelectError({
                     category: "schema",
                     message: t("unexpectedCatalog"),
@@ -930,6 +946,314 @@ function DiscoveryBlock({
             <li key={candidate.path}>
               {candidate.kind}：{candidate.path}
             </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+type BackupError = {
+  category: "policy" | "schema" | "unsupported" | "invoke";
+  message: string;
+};
+
+function isFixtureBackupId(id: string): boolean {
+  if (id.trim() === "" || !id.startsWith("fixture-")) {
+    return false;
+  }
+  return !(
+    id.includes("\\") ||
+    id.includes("/") ||
+    id.includes("..") ||
+    id.includes("%") ||
+    id.includes(":") ||
+    id.includes(".obsidian") ||
+    id.includes(".basic-memory")
+  );
+}
+
+function unexpectedBackupResponse(): BackupError {
+  return { category: "schema", message: t("unexpectedBackups") };
+}
+
+function BackupPanel() {
+  const [reloadToken, setReloadToken] = useState(0);
+  const [phase, setPhase] = useState<"loading" | "ready" | "empty" | "error">("loading");
+  const [catalog, setCatalog] = useState<BackupCatalogDto | null>(null);
+  const [restoreResult, setRestoreResult] = useState<RestoreResultDto | null>(null);
+  const [error, setError] = useState<BackupError | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPhase("loading");
+    setCatalog(null);
+    setRestoreResult(null);
+    setError(null);
+    void (async () => {
+      try {
+        const route = copyFixtureRoute();
+        const response = await invokeTyped<IpcResponse>({
+          command: "list_backups",
+          args: {
+            workspace: route.workspace,
+            project: route.project,
+          },
+        });
+        if (cancelled) {
+          return;
+        }
+        switch (response.kind) {
+          case "error":
+            setError({ category: response.category, message: response.message });
+            setPhase("error");
+            return;
+          case "backup_catalog":
+            setCatalog({
+              backups: response.backups,
+              scanned_user_obsidian_vault: response.scanned_user_obsidian_vault,
+              scanned_user_basic_memory_home: response.scanned_user_basic_memory_home,
+              cloud_or_credential_required: response.cloud_or_credential_required,
+              local_offline: response.local_offline,
+              files_written: response.files_written,
+            });
+            setPhase(response.backups.length === 0 ? "empty" : "ready");
+            return;
+          case "capabilities":
+          case "runtime_state":
+          case "project_selected":
+          case "project_catalog":
+          case "preflight":
+          case "config_discovery":
+          case "tree_page":
+          case "note_read":
+          case "fixture_restored":
+            setError(unexpectedBackupResponse());
+            setPhase("error");
+            return;
+          default: {
+            const exhaustive: never = response;
+            return exhaustive;
+          }
+        }
+      } catch (cause) {
+        if (!cancelled) {
+          setError({
+            category: "invoke",
+            message: cause instanceof Error ? cause.message : String(cause),
+          });
+          setPhase("error");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadToken]);
+
+  const refresh = (
+    <button type="button" className="action" onClick={() => setReloadToken((token) => token + 1)}>
+      {t("backupsRefresh")}
+    </button>
+  );
+
+  if (phase === "loading") {
+    return (
+      <section className="panel" data-state="status" aria-labelledby="backups-title" aria-busy="true">
+        <p className="state-badge">{t("statusBadge")}</p>
+        <h2 id="backups-title">{t("backupsTitle")}</h2>
+        <p role="status">{t("backupsLoading")}</p>
+      </section>
+    );
+  }
+
+  if (phase === "error" && error) {
+    return (
+      <section className="panel" data-state="error" aria-labelledby="backups-error-title" role="alert">
+        <p className="state-badge">{t("errorBadge")}</p>
+        <h2 id="backups-error-title">{t("backupsErrorTitle")}</h2>
+        <p>
+          {errorCategoryLabel(error.category)}：{error.message}
+        </p>
+        <p>{t("backupsErrorBody")}</p>
+        {refresh}
+      </section>
+    );
+  }
+
+  const empty = phase === "empty" || !catalog || catalog.backups.length === 0;
+  return (
+    <section
+      className="panel"
+      data-state={empty ? "empty" : "status"}
+      aria-labelledby="backups-title"
+    >
+      <p className="state-badge">{empty ? t("emptyBadge") : t("statusBadge")}</p>
+      <h2 id="backups-title">{empty ? t("backupsEmptyTitle") : t("backupsReadyTitle")}</h2>
+      <p>{empty ? t("backupsEmptyBody") : t("backupsReadyBody")}</p>
+      <p>{t("backupsUnverifiedNote")}</p>
+      <ul className="policy-list">
+        <li>{t("backupsNoVault")}</li>
+        <li>
+          {t("backupsFilesWrittenLabel")}：
+          {catalog?.files_written ? t("backupsWroteFiles") : t("backupsNoWrite")}
+        </li>
+      </ul>
+      {empty || !catalog ? null : (
+        <ul className="tree-list">
+          {catalog.backups.map((backup) => (
+            <BackupRow
+              key={backup.id}
+              backup={backup}
+              onRestored={(result) => {
+                setRestoreResult(result);
+                setCatalog({
+                  ...catalog,
+                  files_written: catalog.files_written || result.files_written,
+                });
+              }}
+              onError={(next) => {
+                setError(next);
+                setPhase("error");
+              }}
+            />
+          ))}
+        </ul>
+      )}
+      <RestoreObservation result={restoreResult} />
+      {refresh}
+    </section>
+  );
+}
+
+function BackupRow({
+  backup,
+  onRestored,
+  onError,
+}: {
+  backup: BackupRecordDto;
+  onRestored: (result: RestoreResultDto) => void;
+  onError: (error: BackupError) => void;
+}) {
+  const canRestore = backup.kind === OWNED_KIND && isFixtureBackupId(backup.id);
+  return (
+    <li>
+      <p>
+        {t("backupsIdLabel")}：{backup.id}
+      </p>
+      {canRestore ? (
+        <button
+          type="button"
+          className="action"
+          onClick={() => {
+            void restoreNamedFixture(backup.id, onRestored, onError);
+          }}
+        >
+          {t("backupsRestore")}
+        </button>
+      ) : null}
+    </li>
+  );
+}
+
+async function restoreNamedFixture(
+  backupId: string,
+  onRestored: (result: RestoreResultDto) => void,
+  onError: (error: BackupError) => void,
+): Promise<void> {
+  if (!isFixtureBackupId(backupId)) {
+    onError({ category: "policy", message: t("backupsRestoreDenied") });
+    return;
+  }
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "restore_fixture",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        backup_id: backupId,
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        onError({ category: response.category, message: response.message });
+        return;
+      case "fixture_restored":
+        onRestored({
+          backup_id: response.backup_id,
+          files: response.files,
+          files_written: response.files_written,
+          observation: response.observation,
+        });
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "backup_catalog":
+        onError({ category: "schema", message: t("unexpectedRestore") });
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    onError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+function restoreObservationLabel(result: RestoreResultDto): string {
+  switch (result.observation.classified_as) {
+    case "disk_verified":
+      return t("backupsObservationDisk");
+    case "accepted_unverified":
+      return t("backupsObservationUnverified");
+    case "empty":
+      return t("backupsObservationEmpty");
+    case "unclassified":
+      return t("backupsObservationUnclassified");
+    default: {
+      const exhaustive: never = result.observation.classified_as;
+      return exhaustive;
+    }
+  }
+}
+
+function RestoreObservation({ result }: { result: RestoreResultDto | null }) {
+  if (!result) {
+    return (
+      <section className="subpanel" data-state="empty" aria-labelledby="restore-preview-title">
+        <p className="state-badge">{t("emptyBadge")}</p>
+        <h3 id="restore-preview-title">{t("backupsRestoreTitle")}</h3>
+        <p>{t("backupsRestoreEmpty")}</p>
+      </section>
+    );
+  }
+  return (
+    <section className="subpanel" data-state="status" aria-labelledby="restore-preview-title">
+      <p className="state-badge">{t("statusBadge")}</p>
+      <h3 id="restore-preview-title">{t("backupsRestoreTitle")}</h3>
+      <p>
+        {t("backupsIdLabel")}：{result.backup_id}
+      </p>
+      <p>{restoreObservationLabel(result)}</p>
+      <p>
+        {t("backupsFilesWrittenLabel")}：
+        {result.files_written ? t("backupsWroteFiles") : t("backupsNoWrite")}
+      </p>
+      {result.files.length === 0 ? null : (
+        <ul className="policy-list">
+          {result.files.map((file) => (
+            <li key={file.identifier}>{file.identifier}</li>
           ))}
         </ul>
       )}

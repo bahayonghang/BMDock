@@ -156,3 +156,21 @@ T11 在现有 `ipc_invoke` 上增加 typed `list_tree` 与 `read_note`。两条�
 本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t11-paginated-tree-note-read` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 48 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 6 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。`python -m unittest discover -s tests -v` 跑 66 项：65 ok，1 ERROR `test_repository_phase_order`（同一 `check_source`）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / WebView2 / Job Object / 真实 vault / hosted CI / 官方 MCP 读取证据；这些仍为 `UNVERIFIED`。
 
 T11 证据与验收映射见 [t11-paginated-tree-note-read.json](../execution/evidence/t11-paginated-tree-note-read.json)。`execution/status.json` 仅将 T11 标为 `completed`；未改 T05–T10/G0。
+
+## T12：备份清单与 fixture 恢复基线
+
+T12 在现有 `ipc_invoke` 上增加 typed `list_backups` 与 `restore_fixture`。两条命令每次都必须携带 `ExplicitRouteArgs`（`workspace` + `project`）；缺少路由字段或额外 `path`/`root` 为 schema。非 fixture 项目或非自有工作区、以及看起来像 `%APPDATA%` / 用户 vault / `.basic-memory` 的 `backup_id` 为 policy，且不打开路径。capabilities 精确允许列为 10 个命令；未知 `call_tool` / `write_note` 仍失败。
+
+备份清单（AC40）只列出 BMDock 生成的夹具备份标识。`scanned_user_obsidian_vault=false`，`scanned_user_basic_memory_home=false`。`files_written` 仅在一次实际写入自有文件的恢复之后为 true。空 `backups[]` 是空态，不是用户 vault 成功。生产默认 `EmptyBackupStore` 不扫描 `%APPDATA%`、用户 Obsidian 或全局 Basic Memory 主目录。
+
+夹具恢复（AC52）把生成 Markdown 从命名快照复制到生成的自有目标目录。测试在临时自有目录写入含中文与 wiki-link 的快照，恢复后断言 `target/welcome.md` 存在且正文等于快照。`envelope_is_not_disk_proof=true`。信封成功文案 `"restored"` 分类为 `accepted_unverified`，不是磁盘证据。禁止恢复到 `%APPDATA%`、用户 Obsidian 或全局 Basic Memory 配置。
+
+AC18：强杀、Job Object、睡眠恢复和磁盘故障保持 `UNVERIFIED`。夹具恢复成功不是 T17/T37/T38 证据。恢复清单（AC53）记录于本任务 `implement.md` 与 [t12-backup-fixture-recovery.json](../execution/evidence/t12-backup-fixture-recovery.json)。
+
+renderer 增加 zh-CN「维护」分区，区分空态 / 错误 / 就绪；恢复按钮只对 fixture 备份标识显示。Markdown 不以 HTML 执行。不 start/stop Supervisor。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T12 证明。
+
+本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t12-backup-fixture-recovery` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 59 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 6 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。`python -m unittest discover -s tests -v` 跑 66 项：65 ok，1 ERROR `test_repository_phase_order`（同一 `check_source`）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / WebView2 / Job Object / 真实 vault / hosted CI / 安装器恢复证据；这些仍为 `UNVERIFIED`。
+
+T12 证据与验收映射见 [t12-backup-fixture-recovery.json](../execution/evidence/t12-backup-fixture-recovery.json)。`execution/status.json` 仅将 T12 标为 `completed`；未改 T05–T11/G0。
