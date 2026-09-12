@@ -3310,4 +3310,110 @@ mod tests {
         assert!(!begun.child_killed);
         assert_eq!(begun.supervisor_status, "not_started");
     }
+
+    #[test]
+    fn unsafe_html_crlf_wiki_roundtrips_on_draft_and_note_paths() {
+        let body = crate::content_safety::UNSAFE_HTML_WIKI_CRLF_BODY;
+        let class = crate::content_safety::classify_body(body);
+        assert!(class.unsafe_html_present);
+        assert!(!class.executed);
+        assert_eq!(
+            class.line_endings,
+            crate::content_safety::LineEndingClass::Crlf
+        );
+
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let draft_dir = std::env::temp_dir().join(format!("bmdock-t14-t18-{nanos}"));
+        std::fs::create_dir_all(&draft_dir).unwrap();
+        let store = drafts::FixtureDraftStore::new(draft_dir.clone()).unwrap();
+        let mut route = RouteState::default();
+        let IpcResponse::DraftSaved(saved) = dispatch_with_stores(
+            IpcCommand::SaveDraft(fixture_save_draft_args("welcome", body)),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+            &store,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let draft_dest = draft_dir.join("welcome.md");
+        let draft_disk = crate::content_safety::read_exact_bytes(&draft_dest).unwrap();
+        assert_eq!(draft_disk, body.as_bytes());
+        assert!(saved.observation.disk_verified);
+        assert_eq!(saved.body, body);
+        let IpcResponse::DraftLoaded(loaded) = dispatch_with_stores(
+            IpcCommand::LoadDraft(fixture_load_draft_args("welcome")),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+            &store,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(loaded.body, body);
+        let _ = std::fs::remove_dir_all(&draft_dir);
+
+        let note_dir = std::env::temp_dir().join(format!("bmdock-t15-t18-{nanos}"));
+        std::fs::create_dir_all(&note_dir).unwrap();
+        let note_library = library::FixtureLibrary::new(note_dir.clone());
+        let IpcResponse::NoteWritten(written) = dispatch_with_library(
+            IpcCommand::WriteNote(fixture_write_args("welcome", "中文夹具笔记", body)),
+            idle_snapshot(),
+            &mut route,
+            &note_library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let note_dest = note_dir.join("welcome.md");
+        let note_disk = crate::content_safety::read_exact_bytes(&note_dest).unwrap();
+        assert_eq!(note_disk, body.as_bytes());
+        assert!(note_disk.windows(2).any(|pair| pair == b"\r\n"));
+        assert!(written.observation.disk_verified);
+        assert_eq!(written.body, body);
+        let IpcResponse::NoteRead(read) = dispatch_with_library(
+            IpcCommand::ReadNote(fixture_read_args("welcome")),
+            idle_snapshot(),
+            &mut route,
+            &note_library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(read.body, body);
+        assert!(read.body.contains("<script>"));
+        assert!(read.body.contains("onerror="));
+        assert!(read.body.contains("[[欢迎]]"));
+        crate::content_safety::persist_exact_utf8(&note_dest, &body.replace("\r\n", "\n")).unwrap();
+        let lost = crate::content_safety::read_exact_bytes(&note_dest).unwrap();
+        assert!(crate::content_safety::crlf_normalized_to_lf(body, &lost));
+        assert!(!crate::content_safety::disk_verified_from_bytes(
+            body, &lost
+        ));
+        let slash = dispatch_with_library(
+            IpcCommand::WriteNote(WriteNoteArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                identifier: r"C:\Users\someone\vault\note.md".to_owned(),
+                title: "中文夹具笔记".to_owned(),
+                body: body.to_owned(),
+            }),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(slash.category, ErrorCategory::Policy);
+        let _ = std::fs::remove_dir_all(&note_dir);
+    }
 }

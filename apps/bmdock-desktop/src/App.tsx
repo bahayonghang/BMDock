@@ -29,6 +29,10 @@ import {
 } from "./ipc";
 import { t } from "./i18n";
 import {
+  classifyBody,
+  type LineEndingClass,
+} from "./contentSafety";
+import {
   errorCategoryLabel,
   drainPhaseLabel,
   failureKindLabel,
@@ -531,6 +535,54 @@ async function loadMoreTree(
   }
 }
 
+function lineEndingLabel(kind: LineEndingClass): string {
+  switch (kind) {
+    case "none":
+      return t("contentSafetyLineNone");
+    case "lf":
+      return t("contentSafetyLineLf");
+    case "crlf":
+      return t("contentSafetyLineCrlf");
+    case "mixed":
+      return t("contentSafetyLineMixed");
+    default: {
+      const exhaustive: never = kind;
+      return exhaustive;
+    }
+  }
+}
+
+function ContentSafetyFacts({ body, previewId }: { body: string; previewId: string }) {
+  const safety = classifyBody(body);
+  return (
+    <div className="content-safety">
+      <h4 id={`${previewId}-safety`}>{t("contentSafetyTitle")}</h4>
+      <dl className="facts">
+        <div>
+          <dt>{t("contentSafetyHtmlLabel")}</dt>
+          <dd data-unsafe-html={safety.unsafe_html_present ? "true" : "false"}>
+            {safety.unsafe_html_present ? t("contentSafetyHtmlPresent") : t("contentSafetyHtmlAbsent")}
+          </dd>
+        </div>
+        <div>
+          <dt>{t("contentSafetyExecutedLabel")}</dt>
+          <dd data-executed="false">{t("contentSafetyExecutedNo")}</dd>
+        </div>
+        <div>
+          <dt>{t("contentSafetyLineLabel")}</dt>
+          <dd data-line-endings={safety.line_endings}>{lineEndingLabel(safety.line_endings)}</dd>
+        </div>
+      </dl>
+      <p>{t("contentSafetyImeUnverified")}</p>
+      <p>{t("contentSafetyHelpNotT39")}</p>
+      <p id={previewId}>{t("contentSafetyPreviewLabel")}</p>
+      <pre className="note-body" data-preview="text" data-executed="false" aria-labelledby={previewId}>
+        {body}
+      </pre>
+    </div>
+  );
+}
+
 function observationLabel(note: NoteReadDto): string {
   switch (note.observation.classified_as) {
     case "body_matches_disk":
@@ -566,7 +618,7 @@ function NotePreview({ note }: { note: NoteReadDto | null }) {
         {t("workbenchIdentifierLabel")}：{note.identifier}
       </p>
       <p>{observationLabel(note)}</p>
-      <pre className="note-body">{note.body}</pre>
+      <ContentSafetyFacts body={note.body} previewId="note-preview-text" />
     </section>
   );
 }
@@ -716,6 +768,7 @@ function NoteCrudPanel({
             setError(null);
           }}
         />
+        <ContentSafetyFacts body={body} previewId="crud-preview-text" />
         <label htmlFor="crud-destination">{t("crudDestinationLabel")}</label>
         <input
           id="crud-destination"
@@ -1126,6 +1179,7 @@ function DraftEditor({
             setError(null);
           }}
         />
+        <ContentSafetyFacts body={body} previewId="draft-preview-text" />
       </div>
       <dl className="facts">
         <div>

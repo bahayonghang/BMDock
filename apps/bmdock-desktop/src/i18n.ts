@@ -262,10 +262,25 @@ export const messages = {
   crudRecoveryNoteLabel: "恢复边界",
   crudRecoveryNotT17: "这不是 T17/T37 恢复。强杀、Job Object 与磁盘故障仍为未验证。",
   aboutTitle: "说明",
+  contentSafetyTitle: "正文安全（不执行 HTML）",
+  contentSafetyHtmlLabel: "HTML 标记",
+  contentSafetyHtmlPresent: "检测到不安全 HTML 标记，仍以纯文本显示",
+  contentSafetyHtmlAbsent: "未检测到可执行 HTML 标记",
+  contentSafetyExecutedLabel: "是否执行",
+  contentSafetyExecutedNo: "未执行（executed=false）",
+  contentSafetyLineLabel: "行尾",
+  contentSafetyLineNone: "无换行",
+  contentSafetyLineLf: "LF",
+  contentSafetyLineCrlf: "CRLF（精确字节往返）",
+  contentSafetyLineMixed: "混合行尾",
+  contentSafetyPreviewLabel: "纯文本预览",
+  contentSafetyImeUnverified:
+    "native GUI / IME 会话仍为未验证。cargo test 与 npm build 不是原生窗口输入。",
+  contentSafetyHelpNotT39: "帮助与无障碍完备性仍属 T39，本任务不关闭。",
   aboutIntro:
-    "这是桌面布局壳加只读预检、显式项目路由、分页目录、笔记预览、草稿编辑器会话、夹具笔记写入编辑移动删除、同目标冲突与超时未知协调、宿主正常退出排空、夹具备份恢复基线和 Windows 运行时原型观察。默认界面语言为简体中文。帮助与无障碍完备性也不在本任务关闭。",
+    "这是桌面布局壳加只读预检、显式项目路由、分页目录、笔记预览、草稿编辑器会话、夹具笔记写入编辑移动删除、同目标冲突与超时未知协调、宿主正常退出排空、夹具备份恢复基线、Windows 运行时原型观察，以及编辑器内容安全与 CRLF 精确字节往返。默认界面语言为简体中文。帮助与无障碍完备性也不在本任务关闭。",
   aboutSafety:
-    "调用 get_capabilities、get_runtime_state、list_projects、run_preflight、discover_config、list_tree、read_note、list_backups、restore_fixture、inspect_windows_runtime、save_draft、load_draft、write_note、edit_note、move_note、delete_note 与 begin_shutdown。选择项目仅允许 bmdock-fixture。list_tree、read_note、list_backups、restore_fixture、save_draft、load_draft、write_note、edit_note、move_note 与 delete_note 每次都携带显式 workspace 与 project。Markdown 以纯文本预览，编辑器使用可聚焦的 labeled textarea，不执行 HTML。不会 raw callTool、不会写入用户 vault、不会启动 Supervisor。save_draft 与 write_note 保持区分。超时未知留在运行状态 DTO，不进入 IPC 错误联合体。同目标冲突不是 policy-for-path。begin_shutdown 在未启动时记录空闲排空收据，不是活动引擎寿命，也不会强杀子进程。",
+    "调用 get_capabilities、get_runtime_state、list_projects、run_preflight、discover_config、list_tree、read_note、list_backups、restore_fixture、inspect_windows_runtime、save_draft、load_draft、write_note、edit_note、move_note、delete_note 与 begin_shutdown。选择项目仅允许 bmdock-fixture。list_tree、read_note、list_backups、restore_fixture、save_draft、load_draft、write_note、edit_note、move_note 与 delete_note 每次都携带显式 workspace 与 project。Markdown 与 HTML 以 labeled textarea 和 pre 纯文本往返，不使用 dangerouslySetInnerHTML，也不执行 script 或 onerror。CRLF 按精确字节落盘；行尾丢失不得标为 disk_verified。不会 raw callTool、不会写入用户 vault、不会启动 Supervisor。save_draft 与 write_note 保持区分。超时未知留在运行状态 DTO，不进入 IPC 错误联合体。同目标冲突不是 policy-for-path。begin_shutdown 在未启动时记录空闲排空收据，不是活动引擎寿命，也不会强杀子进程。native GUI / IME 会话未验证。",
   aboutProfiles:
     "release（c0bd87c6，21 个工具）与 main-preview（3452c821，27 个工具）保持隔离。本界面不把工具清单或 just contract 当作功能验收。",
   aboutCommands:

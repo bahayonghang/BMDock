@@ -200,11 +200,14 @@ impl DraftStore for FixtureDraftStore {
             fs::create_dir_all(parent)
                 .map_err(|_| LibraryError::unsupported(UNSUPPORTED_DRAFT_UNAVAILABLE))?;
         }
-        fs::write(&dest, body)
+        crate::content_safety::persist_exact_utf8(&dest, body)
             .map_err(|_| LibraryError::unsupported(UNSUPPORTED_DRAFT_UNAVAILABLE))?;
         let exists = dest.is_file();
-        let disk = fs::read_to_string(&dest).ok();
-        let verified = exists && disk.as_deref() == Some(body);
+        let disk = crate::content_safety::read_exact_bytes(&dest).ok();
+        let verified = exists
+            && disk
+                .as_deref()
+                .is_some_and(|bytes| crate::content_safety::bytes_match_body(bytes, body));
         if exists {
             self.files_written.store(true, Ordering::Relaxed);
         }
@@ -234,7 +237,7 @@ impl DraftStore for FixtureDraftStore {
             return Ok(empty_session(identifier));
         }
         let resolved = self.owned_file(&dest)?;
-        let disk = fs::read_to_string(&resolved)
+        let disk = crate::content_safety::read_exact_text(&resolved)
             .map_err(|_| LibraryError::unsupported(UNSUPPORTED_TRUNCATED))?;
         Ok(DraftResultDto {
             identifier: identifier.to_owned(),
@@ -469,5 +472,40 @@ mod tests {
         assert!(!loaded.engine_persisted);
         assert_eq!(loaded.observation.classified_as, DraftClass::Empty);
         assert!(!loaded.scanned_user_obsidian_vault);
+    }
+
+    #[test]
+    fn unsafe_html_crlf_and_wiki_roundtrip_as_exact_bytes() {
+        let (_owned, store) = owned_store();
+        let body = crate::content_safety::UNSAFE_HTML_WIKI_CRLF_BODY;
+        let class = crate::content_safety::classify_body(body);
+        assert!(class.unsafe_html_present);
+        assert!(!class.executed);
+        assert_eq!(
+            class.line_endings,
+            crate::content_safety::LineEndingClass::Crlf
+        );
+        let saved = store.save_draft("welcome", body).unwrap();
+        let dest = store.root().join("welcome.md");
+        let disk = crate::content_safety::read_exact_bytes(&dest).unwrap();
+        assert_eq!(disk, body.as_bytes());
+        assert!(disk.windows(2).any(|pair| pair == b"\r\n"));
+        assert!(std::str::from_utf8(&disk).unwrap().contains("<script>"));
+        assert!(std::str::from_utf8(&disk).unwrap().contains("onerror="));
+        assert!(std::str::from_utf8(&disk).unwrap().contains("[[欢迎]]"));
+        assert_eq!(saved.body, body);
+        assert!(saved.observation.disk_verified);
+        assert_eq!(saved.observation.classified_as, DraftClass::DiskVerified);
+        let loaded = store.load_draft("welcome").unwrap();
+        assert_eq!(loaded.body, body);
+        assert_eq!(loaded.body.as_bytes(), disk.as_slice());
+
+        crate::content_safety::persist_exact_utf8(&dest, &body.replace("\r\n", "\n")).unwrap();
+        let lost = crate::content_safety::read_exact_bytes(&dest).unwrap();
+        assert!(crate::content_safety::crlf_normalized_to_lf(body, &lost));
+        assert!(!crate::content_safety::disk_verified_from_bytes(
+            body, &lost
+        ));
+        assert!(!crate::content_safety::bytes_match_body(&lost, body));
     }
 }

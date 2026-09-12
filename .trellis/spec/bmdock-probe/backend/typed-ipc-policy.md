@@ -11,17 +11,21 @@ project/workspace route, the T11 paginated `list_tree` /
 typed `write_note` / `edit_note` / `move_note` /
 `delete_note` fixture note CRUD, the T16 in-process
 same-target conflict coordinator plus unknown-result no-retry
-gate, and the T17 host drain `begin_shutdown` command. It applies to
+gate, the T17 host drain `begin_shutdown` command, and T18
+editor content safety (textarea/`<pre>` text, exact-byte CRLF,
+`unsafe_html_present` vs `executed=false`). It applies to
 `apps/bmdock-desktop/src-tauri/src/ipc.rs`,
 `apps/bmdock-desktop/src-tauri/src/library.rs`,
 `apps/bmdock-desktop/src-tauri/src/conflict.rs`,
 `apps/bmdock-desktop/src-tauri/src/drain.rs`,
+`apps/bmdock-desktop/src-tauri/src/content_safety.rs`,
 `apps/bmdock-desktop/src-tauri/src/backups.rs`,
 `apps/bmdock-desktop/src-tauri/src/drafts.rs`,
 `apps/bmdock-desktop/src-tauri/src/preflight.rs`,
 `apps/bmdock-desktop/src-tauri/src/routing.rs`,
-`apps/bmdock-desktop/src-tauri/src/windows_runtime.rs`, and
-`apps/bmdock-desktop/src/ipc.ts`; the P0 `bmdock-probe` and `just contract*`
+`apps/bmdock-desktop/src-tauri/src/windows_runtime.rs`,
+`apps/bmdock-desktop/src/ipc.ts`, and
+`apps/bmdock-desktop/src/contentSafety.ts`; the P0 `bmdock-probe` and `just contract*`
 interfaces remain separate. Lifecycle ownership lives in
 [supervisor-state.md](./supervisor-state.md).
 
@@ -38,8 +42,9 @@ interfaces remain separate. Lifecycle ownership lives in
   BMDock-owned draft persistence plus editor session, T15
   fixture-backed typed note write/edit/move/delete, T16
   in-process same-identifier inflight conflict coordination
-  plus timeout_unknown no-retry, and T17 host drain via
-  `begin_shutdown`.
+  plus timeout_unknown no-retry, T17 host drain via
+  `begin_shutdown`, and T18 editor content safety for note/draft
+  bodies (never execute HTML; exact-byte CRLF on Fixture stores).
 - The boundary does not start or stop the Supervisor, call the official
   engine over rmcp, access a user vault, or expose raw `callTool`. T14
   drafts are BMDock-owned session artifacts, not a second note index and
@@ -519,6 +524,12 @@ Supervisor, or add rmcp. T17 adds `begin_shutdown` on the same
   `engine_persisted` stays false. Overlapping same-target inflight is
   `conflict`. Sequential dest-exists stays `unsupported`. Dual
   profiles stay isolated.
+- Good: persist a T14 draft and T15 note whose body contains `<script>`,
+  `<img onerror>`, wiki-link `[[欢迎]]`, and CRLF. Physical bytes match
+  the input. The helper reports `unsafe_html_present=true` and
+  `executed=false`. Renderer shows the body in textarea/`<pre>` text.
+  Overwriting the file with LF-normalized bytes is not `disk_verified`.
+  Native GUI / IME remains UNVERIFIED. T39 is not claimed.
 - Good: two overlapping same-identifier typed writes; the second
   returns `classified_as: conflict` with `files_written=false`. A
   sequential write to a distinct identifier remains `disk_verified`
@@ -682,6 +693,17 @@ Supervisor, or add rmcp. T17 adds `begin_shutdown` on the same
   T07 ShutdownReceipt fields are reused. Deterministic fakes are not
   native process-tree. Forced-kill, Job Object, sleep-resume, and
   disk-failure stay UNVERIFIED. Dual profiles stay isolated.
+- T18 does not add an IPC command. Note and draft bodies stay opaque
+  UTF-8 text. The workbench keeps labeled textarea editors plus `<pre>`
+  text preview. `dangerouslySetInnerHTML` is banned. A helper
+  classifies `unsafe_html_present` vs `executed=false` and CRLF vs LF.
+  Fixture `save_draft` / `write_note` / `edit_note` persist and re-read
+  exact bytes, including CRLF. CRLF loss from LF normalization is not
+  `disk_verified`. A body containing `<script>`, `<img onerror>`, and
+  wiki-link `[[欢迎]]` roundtrips as exact text on T14/T15 fixture
+  paths. Windows backslash filesystem identifiers remain `policy`.
+  Native GUI / IME typing stays UNVERIFIED. T39 help completeness is
+  not claimed. Dual profiles stay isolated.
 - TypeScript `RuntimeStateDto` / `FailureKind` / `ShutdownReceipt` /
   `PreflightDto` / `ConfigDiscoveryDto` / `ProjectCatalogDto` /
   `TreePageDto` / `NoteReadDto` / `BackupCatalogDto` / `RestoreResultDto` /

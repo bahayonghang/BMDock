@@ -276,3 +276,19 @@ AC52：宿主排空、T16 `conflict` 与 T12 `restore_fixture` 分开记录。�
 本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t17-graceful-exit-recovery` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 120 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 11 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。`python -m unittest discover -s tests -v` 跑 71 项：70 ok，1 ERROR `test_repository_phase_order`（同一 `check_source`）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / Job Object / 强杀恢复 / hosted CI 证据；这些仍为 `UNVERIFIED`。
 
 T17 证据与验收映射见 [t17-graceful-exit-recovery.json](../execution/evidence/t17-graceful-exit-recovery.json)。`execution/status.json` 仅将 T17 标为 `completed`；未改 T05–T16/G0。
+
+## T18：编辑器内容安全与 Windows 体验
+
+T18 未新增 IPC 命令。笔记与草稿正文保持不透明 UTF-8 文本。zh-CN 工作台继续使用带 label 的 textarea，并增加 `<pre>` 纯文本预览。无 `dangerouslySetInnerHTML`。辅助分类 `unsafe_html_present` 与 `executed=false`，以及 CRLF / LF。夹具 `save_draft` / `write_note` / `edit_note` 按精确字节落盘并回读，包含 CRLF。含 `<script>`、`<img onerror>` 与 wiki-link `[[欢迎]]` 的正文在 T14 `{temp}/bmdock-t14-*` 与 T15 `{temp}/bmdock-t15-*` 路径上按原文往返，并以文本渲染。把 CRLF 规范成 LF 后不得标为 `disk_verified`。Windows 反斜杠文件系统标识仍为 policy。不启动 Supervisor，不 raw `callTool`，不混合双 profile。capabilities 仍为 18 个命令。
+
+AC46：Markdown/HTML 永不执行。textarea + `<pre>` 文本预览。正文中的 script / onerror / `[[欢迎]]` 作为精确文本落盘。`executed` 恒为 false。
+
+AC21：zh-CN 编辑器仍在工作台布局中，区分空态 / 错误 / 就绪。本机 Windows 夹具路径做了 CRLF 精确字节往返。native GUI / IME 会话仍为 `UNVERIFIED`。
+
+AC57：控件有 label、可键盘聚焦、`:focus-visible`。不主张 T39 帮助完备性。未在原生窗口中输入，故 IME / native GUI 为 `UNVERIFIED`。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T18 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t18-editor-windows-safety` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 125 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 12 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。`python -m unittest discover -s tests -v` 跑 72 项：71 ok，1 ERROR `test_repository_phase_order`（同一 `check_source`）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / IME / 用户 vault / hosted CI 证据；这些仍为 `UNVERIFIED`。
+
+T18 证据与验收映射见 [t18-editor-windows-safety.json](../execution/evidence/t18-editor-windows-safety.json)。`execution/status.json` 仅将 T18 标为 `completed`；未改 T05–T17/G0。

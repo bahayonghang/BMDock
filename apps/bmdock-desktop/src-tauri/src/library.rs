@@ -351,8 +351,11 @@ impl FixtureLibrary {
 
     fn observe_exact_body(path: &Path, expected: &str) -> (bool, bool, NoteCrudClass) {
         let exists = path.is_file();
-        let disk = fs::read_to_string(path).ok();
-        let verified = exists && disk.as_deref() == Some(expected);
+        let disk = crate::content_safety::read_exact_bytes(path).ok();
+        let verified = exists
+            && disk
+                .as_deref()
+                .is_some_and(|bytes| crate::content_safety::bytes_match_body(bytes, expected));
         let classified = if verified {
             NoteCrudClass::DiskVerified
         } else if exists {
@@ -391,7 +394,7 @@ impl NoteLibrary for FixtureLibrary {
 
     fn read_note(&self, identifier: &str) -> Result<NoteReadDto, LibraryError> {
         let path = self.resolve_note_path(identifier)?;
-        let disk = fs::read_to_string(&path)
+        let disk = crate::content_safety::read_exact_text(&path)
             .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
         let title = title_from_markdown(&disk).unwrap_or_else(|| identifier.to_owned());
         Ok(NoteReadDto {
@@ -416,7 +419,7 @@ impl NoteLibrary for FixtureLibrary {
             fs::create_dir_all(parent)
                 .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
         }
-        fs::write(&dest, body)
+        crate::content_safety::persist_exact_utf8(&dest, body)
             .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
         let (exists, verified, classified) = Self::observe_exact_body(&dest, body);
         Ok(NoteWriteDto {
@@ -434,7 +437,7 @@ impl NoteLibrary for FixtureLibrary {
     fn edit_note(&self, identifier: &str, body: &str) -> Result<NoteEditDto, LibraryError> {
         self.require_crud_root()?;
         let path = self.resolve_note_path(identifier)?;
-        fs::write(&path, body)
+        crate::content_safety::persist_exact_utf8(&path, body)
             .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
         let (exists, verified, classified) = Self::observe_exact_body(&path, body);
         Ok(NoteEditDto {
@@ -466,7 +469,7 @@ impl NoteLibrary for FixtureLibrary {
             fs::create_dir_all(parent)
                 .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
         }
-        let body = fs::read_to_string(&source)
+        let body = crate::content_safety::read_exact_text(&source)
             .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
         fs::rename(&source, &dest)
             .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
@@ -1382,6 +1385,51 @@ mod tests {
         assert_eq!(
             unmarked.write_note("welcome", "title", "body").unwrap_err(),
             LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT)
+        );
+    }
+
+    #[test]
+    fn unsafe_html_crlf_and_wiki_roundtrip_as_exact_bytes() {
+        let fixture = TempCrud::create();
+        let library = FixtureLibrary::new(fixture.dir.clone());
+        let body = crate::content_safety::UNSAFE_HTML_WIKI_CRLF_BODY;
+        let class = crate::content_safety::classify_body(body);
+        assert!(class.unsafe_html_present);
+        assert!(!class.executed);
+        assert_eq!(
+            class.line_endings,
+            crate::content_safety::LineEndingClass::Crlf
+        );
+        let written = library.write_note("welcome", "中文夹具笔记", body).unwrap();
+        let dest = fixture.dir.join("welcome.md");
+        let disk = crate::content_safety::read_exact_bytes(&dest).unwrap();
+        assert_eq!(disk, body.as_bytes());
+        assert!(disk.windows(2).any(|pair| pair == b"\r\n"));
+        let text = std::str::from_utf8(&disk).unwrap();
+        assert!(text.contains("<script>"));
+        assert!(text.contains("onerror="));
+        assert!(text.contains("[[欢迎]]"));
+        assert_eq!(written.body, body);
+        assert!(written.observation.disk_verified);
+        assert_eq!(
+            written.observation.classified_as,
+            NoteCrudClass::DiskVerified
+        );
+        let read = library.read_note("welcome").unwrap();
+        assert_eq!(read.body, body);
+        assert_eq!(read.body.as_bytes(), disk.as_slice());
+
+        crate::content_safety::persist_exact_utf8(&dest, &body.replace("\r\n", "\n")).unwrap();
+        let lost = crate::content_safety::read_exact_bytes(&dest).unwrap();
+        assert!(crate::content_safety::crlf_normalized_to_lf(body, &lost));
+        assert!(!crate::content_safety::disk_verified_from_bytes(
+            body, &lost
+        ));
+        let edited = library.edit_note("welcome", body).unwrap();
+        assert!(edited.observation.disk_verified);
+        assert_eq!(
+            crate::content_safety::read_exact_bytes(&dest).unwrap(),
+            body.as_bytes()
         );
     }
 }

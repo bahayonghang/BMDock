@@ -320,6 +320,17 @@ main {
   color: #c5d0e0;
 }
 
+.content-safety {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.content-safety h4 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
 @media (max-width: 720px) {
   .layout {
     grid-template-columns: 1fr;

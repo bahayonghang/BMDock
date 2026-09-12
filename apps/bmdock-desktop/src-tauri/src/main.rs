@@ -10,6 +10,8 @@ use tauri::State;
 
 mod backups;
 mod conflict;
+#[cfg(test)]
+mod content_safety;
 mod drafts;
 mod drain;
 mod ipc;

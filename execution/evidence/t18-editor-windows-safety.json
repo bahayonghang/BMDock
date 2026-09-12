@@ -1,0 +1,183 @@
+{
+  "task": "T18",
+  "title": "编辑器内容安全与Windows体验",
+  "status": "accepted_with_limits",
+  "date": "2026-09-12",
+  "host_boundary": "T18 does not add an IPC command. Note and draft bodies remain opaque UTF-8 text. The zh-CN workbench keeps labeled textarea editors plus pre text preview. dangerouslySetInnerHTML is absent. A helper classifies unsafe_html_present versus executed=false and CRLF versus LF. Fixture save_draft / write_note / edit_note persist and re-read exact bytes, including CRLF, on T14 {temp}/bmdock-t14-* and T15 {temp}/bmdock-t15-* paths. A body containing <script>, <img onerror>, and wiki-link [[欢迎]] roundtrips as exact text and is rendered as text. CRLF loss from LF normalization is not disk_verified. Windows backslash filesystem identifiers remain policy. T18 does not start Supervisor, add rmcp, or expose raw callTool. Dual profiles stay isolated. Native GUI / IME typing stays UNVERIFIED. T39 help completeness is not claimed. just build stays the G0 probe. just contract was not run as T18 proof.",
+  "acceptance": {
+    "AC46": {
+      "status": "html_never_executed_text_roundtrip",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/content_safety.rs",
+        "apps/bmdock-desktop/src/contentSafety.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src-tauri/src/drafts.rs",
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Markdown/HTML in note or draft bodies is never executed. Workbench preview uses textarea plus pre text. App.tsx has no dangerouslySetInnerHTML and no innerHTML. A helper classifies unsafe_html_present versus executed=false. A body containing <script>, <img onerror>, and wiki-link [[欢迎]] roundtrips as exact bytes on T14 draft and T15 note fixture paths and is shown as text. UI copy, cargo test, and npm build are not native HTML execution in a WebView2 session."
+    },
+    "AC21": {
+      "status": "zh_cn_editor_exact_byte_crlf",
+      "evidence": [
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "apps/bmdock-desktop/src-tauri/src/content_safety.rs",
+        "apps/bmdock-desktop/src-tauri/src/drafts.rs",
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "The zh-CN workbench editor remains in the layout with empty/error/ready states. Fixture stores persist and re-read exact UTF-8 bytes including CRLF on this Windows host. CRLF loss from LF normalization is classified and is not disk_verified. This is not a native GUI / IME session.",
+      "unverified": [
+        "native GUI editor interaction",
+        "IME composition in a Tauri/WebView2 window"
+      ]
+    },
+    "AC57": {
+      "status": "labeled_focus_visible_not_t39",
+      "evidence": [
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/styles.css",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "tests/test_desktop_shell.py"
+      ],
+      "claim": "Editor controls remain labelled (htmlFor/id) and keyboard-focusable with visible :focus-visible. Empty vs error vs ready stay distinct. Help, docs, and full accessibility acceptance remain T39 UNVERIFIED. Native GUI / IME session remains UNVERIFIED because no native window was typed in.",
+      "unverified": [
+        "T39 help completeness",
+        "native GUI / IME session",
+        "screen-reader session in a native window"
+      ]
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t18-editor-windows-safety",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 125 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 12 passed"
+    },
+    {
+      "cmd": "python -m unittest discover -s tests -v",
+      "exit": 1,
+      "result": "72 tests: 71 ok, 1 ERROR test_repository_phase_order via check_source because G0 is in_progress while T05+ are completed. DesktopShellTests 12 passed. T05-T17 were not reverted."
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T18 editor safety proof. Probe entries remain independent."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / IME / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window was launched or typed in. HTML-not-executed and CRLF proof are source plus unit tests on fixture stores."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_130_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_discover": "71_ok_1_error_phase_order",
+    "python_unittest_desktop_shell": "12_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "bundle_active": false,
+    "typed_command_count": 18,
+    "raw_call_tool": "absent",
+    "dangerouslySetInnerHTML": "absent",
+    "supervisor_started_by_t18": false,
+    "rmcp_live_client": "not_added_in_t18",
+    "native_gui_session": "UNVERIFIED",
+    "ime_session": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "t39_help_completeness": "UNVERIFIED",
+    "crlf_exact_bytes_on_fixture_stores": true,
+    "crlf_normalization_is_not_disk_verified": true
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed_unchanged",
+    "T10": "completed_unchanged",
+    "T11": "completed_unchanged",
+    "T12": "completed_unchanged",
+    "T13": "completed_unchanged",
+    "T14": "completed_unchanged",
+    "T15": "completed_unchanged",
+    "T16": "completed_unchanged",
+    "T17": "completed_unchanged",
+    "T18": "completed"
+  },
+  "scope_limits": [
+    "No new IPC command. Bodies stay opaque UTF-8 text in textarea and pre.",
+    "Fixture persist is exact UTF-8 bytes including CRLF. LF normalization is not disk_verified.",
+    "unsafe_html_present versus executed=false is a helper classification, not HTML sanitization that rewrites the body.",
+    "Windows backslash filesystem identifiers remain policy and do not open the store.",
+    "Native GUI / IME session remains UNVERIFIED. cargo test and npm build are not a typed native window.",
+    "T39 help completeness is not claimed.",
+    "IPC error union stays policy/schema/unsupported. Dual profiles stay isolated (21 vs 27).",
+    "just build stays scripts.tasks build. just contract* stay probe. just tauri-dev/tauri-build stay desktop.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "UI copy, tool lists, compiled exe, cargo test, npm build, and just contract are not native GUI / IME / user-vault proof."
+  ],
+  "rollback": "Remove content_safety.rs and contentSafety.ts, restore string read_to_string persist in FixtureDraftStore/FixtureLibrary, drop the workbench content-safety facts/preview extras, and leave T14/T15 commands in place. Do not revert T05-T17 status to make unit green."
+}
