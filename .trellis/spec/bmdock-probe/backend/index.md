@@ -19,7 +19,8 @@ This directory contains guidelines for backend development. Fill in each file wi
 | [Error Handling](./error-handling.md) | Error types, handling strategies | To fill |
 | [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | To fill |
 | [Logging Guidelines](./logging-guidelines.md) | Structured logging, log levels | To fill |
-| [Typed IPC and Fixture Policy](./typed-ipc-policy.md) | T06 command/event DTOs and fixture boundary | Current |
+| [Typed IPC and Fixture Policy](./typed-ipc-policy.md) | T06 command/event DTOs, fixture boundary, and T07 runtime snapshot projection | Current |
+| [Engine Supervisor and Runtime State](./supervisor-state.md) | T07 lifecycle, spawn policy-before-process, failure, and shutdown contract | Current |
 
 ---
 

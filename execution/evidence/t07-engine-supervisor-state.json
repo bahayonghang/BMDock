@@ -1,0 +1,53 @@
+{
+  "task": "T07",
+  "title": "实现引擎Supervisor与连接状态机",
+  "status": "in_progress",
+  "date": "2026-09-12",
+  "acceptance": {
+    "AC04": {
+      "status": "profile_constants_and_launch_spec",
+      "evidence": ["apps/bmdock-desktop/src-tauri/src/supervisor.rs"],
+      "claim": "Release and main-preview remain independent profile identities with fixed commits and expected tool counts."
+    },
+    "AC05": {
+      "status": "bounded_shutdown_unit_tested",
+      "evidence": ["apps/bmdock-desktop/src-tauri/src/supervisor.rs"],
+      "claim": "Supervisor records transport cancellation, bounded child wait, forced kill, and shutdown receipt outcomes."
+    },
+    "AC16": {
+      "status": "timeout_unknown_classified",
+      "evidence": ["apps/bmdock-desktop/src-tauri/src/supervisor.rs", ".trellis/spec/bmdock-probe/backend/supervisor-state.md"],
+      "claim": "Transport or child timeout is represented as timeout_unknown and is not retried by the lifecycle abstraction."
+    },
+    "AC17": {
+      "status": "normal_shutdown_unit_tested",
+      "evidence": ["apps/bmdock-desktop/src-tauri/src/supervisor.rs"],
+      "claim": "Normal cancellation and exit preserve exit code and forced=false in the receipt."
+    },
+    "AC18": {
+      "status": "forced_path_simulated_unverified_runtime",
+      "evidence": ["apps/bmdock-desktop/src-tauri/src/supervisor.rs"],
+      "claim": "Forced-kill bookkeeping is covered by deterministic fakes; native process-tree and recovery evidence remains UNVERIFIED."
+    },
+    "AC47": {
+      "status": "local_managed_state_boundary",
+      "evidence": ["apps/bmdock-desktop/src-tauri/src/main.rs", "apps/bmdock-desktop/src-tauri/src/ipc.rs"],
+      "claim": "Supervisor state is locally managed behind typed IPC; no cloud, real-vault, or raw MCP route was added."
+    }
+  },
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_bmdock_app_offline": "passed_14_tests",
+    "cargo_check_workspace_offline": "passed_with_dead_code_warnings",
+    "npm_build": "passed",
+    "git_diff_check": "passed",
+    "real_engine_handshake": "UNVERIFIED",
+    "native_gui_and_job_object": "UNVERIFIED"
+  },
+  "scope_limits": [
+    "The injected transport seam does not yet connect the product app to the official engine.",
+    "T08 and later tasks own user-facing start/stop controls, project routing, and engine capability calls.",
+    "P0 bmdock-probe and just contract/contract-main remain independent."
+  ]
+}

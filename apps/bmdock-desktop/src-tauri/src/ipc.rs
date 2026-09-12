@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::supervisor::{ConnectionState, FailureKind, RuntimeSnapshot, ShutdownReceipt};
+
 pub const FIXTURE_PROJECT: &str = "bmdock-fixture";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -65,9 +67,11 @@ pub struct CapabilitiesDto {
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct RuntimeStateDto {
-    pub status: &'static str,
-    pub project: Option<&'static str>,
-    pub profile: Option<&'static str>,
+    pub status: String,
+    pub project: Option<String>,
+    pub profile: Option<String>,
+    pub failure: Option<FailureKind>,
+    pub shutdown: Option<ShutdownReceipt>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -80,6 +84,22 @@ pub enum IpcResponse {
 }
 
 pub fn dispatch(command: IpcCommand) -> Result<IpcResponse, IpcError> {
+    dispatch_with_snapshot(
+        command,
+        RuntimeSnapshot {
+            state: ConnectionState::NotStarted,
+            profile: None,
+            child_pid: None,
+            failure: None,
+            shutdown: None,
+        },
+    )
+}
+
+pub fn dispatch_with_snapshot(
+    command: IpcCommand,
+    snapshot: RuntimeSnapshot,
+) -> Result<IpcResponse, IpcError> {
     match command {
         IpcCommand::GetCapabilities(_) => Ok(IpcResponse::Capabilities(CapabilitiesDto {
             commands: vec![
@@ -94,11 +114,7 @@ pub fn dispatch(command: IpcCommand) -> Result<IpcResponse, IpcError> {
                 raw_call_tool_allowed: false,
             },
         })),
-        IpcCommand::GetRuntimeState(_) => Ok(IpcResponse::RuntimeState(RuntimeStateDto {
-            status: "not_started",
-            project: None,
-            profile: None,
-        })),
+        IpcCommand::GetRuntimeState(_) => Ok(IpcResponse::RuntimeState(runtime_state(snapshot))),
         IpcCommand::SelectProject(args) if args.project == FIXTURE_PROJECT => {
             Ok(IpcResponse::ProjectSelected {
                 project: FIXTURE_PROJECT,
@@ -108,6 +124,24 @@ pub fn dispatch(command: IpcCommand) -> Result<IpcResponse, IpcError> {
             category: ErrorCategory::Policy,
             message: "Only the generated fixture project is allowed".to_owned(),
         }),
+    }
+}
+
+fn runtime_state(snapshot: RuntimeSnapshot) -> RuntimeStateDto {
+    let status = match snapshot.state {
+        ConnectionState::NotStarted => "not_started",
+        ConnectionState::Starting => "starting",
+        ConnectionState::Connected => "connected",
+        ConnectionState::Stopping => "stopping",
+        ConnectionState::Stopped => "stopped",
+        ConnectionState::Failed => "failed",
+    };
+    RuntimeStateDto {
+        status: status.to_owned(),
+        project: None,
+        profile: snapshot.profile.map(|profile| profile.id().to_owned()),
+        failure: snapshot.failure,
+        shutdown: snapshot.shutdown,
     }
 }
 
@@ -134,6 +168,62 @@ mod tests {
             project: "C:\\Users\\someone\\vault".to_owned(),
         }));
         assert_eq!(result.unwrap_err().category, ErrorCategory::Policy);
+    }
+
+    #[test]
+    fn runtime_state_projects_supervisor_snapshot() {
+        let response = dispatch_with_snapshot(
+            IpcCommand::GetRuntimeState(EmptyArgs {}),
+            RuntimeSnapshot {
+                state: ConnectionState::Connected,
+                profile: Some(crate::supervisor::EngineProfile::Release),
+                child_pid: Some(42),
+                failure: None,
+                shutdown: None,
+            },
+        )
+        .unwrap();
+        let IpcResponse::RuntimeState(state) = response else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(state.status, "connected");
+        assert_eq!(state.profile.as_deref(), Some("release"));
+        assert_eq!(state.project, None);
+        assert_eq!(state.failure, None);
+        assert_eq!(state.shutdown, None);
+    }
+
+    #[test]
+    fn runtime_state_dto_matches_typescript_field_names() {
+        let response = dispatch_with_snapshot(
+            IpcCommand::GetRuntimeState(EmptyArgs {}),
+            RuntimeSnapshot {
+                state: ConnectionState::Stopped,
+                profile: Some(crate::supervisor::EngineProfile::MainPreview),
+                child_pid: Some(9),
+                failure: Some(FailureKind::TimeoutUnknown),
+                shutdown: Some(ShutdownReceipt {
+                    transport_cancelled: false,
+                    child_exited: false,
+                    forced: true,
+                    timeout_unknown: true,
+                    exit_code: None,
+                }),
+            },
+        )
+        .unwrap();
+        let json = serde_json::to_value(&response).unwrap();
+        assert_eq!(json["kind"], "runtime_state");
+        assert_eq!(json["status"], "stopped");
+        assert_eq!(json["profile"], "main-preview");
+        assert_eq!(json["failure"], "timeout_unknown");
+        assert!(json["project"].is_null());
+        assert!(json.get("child_pid").is_none());
+        assert_eq!(json["shutdown"]["transport_cancelled"], false);
+        assert_eq!(json["shutdown"]["child_exited"], false);
+        assert_eq!(json["shutdown"]["forced"], true);
+        assert_eq!(json["shutdown"]["timeout_unknown"], true);
+        assert!(json["shutdown"]["exit_code"].is_null());
     }
 
     #[test]

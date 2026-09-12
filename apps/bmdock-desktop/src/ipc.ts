@@ -30,21 +30,36 @@ export interface CapabilitiesDto {
 }
 
 export interface RuntimeStateDto {
-  status: "not_started";
+  status: RuntimeStatus;
   project: null;
-  profile: null;
+  profile: EngineProfile | null;
+  failure: FailureKind | null;
+  shutdown: ShutdownReceipt | null;
+}
+
+export type EngineProfile = "release" | "main-preview";
+export type RuntimeStatus = "not_started" | "starting" | "connected" | "stopping" | "stopped" | "failed";
+export type FailureKind = "policy" | "transport" | "timeout_unknown" | "process" | "unverified";
+export interface ShutdownReceipt {
+  transport_cancelled: boolean;
+  child_exited: boolean;
+  forced: boolean;
+  timeout_unknown: boolean;
+  exit_code: number | null;
 }
 
 export type IpcResponse =
   | { kind: "capabilities"; commands: IpcCommandName[]; events: IpcEventName[]; policy: PolicyDto }
-  | { kind: "runtime_state"; status: "not_started"; project: null; profile: null }
+  | { kind: "runtime_state" } & RuntimeStateDto
   | { kind: "project_selected"; project: typeof FIXTURE_PROJECT }
   | { kind: "error"; category: ErrorCategory; message: string };
 
 export interface RuntimeStateEvent {
-  status: string;
+  status: RuntimeStatus;
   project: string | null;
-  profile: string | null;
+  profile: EngineProfile | null;
+  failure: FailureKind | null;
+  shutdown: ShutdownReceipt | null;
 }
 
 export interface PolicyEvent {

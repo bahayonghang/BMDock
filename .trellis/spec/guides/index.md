@@ -36,8 +36,13 @@ These guides help you **ask the right questions before coding**.
 - [ ] You're not sure where to put some logic
 - [ ] You are adding an event kind, JSONL record, RPC payload, or config field
 - [ ] UI / command code starts casting raw payload fields directly
+- [ ] You are changing `get_runtime_state` / `RuntimeStateDto` fields across Rust and TypeScript
+- [ ] You are tempted to put `timeout_unknown`, `transport`, or `process` on the IPC error union
 
-→ Read [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md)
+→ Read [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md). For the
+runtime snapshot vs IPC error split, also read
+[Typed IPC and Fixture Policy](../bmdock-probe/backend/typed-ipc-policy.md)
+and [Engine Supervisor and Runtime State](../bmdock-probe/backend/supervisor-state.md).
 
 ### When to Think About Code Reuse
 
@@ -48,8 +53,11 @@ These guides help you **ask the right questions before coding**.
 - [ ] **You're creating a new utility/helper function** ← Search first!
 - [ ] Two files read the same untyped payload field with local casts
 - [ ] Multiple branches update the same derived state from `kind` / `action`
+- [ ] You are spawning a child process, replacing a live engine profile, or mapping spawn failures to `policy` vs `process`
 
-→ Read [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md)
+→ Read [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md). For
+spawn-before-process and Drop vs Job Object evidence, also read
+[Engine Supervisor and Runtime State](../bmdock-probe/backend/supervisor-state.md).
 
 ### When Verifying AI Cross-Review Results
 
