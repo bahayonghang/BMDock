@@ -27,7 +27,7 @@ Rust probe 保留 Python 子进程所有权，通过 rmcp 原生异步字节流�
 
 ## 命令演进约定
 
-当前 ci/dev/build 针对 P0 可执行交付物。G0 通过后，T05 将 dev/build 切换为 Tauri 桌面入口，同时保留 probe/contract 独立入口；不在未验证协议时先造可写笔记界面。
+当前 `just ci` / `just build` 仍针对 P0 探针。T08 已将 `just dev` 切到 Tauri 桌面壳，但 **不** 把 `just build` 切到 Tauri，因为 CI 仍用 `just build` 编译 G0 探针。`just contract*` 保持独立。G0 未通过前，不提供可写笔记界面。
 
 `just ci-unit` 是明确的局部测试。`just ci` 包含目前已实现的真实引擎 smoke suites，缺环境失败。`just gate` 反映全部产品门禁，不因为 smoke 通过自动改为 passed。
 

@@ -1,0 +1,160 @@
+{
+  "task": "T08",
+  "title": "实现桌面布局、导航与i18n",
+  "status": "accepted_with_limits",
+  "date": "2026-09-12",
+  "host_boundary": "T08 owns the zh-CN renderer chrome, placeholder workbench navigation, distinct empty/error states, accessibility baseline, and switching just dev to just tauri-dev. It does not start/stop Supervisor, add callTool, select a real project, write vaults, or switch just build. P0 bmdock-probe and just contract/contract-main stay independent. CI continues to compile the G0 probe with just build.",
+  "acceptance": {
+    "AC21": {
+      "status": "layout_shell_local_full_editor_unverified",
+      "evidence": [
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "apps/bmdock-desktop/src/styles.css",
+        "apps/bmdock-desktop/index.html",
+        "tests/test_desktop_shell.py",
+        "npm run build"
+      ],
+      "claim": "Chinese layout and nav exist for placeholder workbench sections (工作台 / 运行状态 / 说明). This is the T08 UX shell only. Full editor session, draft persistence, and Windows editor safety remain T14/T18 and are UNVERIFIED here. UI copy is not native GUI proof."
+    },
+    "AC57": {
+      "status": "a11y_baseline_not_t39_completeness",
+      "evidence": [
+        "apps/bmdock-desktop/index.html",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/styles.css",
+        "apps/bmdock-desktop/src/main.tsx",
+        "tests/test_desktop_shell.py"
+      ],
+      "claim": "Baseline: html lang zh-CN, banner/nav/main landmarks, labelled nav with aria-current, keyboard-focusable controls, visible :focus-visible, and empty vs error distinguished by badge text plus border style rather than color alone. Help, docs, and full accessibility acceptance remain T39 UNVERIFIED."
+    },
+    "AC60": {
+      "status": "documented",
+      "evidence": [
+        "execution/status.json",
+        "docs/VERIFICATION.md",
+        "execution/evidence/t08-desktop-layout-i18n.json",
+        ".trellis/tasks/09-12-t08-desktop-layout-i18n/implement.md",
+        "justfile",
+        "README.md"
+      ],
+      "claim": "T08 files, this session's commands with real exit codes, just-build CI exception, acceptance mapping, limits, and rollback scope are traceable. T05/T06/T07/G0 were not rewritten."
+    }
+  },
+  "justfile_semantics": {
+    "just dev": "Calls just tauri-dev (T08 desktop shell).",
+    "just tauri-dev": "Unchanged T05 Tauri development entry.",
+    "just tauri-build": "Unchanged T05 Tauri build entry; not an installer.",
+    "just build": "Still scripts.tasks build (G0 probe). Recorded limit: .github/workflows/ci.yml uses just build, so T08 does not switch it to Tauri. This is not a silent deviation from parent design.",
+    "just contract / just contract-main": "Still profile-isolated P0 probe smoke tests. Not run as T08 GUI proof.",
+    "just dev-main": "Still main-preview probe interactive entry."
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t08-desktop-layout-i18n",
+      "exit": 0
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 16 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 6 passed"
+    },
+    {
+      "cmd": "python -m unittest discover -s tests -v",
+      "exit": 1,
+      "result": "66 tests: 65 ok, 1 ERROR test_repository_phase_order via check_source because G0 is in_progress while T05+ are completed. DesktopShellTests 6 passed. T06/T07 were not reverted."
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T08 GUI proof. Probe entries remain independent."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window, WebView2, or Job Object session was exercised."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_21_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_discover": "65_ok_1_error_phase_order",
+    "python_unittest_desktop_shell": "6_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_dev_switched_to_tauri_dev": "confirmed_in_justfile",
+    "just_build_remains_g0_probe": "confirmed_in_justfile_and_ci_yml",
+    "just_contract_and_contract_main": "confirmed_in_justfile_not_executed",
+    "native_gui": "UNVERIFIED",
+    "webview2": "UNVERIFIED",
+    "job_object": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "full_editor_t14_t18": "UNVERIFIED",
+    "a11y_completeness_t39": "UNVERIFIED"
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed"
+  },
+  "scope_limits": [
+    "Renderer may read get_capabilities and get_runtime_state only. Invoke failure is the error state; default runtime is not_started empty state.",
+    "No Supervisor start/stop, no callTool, no select_project, no note CRUD, no project routing, no search, no graph, no cloud, no installer.",
+    "just build stays scripts.tasks build because CI still compiles the G0 probe with just build. Parent design mentioned switching just build after T05-T08; this task records the exception instead of switching silently.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; T06/T07 were not reverted.",
+    "UI copy, tool lists, compiled exe, and just contract are not native GUI / WebView2 / Job Object / real vault / hosted CI proof."
+  ],
+  "rollback": "Restore justfile dev to scripts.tasks main([\"dev\", \"release\"]) if the desktop shell cannot be used; keep just tauri-dev, just tauri-build, just build, and just contract*. Do not revert T06/T07 status to make unit green."
+}

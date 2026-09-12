@@ -1,5 +1,5 @@
 :root {
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-family: Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
   color: #e7edf7;
   background: #101522;
   font-synthesis: none;
@@ -7,10 +7,218 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; min-height: 100vh; }
-.shell { display: grid; place-items: center; min-height: 100vh; padding: 2rem; }
-.card { width: min(100%, 38rem); padding: 3rem; border: 1px solid #2d3a51; border-radius: 1.25rem; background: #172033; box-shadow: 0 1.5rem 4rem #080c16aa; }
-.eyebrow { margin: 0 0 0.75rem; color: #7dd3fc; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
-h1 { margin: 0; font-size: clamp(2rem, 8vw, 3.5rem); line-height: 1.05; }
-.status { margin: 1.5rem 0 0; color: #86efac; font-weight: 600; }
-.copy { margin: 1rem 0 0; color: #a8b3c7; line-height: 1.6; }
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+:focus-visible {
+  outline: 3px solid #facc15;
+  outline-offset: 3px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 0.75rem;
+  top: -4rem;
+  z-index: 2;
+  padding: 0.5rem 0.75rem;
+  background: #facc15;
+  color: #101522;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 0.75rem;
+}
+
+.app {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #2d3a51;
+  background: #121a2b;
+}
+
+.brand-block h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.3;
+}
+
+.eyebrow {
+  margin: 0 0 0.35rem;
+  color: #7dd3fc;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.notice {
+  margin: 0;
+  max-width: 28rem;
+  color: #fde68a;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 13rem 1fr;
+  min-height: 0;
+}
+
+nav {
+  padding: 1rem;
+  border-right: 1px solid #2d3a51;
+  background: #151d2e;
+}
+
+.nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.nav-button,
+.action {
+  font: inherit;
+  color: inherit;
+  background: #1c2740;
+  border: 1px solid #3b4b66;
+  border-radius: 0.6rem;
+  padding: 0.65rem 0.8rem;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nav-button[aria-current="page"] {
+  border-style: solid;
+  border-width: 2px;
+  border-color: #facc15;
+  background: #243352;
+  font-weight: 700;
+}
+
+.action {
+  width: auto;
+  margin-top: 1rem;
+}
+
+main {
+  padding: 1.5rem;
+}
+
+.panel {
+  max-width: 46rem;
+  padding: 1.5rem 1.75rem;
+  border-radius: 1rem;
+  background: #172033;
+  line-height: 1.65;
+}
+
+.panel h2,
+.panel h3 {
+  margin: 0 0 0.75rem;
+}
+
+.panel p {
+  margin: 0 0 0.85rem;
+  color: #c5cedd;
+}
+
+.state-badge {
+  display: inline-block;
+  margin: 0 0 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.panel[data-state="empty"] {
+  border: 2px dashed #7dd3fc;
+}
+
+.panel[data-state="empty"] .state-badge {
+  border: 1px dashed #7dd3fc;
+  color: #7dd3fc;
+}
+
+.panel[data-state="error"] {
+  border: 3px solid #fca5a5;
+}
+
+.panel[data-state="error"] .state-badge {
+  border: 1px solid #fca5a5;
+  color: #111827;
+  background: #fca5a5;
+}
+
+.panel[data-state="status"] {
+  border: 2px solid #86efac;
+}
+
+.panel[data-state="status"] .state-badge {
+  border: 1px solid #86efac;
+  color: #86efac;
+}
+
+.facts {
+  display: grid;
+  gap: 0.65rem;
+  margin: 1rem 0;
+}
+
+.facts div {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: 0.75rem;
+}
+
+.facts dt {
+  margin: 0;
+  color: #93a0b5;
+}
+
+.facts dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.policy-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: #c5cedd;
+}
+
+@media (max-width: 720px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  nav {
+    border-right: 0;
+    border-bottom: 1px solid #2d3a51;
+  }
+
+  .nav-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

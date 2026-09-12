@@ -128,12 +128,16 @@ python -m scripts.tasks lock
 
 ### Build & Run
 ```bash
-# Compile release probe binary: target/release/bmdock-probe(.exe)
-just build
+# T08 desktop layout shell (same as just tauri-dev). Not a production write UI.
+just dev
+just tauri-dev
+just tauri-build  # desktop build entry; not an installer
+
+# CI still uses just build; do not switch this recipe to Tauri.
+just build        # G0 probe: target/release/bmdock-probe(.exe); not Tauri
 python -m scripts.tasks build
 
-# Run interactive developer probe session in an ephemeral sandbox
-just dev          # against release profile (v0.23.2)
+# Interactive main-preview probe session in an ephemeral sandbox
 just dev-main     # against main-preview profile (commit 3452c821)
 ```
 

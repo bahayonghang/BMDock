@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/guides/index.md", "reason": "加载通用实施与证据边界规范。"}
+{"file": "execution/status.json", "reason": "核对该子任务的阶段、依赖和 acceptance 映射。"}
+{"file": ".trellis/spec/bmdock-probe/backend/index.md", "reason": "沿用现有后端、错误处理和质量检查约束。"}
+{"file": "docs/IMPLEMENTATION.md", "reason": "核对 P0 探针与 Tauri 产品入口的职责边界。"}

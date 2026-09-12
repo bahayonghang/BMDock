@@ -5,9 +5,9 @@
 
 Basic Memory 专用桌面工作台。目标技术栈：Tauri 2 + React/TypeScript + Rust/rmcp + 官方 Basic Memory。
 
-当前仓库交付的是 **P0 / G0 技术验证工具**：固定引擎基线、隔离 sandbox、真实 MCP 探针、能力快照、文件物化 smoke tests、任务状态与跨平台命令。没有 Tauri/React GUI，没有桌面安装器。
+当前仓库交付的是 **P0 / G0 技术验证工具**：固定引擎基线、隔离 sandbox、真实 MCP 探针、能力快照、文件物化 smoke tests、任务状态与跨平台命令。T08 另有 zh-CN 桌面布局壳；没有原生安装器，没有生产写入。G0 未通过。
 
-`just dev` 启动 G0 探针。`just build` 构建 `bmdock-probe`。产品工程排在 G0 完成后的 T05。
+`just dev` 启动 Tauri 桌面壳（与 `just tauri-dev` 相同）。`just build` 仍构建 `bmdock-probe`（CI 使用该入口，不是 Tauri）。`just dev-main` 仍是 main-preview 探针。`just tauri-build` 是桌面构建入口，不是安装器。`just contract*` 仍是真实引擎 smoke。
 
 ## 当前边界
 
@@ -117,9 +117,11 @@ flowchart TB
 | `just setup` | 按 profile 浅克隆固定 commit，校验 tag，`uv sync --frozen` |
 | `just ci` | Python 单测 + rustfmt + clippy `-D warnings` + cargo test/build + 两版真实引擎 smoke |
 | `just ci-unit` / `python -m scripts.tasks unit` | 无第三方依赖单测 |
-| `just dev` / `just dev-main` | 新 sandbox 中运行 release / main-preview 探针 |
+| `just dev` | T08 Tauri 桌面壳（与 `just tauri-dev` 相同） |
+| `just dev-main` | 新 sandbox 中运行 main-preview 探针 |
+| `just tauri-dev` / `just tauri-build` | 桌面开发入口 / 桌面构建入口；`tauri-build` 不是安装器 |
 | `just contract` / `just contract-main` | 仅真实引擎 smoke |
-| `just build` | `target/release/bmdock-probe[.exe]` |
+| `just build` | G0 探针 `target/release/bmdock-probe[.exe]`（CI 仍使用；不是 Tauri） |
 | `just gate` | 输出未通过门禁；当前应返回非零 |
 | `just lock` | `cargo generate-lockfile` |
 

@@ -6,7 +6,7 @@ Basic Memory 专用桌面工作台。目标技术栈：**Tauri 2 + React/TypeScr
 
 本仓库从实施包的 **P0 / G0 技术验证**开始，不跳过数据安全门禁。当前实现是可执行的开发验证工具，而不是一个已完成的桌面应用：固定引擎基线、隔离 sandbox、真实 MCP 探针、能力快照、文件物化 smoke tests、任务状态与跨平台命令。
 
-**当前 `just dev` 启动 G0 探针，不启动 GUI；`just build` 构建探针，不生成桌面安装器。** Tauri/React 产品工程在 G0 完成后进入 T05。没有连接或修改你的真实 Obsidian vault、Basic Memory 配置或 Agent 配置。
+**当前 `just dev` 启动 T08 Tauri 桌面壳（与 `just tauri-dev` 相同）；`just build` 仍构建 G0 探针，因为 CI 继续使用该入口，不生成桌面安装器。** 探针合约仍走 `just contract` / `just contract-main`。没有连接或修改你的真实 Obsidian vault、Basic Memory 配置或 Agent 配置。
 
 ## 开发环境
 
@@ -32,9 +32,11 @@ just build
 | `just lock` | 显式重新解析 Cargo 依赖，变更须审查提交；日常运行不需要 |
 | `just ci` | Python 单测、Rust fmt/clippy/单测、两版真实引擎 smoke tests；依赖缺失即失败 |
 | `just ci-unit` | 无第三方依赖的 Python 单测；不能替代真实引擎测试或 G0 |
-| `just dev` / `just dev-main` | 在全新临时 sandbox 中运行 release/main 探针 |
+| `just dev` | 启动 Tauri 桌面开发壳（与 `just tauri-dev` 相同） |
+| `just dev-main` | 在全新临时 sandbox 中运行 main-preview 探针 |
+| `just tauri-dev` / `just tauri-build` | 桌面开发入口 / 桌面构建入口；`tauri-build` 不是安装器 |
 | `just contract` / `just contract-main` | 单独运行指定基线的真实引擎 smoke tests |
-| `just build` | 构建 `target/release/bmdock-probe.exe`（Windows）或无扩展名可执行文件 |
+| `just build` | 构建 G0 探针 `bmdock-probe`（CI 仍使用该入口；不是 Tauri 安装器） |
 | `just gate` | 输出 G0–G7 状态；任何门禁未通过都返回非零 |
 
 ## 已实现

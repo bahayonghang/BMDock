@@ -25,15 +25,15 @@ ci:
 ci-unit:
     from scripts.tasks import main; raise SystemExit(main(["unit"]))
 
-# P0 development session: real release-engine probe in a generated sandbox, not a GUI.
+# T08 desktop shell. Same entry as just tauri-dev. Probe remains on just contract*.
 dev:
-    from scripts.tasks import main; raise SystemExit(main(["dev", "release"]))
+    import subprocess; raise SystemExit(subprocess.call(["just", "tauri-dev"]))
 
 # Same verification with the immutable main-preview profile.
 dev-main:
     from scripts.tasks import main; raise SystemExit(main(["dev", "main-preview"]))
 
-# Compile the current deliverable (G0 probe), not a Tauri installer yet.
+# Compile the G0 probe. CI still uses this recipe; T08 does not switch it to Tauri.
 build:
     from scripts.tasks import main; raise SystemExit(main(["build"]))
 
