@@ -147,6 +147,31 @@ export const messages = {
   recallNativeGuiFalse: "未验证（native_gui=false）",
   recallChinesePermalinks: "保留的中文 permalink",
   unexpectedRecall: "召回基准响应格式不符合预期",
+  schemaEmptyTitle: "还没有 Schema 结果",
+  schemaEmptyBody:
+    "空 Schema 表示当前没有可校验的夹具笔记，也不是已打开用户 vault。生产空库是空态，不是用户 vault 成功。官方 schema MCP 仍为未验证。",
+  schemaReadyTitle: "Schema 工作台",
+  schemaReadyBody:
+    "校验结果来自 BMDock 自有夹具 Markdown/JSON-like frontmatter 与宿主 schema 目录。必填 title/body 必须在物理 UTF-8 文件上观察到。valid / invalid / empty / unsupported 保持区分。信封文案不是磁盘证明。",
+  schemaErrorTitle: "无法校验 Schema",
+  schemaIdentifierLabel: "标识",
+  schemaIdLabel: "可选 schema_id",
+  schemaSubmit: "校验 Schema",
+  schemaVerdictLabel: "校验结论",
+  schemaVerdictValid: "有效（valid）",
+  schemaVerdictInvalid: "无效（invalid）",
+  schemaVerdictEmpty: "空态（empty）",
+  schemaVerdictUnsupported: "不受支持（unsupported）",
+  schemaIdValueLabel: "schema_id",
+  schemaObservedTitle: "已观察 title",
+  schemaObservedBody: "已观察 body",
+  schemaMissingField: "缺失字段",
+  schemaDiskOwned: "校验对照物理 UTF-8 文件上的必填 title/body，不是 UI 文案。",
+  schemaNotOfficialMcp:
+    "这不是官方 MCP schema_validate / schema_infer / schema_diff。未加入 rmcp，也未把 just contract 当作本任务证明。",
+  schemaEngineLabel: "官方 schema MCP",
+  schemaEngineFalse: "未验证（engine_schema=false）",
+  unexpectedSchema: "Schema 校验响应格式不符合预期",
   previewEmptyTitle: "还没有上下文预览",
   previewEmptyBody:
     "空预览表示当前没有可显示的夹具 Markdown 片段，也不是已打开用户 vault。生产空库是空态，不是用户 vault 成功。检索命中预览复用 preview_context，不是第二套索引。",
@@ -417,9 +442,9 @@ export const messages = {
     "native GUI / IME 会话仍为未验证。cargo test 与 npm build 不是原生窗口输入。",
   contentSafetyHelpNotT39: "帮助与无障碍完备性仍属 T39，本任务不关闭。",
   aboutIntro:
-    "这是桌面布局壳加只读预检、显式项目路由、分页目录、笔记预览、观察与关系语义面板、局部图谱渐进展开、夹具全文词法检索、检索 Inspector 与模型状态、中文召回与性能基准、上下文预览与近期活动、草稿编辑器会话、夹具笔记写入编辑移动删除、同目标冲突与超时未知协调、宿主正常退出排空、夹具备份恢复基线、Windows 运行时原型观察，以及编辑器内容安全与 CRLF 精确字节往返。默认界面语言为简体中文。帮助与无障碍完备性也不在本任务关闭。",
+    "这是桌面布局壳加只读预检、显式项目路由、分页目录、笔记预览、观察与关系语义面板、局部图谱渐进展开、夹具全文词法检索、检索 Inspector 与模型状态、中文召回与性能基准、Schema 工作台、上下文预览与近期活动、草稿编辑器会话、夹具笔记写入编辑移动删除、同目标冲突与超时未知协调、宿主正常退出排空、夹具备份恢复基线、Windows 运行时原型观察，以及编辑器内容安全与 CRLF 精确字节往返。默认界面语言为简体中文。帮助与无障碍完备性也不在本任务关闭。",
   aboutSafety:
-    "调用 get_capabilities、get_runtime_state、list_projects、run_preflight、discover_config、list_tree、read_note、list_relations、expand_graph、search_notes、inspect_search、run_recall_benchmark、preview_context、list_activity、list_backups、restore_fixture、inspect_windows_runtime、save_draft、load_draft、write_note、edit_note、move_note、delete_note 与 begin_shutdown。选择项目仅允许 bmdock-fixture。list_tree、read_note、list_relations、expand_graph、search_notes、inspect_search、run_recall_benchmark、preview_context、list_activity、list_backups、restore_fixture、save_draft、load_draft、write_note、edit_note、move_note 与 delete_note 每次都携带显式 workspace 与 project。关系与局部图谱来自夹具 Markdown 的 wiki-link，一次只展开一跳，不是第二套笔记索引，也不是官方引擎图谱。检索是夹具 Markdown 的词法命中，不是官方 search / fetch，也没有嵌入后端。检索 Inspector 解释词法命中与关闭的语义模型状态，不是官方语义。中文召回基准在夹具磁盘 gold 上计算 recall@k，并记录进程内 elapsed_ms；官方引擎中文召回与 native GUI 仍为未验证。上下文预览是夹具 Markdown 的纯文本片段，近期活动是夹具文件 mtime 顺序，都不是官方 recent_activity / build_context。Markdown 与 HTML 以 labeled textarea 和 pre 纯文本往返，不使用 dangerouslySetInnerHTML，也不执行 script 或 onerror。CRLF 按精确字节落盘；行尾丢失不得标为 disk_verified。不会 raw callTool、不会写入用户 vault、不会启动 Supervisor。save_draft 与 write_note 保持区分。超时未知留在运行状态 DTO，不进入 IPC 错误联合体。同目标冲突不是 policy-for-path。begin_shutdown 在未启动时记录空闲排空收据，不是活动引擎寿命，也不会强杀子进程。native GUI / IME 会话未验证。官方 recent_activity / build_context / search / fetch 仍为未验证。",
+    "调用 get_capabilities、get_runtime_state、list_projects、run_preflight、discover_config、list_tree、read_note、list_relations、expand_graph、search_notes、inspect_search、run_recall_benchmark、schema_validate、preview_context、list_activity、list_backups、restore_fixture、inspect_windows_runtime、save_draft、load_draft、write_note、edit_note、move_note、delete_note 与 begin_shutdown。选择项目仅允许 bmdock-fixture。list_tree、read_note、list_relations、expand_graph、search_notes、inspect_search、run_recall_benchmark、schema_validate、preview_context、list_activity、list_backups、restore_fixture、save_draft、load_draft、write_note、edit_note、move_note 与 delete_note 每次都携带显式 workspace 与 project。关系与局部图谱来自夹具 Markdown 的 wiki-link，一次只展开一跳，不是第二套笔记索引，也不是官方引擎图谱。检索是夹具 Markdown 的词法命中，不是官方 search / fetch，也没有嵌入后端。检索 Inspector 解释词法命中与关闭的语义模型状态，不是官方语义。中文召回基准在夹具磁盘 gold 上计算 recall@k，并记录进程内 elapsed_ms；官方引擎中文召回与 native GUI 仍为未验证。Schema 工作台按 BMDock 自有夹具 Markdown/JSON-like frontmatter 校验必填 title/body，不是官方 schema_validate / schema_infer / schema_diff。上下文预览是夹具 Markdown 的纯文本片段，近期活动是夹具文件 mtime 顺序，都不是官方 recent_activity / build_context。Markdown 与 HTML 以 labeled textarea 和 pre 纯文本往返，不使用 dangerouslySetInnerHTML，也不执行 script 或 onerror。CRLF 按精确字节落盘；行尾丢失不得标为 disk_verified。不会 raw callTool、不会写入用户 vault、不会启动 Supervisor。save_draft 与 write_note 保持区分。超时未知留在运行状态 DTO，不进入 IPC 错误联合体。同目标冲突不是 policy-for-path。begin_shutdown 在未启动时记录空闲排空收据，不是活动引擎寿命，也不会强杀子进程。native GUI / IME 会话未验证。官方 recent_activity / build_context / search / fetch / schema MCP 仍为未验证。",
   aboutProfiles:
     "release（c0bd87c6，21 个工具）与 main-preview（3452c821，27 个工具）保持隔离。本界面不把工具清单或 just contract 当作功能验收。",
   aboutCommands:

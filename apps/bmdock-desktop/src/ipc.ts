@@ -49,6 +49,11 @@ export type RecallBenchmarkArgs = ExplicitRouteArgs & {
   k?: number;
 };
 
+export type SchemaValidateArgs = ExplicitRouteArgs & {
+  identifier: string;
+  schema_id?: string;
+};
+
 export type PreviewContextArgs = ExplicitRouteArgs & {
   identifier: string;
   query?: string;
@@ -106,6 +111,7 @@ export type IpcCommand =
   | { command: "search_notes"; args: SearchNotesArgs }
   | { command: "inspect_search"; args: InspectSearchArgs }
   | { command: "run_recall_benchmark"; args: RecallBenchmarkArgs }
+  | { command: "schema_validate"; args: SchemaValidateArgs }
   | { command: "preview_context"; args: PreviewContextArgs }
   | { command: "list_activity"; args: ListActivityArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
@@ -375,6 +381,23 @@ export interface RecallBenchmarkDto {
   files_written: false;
 }
 
+export type SchemaVerdict = "valid" | "invalid" | "empty" | "unsupported";
+
+export interface SchemaValidateDto {
+  identifier: string;
+  schema_id: string;
+  verdict: SchemaVerdict;
+  required_fields: string[];
+  missing_fields: string[];
+  observed_title: boolean;
+  observed_body: boolean;
+  observation: NoteCrudObservationDto;
+  engine_schema: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  files_written: false;
+}
+
 export interface ContextPreviewDto {
   identifier: string;
   query: string | null;
@@ -539,6 +562,7 @@ export type IpcResponse =
   | { kind: "search_page" } & SearchPageDto
   | { kind: "search_inspector" } & SearchInspectorDto
   | { kind: "recall_benchmark" } & RecallBenchmarkDto
+  | { kind: "schema_validated" } & SchemaValidateDto
   | { kind: "context_preview" } & ContextPreviewDto
   | { kind: "activity_page" } & ActivityPageDto
   | { kind: "backup_catalog" } & BackupCatalogDto
@@ -587,6 +611,7 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "search_notes":
     case "inspect_search":
     case "run_recall_benchmark":
+    case "schema_validate":
     case "preview_context":
     case "list_activity":
     case "list_backups":
@@ -741,6 +766,19 @@ export const runRecallBenchmark = (args: { k?: number } = {}) => {
       workspace: route.workspace,
       project: route.project,
       ...(args.k !== undefined ? { k: args.k } : {}),
+    },
+  });
+};
+
+export const schemaValidate = (args: { identifier: string; schema_id?: string }) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "schema_validated" } & SchemaValidateDto>({
+    command: "schema_validate",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      identifier: args.identifier,
+      ...(args.schema_id ? { schema_id: args.schema_id } : {}),
     },
   });
 };

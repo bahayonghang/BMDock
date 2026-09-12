@@ -1,0 +1,175 @@
+{
+  "task": "T25",
+  "title": "Schema工作台",
+  "status": "accepted_with_limits",
+  "date": "2026-09-13",
+  "host_boundary": "T25 adds typed schema_validate with ExplicitRouteArgs plus required identifier plus optional schema_id. deny_unknown_fields. Extra path/root is schema. Missing identifier is schema. Empty schema_id when provided is schema. Non-fixture routes, filesystem identifiers, and filesystem schema ids are policy and do not open the library. Validation is BMDock-owned over FixtureLibrary markdown/JSON-like frontmatter or a BMDock-owned fixture schema catalog. The default catalog id is note and requires title/body observed on physical UTF-8. valid vs invalid vs empty vs unsupported stay distinct. Envelope text is not disk proof. Production EmptyLibrary returns empty/unsupported, not user-vault success. Tests inject FixtureLibrary and observe valid when the physical file matches the schema and invalid when a required field is missing on disk. engine_schema=false. Official MCP schema_validate / schema_infer / schema_diff remain UNVERIFIED. Dual profiles stay isolated and are not mixed into the schema DTO. MCP identity schema_infer, schema_diff, and call_tool stay denied. T25 does not start Supervisor, add rmcp, or run just contract as proof. just build stays the G0 probe.",
+  "acceptance": {
+    "AC32": {
+      "status": "fixture_disk_schema_validate",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "A fixture note is validated against a BMDock-owned schema. Required title/body fields are observed on physical UTF-8. valid vs invalid vs empty vs unsupported stay distinct. Envelope text is not disk proof. Production EmptyLibrary is empty/unsupported, not user-vault success. Official schema MCP remains UNVERIFIED.",
+      "unverified": [
+        "official MCP schema_validate",
+        "official MCP schema_infer",
+        "official MCP schema_diff",
+        "native GUI session",
+        "real user vault",
+        "user vault schema success"
+      ]
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t25-schema-workbench",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 156 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 19 passed"
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T25 schema proof. Probe entries remain independent. Official schema MCP remains UNVERIFIED."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window was launched. AC32 proof is fixture-disk schema_validate, not a native GUI session."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_161_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_desktop_shell": "19_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "typed_command_count": 26,
+    "typed_schema_validate": "allowed",
+    "raw_call_tool": "absent",
+    "mcp_identity_schema_infer": "absent",
+    "mcp_identity_schema_diff": "absent",
+    "dangerouslySetInnerHTML": "absent",
+    "supervisor_started_by_t25": false,
+    "rmcp_live_client": "not_added_in_t25",
+    "engine_schema": false,
+    "timeout_unknown_on_ipc_error_union": false,
+    "official_schema_validate_mcp": "UNVERIFIED",
+    "official_schema_infer_mcp": "UNVERIFIED",
+    "official_schema_diff_mcp": "UNVERIFIED",
+    "native_gui_session": "UNVERIFIED",
+    "webview2_session": "UNVERIFIED",
+    "installer": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "t26_mcp_resources_prompts": "not_implemented",
+    "fixture_title_body_observed_on_physical_utf8": true,
+    "valid_when_physical_file_matches_schema": true,
+    "invalid_when_required_field_missing_on_disk": true,
+    "empty_library_schema_is_empty_state": true,
+    "unknown_catalog_id_is_unsupported": true,
+    "envelope_only_valid_rejected": true
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed_unchanged",
+    "T10": "completed_unchanged",
+    "T11": "completed_unchanged",
+    "T12": "completed_unchanged",
+    "T13": "completed_unchanged",
+    "T14": "completed_unchanged",
+    "T15": "completed_unchanged",
+    "T16": "completed_unchanged",
+    "T17": "completed_unchanged",
+    "T18": "completed_unchanged",
+    "T19": "completed_unchanged",
+    "T20": "completed_unchanged",
+    "T21": "completed_unchanged",
+    "T22": "completed_unchanged",
+    "T23": "completed_unchanged",
+    "T24": "completed_unchanged",
+    "T25": "completed",
+    "T26": "planned_unchanged"
+  },
+  "scope_limits": [
+    "schema_validate is BMDock-owned fixture markdown/JSON-like frontmatter validation, not official MCP schema_validate / schema_infer / schema_diff.",
+    "Required title/body are observed on physical UTF-8. Envelope text is not disk proof.",
+    "valid vs invalid vs empty vs unsupported stay distinct.",
+    "EmptyLibrary empty/unsupported is empty/unsupported state, not user-vault success.",
+    "Missing fixture files are empty, not user-vault.",
+    "Unknown catalog ids are unsupported.",
+    "engine_schema=false.",
+    "Official schema MCP remains UNVERIFIED. Native GUI, WebView2, installer, hosted CI, and real user vaults remain UNVERIFIED.",
+    "IPC error union stays policy/schema/unsupported. Dual profiles stay isolated (21 vs 27).",
+    "just build stays scripts.tasks build. just contract* stay probe. just tauri-dev/tauri-build stay desktop.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "T26-T40 were not implemented. Optional infer/diff IPC commands were not added."
+  ],
+  "rollback": "Remove schema_validate from the ipc_invoke union, drop SchemaWorkbenchPanel, restore the 25-command allowlist, and leave T15 CRUD and T19 relations in place. Do not revert T05-T24 status to make unit green."
+}

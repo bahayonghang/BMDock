@@ -404,3 +404,19 @@ zh-CN 工作台「基准」区分空态 / 错误 / 就绪，显示 recall@k、�
 本机 Windows 本轮命令（2026-09-13）：`python ./.trellis/scripts/task.py validate 09-12-t24-chinese-recall-benchmark` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 152 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 18 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方中文召回 / hosted CI 证据；这些仍为 `UNVERIFIED`。
 
 T24 证据与验收映射见 [t24-chinese-recall-benchmark.json](../execution/evidence/t24-chinese-recall-benchmark.json)。`execution/status.json` 仅将 T24 标为 `completed`；未改 T05–T23/G0。
+
+## T25：Schema 工作台
+
+T25 在现有 `ipc_invoke` 上增加 typed `schema_validate`（`ExplicitRouteArgs` + 必填 `identifier` + optional `schema_id`，`deny_unknown_fields`）。额外 `path`/`root` 为 schema。缺 identifier 为 schema。提供空 `schema_id` 为 schema。非 fixture 路由、文件系统 identifier 或文件系统 schema_id 为 policy，且不打开库。capabilities 精确允许列为 26 个命令。typed `schema_validate` 允许；MCP identity `schema_infer` / `schema_diff` 与 `call_tool` 仍拒绝。
+
+校验是 BMDock 自有夹具能力，覆盖 `FixtureLibrary` Markdown/JSON-like frontmatter 与宿主 schema 目录（默认 `note` 要求物理 UTF-8 上的 `title`/`body`）。不是官方 MCP `schema_validate` / `schema_infer` / `schema_diff`。生产 `EmptyLibrary` 返回 empty/unsupported，不是用户 vault 成功。测试注入 `FixtureLibrary`，在物理文件匹配 schema 时观察 `valid`，在磁盘缺少必填字段时观察 `invalid`。信封文案不是磁盘证明。`engine_schema=false`。官方 schema MCP 仍为 `UNVERIFIED`。
+
+AC32：夹具笔记相对 BMDock 自有 schema 校验，必填 title/body 在物理 UTF-8 上观察。`valid` / `invalid` / `empty` / `unsupported` 保持区分。生产空库不是用户 vault 成功。未把 UI 文案或工具清单当作磁盘证明。
+
+zh-CN 工作台「Schema 工作台」区分空态 / 错误 / 就绪，显示 verdict、schema_id、已观察 title/body。无 `dangerouslySetInnerHTML`。不启动 Supervisor。无新 npm 依赖。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T25 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令（2026-09-13）：`python ./.trellis/scripts/task.py validate 09-12-t25-schema-workbench` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 156 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 19 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方 schema MCP / hosted CI 证据；这些仍为 `UNVERIFIED`。
+
+T25 证据与验收映射见 [t25-schema-workbench.json](../execution/evidence/t25-schema-workbench.json)。`execution/status.json` 仅将 T25 标为 `completed`；未改 T05–T24/G0。

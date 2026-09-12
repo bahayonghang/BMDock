@@ -19,6 +19,12 @@ pub const SCHEMA_NOTE_DESTINATION: &str = "move destination is required";
 pub const SCHEMA_MOVE_SAME_IDENTIFIER: &str = "move destination must differ from identifier";
 pub const SCHEMA_SEARCH_QUERY: &str = "search query is required";
 pub const SCHEMA_RECALL_K: &str = "k must be bounded and greater than 0";
+pub const SCHEMA_INVALID_SCHEMA_ID: &str = "schema_id is required when provided";
+pub const DEFAULT_SCHEMA_ID: &str = "note";
+pub const SCHEMA_FIELD_TITLE: &str = "title";
+pub const SCHEMA_FIELD_BODY: &str = "body";
+pub const POLICY_FILESYSTEM_SCHEMA_ID: &str =
+    "Schema ids are catalog identifiers, not user vault filesystem paths";
 #[cfg(test)]
 pub const CHINESE_RECALL_QUERIES: &[&str] = &["欢迎"];
 #[cfg(test)]
@@ -68,6 +74,12 @@ pub const INSPECTOR_READ_ONLY: &str = "inspect_search is read-only; files_writte
 #[cfg(test)]
 pub const ENGINE_RECALL_NOT_OWNED: &str =
     "run_recall_benchmark is BMDock-owned fixture Chinese recall over disk gold, not official engine Chinese recall and not official search MCP";
+#[cfg(test)]
+pub const ENGINE_SCHEMA_NOT_OWNED: &str =
+    "schema_validate is BMDock-owned fixture markdown/JSON-like frontmatter validation, not official MCP schema_validate / schema_infer / schema_diff";
+#[cfg(test)]
+pub const OFFICIAL_SCHEMA_MCP_UNVERIFIED: &str =
+    "official schema_validate / schema_infer / schema_diff MCP remain UNVERIFIED";
 #[cfg(test)]
 pub const RECALL_NATIVE_UNVERIFIED: &str =
     "T24 records bounded in-process elapsed_ms only; cargo test / npm build / UI copy are not AC56 native proof";
@@ -474,6 +486,77 @@ pub fn empty_recall_benchmark(k: u32) -> RecallBenchmarkDto {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum SchemaVerdict {
+    Valid,
+    Invalid,
+    Empty,
+    Unsupported,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SchemaValidateDto {
+    pub identifier: String,
+    pub schema_id: String,
+    pub verdict: SchemaVerdict,
+    pub required_fields: Vec<String>,
+    pub missing_fields: Vec<String>,
+    pub observed_title: bool,
+    pub observed_body: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_schema: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub files_written: bool,
+}
+
+pub fn owned_schema_required_fields() -> Vec<String> {
+    vec![SCHEMA_FIELD_TITLE.to_owned(), SCHEMA_FIELD_BODY.to_owned()]
+}
+
+pub fn empty_schema_report(identifier: &str, schema_id: &str) -> SchemaValidateDto {
+    SchemaValidateDto {
+        identifier: identifier.to_owned(),
+        schema_id: schema_id.to_owned(),
+        verdict: SchemaVerdict::Empty,
+        required_fields: owned_schema_required_fields(),
+        missing_fields: Vec::new(),
+        observed_title: false,
+        observed_body: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_schema: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        files_written: false,
+    }
+}
+
+pub fn unsupported_schema_report(identifier: &str, schema_id: &str) -> SchemaValidateDto {
+    SchemaValidateDto {
+        identifier: identifier.to_owned(),
+        schema_id: schema_id.to_owned(),
+        verdict: SchemaVerdict::Unsupported,
+        required_fields: Vec::new(),
+        missing_fields: Vec::new(),
+        observed_title: false,
+        observed_body: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Unclassified,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_schema: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        files_written: false,
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ContextPreviewDto {
     pub identifier: String,
@@ -668,6 +751,19 @@ pub trait NoteLibrary: Send + Sync {
     fn run_recall_benchmark(&self, k: u32) -> Result<RecallBenchmarkDto, LibraryError> {
         let k = bound_recall_k(Some(k))?;
         Ok(empty_recall_benchmark(k))
+    }
+
+    fn schema_validate(
+        &self,
+        identifier: &str,
+        schema_id: Option<&str>,
+    ) -> Result<SchemaValidateDto, LibraryError> {
+        reject_note_identifier(identifier)?;
+        let schema_id = resolve_schema_id(schema_id)?;
+        if !is_owned_schema(schema_id) {
+            return Ok(unsupported_schema_report(identifier, schema_id));
+        }
+        Ok(empty_schema_report(identifier, schema_id))
     }
 
     fn preview_context(
@@ -1311,6 +1407,58 @@ impl NoteLibrary for FixtureLibrary {
         })
     }
 
+    fn schema_validate(
+        &self,
+        identifier: &str,
+        schema_id: Option<&str>,
+    ) -> Result<SchemaValidateDto, LibraryError> {
+        reject_note_identifier(identifier)?;
+        let schema_id = resolve_schema_id(schema_id)?;
+        if !is_owned_schema(schema_id) {
+            return Ok(unsupported_schema_report(identifier, schema_id));
+        }
+        let candidate = self.resolve_create_path(identifier)?;
+        if !candidate.is_file() {
+            return Ok(empty_schema_report(identifier, schema_id));
+        }
+        let path = self.resolve_note_path(identifier)?;
+        let disk = crate::content_safety::read_exact_text(&path)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let (title, body) = parse_fixture_fields(&disk);
+        let observed_title = title
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty());
+        let observed_body = body
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty());
+        let mut missing_fields = Vec::new();
+        if !observed_title {
+            missing_fields.push(SCHEMA_FIELD_TITLE.to_owned());
+        }
+        if !observed_body {
+            missing_fields.push(SCHEMA_FIELD_BODY.to_owned());
+        }
+        let verdict = if missing_fields.is_empty() {
+            SchemaVerdict::Valid
+        } else {
+            SchemaVerdict::Invalid
+        };
+        Ok(SchemaValidateDto {
+            identifier: identifier.to_owned(),
+            schema_id: schema_id.to_owned(),
+            verdict,
+            required_fields: owned_schema_required_fields(),
+            missing_fields,
+            observed_title,
+            observed_body,
+            observation: crud_observation(NoteCrudClass::DiskVerified, true),
+            engine_schema: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            files_written: false,
+        })
+    }
+
     fn preview_context(
         &self,
         identifier: &str,
@@ -1803,6 +1951,41 @@ pub fn accept_recall_benchmark(
     Ok(report)
 }
 
+pub fn resolve_schema_id(schema_id: Option<&str>) -> Result<&str, LibraryError> {
+    match schema_id.map(str::trim) {
+        None => Ok(DEFAULT_SCHEMA_ID),
+        Some("") => Err(LibraryError::schema(SCHEMA_INVALID_SCHEMA_ID)),
+        Some(value) if looks_like_filesystem_path(value) => {
+            Err(LibraryError::policy(POLICY_FILESYSTEM_SCHEMA_ID))
+        }
+        Some(value) => Ok(value),
+    }
+}
+
+pub fn is_owned_schema(schema_id: &str) -> bool {
+    schema_id == DEFAULT_SCHEMA_ID
+}
+
+pub fn accept_schema_report(report: SchemaValidateDto) -> Result<SchemaValidateDto, LibraryError> {
+    if report.engine_schema || report.files_written {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if looks_like_filesystem_path(&report.identifier)
+        || looks_like_filesystem_path(&report.schema_id)
+    {
+        return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+    }
+    if report.verdict == SchemaVerdict::Valid && !report.observation.disk_verified {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if report.verdict == SchemaVerdict::Valid
+        && (!report.observed_title || !report.observed_body || !report.missing_fields.is_empty())
+    {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    Ok(report)
+}
+
 #[cfg(test)]
 fn contains_cjk(value: &str) -> bool {
     value.chars().any(|ch| {
@@ -1925,6 +2108,112 @@ pub fn title_from_markdown(body: &str) -> Option<String> {
         break;
     }
     None
+}
+
+#[cfg(test)]
+fn split_frontmatter(disk: &str) -> (Option<String>, &str) {
+    let text = disk.strip_prefix('\u{feff}').unwrap_or(disk);
+    let Some(after_open) = text.strip_prefix("---") else {
+        return (None, disk);
+    };
+    let after_open = after_open.strip_prefix('\r').unwrap_or(after_open);
+    let Some(after_open) = after_open.strip_prefix('\n') else {
+        return (None, disk);
+    };
+    let Some(end) = after_open.find("\n---") else {
+        return (None, disk);
+    };
+    let front = after_open[..end].trim().to_owned();
+    let mut rest = &after_open[end + 1..];
+    rest = rest.strip_prefix("---").unwrap_or(rest);
+    rest = rest.strip_prefix("\r\n").unwrap_or(rest);
+    rest = rest.strip_prefix('\n').unwrap_or(rest);
+    (Some(front), rest)
+}
+
+#[cfg(test)]
+fn json_like_fields(front: &str) -> (Option<String>, Option<String>) {
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(front) else {
+        return (None, None);
+    };
+    let read = |key: &str| {
+        value
+            .get(key)
+            .and_then(serde_json::Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(ToOwned::to_owned)
+    };
+    (read("title"), read("body"))
+}
+
+#[cfg(test)]
+fn yaml_like_fields(front: &str) -> (Option<String>, Option<String>) {
+    let mut title = None;
+    let mut body = None;
+    for line in front.lines() {
+        let Some((key, value)) = line.split_once(':') else {
+            continue;
+        };
+        let key = key.trim();
+        let value = value.trim().trim_matches('"').trim();
+        if value.is_empty() {
+            continue;
+        }
+        if key == SCHEMA_FIELD_TITLE {
+            title = Some(value.to_owned());
+        }
+        if key == SCHEMA_FIELD_BODY {
+            body = Some(value.to_owned());
+        }
+    }
+    (title, body)
+}
+
+#[cfg(test)]
+fn markdown_body_without_heading(text: &str) -> String {
+    let mut lines = text.lines().peekable();
+    while let Some(line) = lines.peek() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with("# ") {
+            lines.next();
+            continue;
+        }
+        break;
+    }
+    let body: Vec<&str> = lines.collect();
+    body.join("\n").trim().to_owned()
+}
+
+#[cfg(test)]
+pub fn parse_fixture_fields(disk: &str) -> (Option<String>, Option<String>) {
+    let (front, rest) = split_frontmatter(disk);
+    let mut title = None;
+    let mut body = None;
+    if let Some(front) = front.as_deref() {
+        if front.starts_with('{') {
+            let (json_title, json_body) = json_like_fields(front);
+            title = json_title;
+            body = json_body;
+        } else {
+            let (yaml_title, yaml_body) = yaml_like_fields(front);
+            title = yaml_title;
+            body = yaml_body;
+        }
+    }
+    if title.is_none() {
+        title = title_from_markdown(disk);
+        if title.is_none() {
+            title = title_from_markdown(rest);
+        }
+    }
+    if body.is_none() {
+        let remainder = markdown_body_without_heading(rest);
+        if !remainder.is_empty() {
+            body = Some(remainder);
+        }
+    }
+    (title, body)
 }
 
 pub fn looks_like_filesystem_path(value: &str) -> bool {
@@ -2372,6 +2661,17 @@ mod tests {
         assert_eq!(recall.observation.classified_as, NoteCrudClass::Empty);
         assert!(!recall.observation.disk_verified);
         assert!(recall.observation.envelope_is_not_disk_proof);
+        let schema = library.schema_validate("welcome", None).unwrap();
+        assert_eq!(schema.identifier, "welcome");
+        assert_eq!(schema.schema_id, DEFAULT_SCHEMA_ID);
+        assert_eq!(schema.verdict, SchemaVerdict::Empty);
+        assert!(!schema.observed_title);
+        assert!(!schema.observed_body);
+        assert!(!schema.engine_schema);
+        assert!(!schema.files_written);
+        assert_eq!(schema.observation.classified_as, NoteCrudClass::Empty);
+        assert!(!schema.observation.disk_verified);
+        assert!(schema.observation.envelope_is_not_disk_proof);
         let preview = library.preview_context("welcome", None).unwrap();
         assert!(preview.snippet.is_empty());
         assert!(!preview.executed);
@@ -2393,6 +2693,8 @@ mod tests {
             ENGINE_RECALL_NOT_OWNED,
             RECALL_NATIVE_UNVERIFIED,
             OFFICIAL_CHINESE_RECALL_UNVERIFIED,
+            ENGINE_SCHEMA_NOT_OWNED,
+            OFFICIAL_SCHEMA_MCP_UNVERIFIED,
             ENGINE_CONTEXT_NOT_OWNED,
             ENGINE_ACTIVITY_NOT_OWNED,
             SEMANTIC_SEARCH_UNVERIFIED,
@@ -2455,6 +2757,33 @@ mod tests {
             EmptyLibrary.inspect_search("欢迎", Some("")).unwrap_err(),
             LibraryError::schema(SCHEMA_NOTE_IDENTIFIER)
         );
+        assert_eq!(
+            EmptyLibrary.schema_validate("", None).unwrap_err(),
+            LibraryError::schema(SCHEMA_NOTE_IDENTIFIER)
+        );
+        assert_eq!(
+            EmptyLibrary
+                .schema_validate(r"C:\Users\someone\vault\note.md", None)
+                .unwrap_err(),
+            LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER)
+        );
+        assert_eq!(
+            EmptyLibrary
+                .schema_validate("welcome", Some(r"C:\Users\someone\vault\note.md"))
+                .unwrap_err(),
+            LibraryError::policy(POLICY_FILESYSTEM_SCHEMA_ID)
+        );
+        assert_eq!(
+            EmptyLibrary
+                .schema_validate("welcome", Some(""))
+                .unwrap_err(),
+            LibraryError::schema(SCHEMA_INVALID_SCHEMA_ID)
+        );
+        let unknown = EmptyLibrary
+            .schema_validate("welcome", Some("unknown-schema"))
+            .unwrap();
+        assert_eq!(unknown.verdict, SchemaVerdict::Unsupported);
+        assert!(!unknown.engine_schema);
     }
 
     #[test]
@@ -2751,6 +3080,105 @@ mod tests {
             OFFICIAL_CHINESE_RECALL_UNVERIFIED,
             NATIVE_GUI_UNVERIFIED,
         );
+    }
+
+    #[test]
+    fn fixture_schema_validate_observes_title_body_on_physical_utf8() {
+        let fixture = TempFixture::create();
+        fixture.write_note(
+            "welcome",
+            "中文夹具笔记",
+            "这是 BMDock 自有夹具正文。参见 [[欢迎]]。",
+        );
+        fs::write(
+            fixture.dir.join("json-note.md"),
+            "---\n{\"title\":\"欢迎\",\"body\":\"夹具 JSON-like 正文\"}\n---\n",
+        )
+        .unwrap();
+        fs::write(fixture.dir.join("missing-body.md"), "# 只有标题\n").unwrap();
+        fs::write(
+            fixture.dir.join("missing-title.md"),
+            "这是没有标题的夹具正文。\n",
+        )
+        .unwrap();
+        let library = FixtureLibrary::new(fixture.dir.clone());
+        let valid = library.schema_validate("welcome", None).unwrap();
+        assert_eq!(valid.schema_id, DEFAULT_SCHEMA_ID);
+        assert_eq!(valid.verdict, SchemaVerdict::Valid);
+        assert!(valid.observed_title);
+        assert!(valid.observed_body);
+        assert!(valid.missing_fields.is_empty());
+        assert!(!valid.engine_schema);
+        assert!(!valid.files_written);
+        assert_eq!(valid.observation.classified_as, NoteCrudClass::DiskVerified);
+        assert!(valid.observation.disk_verified);
+        assert!(valid.observation.envelope_is_not_disk_proof);
+        let disk = fs::read_to_string(fixture.dir.join("welcome.md")).unwrap();
+        let (title, body) = parse_fixture_fields(&disk);
+        assert_eq!(title.as_deref(), Some("中文夹具笔记"));
+        assert!(body.as_deref().is_some_and(|value| value.contains("欢迎")));
+        let json_note = library
+            .schema_validate("json-note", Some(DEFAULT_SCHEMA_ID))
+            .unwrap();
+        assert_eq!(json_note.verdict, SchemaVerdict::Valid);
+        assert!(json_note.observed_title);
+        assert!(json_note.observed_body);
+        let json_disk = fs::read_to_string(fixture.dir.join("json-note.md")).unwrap();
+        let (json_title, json_body) = parse_fixture_fields(&json_disk);
+        assert_eq!(json_title.as_deref(), Some("欢迎"));
+        assert_eq!(json_body.as_deref(), Some("夹具 JSON-like 正文"));
+        let missing_body = library.schema_validate("missing-body", None).unwrap();
+        assert_eq!(missing_body.verdict, SchemaVerdict::Invalid);
+        assert!(missing_body.observed_title);
+        assert!(!missing_body.observed_body);
+        assert_eq!(missing_body.missing_fields, vec![SCHEMA_FIELD_BODY]);
+        assert_eq!(
+            missing_body.observation.classified_as,
+            NoteCrudClass::DiskVerified
+        );
+        let missing_title = library.schema_validate("missing-title", None).unwrap();
+        assert_eq!(missing_title.verdict, SchemaVerdict::Invalid);
+        assert!(!missing_title.observed_title);
+        assert!(missing_title.observed_body);
+        assert_eq!(missing_title.missing_fields, vec![SCHEMA_FIELD_TITLE]);
+        let missing_file = library.schema_validate("absent", None).unwrap();
+        assert_eq!(missing_file.verdict, SchemaVerdict::Empty);
+        assert_eq!(missing_file.observation.classified_as, NoteCrudClass::Empty);
+        let unknown = library
+            .schema_validate("welcome", Some("unknown-schema"))
+            .unwrap();
+        assert_eq!(unknown.verdict, SchemaVerdict::Unsupported);
+        assert!(!unknown.engine_schema);
+        assert_ne!(SchemaVerdict::Valid, SchemaVerdict::Invalid);
+        assert_ne!(SchemaVerdict::Valid, SchemaVerdict::Empty);
+        assert_ne!(SchemaVerdict::Invalid, SchemaVerdict::Unsupported);
+        let claimed = SchemaValidateDto {
+            engine_schema: true,
+            verdict: SchemaVerdict::Valid,
+            observed_title: true,
+            observed_body: true,
+            ..empty_schema_report("welcome", DEFAULT_SCHEMA_ID)
+        };
+        assert_eq!(
+            accept_schema_report(claimed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_TRUNCATED)
+        );
+        let envelope_valid = SchemaValidateDto {
+            verdict: SchemaVerdict::Valid,
+            observed_title: true,
+            observed_body: true,
+            observation: NoteCrudObservationDto {
+                classified_as: NoteCrudClass::AcceptedUnverified,
+                disk_verified: false,
+                envelope_is_not_disk_proof: true,
+            },
+            ..empty_schema_report("welcome", DEFAULT_SCHEMA_ID)
+        };
+        assert_eq!(
+            accept_schema_report(envelope_valid).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_TRUNCATED)
+        );
+        let _ = (ENGINE_SCHEMA_NOT_OWNED, OFFICIAL_SCHEMA_MCP_UNVERIFIED);
     }
 
     fn fixture_write_missing_gold(fixture: &TempFixture) {

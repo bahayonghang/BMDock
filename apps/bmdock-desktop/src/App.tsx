@@ -21,6 +21,8 @@ import {
   type SearchHitDto,
   type SearchInspectorDto,
   type RecallBenchmarkDto,
+  type SchemaValidateDto,
+  type SchemaVerdict,
   type ContextPreviewDto,
   type ActivityPageDto,
   type ActivityEntryDto,
@@ -254,6 +256,8 @@ function WorkbenchLibrary({
   const [inspectorError, setInspectorError] = useState<WorkbenchError | null>(null);
   const [recall, setRecall] = useState<RecallBenchmarkDto | null>(null);
   const [recallError, setRecallError] = useState<WorkbenchError | null>(null);
+  const [schema, setSchema] = useState<SchemaValidateDto | null>(null);
+  const [schemaError, setSchemaError] = useState<WorkbenchError | null>(null);
   const [preview, setPreview] = useState<ContextPreviewDto | null>(null);
   const [previewError, setPreviewError] = useState<WorkbenchError | null>(null);
   const [activity, setActivity] = useState<ActivityPageDto | null>(null);
@@ -280,6 +284,8 @@ function WorkbenchLibrary({
     setInspectorError(null);
     setRecall(null);
     setRecallError(null);
+    setSchema(null);
+    setSchemaError(null);
     setPreview(null);
     setPreviewError(null);
     setActivity(null);
@@ -339,6 +345,7 @@ function WorkbenchLibrary({
       case "activity_page":
       case "search_inspector":
       case "recall_benchmark":
+      case "schema_validated":
       case "shutdown_begun":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
@@ -362,6 +369,13 @@ function WorkbenchLibrary({
       cancelled = true;
     };
   }, [reloadToken]);
+
+  useEffect(() => {
+    if (!note?.identifier) {
+      return;
+    }
+    void runSchemaValidate(note.identifier, null, setSchema, setSchemaError);
+  }, [note?.identifier]);
 
   const refresh = (
     <button
@@ -504,6 +518,14 @@ function WorkbenchLibrary({
           void runRecallBenchmark(k, setRecall, setRecallError);
         }}
       />
+      <SchemaWorkbenchPanel
+        seedIdentifier={note?.identifier ?? null}
+        schema={schema}
+        error={schemaError}
+        onValidate={(identifier, schemaId) => {
+          void runSchemaValidate(identifier, schemaId, setSchema, setSchemaError);
+        }}
+      />
       <ContextPreviewPanel preview={preview} error={previewError} />
       <ActivityPanel
         activity={activity}
@@ -592,6 +614,7 @@ async function openNote(
       case "activity_page":
       case "search_inspector":
       case "recall_benchmark":
+      case "schema_validated":
       case "shutdown_begun":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
@@ -665,6 +688,7 @@ async function loadRelations(
       case "activity_page":
       case "search_inspector":
       case "recall_benchmark":
+      case "schema_validated":
       case "shutdown_begun":
         setRelations(null);
         setRelationsError({ category: "schema", message: t("unexpectedRelations") });
@@ -771,6 +795,7 @@ async function loadGraph(
       case "activity_page":
       case "search_inspector":
       case "recall_benchmark":
+      case "schema_validated":
       case "shutdown_begun":
         setGraph(null);
         setGraphError(unexpectedGraphResponse());
@@ -844,6 +869,7 @@ async function loadMoreGraph(
       case "activity_page":
       case "search_inspector":
       case "recall_benchmark":
+      case "schema_validated":
       case "shutdown_begun":
         setGraphError(unexpectedGraphResponse());
         return;
@@ -917,6 +943,7 @@ async function loadMoreTree(
       case "activity_page":
       case "search_inspector":
       case "recall_benchmark":
+      case "schema_validated":
       case "shutdown_begun":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
@@ -1383,6 +1410,7 @@ async function runSearch(
       case "activity_page":
       case "search_inspector":
       case "recall_benchmark":
+      case "schema_validated":
       case "shutdown_begun":
         setSearch(null);
         setSearchError(unexpectedSearchResponse());
@@ -1456,6 +1484,7 @@ async function loadMoreSearch(
       case "activity_page":
       case "search_inspector":
       case "recall_benchmark":
+      case "schema_validated":
       case "shutdown_begun":
         setSearchError(unexpectedSearchResponse());
         return;
@@ -1653,6 +1682,7 @@ async function runInspectSearch(
       case "note_moved":
       case "note_deleted":
       case "recall_benchmark":
+      case "schema_validated":
       case "shutdown_begun":
         setInspector(null);
         setInspectorError(unexpectedInspectorResponse());
@@ -1879,6 +1909,7 @@ async function runRecallBenchmark(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "schema_validated":
       case "shutdown_begun":
         setRecall(null);
         setRecallError(unexpectedRecallResponse());
@@ -2023,6 +2054,235 @@ function RecallBenchmarkPanel({
   );
 }
 
+function unexpectedSchemaResponse(): WorkbenchError {
+  return { category: "schema", message: t("unexpectedSchema") };
+}
+
+function asSchemaValidate(
+  response: Extract<IpcResponse, { kind: "schema_validated" }>,
+): SchemaValidateDto {
+  return {
+    identifier: response.identifier,
+    schema_id: response.schema_id,
+    verdict: response.verdict,
+    required_fields: response.required_fields,
+    missing_fields: response.missing_fields,
+    observed_title: response.observed_title,
+    observed_body: response.observed_body,
+    observation: response.observation,
+    engine_schema: false,
+    scanned_user_obsidian_vault: false,
+    scanned_user_basic_memory_home: false,
+    files_written: false,
+  };
+}
+
+async function runSchemaValidate(
+  identifier: string,
+  schemaId: string | null,
+  setSchema: (schema: SchemaValidateDto | null) => void,
+  setSchemaError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "schema_validate",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        identifier,
+        ...(schemaId ? { schema_id: schemaId } : {}),
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setSchema(null);
+        setSchemaError({ category: response.category, message: response.message });
+        return;
+      case "schema_validated":
+        setSchemaError(null);
+        setSchema(asSchemaValidate(response));
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "relation_list":
+      case "graph_page":
+      case "search_page":
+      case "search_inspector":
+      case "recall_benchmark":
+      case "context_preview":
+      case "activity_page":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
+      case "shutdown_begun":
+        setSchema(null);
+        setSchemaError(unexpectedSchemaResponse());
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setSchema(null);
+    setSchemaError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+function schemaVerdictLabel(verdict: SchemaVerdict): string {
+  switch (verdict) {
+    case "valid":
+      return t("schemaVerdictValid");
+    case "invalid":
+      return t("schemaVerdictInvalid");
+    case "empty":
+      return t("schemaVerdictEmpty");
+    case "unsupported":
+      return t("schemaVerdictUnsupported");
+    default: {
+      const exhaustive: never = verdict;
+      return exhaustive;
+    }
+  }
+}
+
+function SchemaWorkbenchPanel({
+  seedIdentifier,
+  schema,
+  error,
+  onValidate,
+}: {
+  seedIdentifier: string | null;
+  schema: SchemaValidateDto | null;
+  error: WorkbenchError | null;
+  onValidate: (identifier: string, schemaId: string | null) => void;
+}) {
+  const [identifier, setIdentifier] = useState("");
+  const [schemaId, setSchemaId] = useState("");
+  useEffect(() => {
+    if (seedIdentifier) {
+      setIdentifier(seedIdentifier);
+    }
+  }, [seedIdentifier]);
+  const empty = schema === null || schema.verdict === "empty";
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error
+    ? t("schemaErrorTitle")
+    : empty
+      ? t("schemaEmptyTitle")
+      : t("schemaReadyTitle");
+  return (
+    <section
+      className="subpanel"
+      data-state={state}
+      aria-labelledby="schema-workbench-title"
+      role={error ? "alert" : undefined}
+    >
+      <p className="state-badge">{badge}</p>
+      <h3 id="schema-workbench-title">{heading}</h3>
+      <p>
+        {error
+          ? `${errorCategoryLabel(error.category)}：${error.message}`
+          : empty
+            ? t("schemaEmptyBody")
+            : t("schemaReadyBody")}
+      </p>
+      <p>{t("schemaDiskOwned")}</p>
+      <p>{t("schemaNotOfficialMcp")}</p>
+      <form
+        className="search-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const nextIdentifier = identifier.trim();
+          if (nextIdentifier === "") {
+            return;
+          }
+          const nextSchemaId = schemaId.trim();
+          onValidate(nextIdentifier, nextSchemaId === "" ? null : nextSchemaId);
+        }}
+      >
+        <label htmlFor="schema-identifier">{t("schemaIdentifierLabel")}</label>
+        <input
+          id="schema-identifier"
+          type="text"
+          value={identifier}
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(event) => setIdentifier(event.target.value)}
+        />
+        <label htmlFor="schema-id">{t("schemaIdLabel")}</label>
+        <input
+          id="schema-id"
+          type="text"
+          value={schemaId}
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(event) => setSchemaId(event.target.value)}
+        />
+        <button type="submit" className="action">
+          {t("schemaSubmit")}
+        </button>
+      </form>
+      {schema ? (
+        <dl className="facts">
+          <div>
+            <dt>{t("schemaVerdictLabel")}</dt>
+            <dd data-schema-verdict={schema.verdict}>{schemaVerdictLabel(schema.verdict)}</dd>
+          </div>
+          <div>
+            <dt>{t("schemaIdValueLabel")}</dt>
+            <dd>{schema.schema_id}</dd>
+          </div>
+          <div>
+            <dt>{t("schemaObservedTitle")}</dt>
+            <dd>{schema.observed_title ? t("runtimeYes") : t("runtimeNo")}</dd>
+          </div>
+          <div>
+            <dt>{t("schemaObservedBody")}</dt>
+            <dd>{schema.observed_body ? t("runtimeYes") : t("runtimeNo")}</dd>
+          </div>
+          <div>
+            <dt>classified_as</dt>
+            <dd data-observation={schema.observation.classified_as}>
+              {observationClassLabel(schema.observation.classified_as)}
+            </dd>
+          </div>
+          <div>
+            <dt>{t("schemaEngineLabel")}</dt>
+            <dd>{t("schemaEngineFalse")}</dd>
+          </div>
+        </dl>
+      ) : null}
+      {schema && schema.missing_fields.length > 0 ? (
+        <ul className="schema-list">
+          {schema.missing_fields.map((field) => (
+            <li key={field}>
+              {t("schemaMissingField")}: {field}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  );
+}
+
 function unexpectedPreviewResponse(): WorkbenchError {
   return { category: "schema", message: t("unexpectedPreview") };
 }
@@ -2093,6 +2353,7 @@ async function loadContextPreview(
       case "note_deleted":
       case "search_inspector":
       case "recall_benchmark":
+      case "schema_validated":
       case "shutdown_begun":
         setPreview(null);
         setPreviewError(unexpectedPreviewResponse());
@@ -2258,6 +2519,7 @@ async function loadActivity(
       case "note_deleted":
       case "search_inspector":
       case "recall_benchmark":
+      case "schema_validated":
       case "shutdown_begun":
         setActivity(null);
         setActivityError(unexpectedActivityResponse());
@@ -2330,6 +2592,7 @@ async function loadMoreActivity(
       case "note_deleted":
       case "search_inspector":
       case "recall_benchmark":
+      case "schema_validated":
       case "shutdown_begun":
         setActivityError(unexpectedActivityResponse());
         return;
@@ -2752,6 +3015,7 @@ async function applyCrudResponse(
       case "activity_page":
       case "search_inspector":
       case "recall_benchmark":
+      case "schema_validated":
       case "shutdown_begun":
       setError(unexpectedCrudResponse());
       return;
@@ -3080,6 +3344,7 @@ async function persistDraft(
       case "activity_page":
       case "search_inspector":
       case "recall_benchmark":
+      case "schema_validated":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -3158,6 +3423,7 @@ async function reloadDraft(
       case "activity_page":
       case "search_inspector":
       case "recall_benchmark":
+      case "schema_validated":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -3497,6 +3763,7 @@ function ProjectPanel({
       case "activity_page":
       case "search_inspector":
       case "recall_benchmark":
+      case "schema_validated":
       case "shutdown_begun":
                   setSelectError({
                     category: "schema",
@@ -3821,6 +4088,7 @@ function BackupPanel() {
       case "activity_page":
       case "search_inspector":
       case "recall_benchmark":
+      case "schema_validated":
       case "shutdown_begun":
             setError(unexpectedBackupResponse());
             setPhase("error");
@@ -4004,6 +4272,7 @@ async function restoreNamedFixture(
       case "activity_page":
       case "search_inspector":
       case "recall_benchmark":
+      case "schema_validated":
       case "shutdown_begun":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
@@ -4162,6 +4431,7 @@ function WindowsRuntimeCard() {
       case "activity_page":
       case "search_inspector":
       case "recall_benchmark":
+      case "schema_validated":
       case "shutdown_begun":
             setError(unexpectedWindowsResponse());
             setPhase("error");

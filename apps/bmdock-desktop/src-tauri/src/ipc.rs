@@ -7,7 +7,7 @@ use crate::drain::{self, DrainPhase, DrainResultDto, HostDrain};
 use crate::library::{
     self, ActivityPageDto, ContextPreviewDto, GraphPageDto, NoteDeleteDto, NoteEditDto,
     NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto, RecallBenchmarkDto, RelationListDto,
-    SearchInspectorDto, SearchPageDto, TreePageDto,
+    SchemaValidateDto, SearchInspectorDto, SearchPageDto, TreePageDto,
 };
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
@@ -32,6 +32,7 @@ pub enum IpcCommandName {
     SearchNotes,
     InspectSearch,
     RunRecallBenchmark,
+    SchemaValidate,
     PreviewContext,
     ListActivity,
     ListBackups,
@@ -61,6 +62,7 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::SearchNotes,
         IpcCommandName::InspectSearch,
         IpcCommandName::RunRecallBenchmark,
+        IpcCommandName::SchemaValidate,
         IpcCommandName::PreviewContext,
         IpcCommandName::ListActivity,
         IpcCommandName::ListBackups,
@@ -218,6 +220,25 @@ pub struct RecallBenchmarkArgs {
 }
 
 impl RecallBenchmarkArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct SchemaValidateArgs {
+    pub workspace: String,
+    pub project: String,
+    pub identifier: String,
+    #[serde(default)]
+    pub schema_id: Option<String>,
+}
+
+impl SchemaValidateArgs {
     fn route(&self) -> ExplicitRouteArgs {
         ExplicitRouteArgs {
             workspace: self.workspace.clone(),
@@ -410,6 +431,7 @@ pub enum IpcCommand {
     SearchNotes(SearchNotesArgs),
     InspectSearch(InspectSearchArgs),
     RunRecallBenchmark(RecallBenchmarkArgs),
+    SchemaValidate(SchemaValidateArgs),
     PreviewContext(PreviewContextArgs),
     ListActivity(ListActivityArgs),
     ListBackups(ExplicitRouteArgs),
@@ -479,6 +501,7 @@ pub enum IpcResponse {
     SearchPage(SearchPageDto),
     SearchInspector(SearchInspectorDto),
     RecallBenchmark(RecallBenchmarkDto),
+    SchemaValidated(SchemaValidateDto),
     ContextPreview(ContextPreviewDto),
     ActivityPage(ActivityPageDto),
     BackupCatalog(BackupCatalogDto),
@@ -696,6 +719,15 @@ pub fn dispatch_with_drain(
                 library::accept_recall_benchmark(report)?,
             ))
         }
+        IpcCommand::SchemaValidate(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            library::reject_note_identifier(&args.identifier)?;
+            let schema_id = library::resolve_schema_id(args.schema_id.as_deref())?;
+            let report = library.schema_validate(&args.identifier, Some(schema_id))?;
+            Ok(IpcResponse::SchemaValidated(library::accept_schema_report(
+                report,
+            )?))
+        }
         IpcCommand::PreviewContext(args) => {
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
@@ -886,6 +918,7 @@ mod tests {
                 IpcCommandName::SearchNotes,
                 IpcCommandName::InspectSearch,
                 IpcCommandName::RunRecallBenchmark,
+                IpcCommandName::SchemaValidate,
                 IpcCommandName::PreviewContext,
                 IpcCommandName::ListActivity,
                 IpcCommandName::ListBackups,
@@ -900,14 +933,14 @@ mod tests {
                 IpcCommandName::BeginShutdown,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 25);
+        assert_eq!(capabilities.commands.len(), 26);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 25);
+        assert_eq!(commands.len(), 26);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
@@ -919,6 +952,7 @@ mod tests {
         assert!(commands
             .iter()
             .any(|command| command == "run_recall_benchmark"));
+        assert!(commands.iter().any(|command| command == "schema_validate"));
         assert!(commands.iter().any(|command| command == "preview_context"));
         assert!(commands.iter().any(|command| command == "list_activity"));
         assert!(commands.iter().any(|command| command == "list_backups"));
@@ -937,6 +971,8 @@ mod tests {
         assert!(commands.iter().any(|command| command == "list_activity"));
         assert!(!commands.iter().any(|command| command == "call_tool"));
         assert!(!commands.iter().any(|command| command == "search"));
+        assert!(!commands.iter().any(|command| command == "schema_infer"));
+        assert!(!commands.iter().any(|command| command == "schema_diff"));
         assert!(!commands.iter().any(|command| command == "recent_activity"));
         assert!(!commands.iter().any(|command| command == "build_context"));
     }
@@ -1198,6 +1234,34 @@ mod tests {
             r#"{"command":"run_recall_benchmark","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","k":5}}"#,
         );
         assert!(well_formed_recall.is_ok());
+        let extra_path_on_schema = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"schema_validate","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","path":"C:\\vault\\note.md"}}"#,
+        );
+        assert!(extra_path_on_schema.is_err());
+        let extra_root_on_schema = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"schema_validate","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_schema.is_err());
+        let missing_identifier_schema = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"schema_validate","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(missing_identifier_schema.is_err());
+        let schema_without_route = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"schema_validate","args":{"identifier":"welcome"}}"#,
+        );
+        assert!(schema_without_route.is_err());
+        let mcp_schema_infer = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"schema_infer","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome"}}"#,
+        );
+        assert!(mcp_schema_infer.is_err());
+        let mcp_schema_diff = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"schema_diff","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome"}}"#,
+        );
+        assert!(mcp_schema_diff.is_err());
+        let well_formed_schema = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"schema_validate","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","schema_id":"note"}}"#,
+        );
+        assert!(well_formed_schema.is_ok());
         let extra_path_on_preview = serde_json::from_str::<IpcCommand>(
             r#"{"command":"preview_context","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","path":"C:\\vault\\note.md"}}"#,
         );
@@ -1686,6 +1750,14 @@ mod tests {
             panic!("policy rejection must not open the library")
         }
 
+        fn schema_validate(
+            &self,
+            _identifier: &str,
+            _schema_id: Option<&str>,
+        ) -> Result<library::SchemaValidateDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
         fn preview_context(
             &self,
             _identifier: &str,
@@ -1911,6 +1983,15 @@ mod tests {
             workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
             project: FIXTURE_PROJECT.to_owned(),
             k,
+        }
+    }
+
+    fn fixture_schema_args(identifier: &str, schema_id: Option<&str>) -> SchemaValidateArgs {
+        SchemaValidateArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            identifier: identifier.to_owned(),
+            schema_id: schema_id.map(ToOwned::to_owned),
         }
     }
 
@@ -2157,6 +2238,48 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(recall_route.category, ErrorCategory::Policy);
+        let schema_route = dispatch_with_library(
+            IpcCommand::SchemaValidate(SchemaValidateArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+                identifier: "welcome".to_owned(),
+                schema_id: None,
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(schema_route.category, ErrorCategory::Policy);
+        let schema_path = dispatch_with_library(
+            IpcCommand::SchemaValidate(SchemaValidateArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                identifier: r"C:\Users\someone\vault\note.md".to_owned(),
+                schema_id: None,
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(schema_path.category, ErrorCategory::Policy);
+        let schema_id_path = dispatch_with_library(
+            IpcCommand::SchemaValidate(SchemaValidateArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                identifier: "welcome".to_owned(),
+                schema_id: Some(r"C:\Users\someone\vault\note.md".to_owned()),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(schema_id_path.category, ErrorCategory::Policy);
         let preview_route = dispatch_with_library(
             IpcCommand::PreviewContext(PreviewContextArgs {
                 workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
@@ -2371,6 +2494,24 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(recall_huge.category, ErrorCategory::Schema);
+        let schema_empty_identifier = dispatch_with_library(
+            IpcCommand::SchemaValidate(fixture_schema_args("", None)),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(schema_empty_identifier.category, ErrorCategory::Schema);
+        let schema_empty_schema_id = dispatch_with_library(
+            IpcCommand::SchemaValidate(fixture_schema_args("welcome", Some(""))),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(schema_empty_schema_id.category, ErrorCategory::Schema);
         let search_truncated = dispatch_with_library(
             IpcCommand::SearchNotes(fixture_search_args("欢迎", None, Some(2))),
             idle_snapshot(),
@@ -5788,6 +5929,166 @@ mod tests {
             library::ENGINE_RECALL_NOT_OWNED,
             library::RECALL_NATIVE_UNVERIFIED,
             library::OFFICIAL_CHINESE_RECALL_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn schema_validate_empty_library_is_empty_not_user_vault() {
+        let mut route = RouteState::default();
+        let IpcResponse::SchemaValidated(report) = dispatch_with_library(
+            IpcCommand::SchemaValidate(fixture_schema_args("welcome", None)),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(report.identifier, "welcome");
+        assert_eq!(report.schema_id, library::DEFAULT_SCHEMA_ID);
+        assert_eq!(report.verdict, library::SchemaVerdict::Empty);
+        assert!(!report.observed_title);
+        assert!(!report.observed_body);
+        assert!(!report.engine_schema);
+        assert!(!report.files_written);
+        assert!(!report.scanned_user_obsidian_vault);
+        assert!(!report.scanned_user_basic_memory_home);
+        assert_eq!(
+            report.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        assert!(!report.observation.disk_verified);
+        assert!(report.observation.envelope_is_not_disk_proof);
+        let json = serde_json::to_value(&IpcResponse::SchemaValidated(report)).unwrap();
+        assert_eq!(json["kind"], "schema_validated");
+        assert_eq!(json["verdict"], "empty");
+        assert_eq!(json["engine_schema"], false);
+        assert!(json.get("path").is_none());
+        assert!(json.get("expected_tools").is_none());
+        let IpcResponse::SchemaValidated(unknown) = dispatch_with_library(
+            IpcCommand::SchemaValidate(fixture_schema_args("welcome", Some("unknown-schema"))),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(unknown.verdict, library::SchemaVerdict::Unsupported);
+        let _ = (
+            library::ENGINE_SCHEMA_NOT_OWNED,
+            library::OFFICIAL_SCHEMA_MCP_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn schema_validate_fixture_note_matches_physical_utf8() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t25-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            dir.join("welcome.md"),
+            "# 中文夹具笔记\n\n这是 BMDock 自有夹具正文。参见 [[欢迎]]。\n",
+        )
+        .unwrap();
+        std::fs::write(dir.join("missing-body.md"), "# 只有标题\n").unwrap();
+        let library = library::FixtureLibrary::new(dir.clone());
+        let mut route = RouteState::default();
+        let IpcResponse::SchemaValidated(valid) = dispatch_with_library(
+            IpcCommand::SchemaValidate(fixture_schema_args("welcome", None)),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(valid.verdict, library::SchemaVerdict::Valid);
+        assert!(valid.observed_title);
+        assert!(valid.observed_body);
+        assert!(valid.observation.disk_verified);
+        assert_eq!(
+            valid.observation.classified_as,
+            library::NoteCrudClass::DiskVerified
+        );
+        assert!(valid.observation.envelope_is_not_disk_proof);
+        assert!(!valid.engine_schema);
+        let disk = std::fs::read_to_string(dir.join("welcome.md")).unwrap();
+        let (title, body) = library::parse_fixture_fields(&disk);
+        assert_eq!(title.as_deref(), Some("中文夹具笔记"));
+        assert!(body.as_deref().is_some_and(|value| value.contains("欢迎")));
+        let IpcResponse::SchemaValidated(invalid) = dispatch_with_library(
+            IpcCommand::SchemaValidate(fixture_schema_args("missing-body", Some("note"))),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(invalid.verdict, library::SchemaVerdict::Invalid);
+        assert!(invalid.observed_title);
+        assert!(!invalid.observed_body);
+        assert_eq!(invalid.missing_fields, vec![library::SCHEMA_FIELD_BODY]);
+        assert!(invalid.observation.disk_verified);
+        assert_ne!(valid.verdict, invalid.verdict);
+        let json = serde_json::to_value(&IpcResponse::SchemaValidated(valid)).unwrap();
+        assert_eq!(json["kind"], "schema_validated");
+        assert_eq!(json["engine_schema"], false);
+        assert!(json.get("expected_tools").is_none());
+        assert!(json.get("path").is_none());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn schema_validate_does_not_merge_engine_profiles_or_claim_official_mcp() {
+        let release = crate::supervisor::EngineProfile::Release;
+        let preview = crate::supervisor::EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(preview.commit(), "3452c821d76c083823d020984d71e06904a1ff1e");
+        assert_eq!(release.expected_tools(), 21);
+        assert_eq!(preview.expected_tools(), 27);
+        let mut route = RouteState::default();
+        let IpcResponse::SchemaValidated(report) = dispatch_with_library(
+            IpcCommand::SchemaValidate(fixture_schema_args("welcome", None)),
+            RuntimeSnapshot {
+                state: ConnectionState::Connected,
+                profile: Some(release),
+                child_pid: Some(7),
+                failure: None,
+                shutdown: None,
+            },
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let json = serde_json::to_value(&IpcResponse::SchemaValidated(report)).unwrap();
+        assert!(json.get("expected_tools").is_none());
+        assert!(json.get("profile").is_none());
+        assert!(json.get("tools").is_none());
+        assert_eq!(json["engine_schema"], false);
+        assert_eq!(json["kind"], "schema_validated");
+        let claimed = library::SchemaValidateDto {
+            engine_schema: true,
+            ..library::empty_schema_report("welcome", library::DEFAULT_SCHEMA_ID)
+        };
+        assert_eq!(
+            library::accept_schema_report(claimed).unwrap_err(),
+            library::LibraryError::unsupported(library::UNSUPPORTED_TRUNCATED)
+        );
+        let _ = (
+            library::ENGINE_SCHEMA_NOT_OWNED,
+            library::OFFICIAL_SCHEMA_MCP_UNVERIFIED,
         );
     }
 }
