@@ -434,7 +434,7 @@ interfaces remain separate. Lifecycle ownership lives in
   enabled. `inspect_routes` must not report `connected` / `synced` /
   `installed`. Claiming live cloud/sync/agent from this command is
   `unsupported`. The typed allowlist is the source of present
-  commands (40). Commands outside the allowlist stay absent
+  commands (41). Commands outside the allowlist stay absent
   (`enable_provider`, `restore_sync`, `list_hooks`,
   `connect_provider`, raw `callTool`). `full_api_coverage=false`.
   Do not infer official MCP from the allowlist. Production
@@ -450,6 +450,33 @@ interfaces remain separate. Lifecycle ownership lives in
   profiles into the route DTO. Official live cloud/sync/agent/provider
   remain UNVERIFIED. Do not add rmcp. Do not start Supervisor. Do not
   treat `just contract` as T35 proof.
+- T36 `inspect_privacy` is FAIL-CLOSED local-only. Args are
+  `ExplicitRouteArgs`. `deny_unknown_fields`. Extra `path` / `root` /
+  `token` / `host` / `api_key` fail closed as `schema`. Missing route
+  is `schema`. Non-fixture routes are `policy` and do not open the
+  library. Production default: `telemetry=false`,
+  `cloud_allowed=false`, `provider_enabled=false`,
+  `html_executed=false`, `executed=false`, `secrets_stored=false`,
+  `env_tokens_read=false`, `remote_hosts_contacted=false`,
+  `files_written=false`. Production catalog is empty,
+  `classified_as: empty`. LICENSE / NOTICE /
+  `docs/sbom/lockfile-inventory.json` are reported as present committed
+  files. `vulnerability_scan` and `human_legal_review` stay
+  `UNVERIFIED`. `inspect_privacy` must not claim G7, a live
+  vulnerability scanner, or human legal sign-off. Claiming a live
+  privacy-cleared production review without evidence is `unsupported`.
+  Unauthorized remote / env token / stored secret is `policy`.
+  Providers stay fail-closed (`provider_enabled=false`);
+  `inspect_privacy` does not enable backends. Conflict /
+  `timeout_unknown` / `disk_verified` / `accepted_unverified` stay
+  distinct; `inspect_privacy` does not collapse them. IPC error union
+  stays `policy` / `schema` / `unsupported`. The typed allowlist is the
+  source of present commands (41). Tests inject `FixtureLibrary` over
+  `{temp}/bmdock-t36-*`. A BMDock-owned fixture `privacy-claimed` /
+  `sbom-cleared` flag is `unsupported`, not a passed security review.
+  Dual profiles stay isolated (21 vs 27). Official engine is not
+  redistributed as BMDock. T36 does not start Supervisor or add rmcp.
+  Do not treat `just contract` as T36 proof.
 - The boundary does not start or stop the Supervisor, call the official
   engine over rmcp, access a user vault, or expose raw `callTool`. T14
   drafts are BMDock-owned session artifacts, not a second note index and
@@ -509,6 +536,7 @@ interfaces remain separate. Lifecycle ownership lives in
   carry `ExplicitRouteArgs`. T33 `inspect_hooks` carries
   `ExplicitRouteArgs`.   T34 `inspect_providers` carries
   `ExplicitRouteArgs`. T35 `inspect_routes` carries
+  `ExplicitRouteArgs`. T36 `inspect_privacy` carries
   `ExplicitRouteArgs`. T22 `preview_context`
   carries `ExplicitRouteArgs` plus `identifier` and optional `query`.
   T22 `list_activity` carries `ExplicitRouteArgs` plus optional
@@ -581,6 +609,7 @@ list_shares: { workspace, project }
 inspect_hooks: { workspace, project }
 inspect_providers: { workspace, project }
 inspect_routes: { workspace, project }
+inspect_privacy: { workspace, project }
 preview_context: { workspace, project, identifier, query? }
 list_activity: { workspace, project, cursor?, page_size? }
 list_backups: { workspace, project }
@@ -1067,7 +1096,7 @@ The capability policy must report:
 `EditNoteArgs`, `MoveNoteArgs`, `DeleteNoteArgs`, and `EmptyArgs`
 use `#[serde(deny_unknown_fields)]`.
 There is no path field on `list_projects` / `run_preflight` /
-`discover_config` / `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `inspect_cloud` / `inspect_sync` / `list_shares` / `inspect_hooks` / `inspect_providers` / `inspect_routes` / `preview_context` / `list_activity` / `list_backups` /
+`discover_config` / `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `inspect_cloud` / `inspect_sync` / `list_shares` / `inspect_hooks` / `inspect_providers` / `inspect_routes` / `inspect_privacy` / `preview_context` / `list_activity` / `list_backups` /
 `restore_fixture` / `inspect_windows_runtime` / `save_draft` /
 `load_draft` / `write_note` / `edit_note` / `move_note` /
 `delete_note` / `begin_shutdown` and no raw `callTool` handler. Typed
@@ -1327,7 +1356,7 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 | Unknown `command`, including `call_tool` and MCP identity `search` / `fetch` / `recent_activity` / `build_context` / `schema_infer` / `schema_diff` / `resources/list` / `resources/read` / `prompts/list` / `prompts/get` / `tools/call` | Serde deserialization fails closed | `schema` at the boundary |
 | Incomplete `write_note` args (for example only `project`) | `deny_unknown_fields` / missing fields | `schema` |
 | Extra field in `args` | `deny_unknown_fields` rejects the DTO | `schema` |
-| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `inspect_providers`, `inspect_routes`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `inspect_providers`, `inspect_routes`, `inspect_privacy`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
 | Extra top-level field such as `path` beside `command`/`args` | `deny_unknown_fields` on `IpcCommand` | `schema` |
 | `select_project` for any value other than `bmdock-fixture` | Dispatcher rejects without filesystem access | `policy` |
 | `ExplicitRouteArgs` missing `project`/`workspace` or carrying an extra `path` | `deny_unknown_fields` rejects the DTO | `schema` |
@@ -1482,6 +1511,13 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 | Empty library `inspect_routes` | Empty `routes[]`, `cloud_allowed=false`, `sync_enabled=false`, `sharing_enabled=false`, `hooks_enabled=false`, `provider_enabled=false`, `semantic_enabled=false`, `cross_project_search_allowed=false`, `full_api_coverage=false`, `connected=false`, `synced=false`, `installed=false`, `files_written=false`, `classified_as: empty`, `local_offline=true`; typed allowlist is the source of present commands | empty state |
 | Claiming `connected` / `synced` / `installed` / live cloud/sync/agent from `inspect_routes` | Reject; not live | `unsupported` |
 | Fixture `route-claimed` flag on `{temp}/bmdock-t35-*` | Classify `unsupported`, not success; still not a live or cross-project route | `unsupported` |
+| Extra `path` / `root` / `token` / `host` / `api_key` on `inspect_privacy` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Missing `inspect_privacy` route | Reject without opening the library | `schema` |
+| Non-fixture `inspect_privacy` | Reject without opening the library | `policy` |
+| Unauthorized remote / env token / stored secret / remote host / api_key / real vault on `inspect_privacy` | Reject; do not open a credential route | `policy` |
+| Empty library `inspect_privacy` | Empty `catalog[]`, `telemetry=false`, `cloud_allowed=false`, `provider_enabled=false`, `html_executed=false`, `executed=false`, `secrets_stored=false`, `env_tokens_read=false`, `remote_hosts_contacted=false`, `files_written=false`, `g7_passed=false`, `classified_as: empty`, `local_offline=true`; LICENSE / NOTICE / SBOM paths present; `vulnerability_scan=UNVERIFIED` | empty state |
+| Claiming G7 / live scanner / human legal sign-off / telemetry / executed HTML from `inspect_privacy` | Reject; not a passed review | `unsupported` |
+| Fixture `privacy-claimed` / `sbom-cleared` flag on `{temp}/bmdock-t36-*` | Classify `unsupported`, not a passed security review | `unsupported` |
 | Cloud/sync restore / `restore_sync` | Unknown command is `schema`; if a restore-sync path were added it stays `unsupported` / `policy`, not disk-verified user-vault/cloud restore. Recovery remains T12 `restore_fixture`. Envelope `"synced"` / `"restored"` is not disk proof. | `schema` / `unsupported` / `policy` |
 | Unknown official tool name in the selected profile baseline | List as `denied` / `missing`; do not auto-admit | — |
 | Missing `preview_context` identifier | Reject without opening the library | `schema` |
@@ -1695,14 +1731,14 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 
 - Rust unit test: capability response lists exactly forty commands and two
   events, and both arbitrary-path and raw-callTool policy flags are false.
-  `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `inspect_providers`, `inspect_routes`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`,
+  `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `inspect_providers`, `inspect_routes`, `inspect_privacy`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`,
   `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`,
   `edit_note`, `move_note`, `delete_note`, and `begin_shutdown` are present; `call_tool`,
   MCP identity `search`, `fetch`, `recent_activity`, `build_context`, `schema_infer`, `schema_diff`, `resources/list`, `resources/read`, `prompts/list`, `prompts/get`, and `tools/call` are absent. Incomplete `write_note` args remain schema.
 - Rust unit test: a non-fixture project returns `ErrorCategory::Policy`.
 - Rust unit test: unknown command including `call_tool`, extra project path,
   extra runtime-state path, extra `list_projects` path/root, extra preflight
-  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `expand_graph` path/root,   extra `search_notes` path/root/`id`, extra `inspect_search` path/root/`id`, extra `run_recall_benchmark` path/root, extra `schema_validate` path/root, extra `list_resources` path/root, extra `list_prompts` path/root, extra `inspect_tools` path/root, extra `list_cli_inventory` path/root, extra `import_notes` path/root, extra `inspect_api_audit` path/root, extra `inspect_extras` path/root, extra `ingest_document` path/root, extra `inspect_cloud` path/root, extra `inspect_sync` path/root/token/host, extra `list_shares` path/root/token/host, extra `inspect_hooks` path/root/token/host, extra `inspect_providers` path/root/token/host/api_key, extra `inspect_routes` path/root/token/host/api_key, extra `preview_context` path/root, extra `list_activity` path/root, extra `list_backups`
+  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `expand_graph` path/root,   extra `search_notes` path/root/`id`, extra `inspect_search` path/root/`id`, extra `run_recall_benchmark` path/root, extra `schema_validate` path/root, extra `list_resources` path/root, extra `list_prompts` path/root, extra `inspect_tools` path/root, extra `list_cli_inventory` path/root, extra `import_notes` path/root, extra `inspect_api_audit` path/root, extra `inspect_extras` path/root, extra `ingest_document` path/root, extra `inspect_cloud` path/root, extra `inspect_sync` path/root/token/host, extra `list_shares` path/root/token/host, extra `inspect_hooks` path/root/token/host, extra `inspect_providers` path/root/token/host/api_key, extra `inspect_routes` path/root/token/host/api_key, extra `inspect_privacy` path/root/token/host/api_key, extra `preview_context` path/root, extra `list_activity` path/root, extra `list_backups`
   path/root, extra `restore_fixture` path, extra
   `inspect_windows_runtime` path/root, extra `save_draft` path/root, extra
   `load_draft` path/root, and extra `begin_shutdown` path/root all fail
@@ -1722,7 +1758,7 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
   scan user vaults, and keeps `cross_project_search_allowed` and
   `implicit_current_project_writes` false.   `ExplicitRouteArgs` requires both
   fields, rejects extra paths as schema, and rejects non-fixture routes as
-  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `inspect_cloud` / `inspect_sync` / `list_shares` / `inspect_hooks` / `inspect_providers` / `inspect_routes` / `preview_context` / `list_activity` / `list_backups` /
+  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `inspect_cloud` / `inspect_sync` / `list_shares` / `inspect_hooks` / `inspect_providers` / `inspect_routes` / `inspect_privacy` / `preview_context` / `list_activity` / `list_backups` /
   `restore_fixture` / `save_draft` / `load_draft` / `write_note` /
   `edit_note` / `move_note` / `delete_note` must not open the library,
   backup store, or draft store.
@@ -2012,6 +2048,25 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
   `connect_provider` / raw `callTool` stay absent. Dual profiles stay
   isolated (21 vs 27). Official live routes remain UNVERIFIED. T35
   does not start Supervisor or add rmcp.
+- Rust unit test: `inspect_privacy` requires `ExplicitRouteArgs`. Extra
+  `path` / `root` / `token` / `host` / `api_key` fail closed as `schema`.
+  Missing route is `schema`. Non-fixture is `policy` and does not open
+  the library. Production `EmptyLibrary` is an empty catalog,
+  `telemetry=false`, `cloud_allowed=false`, `provider_enabled=false`,
+  `html_executed=false`, `executed=false`, `secrets_stored=false`,
+  `env_tokens_read=false`, `remote_hosts_contacted=false`,
+  `files_written=false`, `g7_passed=false`, `classified_as: empty`.
+  LICENSE / NOTICE / `docs/sbom/lockfile-inventory.json` are present
+  committed files. `vulnerability_scan` and `human_legal_review` stay
+  `UNVERIFIED`. Tests inject `{temp}/bmdock-t36-*` that still reports
+  those flags false. A BMDock-owned fixture `privacy-claimed` /
+  `sbom-cleared` flag is `unsupported`, not a passed security review.
+  Claiming G7 / a live scanner / human legal sign-off is
+  `unsupported`. Unauthorized remote / env tokens / stored secrets
+  are `policy`. Conflict / `timeout_unknown` / `disk_verified` /
+  `accepted_unverified` stay distinct. Dual profiles stay isolated
+  (21 vs 27). Official engine is not redistributed as BMDock. T36
+  does not start Supervisor or add rmcp.
 - Rust unit test: `preview_context` requires `ExplicitRouteArgs` plus
   `identifier` plus optional `query`. Extra `path` / `root` fail
   closed as `schema`. Missing identifier is `schema`. Non-fixture
@@ -2258,6 +2313,10 @@ await invokeTyped({
   args: { workspace: route.workspace, project: route.project },
 });
 await invokeTyped({
+  command: "inspect_privacy",
+  args: { workspace: route.workspace, project: route.project },
+});
+await invokeTyped({
   command: "preview_context",
   args: { workspace: route.workspace, project: route.project, identifier, query },
 });
@@ -2328,7 +2387,7 @@ await listenTyped("runtime_state", (state) => renderState(state));
 These calls use the shared DTOs and the explicit fixture/event allowlist.
 `list_projects`, `run_preflight`, and `discover_config` take empty args.
 `select_project` remains fixture-only. `list_tree`, `read_note`,
-`list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `inspect_providers`, `inspect_routes`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
+`list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `inspect_providers`, `inspect_routes`, `inspect_privacy`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
 `write_note`, `edit_note`, `move_note`, and `delete_note` copy
 `ExplicitRouteArgs` on every call and must not treat `runtime.project` as
 an implicit target.
@@ -2360,7 +2419,13 @@ FAIL-CLOSED local-only (`cloud_allowed=false`, `sync_enabled=false`,
 `provider_enabled=false`, `semantic_enabled=false`,
 `cross_project_search_allowed=false`, `full_api_coverage=false`).
 Claiming connected/synced/installed or a live/cross-project route is
-unsupported. `save_draft` / `load_draft`
+unsupported. `inspect_privacy` is FAIL-CLOSED local-only
+(`telemetry=false`, `cloud_allowed=false`, `provider_enabled=false`,
+`html_executed=false`, `secrets_stored=false`,
+`env_tokens_read=false`, `remote_hosts_contacted=false`,
+`files_written=false`). LICENSE / NOTICE / lockfile inventory exist.
+`vulnerability_scan` stays UNVERIFIED. Claiming G7 or a live
+privacy-cleared production review is unsupported. `save_draft` / `load_draft`
 persist BMDock-owned session drafts, not official engine notes. Typed
 `write_note` is a host command on `NoteLibrary`, not raw `callTool`.
 Preflight reports

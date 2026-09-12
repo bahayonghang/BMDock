@@ -63,4 +63,4 @@ just build
 
 资料：[实施状态](execution/status.json)、[技术决策](docs/IMPLEMENTATION.md)、[源码证据](docs/SOURCES.md)。不整体 Fork Memmy；它只作为产品与工程参考。
 
-当前原创代码拟采用 AGPL-3.0-or-later，与官方引擎分发方向对齐；正式发行前仍需完整 LICENSE、依赖许可、SBOM 与源码交付审查，不将这一声明作为法律结论。
+BMDock 原创代码采用 AGPL-3.0-or-later，全文见仓库根 [LICENSE](LICENSE)。`NOTICE` 区分原创代码、官方 Basic Memory（不作为 BMDock 再分发）与第三方锁文件依赖。离线 lockfile inventory 见 [docs/sbom/lockfile-inventory.json](docs/sbom/lockfile-inventory.json)。Cargo.toml 工作区 `license` 字段只是 crate 元数据，不是 LICENSE 替代物。漏洞扫描、人工法律复核、hosted CI 与 G7 仍为 UNVERIFIED，不将 LICENSE/NOTICE/SBOM 的存在当作发行合规或门禁通过。

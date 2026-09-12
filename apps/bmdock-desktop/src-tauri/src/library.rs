@@ -196,6 +196,26 @@ pub const UNSUPPORTED_OFFICIAL_MCP_FROM_ALLOWLIST: &str =
     "typed allowlist is the source of present commands; do not infer official MCP from the allowlist";
 #[cfg(test)]
 pub const ROUTE_CLAIMED_FLAG: &str = "route-claimed";
+pub const ENGINE_PRIVACY_NOT_OWNED: &str =
+    "inspect_privacy is a BMDock-owned local-only status; it is not a live privacy-cleared production review, hosted CI scan, or G7";
+#[cfg(test)]
+pub const OFFICIAL_PRIVACY_UNVERIFIED: &str =
+    "live privacy-cleared production review, hosted CI, human legal sign-off, and vulnerability scanner remain UNVERIFIED";
+pub const UNSUPPORTED_PRIVACY_CLAIMED_NOT_CLEARED: &str =
+    "fixture privacy-claimed / sbom-cleared flag is unsupported, not a passed security review; claiming a live privacy-cleared production review without evidence is unsupported";
+pub const POLICY_PRIVACY_CREDENTIAL_ROUTE: &str =
+    "unauthorized remote, credential, env-token, stored-secret, api-key, or real-vault privacy routes are policy and are not opened";
+pub const UNSUPPORTED_PRIVACY_REVIEW_CLAIM: &str =
+    "inspect_privacy must not claim G7, a live vulnerability scanner, human legal sign-off, telemetry, or executed HTML";
+pub const VULNERABILITY_SCAN_UNVERIFIED: &str = "UNVERIFIED";
+pub const HUMAN_LEGAL_REVIEW_UNVERIFIED: &str = "UNVERIFIED";
+pub const LICENSE_ARTIFACT_PATH: &str = "LICENSE";
+pub const NOTICE_ARTIFACT_PATH: &str = "NOTICE";
+pub const SBOM_ARTIFACT_PATH: &str = "docs/sbom/lockfile-inventory.json";
+#[cfg(test)]
+pub const PRIVACY_CLAIMED_FLAG: &str = "privacy-claimed";
+#[cfg(test)]
+pub const SBOM_CLEARED_FLAG: &str = "sbom-cleared";
 pub const ABSENT_ALLOWLIST_COMMANDS: &[&str] = &[
     "enable_provider",
     "restore_sync",
@@ -267,6 +287,7 @@ pub const ALLOWLISTED_IPC_COMMANDS: &[&str] = &[
     "inspect_hooks",
     "inspect_providers",
     "inspect_routes",
+    "inspect_privacy",
     "preview_context",
     "list_activity",
     "list_backups",
@@ -2022,6 +2043,78 @@ pub fn empty_route_inspection() -> RouteInspectionDto {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PrivacyRecordDto {
+    pub identifier: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PrivacyInspectionDto {
+    pub catalog: Vec<PrivacyRecordDto>,
+    pub license_path: String,
+    pub notice_path: String,
+    pub sbom_path: String,
+    pub license_present: bool,
+    pub notice_present: bool,
+    pub sbom_present: bool,
+    pub vulnerability_scan: String,
+    pub human_legal_review: String,
+    pub secrets_stored: bool,
+    pub env_tokens_read: bool,
+    pub remote_hosts_contacted: bool,
+    pub telemetry: bool,
+    pub cloud_allowed: bool,
+    pub provider_enabled: bool,
+    pub html_executed: bool,
+    pub executed: bool,
+    pub files_written: bool,
+    pub privacy_claimed: bool,
+    pub sbom_cleared: bool,
+    pub g7_passed: bool,
+    pub local_offline: bool,
+    pub mixed_profiles: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_privacy: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+}
+
+pub fn empty_privacy_inspection() -> PrivacyInspectionDto {
+    PrivacyInspectionDto {
+        catalog: Vec::new(),
+        license_path: LICENSE_ARTIFACT_PATH.to_owned(),
+        notice_path: NOTICE_ARTIFACT_PATH.to_owned(),
+        sbom_path: SBOM_ARTIFACT_PATH.to_owned(),
+        license_present: true,
+        notice_present: true,
+        sbom_present: true,
+        vulnerability_scan: VULNERABILITY_SCAN_UNVERIFIED.to_owned(),
+        human_legal_review: HUMAN_LEGAL_REVIEW_UNVERIFIED.to_owned(),
+        secrets_stored: false,
+        env_tokens_read: false,
+        remote_hosts_contacted: false,
+        telemetry: false,
+        cloud_allowed: false,
+        provider_enabled: false,
+        html_executed: false,
+        executed: false,
+        files_written: false,
+        privacy_claimed: false,
+        sbom_cleared: false,
+        g7_passed: false,
+        local_offline: true,
+        mixed_profiles: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_privacy: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+    }
+}
+
 fn absent_command_is_allowlisted(name: &str) -> bool {
     ABSENT_ALLOWLIST_COMMANDS.contains(&name)
         || name == SEARCH_IDENTITY
@@ -2121,6 +2214,50 @@ pub fn accept_route_inspection(
     report.observation.disk_verified = false;
     report.observation.classified_as = NoteCrudClass::Empty;
     Ok(report)
+}
+
+pub fn accept_privacy_inspection(
+    report: PrivacyInspectionDto,
+) -> Result<PrivacyInspectionDto, LibraryError> {
+    if report.scanned_user_obsidian_vault
+        || report.scanned_user_basic_memory_home
+        || report.remote_hosts_contacted
+        || report.secrets_stored
+        || report.env_tokens_read
+    {
+        return Err(LibraryError::policy(POLICY_PRIVACY_CREDENTIAL_ROUTE));
+    }
+    if report.engine_privacy {
+        return Err(LibraryError::unsupported(ENGINE_PRIVACY_NOT_OWNED));
+    }
+    if report.mixed_profiles {
+        return Err(LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES));
+    }
+    if report.g7_passed
+        || report.telemetry
+        || report.html_executed
+        || report.executed
+        || report.vulnerability_scan != VULNERABILITY_SCAN_UNVERIFIED
+        || report.human_legal_review != HUMAN_LEGAL_REVIEW_UNVERIFIED
+    {
+        return Err(LibraryError::unsupported(UNSUPPORTED_PRIVACY_REVIEW_CLAIM));
+    }
+    if report.files_written
+        || report.cloud_allowed
+        || report.provider_enabled
+        || report.privacy_claimed
+        || report.sbom_cleared
+        || !report.catalog.is_empty()
+        || report.observation.disk_verified
+        || report.observation.classified_as == NoteCrudClass::DiskVerified
+        || report.observation.classified_as == NoteCrudClass::Conflict
+        || report.observation.classified_as == NoteCrudClass::AcceptedUnverified
+    {
+        return Err(LibraryError::unsupported(
+            UNSUPPORTED_PRIVACY_CLAIMED_NOT_CLEARED,
+        ));
+    }
+    Ok(empty_privacy_inspection())
 }
 
 pub fn accept_import_result(report: ImportResultDto) -> Result<ImportResultDto, LibraryError> {
@@ -2639,6 +2776,10 @@ pub trait NoteLibrary: Send + Sync {
 
     fn inspect_routes(&self) -> Result<RouteInspectionDto, LibraryError> {
         Ok(empty_route_inspection())
+    }
+
+    fn inspect_privacy(&self) -> Result<PrivacyInspectionDto, LibraryError> {
+        Ok(empty_privacy_inspection())
     }
 
     fn write_note(
@@ -3389,6 +3530,46 @@ impl FixtureLibrary {
         crate::content_safety::persist_exact_utf8(
             &path,
             "fixture-route-claimed-not-cross-project-or-live-remote\n",
+        )
+        .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        Ok(path)
+    }
+
+    fn require_privacy_root(&self) -> Result<(), LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        if !self.root.to_string_lossy().contains("bmdock-t36") {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        Ok(())
+    }
+
+    pub fn seed_privacy_claimed_flag(&self) -> Result<PathBuf, LibraryError> {
+        self.require_privacy_root()?;
+        fs::create_dir_all(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let path = self.root.join(PRIVACY_CLAIMED_FLAG);
+        if library_root_is_forbidden(&path) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        crate::content_safety::persist_exact_utf8(
+            &path,
+            "fixture-privacy-claimed-not-privacy-cleared-review\n",
+        )
+        .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        Ok(path)
+    }
+
+    pub fn seed_sbom_cleared_flag(&self) -> Result<PathBuf, LibraryError> {
+        self.require_privacy_root()?;
+        fs::create_dir_all(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let path = self.root.join(SBOM_CLEARED_FLAG);
+        if library_root_is_forbidden(&path) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        crate::content_safety::persist_exact_utf8(
+            &path,
+            "fixture-sbom-cleared-not-passed-security-review\n",
         )
         .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
         Ok(path)
@@ -4312,6 +4493,31 @@ impl NoteLibrary for FixtureLibrary {
             ));
         }
         Ok(empty_route_inspection())
+    }
+
+    fn inspect_privacy(&self) -> Result<PrivacyInspectionDto, LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        let privacy_flag = self.root.join(PRIVACY_CLAIMED_FLAG);
+        let sbom_flag = self.root.join(SBOM_CLEARED_FLAG);
+        if privacy_flag.is_symlink() || sbom_flag.is_symlink() {
+            return Err(LibraryError::policy(POLICY_PRIVACY_CREDENTIAL_ROUTE));
+        }
+        if privacy_flag.is_file() || sbom_flag.is_file() {
+            let flag = if privacy_flag.is_file() {
+                &privacy_flag
+            } else {
+                &sbom_flag
+            };
+            if library_root_is_forbidden(flag)
+                || !self.root.to_string_lossy().contains("bmdock-t36")
+            {
+                return Err(LibraryError::policy(POLICY_PRIVACY_CREDENTIAL_ROUTE));
+            }
+            return Err(LibraryError::unsupported(
+                UNSUPPORTED_PRIVACY_CLAIMED_NOT_CLEARED,
+            ));
+        }
+        Ok(empty_privacy_inspection())
     }
 
     fn write_note(
@@ -6094,6 +6300,37 @@ mod tests {
         assert!(!routes.engine_routes);
         assert!(!routes.official_mcp_inferred);
         assert_eq!(routes.observation.classified_as, NoteCrudClass::Empty);
+        let privacy = library.inspect_privacy().unwrap();
+        assert!(privacy.catalog.is_empty());
+        assert_eq!(privacy.license_path, LICENSE_ARTIFACT_PATH);
+        assert_eq!(privacy.notice_path, NOTICE_ARTIFACT_PATH);
+        assert_eq!(privacy.sbom_path, SBOM_ARTIFACT_PATH);
+        assert!(privacy.license_present);
+        assert!(privacy.notice_present);
+        assert!(privacy.sbom_present);
+        assert_eq!(privacy.vulnerability_scan, VULNERABILITY_SCAN_UNVERIFIED);
+        assert_eq!(privacy.human_legal_review, HUMAN_LEGAL_REVIEW_UNVERIFIED);
+        assert!(!privacy.secrets_stored);
+        assert!(!privacy.env_tokens_read);
+        assert!(!privacy.remote_hosts_contacted);
+        assert!(!privacy.telemetry);
+        assert!(!privacy.cloud_allowed);
+        assert!(!privacy.provider_enabled);
+        assert!(!privacy.html_executed);
+        assert!(!privacy.executed);
+        assert!(!privacy.files_written);
+        assert!(!privacy.privacy_claimed);
+        assert!(!privacy.sbom_cleared);
+        assert!(!privacy.g7_passed);
+        assert!(privacy.local_offline);
+        assert!(!privacy.engine_privacy);
+        assert_eq!(privacy.observation.classified_as, NoteCrudClass::Empty);
+        assert_ne!(privacy.observation.classified_as, NoteCrudClass::Conflict);
+        assert_ne!(
+            privacy.observation.classified_as,
+            NoteCrudClass::AcceptedUnverified
+        );
+        assert!(!privacy.observation.disk_verified);
         let _ = (
             ENGINE_GRAPH_NOT_OWNED,
             ENGINE_SEARCH_NOT_OWNED,
@@ -6125,6 +6362,8 @@ mod tests {
             OFFICIAL_PROVIDERS_UNVERIFIED,
             ENGINE_ROUTES_NOT_OWNED,
             OFFICIAL_ROUTES_UNVERIFIED,
+            ENGINE_PRIVACY_NOT_OWNED,
+            OFFICIAL_PRIVACY_UNVERIFIED,
             ENGINE_CONTEXT_NOT_OWNED,
             ENGINE_ACTIVITY_NOT_OWNED,
             SEMANTIC_SEARCH_UNVERIFIED,
@@ -8118,6 +8357,148 @@ mod tests {
             ENGINE_ROUTES_NOT_OWNED,
             OFFICIAL_ROUTES_UNVERIFIED,
             UNSUPPORTED_ROUTE_CLAIMED_NOT_LIVE,
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn fixture_privacy_inspection_is_fail_closed_and_claimed_flag_is_unsupported() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t36-{nanos}"));
+        fs::create_dir_all(&dir).unwrap();
+        let library = FixtureLibrary::new(dir.clone());
+        let report = library.inspect_privacy().unwrap();
+        assert!(report.catalog.is_empty());
+        assert!(report.license_present);
+        assert!(report.notice_present);
+        assert!(report.sbom_present);
+        assert_eq!(report.vulnerability_scan, VULNERABILITY_SCAN_UNVERIFIED);
+        assert_eq!(report.human_legal_review, HUMAN_LEGAL_REVIEW_UNVERIFIED);
+        assert!(!report.secrets_stored);
+        assert!(!report.env_tokens_read);
+        assert!(!report.remote_hosts_contacted);
+        assert!(!report.telemetry);
+        assert!(!report.cloud_allowed);
+        assert!(!report.provider_enabled);
+        assert!(!report.html_executed);
+        assert!(!report.executed);
+        assert!(!report.files_written);
+        assert!(!report.privacy_claimed);
+        assert!(!report.sbom_cleared);
+        assert!(!report.g7_passed);
+        assert!(report.local_offline);
+        assert!(!report.engine_privacy);
+        assert_eq!(report.observation.classified_as, NoteCrudClass::Empty);
+        assert!(!report.observation.disk_verified);
+        let flag = library.seed_privacy_claimed_flag().unwrap();
+        assert!(flag.is_file());
+        let disk = fs::read_to_string(&flag).unwrap();
+        assert!(disk.contains("fixture-privacy-claimed-not-privacy-cleared-review"));
+        assert_eq!(
+            library.inspect_privacy().unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_PRIVACY_CLAIMED_NOT_CLEARED)
+        );
+        let _ = fs::remove_file(&flag);
+        let sbom_flag = library.seed_sbom_cleared_flag().unwrap();
+        assert!(sbom_flag.is_file());
+        let sbom_disk = fs::read_to_string(&sbom_flag).unwrap();
+        assert!(sbom_disk.contains("fixture-sbom-cleared-not-passed-security-review"));
+        assert_eq!(
+            library.inspect_privacy().unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_PRIVACY_CLAIMED_NOT_CLEARED)
+        );
+        let claimed = PrivacyInspectionDto {
+            privacy_claimed: true,
+            sbom_cleared: true,
+            ..empty_privacy_inspection()
+        };
+        assert_eq!(
+            accept_privacy_inspection(claimed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_PRIVACY_CLAIMED_NOT_CLEARED)
+        );
+        let catalog = PrivacyInspectionDto {
+            catalog: vec![PrivacyRecordDto {
+                identifier: "cleared".to_owned(),
+            }],
+            ..empty_privacy_inspection()
+        };
+        assert_eq!(
+            accept_privacy_inspection(catalog).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_PRIVACY_CLAIMED_NOT_CLEARED)
+        );
+        let g7 = PrivacyInspectionDto {
+            g7_passed: true,
+            telemetry: true,
+            ..empty_privacy_inspection()
+        };
+        assert_eq!(
+            accept_privacy_inspection(g7).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_PRIVACY_REVIEW_CLAIM)
+        );
+        let html = PrivacyInspectionDto {
+            html_executed: true,
+            executed: true,
+            ..empty_privacy_inspection()
+        };
+        assert_eq!(
+            accept_privacy_inspection(html).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_PRIVACY_REVIEW_CLAIM)
+        );
+        let scanned = PrivacyInspectionDto {
+            vulnerability_scan: "cleared".to_owned(),
+            ..empty_privacy_inspection()
+        };
+        assert_eq!(
+            accept_privacy_inspection(scanned).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_PRIVACY_REVIEW_CLAIM)
+        );
+        let enabled = PrivacyInspectionDto {
+            cloud_allowed: true,
+            provider_enabled: true,
+            ..empty_privacy_inspection()
+        };
+        assert_eq!(
+            accept_privacy_inspection(enabled).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_PRIVACY_CLAIMED_NOT_CLEARED)
+        );
+        let collapsed = PrivacyInspectionDto {
+            observation: NoteCrudObservationDto {
+                classified_as: NoteCrudClass::Conflict,
+                disk_verified: true,
+                envelope_is_not_disk_proof: true,
+            },
+            ..empty_privacy_inspection()
+        };
+        assert_eq!(
+            accept_privacy_inspection(collapsed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_PRIVACY_CLAIMED_NOT_CLEARED)
+        );
+        let credentials = PrivacyInspectionDto {
+            env_tokens_read: true,
+            secrets_stored: true,
+            remote_hosts_contacted: true,
+            ..empty_privacy_inspection()
+        };
+        assert_eq!(
+            accept_privacy_inspection(credentials).unwrap_err(),
+            LibraryError::policy(POLICY_PRIVACY_CREDENTIAL_ROUTE)
+        );
+        let mixed = PrivacyInspectionDto {
+            mixed_profiles: true,
+            ..empty_privacy_inspection()
+        };
+        assert_eq!(
+            accept_privacy_inspection(mixed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES)
+        );
+        let _ = (
+            ENGINE_PRIVACY_NOT_OWNED,
+            OFFICIAL_PRIVACY_UNVERIFIED,
+            UNSUPPORTED_PRIVACY_CLAIMED_NOT_CLEARED,
+            UNSUPPORTED_PRIVACY_REVIEW_CLAIM,
         );
         let _ = fs::remove_dir_all(&dir);
     }

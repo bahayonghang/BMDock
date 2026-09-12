@@ -7,10 +7,10 @@ use crate::drain::{self, DrainPhase, DrainResultDto, HostDrain};
 use crate::library::{
     self, ActivityPageDto, ApiAuditDto, CliInventoryDto, CloudInspectionDto, ContextPreviewDto,
     ExtrasCatalogDto, GraphPageDto, HookInspectionDto, ImportResultDto, IngestResultDto,
-    NoteDeleteDto, NoteEditDto, NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto, PromptPageDto,
-    ProviderInspectionDto, RecallBenchmarkDto, RelationListDto, ResourcePageDto,
-    RouteInspectionDto, SchemaValidateDto, SearchInspectorDto, SearchPageDto, ShareCatalogDto,
-    SyncInspectionDto, ToolInspectionDto, TreePageDto,
+    NoteDeleteDto, NoteEditDto, NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto,
+    PrivacyInspectionDto, PromptPageDto, ProviderInspectionDto, RecallBenchmarkDto,
+    RelationListDto, ResourcePageDto, RouteInspectionDto, SchemaValidateDto, SearchInspectorDto,
+    SearchPageDto, ShareCatalogDto, SyncInspectionDto, ToolInspectionDto, TreePageDto,
 };
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
@@ -50,6 +50,7 @@ pub enum IpcCommandName {
     InspectHooks,
     InspectProviders,
     InspectRoutes,
+    InspectPrivacy,
     PreviewContext,
     ListActivity,
     ListBackups,
@@ -94,6 +95,7 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::InspectHooks,
         IpcCommandName::InspectProviders,
         IpcCommandName::InspectRoutes,
+        IpcCommandName::InspectPrivacy,
         IpcCommandName::PreviewContext,
         IpcCommandName::ListActivity,
         IpcCommandName::ListBackups,
@@ -624,6 +626,7 @@ pub enum IpcCommand {
     InspectHooks(ExplicitRouteArgs),
     InspectProviders(ExplicitRouteArgs),
     InspectRoutes(ExplicitRouteArgs),
+    InspectPrivacy(ExplicitRouteArgs),
     PreviewContext(PreviewContextArgs),
     ListActivity(ListActivityArgs),
     ListBackups(ExplicitRouteArgs),
@@ -710,6 +713,7 @@ pub enum IpcResponse {
     HookInspection(HookInspectionDto),
     ProviderInspection(ProviderInspectionDto),
     RouteInspection(RouteInspectionDto),
+    PrivacyInspection(PrivacyInspectionDto),
     ContextPreview(ContextPreviewDto),
     ActivityPage(ActivityPageDto),
     BackupCatalog(BackupCatalogDto),
@@ -1031,6 +1035,12 @@ pub fn dispatch_with_drain(
                 library::accept_route_inspection(library.inspect_routes()?)?,
             )))
         }
+        IpcCommand::InspectPrivacy(route_args) => {
+            require_explicit_fixture_route(&route_args)?;
+            Ok(IpcResponse::PrivacyInspection(
+                library::accept_privacy_inspection(library.inspect_privacy()?)?,
+            ))
+        }
         IpcCommand::PreviewContext(args) => {
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
@@ -1257,6 +1267,7 @@ mod tests {
                 IpcCommandName::InspectHooks,
                 IpcCommandName::InspectProviders,
                 IpcCommandName::InspectRoutes,
+                IpcCommandName::InspectPrivacy,
                 IpcCommandName::PreviewContext,
                 IpcCommandName::ListActivity,
                 IpcCommandName::ListBackups,
@@ -1271,14 +1282,14 @@ mod tests {
                 IpcCommandName::BeginShutdown,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 40);
+        assert_eq!(capabilities.commands.len(), 41);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 40);
+        assert_eq!(commands.len(), 41);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
@@ -1311,6 +1322,7 @@ mod tests {
             .iter()
             .any(|command| command == "inspect_providers"));
         assert!(commands.iter().any(|command| command == "inspect_routes"));
+        assert!(commands.iter().any(|command| command == "inspect_privacy"));
         assert!(commands.iter().any(|command| command == "preview_context"));
         assert!(commands.iter().any(|command| command == "list_activity"));
         assert!(commands.iter().any(|command| command == "list_backups"));
@@ -1926,6 +1938,33 @@ mod tests {
             r#"{"command":"inspect_routes","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
         );
         assert!(well_formed_routes.is_ok());
+        let extra_path_on_privacy = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_privacy","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_privacy.is_err());
+        let extra_root_on_privacy = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_privacy","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_privacy.is_err());
+        let extra_token_on_privacy = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_privacy","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","token":"env-token"}}"#,
+        );
+        assert!(extra_token_on_privacy.is_err());
+        let extra_host_on_privacy = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_privacy","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","host":"https://example.invalid"}}"#,
+        );
+        assert!(extra_host_on_privacy.is_err());
+        let extra_api_key_on_privacy = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_privacy","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","api_key":"sk-test"}}"#,
+        );
+        assert!(extra_api_key_on_privacy.is_err());
+        let privacy_without_route =
+            serde_json::from_str::<IpcCommand>(r#"{"command":"inspect_privacy","args":{}}"#);
+        assert!(privacy_without_route.is_err());
+        let well_formed_privacy = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_privacy","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(well_formed_privacy.is_ok());
         let enable_provider = serde_json::from_str::<IpcCommand>(
             r#"{"command":"enable_provider","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
         );
@@ -2565,6 +2604,10 @@ mod tests {
         }
 
         fn inspect_routes(&self) -> Result<library::RouteInspectionDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
+        fn inspect_privacy(&self) -> Result<library::PrivacyInspectionDto, library::LibraryError> {
             panic!("policy rejection must not open the library")
         }
 
@@ -8436,7 +8479,7 @@ mod tests {
             release.ipc_commands.len(),
             library::ALLOWLISTED_IPC_COMMANDS.len()
         );
-        assert_eq!(release.ipc_commands.len(), 40);
+        assert_eq!(release.ipc_commands.len(), 41);
         assert!(release.ipc_commands.iter().any(|command| {
             command.name == "inspect_api_audit"
                 && command.coverage == library::AuditCoverage::Present
@@ -8447,6 +8490,9 @@ mod tests {
         }));
         assert!(release.ipc_commands.iter().any(|command| {
             command.name == "inspect_routes" && command.coverage == library::AuditCoverage::Present
+        }));
+        assert!(release.ipc_commands.iter().any(|command| {
+            command.name == "inspect_privacy" && command.coverage == library::AuditCoverage::Present
         }));
         assert!(!release.ipc_commands.iter().any(|command| {
             command.name == library::CALL_TOOL_IDENTITY
@@ -10353,6 +10399,14 @@ mod tests {
                 }),
             ),
             (
+                "inspect_privacy",
+                "",
+                IpcCommand::InspectPrivacy(ExplicitRouteArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                }),
+            ),
+            (
                 "preview_context",
                 r#","identifier":"welcome""#,
                 IpcCommand::PreviewContext(PreviewContextArgs {
@@ -10456,6 +10510,7 @@ mod tests {
         let snapshot = idle_snapshot();
         let inspect_secret_commands = [
             "inspect_routes",
+            "inspect_privacy",
             "inspect_cloud",
             "inspect_sync",
             "inspect_hooks",
@@ -10530,11 +10585,15 @@ mod tests {
             panic!("wrong response variant")
         };
         assert!(report.routes.is_empty());
-        assert_eq!(report.present_commands.len(), 40);
+        assert_eq!(report.present_commands.len(), 41);
         assert!(report
             .present_commands
             .iter()
             .any(|command| command == "inspect_routes"));
+        assert!(report
+            .present_commands
+            .iter()
+            .any(|command| command == "inspect_privacy"));
         assert!(report
             .present_commands
             .iter()
@@ -10768,6 +10827,289 @@ mod tests {
         let _ = (
             library::ENGINE_ROUTES_NOT_OWNED,
             library::OFFICIAL_ROUTES_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn inspect_privacy_empty_library_is_fail_closed_not_cleared() {
+        let mut route = RouteState::default();
+        let IpcResponse::PrivacyInspection(report) = dispatch_with_library(
+            IpcCommand::InspectPrivacy(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(report.catalog.is_empty());
+        assert!(report.license_present);
+        assert!(report.notice_present);
+        assert!(report.sbom_present);
+        assert_eq!(report.license_path, library::LICENSE_ARTIFACT_PATH);
+        assert_eq!(report.notice_path, library::NOTICE_ARTIFACT_PATH);
+        assert_eq!(report.sbom_path, library::SBOM_ARTIFACT_PATH);
+        assert_eq!(
+            report.vulnerability_scan,
+            library::VULNERABILITY_SCAN_UNVERIFIED
+        );
+        assert_eq!(
+            report.human_legal_review,
+            library::HUMAN_LEGAL_REVIEW_UNVERIFIED
+        );
+        assert!(!report.secrets_stored);
+        assert!(!report.env_tokens_read);
+        assert!(!report.remote_hosts_contacted);
+        assert!(!report.telemetry);
+        assert!(!report.cloud_allowed);
+        assert!(!report.provider_enabled);
+        assert!(!report.html_executed);
+        assert!(!report.executed);
+        assert!(!report.files_written);
+        assert!(!report.privacy_claimed);
+        assert!(!report.sbom_cleared);
+        assert!(!report.g7_passed);
+        assert!(report.local_offline);
+        assert!(!report.engine_privacy);
+        assert_eq!(
+            report.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        assert_ne!(
+            report.observation.classified_as,
+            library::NoteCrudClass::Conflict
+        );
+        assert_ne!(
+            report.observation.classified_as,
+            library::NoteCrudClass::AcceptedUnverified
+        );
+        assert!(!report.observation.disk_verified);
+        assert!(report.observation.envelope_is_not_disk_proof);
+        let json = serde_json::to_value(&IpcResponse::PrivacyInspection(report)).unwrap();
+        assert_eq!(json["kind"], "privacy_inspection");
+        assert_eq!(json["telemetry"], false);
+        assert_eq!(json["cloud_allowed"], false);
+        assert_eq!(json["provider_enabled"], false);
+        assert_eq!(json["html_executed"], false);
+        assert_eq!(json["executed"], false);
+        assert_eq!(json["g7_passed"], false);
+        assert_eq!(json["vulnerability_scan"], "UNVERIFIED");
+        assert_eq!(json["files_written"], false);
+        assert!(json["catalog"].as_array().unwrap().is_empty());
+        let capabilities = dispatch(IpcCommand::GetCapabilities(EmptyArgs {})).unwrap();
+        let IpcResponse::Capabilities(capabilities) = capabilities else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(capabilities.commands.len(), 41);
+        assert!(capabilities
+            .commands
+            .iter()
+            .any(|command| *command == IpcCommandName::InspectPrivacy));
+        let _ = (
+            library::ENGINE_PRIVACY_NOT_OWNED,
+            library::OFFICIAL_PRIVACY_UNVERIFIED,
+            library::UNSUPPORTED_PRIVACY_REVIEW_CLAIM,
+        );
+    }
+
+    #[test]
+    fn inspect_privacy_fixture_stays_disabled_and_claimed_flag_is_unsupported() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t36-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let library = library::FixtureLibrary::new(dir.clone());
+        let mut route = RouteState::default();
+        let IpcResponse::PrivacyInspection(report) = dispatch_with_library(
+            IpcCommand::InspectPrivacy(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(report.catalog.is_empty());
+        assert!(!report.telemetry);
+        assert!(!report.cloud_allowed);
+        assert!(!report.provider_enabled);
+        assert!(!report.html_executed);
+        assert!(!report.files_written);
+        assert!(!report.g7_passed);
+        assert_eq!(
+            report.vulnerability_scan,
+            library::VULNERABILITY_SCAN_UNVERIFIED
+        );
+        assert_eq!(
+            report.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        let flag = library.seed_privacy_claimed_flag().unwrap();
+        assert!(flag.is_file());
+        let disk = std::fs::read_to_string(&flag).unwrap();
+        assert!(disk.contains("fixture-privacy-claimed-not-privacy-cleared-review"));
+        let claimed = dispatch_with_library(
+            IpcCommand::InspectPrivacy(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(claimed.category, ErrorCategory::Unsupported);
+        assert_eq!(
+            claimed.message,
+            library::UNSUPPORTED_PRIVACY_CLAIMED_NOT_CLEARED
+        );
+        let _ = std::fs::remove_file(&flag);
+        let sbom_flag = library.seed_sbom_cleared_flag().unwrap();
+        assert!(sbom_flag.is_file());
+        let sbom_claimed = dispatch_with_library(
+            IpcCommand::InspectPrivacy(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(sbom_claimed.category, ErrorCategory::Unsupported);
+        assert_eq!(
+            sbom_claimed.message,
+            library::UNSUPPORTED_PRIVACY_CLAIMED_NOT_CLEARED
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    struct ClaimedPrivacyLibrary;
+
+    impl NoteLibrary for ClaimedPrivacyLibrary {
+        fn list_tree(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            Ok(library::TreePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: false,
+            })
+        }
+
+        fn read_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            Err(library::LibraryError::unsupported(
+                library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
+            ))
+        }
+
+        fn inspect_privacy(&self) -> Result<library::PrivacyInspectionDto, library::LibraryError> {
+            Ok(library::PrivacyInspectionDto {
+                g7_passed: true,
+                telemetry: true,
+                html_executed: true,
+                vulnerability_scan: "cleared".to_owned(),
+                ..library::empty_privacy_inspection()
+            })
+        }
+    }
+
+    struct CredentialPrivacyLibrary;
+
+    impl NoteLibrary for CredentialPrivacyLibrary {
+        fn list_tree(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            Ok(library::TreePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: false,
+            })
+        }
+
+        fn read_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            Err(library::LibraryError::unsupported(
+                library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
+            ))
+        }
+
+        fn inspect_privacy(&self) -> Result<library::PrivacyInspectionDto, library::LibraryError> {
+            Ok(library::PrivacyInspectionDto {
+                env_tokens_read: true,
+                secrets_stored: true,
+                remote_hosts_contacted: true,
+                ..library::empty_privacy_inspection()
+            })
+        }
+    }
+
+    #[test]
+    fn inspect_privacy_claimed_review_or_env_tokens_are_not_success() {
+        let mut route = RouteState::default();
+        let claimed = dispatch_with_library(
+            IpcCommand::InspectPrivacy(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &ClaimedPrivacyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(claimed.category, ErrorCategory::Unsupported);
+        assert_eq!(claimed.message, library::UNSUPPORTED_PRIVACY_REVIEW_CLAIM);
+        let credentials = dispatch_with_library(
+            IpcCommand::InspectPrivacy(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &CredentialPrivacyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(credentials.category, ErrorCategory::Policy);
+        assert_eq!(
+            credentials.message,
+            library::POLICY_PRIVACY_CREDENTIAL_ROUTE
+        );
+        let runtime = dispatch(IpcCommand::GetRuntimeState(EmptyArgs {})).unwrap();
+        let IpcResponse::RuntimeState(state) = runtime else {
+            panic!("wrong response variant")
+        };
+        assert!(matches!(
+            state.failure,
+            None | Some(FailureKind::TimeoutUnknown)
+                | Some(FailureKind::Policy)
+                | Some(FailureKind::Transport)
+                | Some(FailureKind::Process)
+                | Some(FailureKind::Unverified)
+        ));
+        let error = IpcError {
+            category: ErrorCategory::Schema,
+            message: "missing route".to_owned(),
+        };
+        assert_ne!(error.category, ErrorCategory::Policy);
+        assert!(matches!(
+            error.category,
+            ErrorCategory::Policy | ErrorCategory::Schema | ErrorCategory::Unsupported
+        ));
+        let release = EngineProfile::Release;
+        let preview = EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(preview.commit(), "3452c821d76c083823d020984d71e06904a1ff1e");
+        assert_ne!(release.expected_tools(), preview.expected_tools());
+        let _ = (
+            library::ENGINE_PRIVACY_NOT_OWNED,
+            library::OFFICIAL_PRIVACY_UNVERIFIED,
         );
     }
 }

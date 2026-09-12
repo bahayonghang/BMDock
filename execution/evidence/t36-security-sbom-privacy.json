@@ -1,0 +1,264 @@
+{
+  "task": "T36",
+  "title": "安全审查SBOM及隐私验收",
+  "status": "accepted_with_limits",
+  "date": "2026-09-13",
+  "host_boundary": "T36 owns LICENSE, NOTICE, and the BMDock lockfile inventory SBOM. It adds typed inspect_privacy with ExplicitRouteArgs. deny_unknown_fields. Extra path/root/token/host/api_key is schema. Missing route is schema. Non-fixture is policy and does not open the library. Privacy stays FAIL-CLOSED. Production default: telemetry=false, cloud_allowed=false, provider_enabled=false, html_executed=false, executed=false, secrets_stored=false, env_tokens_read=false, remote_hosts_contacted=false, files_written=false, g7_passed=false. Production catalog is empty with classified_as empty. LICENSE / NOTICE / docs/sbom/lockfile-inventory.json are reported as present committed files. vulnerability_scan and human_legal_review stay UNVERIFIED. inspect_privacy must not claim G7, a live vulnerability scanner, or human legal sign-off. Claiming a live privacy-cleared production review without evidence is unsupported. Unauthorized remote / env token / stored secret is policy. Providers stay fail-closed; inspect_privacy does not enable backends. Conflict / timeout_unknown / disk_verified / accepted_unverified stay distinct. IPC error union stays policy/schema/unsupported. The typed allowlist is the source of present commands (41). Tests inject FixtureLibrary {temp}/bmdock-t36-*. A BMDock-owned fixture privacy-claimed / sbom-cleared flag is unsupported, not a passed security review. Dual profiles stay isolated (21 vs 27). Official Basic Memory is not redistributed as BMDock. T36 does not start Supervisor, add rmcp, spawn engine_worker, store secrets, read user tokens from env, contact remote hosts, open a credential route, run a live vulnerability scanner, or treat just contract as T36 proof. just build stays the G0 probe.",
+  "acceptance": {
+    "AC20": {
+      "status": "conflict_timeout_disk_unverified_stay_distinct",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "inspect_privacy does not collapse conflict, timeout_unknown, disk_verified, and accepted_unverified. Empty privacy observation is classified_as empty, not disk_verified/conflict/accepted_unverified. IPC error union stays policy/schema/unsupported. timeout_unknown stays on RuntimeStateDto.",
+      "unverified": [
+        "live engine timeout_unknown injection",
+        "true OS filesystem races"
+      ]
+    },
+    "AC45": {
+      "status": "no_cloud_remote_credential_or_real_vault_route",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "inspect_privacy has no cloud/remote/credential/real-vault route. secrets_stored=false, env_tokens_read=false, remote_hosts_contacted=false, telemetry=false, cloud_allowed=false. Extra token/host/api_key is schema. Unauthorized remote/env token/stored secret is policy.",
+      "unverified": [
+        "OS network sandbox",
+        "real user vault"
+      ]
+    },
+    "AC46": {
+      "status": "markdown_html_never_executed",
+      "evidence": [
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src-tauri/src/content_safety.rs",
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "tests/test_desktop_shell.py"
+      ],
+      "claim": "Markdown/HTML is never executed. No dangerouslySetInnerHTML. executed=false. inspect_privacy reports html_executed=false.",
+      "unverified": [
+        "native GUI HTML rendering session"
+      ]
+    },
+    "AC47": {
+      "status": "unauthorized_remote_is_policy_live_review_unsupported",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "tests/test_desktop_shell.py"
+      ],
+      "claim": "Unauthorized remote / env token / stored secret is policy. Claiming a live privacy-cleared production review without evidence is unsupported. Fixture privacy-claimed / sbom-cleared is unsupported, not a passed security review.",
+      "unverified": [
+        "live privacy-cleared production review",
+        "human legal sign-off"
+      ]
+    },
+    "AC48": {
+      "status": "providers_fail_closed_not_enabled_by_inspect_privacy",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx"
+      ],
+      "claim": "Providers stay fail-closed (provider_enabled=false). inspect_privacy does not enable backends. enable_provider stays absent from the allowlist.",
+      "unverified": [
+        "live official provider session"
+      ]
+    },
+    "AC54": {
+      "status": "license_notice_lockfile_inventory_present_scan_unverified",
+      "evidence": [
+        "LICENSE",
+        "NOTICE",
+        "docs/sbom/lockfile-inventory.json",
+        "docs/adr/0001-bmdock-boundaries-naming-licensing.md",
+        "docs/VERIFICATION.md",
+        "execution/evidence/t36-security-sbom-privacy.json"
+      ],
+      "claim": "LICENSE contains the GNU AGPL-3.0 text for BMDock original code (AGPL-3.0-or-later). NOTICE distinguishes BMDock original code from upstream Basic Memory (not redistributed as BMDock) and third-party lockfile dependencies. Dual profiles stay isolated (release 21 vs main-preview 27). docs/sbom/lockfile-inventory.json is a BMDock-owned offline inventory derived from committed Cargo.lock and apps/bmdock-desktop/package-lock.json. Licenses were not invented for Cargo.lock. vulnerability_scan and human_legal_review are UNVERIFIED. This inventory is not a hosted-CI scan and is not G7.",
+      "unverified": [
+        "vulnerability scanner",
+        "human legal review",
+        "hosted CI",
+        "G7",
+        "release-packaging license audit"
+      ]
+    }
+  },
+  "artifacts": {
+    "LICENSE": "present",
+    "NOTICE": "present",
+    "SBOM": "docs/sbom/lockfile-inventory.json",
+    "sbom_kind": "lockfile_inventory_not_hosted_ci_scan",
+    "vulnerability_scan": "UNVERIFIED",
+    "human_legal_review": "UNVERIFIED",
+    "g7": "not_passed",
+    "cargo_workspace_license_field": "direction_only_not_LICENSE"
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t36-security-sbom-privacy",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "bmdock_app": 200,
+      "bmdock_probe": 5
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "note": "existing T07 supervisor dead_code warnings remain; T36 did not start Supervisor"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "tsc -b && vite build; npm ci not run this session"
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "ran": 30
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "error": "A later task was completed before G0",
+      "note": "G0 is not passed and T05+ are completed; T36 did not revert T05-T35"
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window was launched. AC20/AC45/AC46/AC47/AC48/AC54 proof is typed fail-closed inspect_privacy plus committed LICENSE/NOTICE/lockfile inventory, not a native GUI session."
+    },
+    {
+      "cmd": "live vulnerability scanner",
+      "exit": "not_run",
+      "result": "No scanner was run. vulnerability_scan remains UNVERIFIED."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_205_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_desktop_shell": "30_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "typed_command_count": 41,
+    "typed_inspect_privacy": "allowed",
+    "enable_provider": "not_allowlisted",
+    "restore_sync": "not_allowlisted",
+    "list_hooks": "not_allowlisted",
+    "connect_provider": "not_allowlisted",
+    "raw_call_tool": "not_allowlisted",
+    "extra_path_root_token_host_api_key_is_schema": true,
+    "missing_route_is_schema": true,
+    "non_fixture_is_policy": true,
+    "telemetry_default": false,
+    "cloud_allowed_default": false,
+    "provider_enabled_default": false,
+    "html_executed_default": false,
+    "executed_default": false,
+    "secrets_stored": false,
+    "env_tokens_read": false,
+    "remote_hosts_contacted": false,
+    "files_written_default": false,
+    "g7_passed_default": false,
+    "privacy_catalog_empty_in_production": true,
+    "license_present": true,
+    "notice_present": true,
+    "sbom_present": true,
+    "vulnerability_scan": "UNVERIFIED",
+    "human_legal_review": "UNVERIFIED",
+    "live_privacy_cleared_review_is_unsupported": true,
+    "fixture_privacy_claimed_is_unsupported_not_passed_review": true,
+    "fixture_sbom_cleared_is_unsupported_not_passed_review": true,
+    "table_driven_explicit_route_regression_includes_inspect_privacy": true,
+    "supervisor_not_started_by_table": true,
+    "dangerouslySetInnerHTML": "absent",
+    "supervisor_started_by_t36": false,
+    "rmcp_live_client": "not_added_in_t36",
+    "live_vulnerability_scanner": "UNVERIFIED",
+    "human_legal_sign_off": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "native_gui_session": "UNVERIFIED",
+    "webview2_session": "UNVERIFIED",
+    "job_object": "UNVERIFIED",
+    "installer": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "g7": "not_passed"
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false,
+    "official_engine_redistributed_as_bmdock": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "G7": "not_started",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T18": "completed_unchanged",
+    "T27": "completed_unchanged",
+    "T35": "completed_unchanged",
+    "T36": "completed",
+    "T37": "planned_unchanged",
+    "T38": "planned_unchanged",
+    "T39": "planned_unchanged",
+    "T40": "planned_unchanged"
+  },
+  "unverified": [
+    "G0 product gate",
+    "G7 release gate",
+    "hosted CI for this T36 revision",
+    "live vulnerability scanner",
+    "human legal sign-off",
+    "native GUI / WebView2 session",
+    "Job Object assignment",
+    "installer / signed bundle",
+    "real user vault",
+    "official live engine / MCP session",
+    "OS network sandbox"
+  ],
+  "rollback": "Remove inspect_privacy from the ipc_invoke union, drop PrivacyPanel, restore the 40-command allowlist, and leave T35 inspect_routes in place. LICENSE / NOTICE / docs/sbom/lockfile-inventory.json would also need to be removed if rolling back AC54 artifacts. Do not revert T05-T35 status to make unit green."
+}

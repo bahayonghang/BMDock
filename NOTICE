@@ -1,0 +1,44 @@
+BMDock
+Copyright (C) 2026 BMDock contributors
+
+This NOTICE distinguishes BMDock original code from upstream Basic Memory
+and from third-party lockfile dependencies. It is not a legal conclusion,
+human legal review, vulnerability scan, hosted-CI scan, or Gate G7.
+
+1. BMDock original code
+
+   BMDock original code in this repository (host harness, Tauri/React
+   desktop shell, typed IPC, BMDock-owned fixtures, and related product
+   sources) is licensed under the GNU Affero General Public License version 3
+   or later. See the repo-root LICENSE file. Workspace Cargo.toml
+   `license = "AGPL-3.0-or-later"` is crate metadata only and is not a
+   substitute for LICENSE.
+
+2. Official Basic Memory is not redistributed as BMDock
+
+   Official Basic Memory remains separately owned by its upstream authors.
+   BMDock does not redistribute that engine as BMDock, does not relicense
+   it, and does not mix engine contracts. Dual profiles stay isolated:
+   - release: tag v0.23.2, commit c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048,
+     21 MCP tools
+   - main-preview: commit 3452c821d76c083823d020984d71e06904a1ff1e,
+     27 MCP tools
+   Reports, tool counts, schemas, and evidence for these profiles must not
+   be merged, averaged, or treated as a single contract.
+
+3. Third-party lockfile dependencies
+
+   Packages recorded in Cargo.lock and apps/bmdock-desktop/package-lock.json
+   remain under their respective upstream licenses and copyrights. The
+   BMDock-owned lockfile inventory at docs/sbom/lockfile-inventory.json
+   copies package names and versions offline from those committed lockfiles.
+   Licenses are copied from npm lockfile metadata only when present and are
+   not a legal conclusion. Cargo.lock does not record licenses; those license
+   fields are left unset rather than invented.
+
+4. Unverified review boundaries
+
+   vulnerability_scan: UNVERIFIED
+   human_legal_review: UNVERIFIED
+   Gate G7: not passed
+   This NOTICE does not claim a privacy-cleared production review.

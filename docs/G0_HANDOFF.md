@@ -4,7 +4,7 @@
 
 ## 当前与目标
 
-已编写真实引擎能力发现与 create/read/append smoke 工具。T04 已记录 [ADR-0001](adr/0001-bmdock-boundaries-naming-licensing.md)；AGPL 仅为方向，`LICENSE` / NOTICE / SBOM 仍属 T36 `UNVERIFIED`。完整 G0 仍未通过。进入后续桌面工程不得把本 ADR 当成许可审查、native GUI 或真实 vault 证据。
+已编写真实引擎能力发现与 create/read/append smoke 工具。T04 已记录 [ADR-0001](adr/0001-bmdock-boundaries-naming-licensing.md)。T36 已加入仓库根 `LICENSE` / `NOTICE` 与 `docs/sbom/lockfile-inventory.json`；漏洞扫描、人工法律复核、hosted CI 与 G7 仍为 `UNVERIFIED`。完整 G0 仍未通过。进入后续桌面工程不得把本 ADR 或 T36 文件存在当成 native GUI、真实 vault 或 G7 证据。
 
 | ID | 验收要求 | 验证方法 |
 |---|---|---|
@@ -29,4 +29,4 @@
 
 ## 下一批顺序
 
-T01–T04 的能力清单、互操作、Markdown 边界和 ADR-0001 已记录，但完整 G0 仍未通过。`LICENSE` / NOTICE / SBOM 仍属 T36 `UNVERIFIED`，不得因 ADR 把 G0 标为通过。剩余工作是补齐客户端限制、资源/提示词实际读取、丢响应/强杀等 UNVERIFIED 项后再验收 G0。不得将失败测试删除来推进门禁。
+T01–T04 的能力清单、互操作、Markdown 边界和 ADR-0001 已记录，但完整 G0 仍未通过。T36 已加入 `LICENSE` / NOTICE / lockfile inventory，但漏洞扫描与 G7 仍为 `UNVERIFIED`，不得因这些文件把 G0 标为通过。剩余工作是补齐客户端限制、资源/提示词实际读取、丢响应/强杀等 UNVERIFIED 项后再验收 G0。不得将失败测试删除来推进门禁。

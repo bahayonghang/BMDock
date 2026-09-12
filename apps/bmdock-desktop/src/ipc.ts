@@ -96,6 +96,7 @@ export type ListSharesArgs = ExplicitRouteArgs;
 export type InspectHooksArgs = ExplicitRouteArgs;
 export type InspectProvidersArgs = ExplicitRouteArgs;
 export type InspectRoutesArgs = ExplicitRouteArgs;
+export type InspectPrivacyArgs = ExplicitRouteArgs;
 
 export type PreviewContextArgs = ExplicitRouteArgs & {
   identifier: string;
@@ -169,6 +170,7 @@ export type IpcCommand =
   | { command: "inspect_hooks"; args: InspectHooksArgs }
   | { command: "inspect_providers"; args: InspectProvidersArgs }
   | { command: "inspect_routes"; args: InspectRoutesArgs }
+  | { command: "inspect_privacy"; args: InspectPrivacyArgs }
   | { command: "preview_context"; args: PreviewContextArgs }
   | { command: "list_activity"; args: ListActivityArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
@@ -866,6 +868,40 @@ export interface RouteInspectionDto {
   scanned_user_basic_memory_home: false;
 }
 
+export interface PrivacyRecordDto {
+  identifier: string;
+}
+
+export interface PrivacyInspectionDto {
+  catalog: PrivacyRecordDto[];
+  license_path: "LICENSE";
+  notice_path: "NOTICE";
+  sbom_path: "docs/sbom/lockfile-inventory.json";
+  license_present: true;
+  notice_present: true;
+  sbom_present: true;
+  vulnerability_scan: "UNVERIFIED";
+  human_legal_review: "UNVERIFIED";
+  secrets_stored: false;
+  env_tokens_read: false;
+  remote_hosts_contacted: false;
+  telemetry: false;
+  cloud_allowed: false;
+  provider_enabled: false;
+  html_executed: false;
+  executed: false;
+  files_written: false;
+  privacy_claimed: false;
+  sbom_cleared: false;
+  g7_passed: false;
+  local_offline: true;
+  mixed_profiles: false;
+  observation: NoteCrudObservationDto;
+  engine_privacy: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+}
+
 export type DraftClass = "empty" | "disk_verified" | "accepted_unverified" | "unclassified";
 
 export interface DraftObservationDto {
@@ -981,6 +1017,7 @@ export type IpcResponse =
   | { kind: "hook_inspection" } & HookInspectionDto
   | { kind: "provider_inspection" } & ProviderInspectionDto
   | { kind: "route_inspection" } & RouteInspectionDto
+  | { kind: "privacy_inspection" } & PrivacyInspectionDto
   | { kind: "context_preview" } & ContextPreviewDto
   | { kind: "activity_page" } & ActivityPageDto
   | { kind: "backup_catalog" } & BackupCatalogDto
@@ -1044,6 +1081,7 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "inspect_hooks":
     case "inspect_providers":
     case "inspect_routes":
+    case "inspect_privacy":
     case "preview_context":
     case "list_activity":
     case "list_backups":
@@ -1425,6 +1463,17 @@ export const inspectRoutes = () => {
   const route = copyFixtureRoute();
   return invokeTyped<{ kind: "route_inspection" } & RouteInspectionDto>({
     command: "inspect_routes",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+    },
+  });
+};
+
+export const inspectPrivacy = () => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "privacy_inspection" } & PrivacyInspectionDto>({
+    command: "inspect_privacy",
     args: {
       workspace: route.workspace,
       project: route.project,

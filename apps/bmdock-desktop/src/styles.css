@@ -473,7 +473,8 @@ main {
 .share-list,
 .hook-list,
 .provider-list,
-.route-list {
+.route-list,
+.privacy-list {
   margin: 0.75rem 0 0;
   padding: 0;
   display: grid;
@@ -493,7 +494,8 @@ main {
 .share-list li,
 .hook-list li,
 .provider-list li,
-.route-list li {
+.route-list li,
+.privacy-list li {
   display: flex;
   justify-content: space-between;
   align-items: center;

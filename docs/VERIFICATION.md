@@ -81,9 +81,10 @@ release（v0.23.2 / `c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048`，21 tools）
 不得合并清单或结果。
 
 原创代码的许可方向记录为 AGPL-3.0-or-later。该方向不构成完整发行法律结论。
-`Cargo.toml` 工作区 `license` 字段只是 crate 元数据，不是 `LICENSE` 文件。仓库
-当前没有 `LICENSE`、NOTICE 或 SBOM 文件；依赖许可归属、源码交付判断和漏洞处置
-仍属于 T36，当前均为 `UNVERIFIED`。README 许可文字不能替代这些产物。
+`Cargo.toml` 工作区 `license` 字段只是 crate 元数据，不是 `LICENSE` 文件。T04
+当时仓库没有 `LICENSE`、NOTICE 或 SBOM 文件。T36 已加入这些文件与离线 lockfile
+inventory；漏洞扫描、人工法律复核、hosted CI 与 G7 仍为 `UNVERIFIED`。README
+许可文字不能替代这些产物，产物存在也不能把 G0/G7 标为通过。
 T04 的逐项 AC07/AC54/AC60 映射见 [t04-architecture-adr-licensing.json](../execution/evidence/t04-architecture-adr-licensing.json)。
 该记录只证明决策已文档化，不把 G0、真实 vault、native GUI、故障恢复或发行许可
 审查提前标为通过。工作树可将 T04 标为 `completed`；这不等于 HEAD 已发布该状态，
@@ -630,3 +631,31 @@ zh-CN 工作台「条件能力 / 跨路由」区分空态 / 错误 / 就绪，�
 本机 Windows 本轮命令见 [t35-cross-route-regression.json](../execution/evidence/t35-cross-route-regression.json)。`python -m scripts.tasks unit` 以 G0 未 passed 且 T05+ 已 completed 失败（未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方引擎 / hosted CI 证据；这些仍为 `UNVERIFIED`。
 
 T35 证据与验收映射见 [t35-cross-route-regression.json](../execution/evidence/t35-cross-route-regression.json)。`execution/status.json` 仅将 T35 标为 `completed`；未改 T05–T34/G0。
+
+## T36：安全审查、SBOM 及隐私验收
+
+T36 在现有 `ipc_invoke` 上增加 typed `inspect_privacy`（`ExplicitRouteArgs`，`deny_unknown_fields`）。额外 `path`/`root`/`token`/`host`/`api_key` 为 schema。缺路由为 schema。非 fixture 路由为 policy，且不打开库。capabilities 精确允许列为 41 个命令。typed `inspect_privacy` 允许。`enable_provider` / `restore_sync` / `list_hooks` / `connect_provider` / raw `callTool` 不在允许列。
+
+T36 是 `LICENSE` / `NOTICE` / lockfile inventory 的所有者，不只用文档记录其缺失来关单。仓库根 `LICENSE` 含 GNU AGPL-3.0 正文（BMDock 原创 AGPL-3.0-or-later）。`NOTICE` 区分 BMDock 原创、官方 Basic Memory（不作为 BMDock 再分发）与第三方锁文件依赖。双 profile 保持隔离（release 21 vs main-preview 27）。`docs/sbom/lockfile-inventory.json` 离线从已提交 `Cargo.lock` 与 `apps/bmdock-desktop/package-lock.json` 导出名称/版本；未联网；未编造 Cargo 许可证。`vulnerability_scan` 与 `human_legal_review` 在 SBOM 与证据中为 `UNVERIFIED`。该清单不是 hosted-CI 扫描，也不是 G7。
+
+生产 `EmptyLibrary`：空 catalog、`classified_as: empty`、`files_written=false`。`inspect_privacy` 报告 `telemetry=false`、`cloud_allowed=false`、`provider_enabled=false`、`html_executed=false`、`executed=false`、`secrets_stored=false`、`env_tokens_read=false`、`remote_hosts_contacted=false`。测试注入 `{temp}/bmdock-t36-*`。夹具 `privacy-claimed` / `sbom-cleared` 为 unsupported，不是通过的安全审查。未授权远程 / env token / stored secret 为 policy。宣称 live privacy-cleared 生产审查且无证据为 unsupported。不启用 provider 后端。conflict / `timeout_unknown` / `disk_verified` / `accepted_unverified` 保持区分。IPC 错误联合仍为 `policy` / `schema` / `unsupported`。无 `dangerouslySetInnerHTML`。不启动 Supervisor。无 rmcp。无新 npm 依赖。
+
+AC20：conflict / timeout_unknown / disk_verified / accepted_unverified 保持区分；`inspect_privacy` 不把它们折叠成单一成功。
+
+AC45：无 cloud/remote/credential/real-vault 路由。`secrets_stored=false`、`env_tokens_read=false`、`remote_hosts_contacted=false`、`telemetry=false`、`cloud_allowed=false`。
+
+AC46：Markdown/HTML 从不执行。无 `dangerouslySetInnerHTML`。`executed=false`。`inspect_privacy` 报告 `html_executed=false`。
+
+AC47：未授权远程 / env token / stored secret 为 policy。宣称 live privacy-cleared 生产审查且无证据为 unsupported。
+
+AC48：providers 保持 fail-closed（`provider_enabled=false`）。`inspect_privacy` 不启用后端。
+
+AC54：`LICENSE` + `NOTICE` + lockfile inventory 存在。源码交付判断：BMDock 原创现已由 LICENSE 体现 AGPL-3.0-or-later 方向；上游引擎仍单独所有。漏洞处置保持 `UNVERIFIED`（本任务未运行漏洞扫描器）。
+
+zh-CN 工作台「安全 / 隐私 / SBOM」区分空态 / 错误 / 就绪，均显示未启用 telemetry，不宣称 G7，并列出 LICENSE/NOTICE/SBOM 路径为已存在文件、`vulnerability_scan` 为 UNVERIFIED。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T36 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令见 [t36-security-sbom-privacy.json](../execution/evidence/t36-security-sbom-privacy.json)。`python -m scripts.tasks unit` 以 G0 未 passed 且 T05+ 已 completed 失败（未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / hosted CI / 漏洞扫描 / G7 证据；这些仍为 `UNVERIFIED`。
+
+T36 证据与验收映射见 [t36-security-sbom-privacy.json](../execution/evidence/t36-security-sbom-privacy.json)。`execution/status.json` 仅将 T36 标为 `completed`；未改 T05–T35/G0。

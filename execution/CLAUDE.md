@@ -45,13 +45,13 @@
 | P6 | T31–T35 | Cloud、Agent 集成、Provider |
 | P7 | T36–T40 | 安全 SBOM、安装升级、Release Gate |
 
-工作树中 T04 已标 `completed`，对应 ADR-0001 与 `t04-architecture-adr-licensing.json`；G0 仍为 `in_progress`。HEAD 在合入前 T04 为 `planned`，不要把未提交文档写成已发布门禁，也不要把 T01–T04 写成 HEAD 已全部完成。T05 为 `in_progress`，不属于 T04 交付。T06/T07 保持 `completed`，因此 `check_source` / `test_repository_phase_order` 会失败；T04 不得回退这些状态。更新 status 须与真实验收同步，禁止因文档交接而把 G0 标 `passed`。LICENSE/NOTICE/SBOM 仍为 T36 `UNVERIFIED`。
+工作树中 T04 已标 `completed`，对应 ADR-0001 与 `t04-architecture-adr-licensing.json`；G0 仍为 `in_progress`。HEAD 在合入前 T04 为 `planned`，不要把未提交文档写成已发布门禁，也不要把 T01–T04 写成 HEAD 已全部完成。T05 为 `in_progress`，不属于 T04 交付。T06/T07 保持 `completed`，因此 `check_source` / `test_repository_phase_order` 会失败；T04 不得回退这些状态。更新 status 须与真实验收同步，禁止因文档交接而把 G0 标 `passed`。T36 已加入 LICENSE/NOTICE/lockfile inventory；漏洞扫描与 G7 仍为 UNVERIFIED。
 
 ## 证据文件用法
 
 - `g0-smoke-03c2839.json`：`tested_code_commit`、`run_id`、两 OS 的 tools/prompts/resources/CLI/API 计数、7 项 checks、artifact SHA256。`product_gate` 字段明确 G0 未通过。
 - `profile-comparison.json`：`added_tools` 六项 Unix 风格工具；`changed_tool_input_schemas` 含 `read_note`/`search_notes`/`write_note` 等。注释写明描述/默认值变化不一定是破坏性变更。
-- `t04-architecture-adr-licensing.json`：AC07/AC54/AC60 文档映射。AGPL 是方向；`Cargo.toml` `license` 字段不是 LICENSE。`LICENSE`/`NOTICE`/SBOM 为 `UNVERIFIED_absent`。`product_gate` 保持 G0 `in_progress`。
+- `t04-architecture-adr-licensing.json`：AC07/AC54/AC60 文档映射。AGPL 是方向；`Cargo.toml` `license` 字段不是 LICENSE。T04 当时 `LICENSE`/`NOTICE`/SBOM 为 `UNVERIFIED_absent`。T36 已加入这些文件。`product_gate` 保持 G0 `in_progress`。
 
 改门禁或任务状态时同步 README / docs/VERIFICATION.md / 根 `CLAUDE.md` 中的阶段描述。
 

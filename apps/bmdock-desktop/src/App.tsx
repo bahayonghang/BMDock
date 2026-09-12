@@ -50,6 +50,7 @@ import {
   type HookInspectionDto,
   type ProviderInspectionDto,
   type RouteInspectionDto,
+  type PrivacyInspectionDto,
   type AuditedApiLeafDto,
   type AuditedCliLeafDto,
   type AuditedIpcCommandDto,
@@ -83,7 +84,7 @@ import {
   type ShellLoadState,
 } from "./shell";
 
-const SECTIONS = ["workbench", "runtime", "projects", "preflight", "backups", "import", "extras", "cloud", "sync", "hooks", "providers", "routes", "about"] as const;
+const SECTIONS = ["workbench", "runtime", "projects", "preflight", "backups", "import", "extras", "cloud", "sync", "hooks", "providers", "routes", "privacy", "about"] as const;
 type SectionId = (typeof SECTIONS)[number];
 
 function sectionLabel(id: SectionId): string {
@@ -112,6 +113,8 @@ function sectionLabel(id: SectionId): string {
       return t("navProviders");
     case "routes":
       return t("navRoutes");
+    case "privacy":
+      return t("navPrivacy");
     case "about":
       return t("navAbout");
     default: {
@@ -232,6 +235,8 @@ function SectionBody({
       return <ProviderPanel />;
     case "routes":
       return <RoutePanel />;
+    case "privacy":
+      return <PrivacyPanel />;
     case "about":
       return <AboutPanel />;
     default: {
@@ -439,6 +444,7 @@ function WorkbenchLibrary({
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
@@ -762,6 +768,7 @@ async function openNote(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
@@ -850,6 +857,7 @@ async function loadRelations(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setRelations(null);
         setRelationsError({ category: "schema", message: t("unexpectedRelations") });
@@ -971,6 +979,7 @@ async function loadGraph(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setGraph(null);
         setGraphError(unexpectedGraphResponse());
@@ -1059,6 +1068,7 @@ async function loadMoreGraph(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setGraphError(unexpectedGraphResponse());
         return;
@@ -1147,6 +1157,7 @@ async function loadMoreTree(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
@@ -1628,6 +1639,7 @@ async function runSearch(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setSearch(null);
         setSearchError(unexpectedSearchResponse());
@@ -1716,6 +1728,7 @@ async function loadMoreSearch(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setSearchError(unexpectedSearchResponse());
         return;
@@ -1928,6 +1941,7 @@ async function runInspectSearch(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setInspector(null);
         setInspectorError(unexpectedInspectorResponse());
@@ -2169,6 +2183,7 @@ async function runRecallBenchmark(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setRecall(null);
         setRecallError(unexpectedRecallResponse());
@@ -2400,6 +2415,7 @@ async function runSchemaValidate(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setSchema(null);
         setSchemaError(unexpectedSchemaResponse());
@@ -2641,6 +2657,7 @@ async function loadContextPreview(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setPreview(null);
         setPreviewError(unexpectedPreviewResponse());
@@ -2821,6 +2838,7 @@ async function loadActivity(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setActivity(null);
         setActivityError(unexpectedActivityResponse());
@@ -2908,6 +2926,7 @@ async function loadMoreActivity(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setActivityError(unexpectedActivityResponse());
         return;
@@ -3079,6 +3098,7 @@ async function loadResources(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setResources(null);
         setResourcesError(unexpectedResourceResponse());
@@ -3166,6 +3186,7 @@ async function loadMoreResources(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setResourcesError(unexpectedResourceResponse());
         return;
@@ -3338,6 +3359,7 @@ async function loadPrompts(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setPrompts(null);
         setPromptsError(unexpectedPromptResponse());
@@ -3425,6 +3447,7 @@ async function loadMorePrompts(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setPromptsError(unexpectedPromptResponse());
         return;
@@ -3599,6 +3622,7 @@ async function loadTools(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setTools(null);
         setToolsError(unexpectedToolsResponse());
@@ -3793,6 +3817,7 @@ async function loadCli(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setCli(null);
         setCliError(unexpectedCliResponse());
@@ -3882,6 +3907,7 @@ async function loadMoreCli(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setCliError(unexpectedCliResponse());
         return;
@@ -4094,6 +4120,7 @@ async function loadApiAudit(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setAudit(null);
         setAuditError(unexpectedAuditResponse());
@@ -4605,6 +4632,7 @@ async function applyCrudResponse(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
       setError(unexpectedCrudResponse());
       return;
@@ -4948,6 +4976,7 @@ async function persistDraft(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -5041,6 +5070,7 @@ async function reloadDraft(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -5396,6 +5426,7 @@ function ProjectPanel({
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
                   setSelectError({
                     category: "schema",
@@ -5762,6 +5793,7 @@ function ImportPanel() {
         case "hook_inspection":
         case "provider_inspection":
         case "route_inspection":
+        case "privacy_inspection":
         case "shutdown_begun":
           setError(unexpectedImportResponse());
           setResult(null);
@@ -5973,6 +6005,7 @@ function ExtrasPanel() {
         case "hook_inspection":
         case "provider_inspection":
         case "route_inspection":
+        case "privacy_inspection":
         case "shutdown_begun":
           setError(unexpectedExtrasResponse());
           setCatalog(null);
@@ -6081,6 +6114,7 @@ function ExtrasPanel() {
         case "hook_inspection":
         case "provider_inspection":
         case "route_inspection":
+        case "privacy_inspection":
         case "shutdown_begun":
           setError(unexpectedExtrasResponse());
           setIngested(null);
@@ -6309,6 +6343,7 @@ function CloudPanel() {
         case "hook_inspection":
         case "provider_inspection":
         case "route_inspection":
+        case "privacy_inspection":
           setError(unexpectedCloudResponse());
           setReport(null);
           setPhase("error");
@@ -6505,6 +6540,7 @@ function SyncPanel() {
         case "hook_inspection":
         case "provider_inspection":
         case "route_inspection":
+        case "privacy_inspection":
         case "shutdown_begun":
           setError(unexpectedSyncResponse());
           setReport(null);
@@ -6633,6 +6669,7 @@ function SyncPanel() {
         case "hook_inspection":
         case "provider_inspection":
         case "route_inspection":
+        case "privacy_inspection":
         case "shutdown_begun":
           setError(unexpectedSyncResponse());
           setReport(null);
@@ -6853,6 +6890,7 @@ function HookPanel() {
         case "share_catalog":
         case "provider_inspection":
         case "route_inspection":
+        case "privacy_inspection":
         case "shutdown_begun":
           setError(unexpectedHookResponse());
           setReport(null);
@@ -7080,6 +7118,7 @@ function ProviderPanel() {
         case "share_catalog":
         case "hook_inspection":
         case "route_inspection":
+        case "privacy_inspection":
         case "shutdown_begun":
           setError(unexpectedProviderResponse());
           setReport(null);
@@ -7334,6 +7373,7 @@ function RoutePanel() {
         case "share_catalog":
         case "hook_inspection":
         case "provider_inspection":
+        case "privacy_inspection":
         case "shutdown_begun":
           setError(unexpectedRouteResponse());
           setReport(null);
@@ -7430,6 +7470,251 @@ function RoutePanel() {
           </li>
         </ul>
       ) : null}
+    </section>
+  );
+}
+
+type PrivacyError = {
+  category: "policy" | "schema" | "unsupported" | "invoke";
+  message: string;
+};
+
+function unexpectedPrivacyResponse(): PrivacyError {
+  return { category: "schema", message: t("unexpectedPrivacy") };
+}
+
+function PrivacyPanel() {
+  const [phase, setPhase] = useState<"empty" | "ready" | "error">("empty");
+  const [report, setReport] = useState<PrivacyInspectionDto | null>(null);
+  const [error, setError] = useState<PrivacyError | null>(null);
+
+  const loadPrivacy = async () => {
+    const route = copyFixtureRoute();
+    try {
+      const response = await invokeTyped<IpcResponse>({
+        command: "inspect_privacy",
+        args: {
+          workspace: route.workspace,
+          project: route.project,
+        },
+      });
+      switch (response.kind) {
+        case "error":
+          setError({ category: response.category, message: response.message });
+          setReport(null);
+          setPhase("error");
+          return;
+        case "privacy_inspection":
+          if (
+            response.telemetry ||
+            response.cloud_allowed ||
+            response.provider_enabled ||
+            response.html_executed ||
+            response.executed ||
+            response.files_written ||
+            response.privacy_claimed ||
+            response.sbom_cleared ||
+            response.g7_passed ||
+            response.remote_hosts_contacted ||
+            response.secrets_stored ||
+            response.env_tokens_read ||
+            response.mixed_profiles ||
+            response.engine_privacy ||
+            response.scanned_user_obsidian_vault ||
+            response.catalog.length > 0 ||
+            !response.local_offline ||
+            !response.license_present ||
+            !response.notice_present ||
+            !response.sbom_present ||
+            response.vulnerability_scan !== "UNVERIFIED" ||
+            response.human_legal_review !== "UNVERIFIED"
+          ) {
+            setError(unexpectedPrivacyResponse());
+            setReport(null);
+            setPhase("error");
+            return;
+          }
+          setError(null);
+          setReport({
+            catalog: [],
+            license_path: "LICENSE",
+            notice_path: "NOTICE",
+            sbom_path: "docs/sbom/lockfile-inventory.json",
+            license_present: true,
+            notice_present: true,
+            sbom_present: true,
+            vulnerability_scan: "UNVERIFIED",
+            human_legal_review: "UNVERIFIED",
+            secrets_stored: false,
+            env_tokens_read: false,
+            remote_hosts_contacted: false,
+            telemetry: false,
+            cloud_allowed: false,
+            provider_enabled: false,
+            html_executed: false,
+            executed: false,
+            files_written: false,
+            privacy_claimed: false,
+            sbom_cleared: false,
+            g7_passed: false,
+            local_offline: true,
+            mixed_profiles: false,
+            observation: response.observation,
+            engine_privacy: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+          });
+          setPhase("ready");
+          return;
+        case "capabilities":
+        case "runtime_state":
+        case "project_selected":
+        case "project_catalog":
+        case "preflight":
+        case "config_discovery":
+        case "tree_page":
+        case "note_read":
+        case "backup_catalog":
+        case "fixture_restored":
+        case "windows_runtime":
+        case "draft_saved":
+        case "draft_loaded":
+        case "note_written":
+        case "note_edited":
+        case "note_moved":
+        case "note_deleted":
+        case "relation_list":
+        case "graph_page":
+        case "search_page":
+        case "context_preview":
+        case "activity_page":
+        case "search_inspector":
+        case "recall_benchmark":
+        case "schema_validated":
+        case "resource_page":
+        case "prompt_page":
+        case "tool_inspection":
+        case "cli_inventory":
+        case "notes_imported":
+        case "api_audit":
+        case "extras_catalog":
+        case "document_ingested":
+        case "cloud_inspection":
+        case "sync_inspection":
+        case "share_catalog":
+        case "hook_inspection":
+        case "provider_inspection":
+        case "route_inspection":
+        case "shutdown_begun":
+          setError(unexpectedPrivacyResponse());
+          setReport(null);
+          setPhase("error");
+          return;
+        default: {
+          const exhaustive: never = response;
+          return exhaustive;
+        }
+      }
+    } catch (cause) {
+      setError({
+        category: "invoke",
+        message: cause instanceof Error ? cause.message : String(cause),
+      });
+      setReport(null);
+      setPhase("error");
+    }
+  };
+
+  const empty = phase === "empty" && !error;
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error
+    ? t("privacyErrorTitle")
+    : empty
+      ? t("privacyEmptyTitle")
+      : t("privacyReadyTitle");
+
+  return (
+    <section
+      className="panel"
+      data-state={state}
+      aria-labelledby="privacy-title"
+      role={error ? "alert" : undefined}
+    >
+      <p className="state-badge">{badge}</p>
+      <h2 id="privacy-title">{heading}</h2>
+      <p>
+        {error
+          ? `${errorCategoryLabel(error.category)}：${error.message}`
+          : empty
+            ? t("privacyEmptyBody")
+            : t("privacyReadyBody")}
+      </p>
+      <p>{t("privacyTelemetryDisabled")}</p>
+      <p>{t("privacyNoG7")}</p>
+      <ul className="policy-list">
+        <li>
+          {t("privacyTelemetryLabel")}：{t("privacyTelemetryDisabled")}
+        </li>
+        <li>
+          {t("privacyCloudLabel")}：{t("privacyNotEnabled")}
+        </li>
+        <li>
+          {t("privacyProviderLabel")}：{t("privacyNotEnabled")}
+        </li>
+        <li>
+          {t("privacyHtmlLabel")}：{t("privacyHtmlNotExecuted")}
+        </li>
+      </ul>
+      <button type="button" className="action" onClick={() => void loadPrivacy()}>
+        {t("privacyInspect")}
+      </button>
+      <ul className="policy-list">
+        <li>{t("privacyNoVault")}</li>
+        <li>{t("privacyNoSecrets")}</li>
+        <li>{t("privacyNoRemote")}</li>
+        <li>{t("privacyNotOfficial")}</li>
+        <li>
+          {t("privacyFilesWrittenLabel")}：
+          {report?.files_written ? t("privacyWroteFiles") : t("privacyNoWrite")}
+        </li>
+      </ul>
+      <ul className="privacy-list">
+        <li>
+          <span>{t("privacyLicenseLabel")}</span>
+          <span>
+            {report?.license_path ?? "LICENSE"}（{t("privacyPresent")}）
+          </span>
+        </li>
+        <li>
+          <span>{t("privacyNoticeLabel")}</span>
+          <span>
+            {report?.notice_path ?? "NOTICE"}（{t("privacyPresent")}）
+          </span>
+        </li>
+        <li>
+          <span>{t("privacySbomLabel")}</span>
+          <span>
+            {report?.sbom_path ?? "docs/sbom/lockfile-inventory.json"}（{t("privacyPresent")}）
+          </span>
+        </li>
+        <li>
+          <span>{t("privacyScanLabel")}</span>
+          <span>{t("privacyScanUnverified")}</span>
+        </li>
+        <li>
+          <span>{t("privacyLocalOfflineLabel")}</span>
+          <span>{report == null || report.local_offline ? t("privacyYes") : t("privacyNo")}</span>
+        </li>
+        <li>
+          <span>{t("privacyObservationLabel")}</span>
+          <span>
+            {report == null || report.observation.classified_as === "empty"
+              ? t("privacyObservationEmpty")
+              : t("privacyObservationUnverified")}
+          </span>
+        </li>
+      </ul>
     </section>
   );
 }
@@ -7538,6 +7823,7 @@ function BackupPanel() {
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
             setError(unexpectedBackupResponse());
             setPhase("error");
@@ -7736,6 +8022,7 @@ async function restoreNamedFixture(
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
@@ -7909,6 +8196,7 @@ function WindowsRuntimeCard() {
       case "hook_inspection":
       case "provider_inspection":
       case "route_inspection":
+      case "privacy_inspection":
       case "shutdown_begun":
             setError(unexpectedWindowsResponse());
             setPhase("error");

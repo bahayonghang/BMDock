@@ -92,7 +92,7 @@ flowchart TB
 4. **隔离**：sandbox 从零生成；清除 provider key、Cloud 路由、`PYTHONPATH`。必填环境：`BASIC_MEMORY_AUTO_UPDATE=false`、`BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED=false`、`BASIC_MEMORY_FORCE_LOCAL=true`。
 5. **结果语义**：MCP `isError`、业务拒绝（`already_exists` / `locked` / `target_moved`）、`accepted_unverified`、磁盘可见、检索命中分开记录。未知结果禁止自动重试非幂等写入。
 6. **阶段顺序**：`execution/status.json` 中 G0 未 `passed` 时，T05 及之后不得标 `completed`（`scripts/tasks.py` `check_source` 强制）。
-7. **许可方向**：原创代码拟采用 AGPL-3.0-or-later。正式发行前仍需 LICENSE、依赖许可、SBOM 与源码交付审查。
+7. **许可**：原创代码为 AGPL-3.0-or-later，见仓库根 `LICENSE` 与 `NOTICE`。`docs/sbom/lockfile-inventory.json` 是离线锁文件清单。漏洞扫描、人工法律复核、hosted CI 与 G7 仍为 UNVERIFIED。
 8. **行尾**：`.gitattributes` 将文本文件固定为 LF。
 
 ## 工具链钉扎

@@ -64,10 +64,16 @@ bmdock-app Rust core (policy, DTO, supervisor, state)
   归属；不因 BMDock 的目标许可而重新声明上游代码的许可。
 - 工作区 `Cargo.toml` 的 `[workspace.package] license = "AGPL-3.0-or-later"` 只是
   crate 元数据方向，**不是** `LICENSE` 文件，也不能当作发行合规或依赖扫描结果。
-- 仓库当前 **没有** `LICENSE`、`NOTICE` 或 SBOM 文件。这些文件以及依赖许可扫描、
-  源码交付判断和漏洞处置在 T36 完成前均为 `UNVERIFIED`。
-- 正式发行前，T36 必须生成依赖许可清单、SBOM、源码交付判断、漏洞处置记录，并由
-  发布负责人复核 `LICENSE`、NOTICE 和打包内容。
+- T36 已在仓库根加入 `LICENSE`（GNU AGPL-3.0 正文，BMDock 原创代码
+  AGPL-3.0-or-later）、`NOTICE`（区分 BMDock 原创、官方 Basic Memory、第三方
+  锁文件依赖）以及 `docs/sbom/lockfile-inventory.json`（离线从
+  `Cargo.lock` 与 `apps/bmdock-desktop/package-lock.json` 导出的名称/版本清单）。
+  漏洞扫描、人工法律复核、hosted CI 与 G7 仍为 `UNVERIFIED`。这些文件不是
+  T04 的发行合规证明，也不把 G0/G7 标为通过。
+- 官方 Basic Memory、rmcp、Tauri、React/TypeScript 及其他依赖保留各自上游许可和
+  归属；不因 BMDock 的目标许可而重新声明上游代码的许可。
+- 正式发行前仍须由发布负责人复核 `LICENSE`、NOTICE、打包内容与漏洞处置；
+  T36 的 lockfile inventory 不是 hosted-CI 扫描，也不是人工法律签署。
 - README 中的 AGPL 方向文字和 Cargo crate `license` 字段都不是法律结论，也不是
   `LICENSE` / NOTICE / SBOM 替代物。
 
@@ -92,7 +98,8 @@ bmdock-app Rust core (policy, DTO, supervisor, state)
   语义产生冲突，并扩大恢复与并发风险。
 - **把 release 与 main-preview 合成一套能力**：否决。T01/T02 已证明两者工具和
   schema 数量不同。
-- **现在就承诺完整 AGPL 合规**：否决。依赖许可、SBOM、源码交付和漏洞审查尚未完成。
+- **现在就承诺完整 AGPL 合规或 G7**：否决。T36 已加入 LICENSE/NOTICE/lockfile
+  inventory，但漏洞扫描、人工法律复核、hosted CI 与 G7 仍未完成。
 
 ## 证据与限制
 
@@ -101,7 +108,8 @@ bmdock-app Rust core (policy, DTO, supervisor, state)
 - Markdown 物化与并发边界：`execution/evidence/t03-markdown-concurrency-recovery.json`。
 - T04 验收映射：`execution/evidence/t04-architecture-adr-licensing.json`。
 - 当前仓库仍处于 G0 `in_progress`。取消、丢响应、强杀、磁盘故障、真实 vault、原生
-  桌面、`LICENSE`、NOTICE、SBOM 和依赖许可扫描均不能由本 ADR 推断为已验证。
+  桌面、hosted CI、漏洞扫描和人工法律签署均不能由本 ADR 推断为已验证。
+  T36 已加入 `LICENSE` / `NOTICE` / lockfile inventory；这不等于 G0 或 G7 通过。
 - T04 不回退工作树中已 `completed` 的 T06/T07；这些状态会让 G0 未通过时的
   `check_source` 失败，这是已知限制，不是 T04 回归。
 
