@@ -40,6 +40,16 @@ export type SearchNotesArgs = ExplicitRouteArgs & {
   page_size?: number;
 };
 
+export type PreviewContextArgs = ExplicitRouteArgs & {
+  identifier: string;
+  query?: string;
+};
+
+export type ListActivityArgs = ExplicitRouteArgs & {
+  cursor?: string;
+  page_size?: number;
+};
+
 export type RestoreFixtureArgs = ExplicitRouteArgs & {
   backup_id: string;
 };
@@ -85,6 +95,8 @@ export type IpcCommand =
   | { command: "list_relations"; args: ListRelationsArgs }
   | { command: "expand_graph"; args: ExpandGraphArgs }
   | { command: "search_notes"; args: SearchNotesArgs }
+  | { command: "preview_context"; args: PreviewContextArgs }
+  | { command: "list_activity"; args: ListActivityArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
   | { command: "restore_fixture"; args: RestoreFixtureArgs }
   | { command: "inspect_windows_runtime"; args: Record<string, never> }
@@ -305,6 +317,36 @@ export interface SearchPageDto {
   files_written: boolean;
 }
 
+export interface ContextPreviewDto {
+  identifier: string;
+  query: string | null;
+  snippet: string;
+  executed: false;
+  unsafe_html_present: boolean;
+  observation: NoteCrudObservationDto;
+  engine_context: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  files_written: boolean;
+}
+
+export interface ActivityEntryDto {
+  identifier: string;
+  observed_mtime: number;
+}
+
+export interface ActivityPageDto {
+  entries: ActivityEntryDto[];
+  next_cursor: string | null;
+  page: number;
+  truncated: boolean;
+  observation: NoteCrudObservationDto;
+  engine_activity: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  files_written: boolean;
+}
+
 export interface BackupRecordDto {
   id: string;
   kind: typeof OWNED_KIND;
@@ -437,6 +479,8 @@ export type IpcResponse =
   | { kind: "relation_list" } & RelationListDto
   | { kind: "graph_page" } & GraphPageDto
   | { kind: "search_page" } & SearchPageDto
+  | { kind: "context_preview" } & ContextPreviewDto
+  | { kind: "activity_page" } & ActivityPageDto
   | { kind: "backup_catalog" } & BackupCatalogDto
   | { kind: "fixture_restored" } & RestoreResultDto
   | { kind: "windows_runtime" } & WindowsRuntimeDto
@@ -480,6 +524,8 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "list_relations":
     case "expand_graph":
     case "search_notes":
+    case "preview_context":
+    case "list_activity":
     case "list_backups":
     case "restore_fixture":
     case "save_draft":
@@ -605,6 +651,32 @@ export const searchNotes = (args: { query: string; cursor?: string; page_size?: 
       workspace: route.workspace,
       project: route.project,
       query: args.query,
+      ...(args.cursor ? { cursor: args.cursor } : {}),
+      page_size: args.page_size ?? TREE_PAGE_SIZE,
+    },
+  });
+};
+
+export const previewContext = (args: { identifier: string; query?: string }) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "context_preview" } & ContextPreviewDto>({
+    command: "preview_context",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      identifier: args.identifier,
+      ...(args.query ? { query: args.query } : {}),
+    },
+  });
+};
+
+export const listActivity = (args: { cursor?: string; page_size?: number } = {}) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "activity_page" } & ActivityPageDto>({
+    command: "list_activity",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
       ...(args.cursor ? { cursor: args.cursor } : {}),
       page_size: args.page_size ?? TREE_PAGE_SIZE,
     },

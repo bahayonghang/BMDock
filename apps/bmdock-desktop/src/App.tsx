@@ -19,6 +19,9 @@ import {
   type GraphNodeDto,
   type SearchPageDto,
   type SearchHitDto,
+  type ContextPreviewDto,
+  type ActivityPageDto,
+  type ActivityEntryDto,
   type PreflightDto,
   type ProjectCatalogDto,
   type RestoreResultDto,
@@ -245,6 +248,10 @@ function WorkbenchLibrary({
   const [graphError, setGraphError] = useState<WorkbenchError | null>(null);
   const [search, setSearch] = useState<SearchPageDto | null>(null);
   const [searchError, setSearchError] = useState<WorkbenchError | null>(null);
+  const [preview, setPreview] = useState<ContextPreviewDto | null>(null);
+  const [previewError, setPreviewError] = useState<WorkbenchError | null>(null);
+  const [activity, setActivity] = useState<ActivityPageDto | null>(null);
+  const [activityError, setActivityError] = useState<WorkbenchError | null>(null);
   const [crudObservation, setCrudObservation] = useState<{
     identifier: string;
     classified_as: NoteCrudClass;
@@ -263,6 +270,10 @@ function WorkbenchLibrary({
     setGraphError(null);
     setSearch(null);
     setSearchError(null);
+    setPreview(null);
+    setPreviewError(null);
+    setActivity(null);
+    setActivityError(null);
     setCrudObservation(null);
     setError(null);
     void (async () => {
@@ -293,6 +304,7 @@ function WorkbenchLibrary({
             setEntries(response.entries);
             setNextCursor(response.next_cursor);
             setPhase(response.entries.length === 0 ? "empty" : "ready");
+            void loadActivity(setActivity, setActivityError);
             return;
           case "capabilities":
           case "runtime_state":
@@ -313,6 +325,8 @@ function WorkbenchLibrary({
           case "relation_list":
       case "graph_page":
       case "search_page":
+      case "context_preview":
+      case "activity_page":
       case "shutdown_begun":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
@@ -401,6 +415,8 @@ function WorkbenchLibrary({
                       setRelationsError,
                       setGraph,
                       setGraphError,
+                      setPreview,
+                      setPreviewError,
                       setError,
                       setPhase,
                     );
@@ -451,9 +467,22 @@ function WorkbenchLibrary({
         onSearch={(query) => {
           void runSearch(query, setSearch, setSearchError);
         }}
+        onPreview={(identifier, query) => {
+          void loadContextPreview(identifier, query, setPreview, setPreviewError);
+        }}
         onLoadMore={() => {
           if (search?.next_cursor) {
             void loadMoreSearch(search, setSearch, setSearchError);
+          }
+        }}
+      />
+      <ContextPreviewPanel preview={preview} error={previewError} />
+      <ActivityPanel
+        activity={activity}
+        error={activityError}
+        onLoadMore={() => {
+          if (activity?.next_cursor) {
+            void loadMoreActivity(activity, setActivity, setActivityError);
           }
         }}
       />
@@ -480,6 +509,8 @@ async function openNote(
   setRelationsError: (error: WorkbenchError | null) => void,
   setGraph: (graph: GraphPageDto | null) => void,
   setGraphError: (error: WorkbenchError | null) => void,
+  setPreview: (preview: ContextPreviewDto | null) => void,
+  setPreviewError: (error: WorkbenchError | null) => void,
   setError: (error: WorkbenchError | null) => void,
   setPhase: (phase: "loading" | "ready" | "empty" | "error") => void,
 ): Promise<void> {
@@ -508,6 +539,7 @@ async function openNote(
         });
         await loadRelations(identifier, setRelations, setRelationsError);
         await loadGraph(identifier, setGraph, setGraphError);
+        await loadContextPreview(identifier, null, setPreview, setPreviewError);
         return;
       case "capabilities":
       case "runtime_state":
@@ -528,6 +560,8 @@ async function openNote(
       case "note_deleted":
       case "graph_page":
       case "search_page":
+      case "context_preview":
+      case "activity_page":
       case "shutdown_begun":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
@@ -597,6 +631,8 @@ async function loadRelations(
       case "note_deleted":
       case "graph_page":
       case "search_page":
+      case "context_preview":
+      case "activity_page":
       case "shutdown_begun":
         setRelations(null);
         setRelationsError({ category: "schema", message: t("unexpectedRelations") });
@@ -699,6 +735,8 @@ async function loadGraph(
       case "note_moved":
       case "note_deleted":
       case "search_page":
+      case "context_preview":
+      case "activity_page":
       case "shutdown_begun":
         setGraph(null);
         setGraphError(unexpectedGraphResponse());
@@ -768,6 +806,8 @@ async function loadMoreGraph(
       case "note_moved":
       case "note_deleted":
       case "search_page":
+      case "context_preview":
+      case "activity_page":
       case "shutdown_begun":
         setGraphError(unexpectedGraphResponse());
         return;
@@ -837,6 +877,8 @@ async function loadMoreTree(
       case "relation_list":
       case "graph_page":
       case "search_page":
+      case "context_preview":
+      case "activity_page":
       case "shutdown_begun":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
@@ -1299,6 +1341,8 @@ async function runSearch(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "context_preview":
+      case "activity_page":
       case "shutdown_begun":
         setSearch(null);
         setSearchError(unexpectedSearchResponse());
@@ -1368,6 +1412,8 @@ async function loadMoreSearch(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "context_preview":
+      case "activity_page":
       case "shutdown_begun":
         setSearchError(unexpectedSearchResponse());
         return;
@@ -1388,11 +1434,13 @@ function SearchPanel({
   search,
   error,
   onSearch,
+  onPreview,
   onLoadMore,
 }: {
   search: SearchPageDto | null;
   error: WorkbenchError | null;
   onSearch: (query: string) => void;
+  onPreview: (identifier: string, query: string) => void;
   onLoadMore: () => void;
 }) {
   const [query, setQuery] = useState("");
@@ -1461,7 +1509,13 @@ function SearchPanel({
         <ul className="search-list">
           {search.hits.map((hit: SearchHitDto) => (
             <li key={hit.identifier}>
-              <span>{hit.identifier}</span>
+              <button
+                type="button"
+                className="tree-item"
+                onClick={() => onPreview(hit.identifier, search.query)}
+              >
+                {hit.identifier}
+              </button>
               <span>
                 {t("searchLexicalScore")}: {hit.lexical_score}
               </span>
@@ -1476,6 +1530,381 @@ function SearchPanel({
         <div className="search-actions">
           <button type="button" className="action" onClick={onLoadMore}>
             {t("searchLoadMore")}
+          </button>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function unexpectedPreviewResponse(): WorkbenchError {
+  return { category: "schema", message: t("unexpectedPreview") };
+}
+
+function asContextPreview(
+  response: Extract<IpcResponse, { kind: "context_preview" }>,
+): ContextPreviewDto {
+  return {
+    identifier: response.identifier,
+    query: response.query,
+    snippet: response.snippet,
+    executed: false,
+    unsafe_html_present: response.unsafe_html_present,
+    observation: response.observation,
+    engine_context: false,
+    scanned_user_obsidian_vault: false,
+    scanned_user_basic_memory_home: false,
+    files_written: response.files_written,
+  };
+}
+
+async function loadContextPreview(
+  identifier: string,
+  query: string | null,
+  setPreview: (preview: ContextPreviewDto | null) => void,
+  setPreviewError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "preview_context",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        identifier,
+        ...(query ? { query } : {}),
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setPreview(null);
+        setPreviewError({ category: response.category, message: response.message });
+        return;
+      case "context_preview":
+        setPreviewError(null);
+        setPreview(asContextPreview(response));
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "relation_list":
+      case "graph_page":
+      case "search_page":
+      case "activity_page":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
+      case "shutdown_begun":
+        setPreview(null);
+        setPreviewError(unexpectedPreviewResponse());
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setPreview(null);
+    setPreviewError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+function ContextPreviewPanel({
+  preview,
+  error,
+}: {
+  preview: ContextPreviewDto | null;
+  error: WorkbenchError | null;
+}) {
+  const empty = preview === null || preview.snippet === "";
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error
+    ? t("previewErrorTitle")
+    : empty
+      ? t("previewEmptyTitle")
+      : t("previewReadyTitle");
+  return (
+    <section
+      className="subpanel"
+      data-state={state}
+      aria-labelledby="context-preview-title"
+      role={error ? "alert" : undefined}
+    >
+      <p className="state-badge">{badge}</p>
+      <h3 id="context-preview-title">{heading}</h3>
+      <p>
+        {error
+          ? `${errorCategoryLabel(error.category)}：${error.message}`
+          : empty
+            ? t("previewEmptyBody")
+            : t("previewReadyBody")}
+      </p>
+      <p>{t("previewNotEngineContext")}</p>
+      <p>{t("previewHtmlIsText")}</p>
+      {preview ? (
+        <dl className="facts">
+          <div>
+            <dt>{t("workbenchIdentifierLabel")}</dt>
+            <dd>{preview.identifier}</dd>
+          </div>
+          <div>
+            <dt>classified_as</dt>
+            <dd data-observation={preview.observation.classified_as}>
+              {observationClassLabel(preview.observation.classified_as)}
+            </dd>
+          </div>
+          <div>
+            <dt>{t("contentSafetyExecutedLabel")}</dt>
+            <dd data-executed="false">{t("contentSafetyExecutedNo")}</dd>
+          </div>
+        </dl>
+      ) : null}
+      {preview && preview.snippet !== "" ? (
+        <pre
+          className="note-body"
+          data-preview="text"
+          data-executed="false"
+          aria-labelledby="context-preview-title"
+        >
+          {preview.snippet}
+        </pre>
+      ) : null}
+    </section>
+  );
+}
+
+function unexpectedActivityResponse(): WorkbenchError {
+  return { category: "schema", message: t("unexpectedActivity") };
+}
+
+function asActivityPage(response: Extract<IpcResponse, { kind: "activity_page" }>): ActivityPageDto {
+  return {
+    entries: response.entries,
+    next_cursor: response.next_cursor,
+    page: response.page,
+    truncated: response.truncated,
+    observation: response.observation,
+    engine_activity: false,
+    scanned_user_obsidian_vault: false,
+    scanned_user_basic_memory_home: false,
+    files_written: response.files_written,
+  };
+}
+
+function mergeActivityPage(current: ActivityPageDto, next: ActivityPageDto): ActivityPageDto {
+  const entries = [...current.entries];
+  for (const entry of next.entries) {
+    if (!entries.some((existing) => existing.identifier === entry.identifier)) {
+      entries.push(entry);
+    }
+  }
+  return {
+    ...next,
+    entries,
+  };
+}
+
+async function loadActivity(
+  setActivity: (activity: ActivityPageDto | null) => void,
+  setActivityError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "list_activity",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        page_size: TREE_PAGE_SIZE,
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setActivity(null);
+        setActivityError({ category: response.category, message: response.message });
+        return;
+      case "activity_page":
+        if (response.truncated) {
+          setActivity(null);
+          setActivityError(unexpectedActivityResponse());
+          return;
+        }
+        setActivityError(null);
+        setActivity(asActivityPage(response));
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "relation_list":
+      case "graph_page":
+      case "search_page":
+      case "context_preview":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
+      case "shutdown_begun":
+        setActivity(null);
+        setActivityError(unexpectedActivityResponse());
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setActivity(null);
+    setActivityError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+async function loadMoreActivity(
+  current: ActivityPageDto,
+  setActivity: (activity: ActivityPageDto | null) => void,
+  setActivityError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  if (!current.next_cursor) {
+    return;
+  }
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "list_activity",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        cursor: current.next_cursor,
+        page_size: TREE_PAGE_SIZE,
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setActivityError({ category: response.category, message: response.message });
+        return;
+      case "activity_page":
+        if (response.truncated) {
+          setActivityError(unexpectedActivityResponse());
+          return;
+        }
+        setActivityError(null);
+        setActivity(mergeActivityPage(current, asActivityPage(response)));
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "relation_list":
+      case "graph_page":
+      case "search_page":
+      case "context_preview":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
+      case "shutdown_begun":
+        setActivityError(unexpectedActivityResponse());
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setActivityError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+function ActivityPanel({
+  activity,
+  error,
+  onLoadMore,
+}: {
+  activity: ActivityPageDto | null;
+  error: WorkbenchError | null;
+  onLoadMore: () => void;
+}) {
+  const empty = activity === null || activity.entries.length === 0;
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error
+    ? t("activityErrorTitle")
+    : empty
+      ? t("activityEmptyTitle")
+      : t("activityReadyTitle");
+  return (
+    <section
+      className="subpanel"
+      data-state={state}
+      aria-labelledby="activity-title"
+      role={error ? "alert" : undefined}
+    >
+      <p className="state-badge">{badge}</p>
+      <h3 id="activity-title">{heading}</h3>
+      <p>
+        {error
+          ? `${errorCategoryLabel(error.category)}：${error.message}`
+          : empty
+            ? t("activityEmptyBody")
+            : t("activityReadyBody")}
+      </p>
+      <p>{t("activityPermalinkNotPath")}</p>
+      <p>{t("activityMcpUnverified")}</p>
+      {activity && activity.entries.length > 0 ? (
+        <ul className="activity-list">
+          {activity.entries.map((entry: ActivityEntryDto) => (
+            <li key={entry.identifier}>
+              <span>{entry.identifier}</span>
+              <span>
+                {t("activityMtimeLabel")}: {entry.observed_mtime}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {activity?.next_cursor ? (
+        <div className="activity-actions">
+          <button type="button" className="action" onClick={onLoadMore}>
+            {t("activityLoadMore")}
           </button>
         </div>
       ) : null}
@@ -1827,6 +2256,8 @@ async function applyCrudResponse(
     case "relation_list":
       case "graph_page":
       case "search_page":
+      case "context_preview":
+      case "activity_page":
       case "shutdown_begun":
       setError(unexpectedCrudResponse());
       return;
@@ -2151,6 +2582,8 @@ async function persistDraft(
       case "relation_list":
       case "graph_page":
       case "search_page":
+      case "context_preview":
+      case "activity_page":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -2225,6 +2658,8 @@ async function reloadDraft(
       case "relation_list":
       case "graph_page":
       case "search_page":
+      case "context_preview":
+      case "activity_page":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -2556,6 +2991,8 @@ function ProjectPanel({
                 case "relation_list":
       case "graph_page":
       case "search_page":
+      case "context_preview":
+      case "activity_page":
       case "shutdown_begun":
                   setSelectError({
                     category: "schema",
@@ -2876,6 +3313,8 @@ function BackupPanel() {
           case "relation_list":
       case "graph_page":
       case "search_page":
+      case "context_preview":
+      case "activity_page":
       case "shutdown_begun":
             setError(unexpectedBackupResponse());
             setPhase("error");
@@ -3055,6 +3494,8 @@ async function restoreNamedFixture(
       case "relation_list":
       case "graph_page":
       case "search_page":
+      case "context_preview":
+      case "activity_page":
       case "shutdown_begun":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
@@ -3209,6 +3650,8 @@ function WindowsRuntimeCard() {
           case "relation_list":
       case "graph_page":
       case "search_page":
+      case "context_preview":
+      case "activity_page":
       case "shutdown_begun":
             setError(unexpectedWindowsResponse());
             setPhase("error");

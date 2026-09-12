@@ -5,8 +5,9 @@ use crate::conflict::{self, ConflictCoordinator};
 use crate::drafts::{self, DraftResultDto, DraftStore};
 use crate::drain::{self, DrainPhase, DrainResultDto, HostDrain};
 use crate::library::{
-    self, GraphPageDto, NoteDeleteDto, NoteEditDto, NoteLibrary, NoteMoveDto, NoteReadDto,
-    NoteWriteDto, RelationListDto, SearchPageDto, TreePageDto,
+    self, ActivityPageDto, ContextPreviewDto, GraphPageDto, NoteDeleteDto, NoteEditDto,
+    NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto, RelationListDto, SearchPageDto,
+    TreePageDto,
 };
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
@@ -29,6 +30,8 @@ pub enum IpcCommandName {
     ListRelations,
     ExpandGraph,
     SearchNotes,
+    PreviewContext,
+    ListActivity,
     ListBackups,
     RestoreFixture,
     InspectWindowsRuntime,
@@ -54,6 +57,8 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::ListRelations,
         IpcCommandName::ExpandGraph,
         IpcCommandName::SearchNotes,
+        IpcCommandName::PreviewContext,
+        IpcCommandName::ListActivity,
         IpcCommandName::ListBackups,
         IpcCommandName::RestoreFixture,
         IpcCommandName::InspectWindowsRuntime,
@@ -172,6 +177,45 @@ pub struct SearchNotesArgs {
 }
 
 impl SearchNotesArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct PreviewContextArgs {
+    pub workspace: String,
+    pub project: String,
+    pub identifier: String,
+    #[serde(default)]
+    pub query: Option<String>,
+}
+
+impl PreviewContextArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ListActivityArgs {
+    pub workspace: String,
+    pub project: String,
+    #[serde(default)]
+    pub cursor: Option<String>,
+    #[serde(default)]
+    pub page_size: Option<u32>,
+}
+
+impl ListActivityArgs {
     fn route(&self) -> ExplicitRouteArgs {
         ExplicitRouteArgs {
             workspace: self.workspace.clone(),
@@ -323,6 +367,8 @@ pub enum IpcCommand {
     ListRelations(ListRelationsArgs),
     ExpandGraph(ExpandGraphArgs),
     SearchNotes(SearchNotesArgs),
+    PreviewContext(PreviewContextArgs),
+    ListActivity(ListActivityArgs),
     ListBackups(ExplicitRouteArgs),
     RestoreFixture(RestoreFixtureArgs),
     InspectWindowsRuntime(EmptyArgs),
@@ -387,6 +433,8 @@ pub enum IpcResponse {
     RelationList(RelationListDto),
     GraphPage(GraphPageDto),
     SearchPage(SearchPageDto),
+    ContextPreview(ContextPreviewDto),
+    ActivityPage(ActivityPageDto),
     BackupCatalog(BackupCatalogDto),
     FixtureRestored(RestoreResultDto),
     WindowsRuntime(WindowsRuntimeDto),
@@ -585,6 +633,22 @@ pub fn dispatch_with_drain(
             let page = library::accept_search_page(cursor, page)?;
             Ok(IpcResponse::SearchPage(page))
         }
+        IpcCommand::PreviewContext(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            library::reject_note_identifier(&args.identifier)?;
+            let query = library::reject_preview_query(args.query.as_deref())?;
+            Ok(IpcResponse::ContextPreview(
+                library.preview_context(&args.identifier, query)?,
+            ))
+        }
+        IpcCommand::ListActivity(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            let page_size = library::bound_page_size(args.page_size)?;
+            let cursor = library::validate_request_cursor(args.cursor.as_deref())?;
+            let page = library.list_activity(cursor, page_size)?;
+            let page = library::accept_activity_page(cursor, page)?;
+            Ok(IpcResponse::ActivityPage(page))
+        }
         IpcCommand::ListBackups(route_args) => {
             require_explicit_fixture_route(&route_args)?;
             Ok(IpcResponse::BackupCatalog(backups.list_backups()?))
@@ -756,6 +820,8 @@ mod tests {
                 IpcCommandName::ListRelations,
                 IpcCommandName::ExpandGraph,
                 IpcCommandName::SearchNotes,
+                IpcCommandName::PreviewContext,
+                IpcCommandName::ListActivity,
                 IpcCommandName::ListBackups,
                 IpcCommandName::RestoreFixture,
                 IpcCommandName::InspectWindowsRuntime,
@@ -768,14 +834,14 @@ mod tests {
                 IpcCommandName::BeginShutdown,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 21);
+        assert_eq!(capabilities.commands.len(), 23);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 21);
+        assert_eq!(commands.len(), 23);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
@@ -783,6 +849,8 @@ mod tests {
         assert!(commands.iter().any(|command| command == "list_relations"));
         assert!(commands.iter().any(|command| command == "expand_graph"));
         assert!(commands.iter().any(|command| command == "search_notes"));
+        assert!(commands.iter().any(|command| command == "preview_context"));
+        assert!(commands.iter().any(|command| command == "list_activity"));
         assert!(commands.iter().any(|command| command == "list_backups"));
         assert!(commands.iter().any(|command| command == "restore_fixture"));
         assert!(commands
@@ -795,9 +863,12 @@ mod tests {
         assert!(commands.iter().any(|command| command == "move_note"));
         assert!(commands.iter().any(|command| command == "delete_note"));
         assert!(commands.iter().any(|command| command == "begin_shutdown"));
-        assert!(commands.iter().any(|command| command == "search_notes"));
+        assert!(commands.iter().any(|command| command == "preview_context"));
+        assert!(commands.iter().any(|command| command == "list_activity"));
         assert!(!commands.iter().any(|command| command == "call_tool"));
         assert!(!commands.iter().any(|command| command == "search"));
+        assert!(!commands.iter().any(|command| command == "recent_activity"));
+        assert!(!commands.iter().any(|command| command == "build_context"));
     }
 
     #[test]
@@ -1013,6 +1084,42 @@ mod tests {
             r#"{"command":"search_notes","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","query":"欢迎","page_size":2}}"#,
         );
         assert!(well_formed_search.is_ok());
+        let extra_path_on_preview = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"preview_context","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","path":"C:\\vault\\note.md"}}"#,
+        );
+        assert!(extra_path_on_preview.is_err());
+        let extra_root_on_preview = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"preview_context","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_preview.is_err());
+        let missing_identifier_preview = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"preview_context","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(missing_identifier_preview.is_err());
+        let well_formed_preview = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"preview_context","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","query":"欢迎"}}"#,
+        );
+        assert!(well_formed_preview.is_ok());
+        let extra_path_on_activity = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_activity","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_activity.is_err());
+        let extra_root_on_activity = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_activity","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_activity.is_err());
+        let well_formed_activity = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_activity","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","page_size":2}}"#,
+        );
+        assert!(well_formed_activity.is_ok());
+        let mcp_recent_activity = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"recent_activity","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(mcp_recent_activity.is_err());
+        let mcp_build_context = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"build_context","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome"}}"#,
+        );
+        assert!(mcp_build_context.is_err());
         let incomplete_write_note = serde_json::from_str::<IpcCommand>(
             r#"{"command":"write_note","args":{"project":"bmdock-fixture"}}"#,
         );
@@ -1450,6 +1557,22 @@ mod tests {
             panic!("policy rejection must not open the library")
         }
 
+        fn preview_context(
+            &self,
+            _identifier: &str,
+            _query: Option<&str>,
+        ) -> Result<library::ContextPreviewDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
+        fn list_activity(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::ActivityPageDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
         fn write_note(
             &self,
             _identifier: &str,
@@ -1558,6 +1681,28 @@ mod tests {
                 files_written: false,
             })
         }
+
+        fn list_activity(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::ActivityPageDto, library::LibraryError> {
+            Ok(library::ActivityPageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: true,
+                observation: library::NoteCrudObservationDto {
+                    classified_as: library::NoteCrudClass::Unclassified,
+                    disk_verified: false,
+                    envelope_is_not_disk_proof: true,
+                },
+                engine_activity: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+            })
+        }
     }
 
     fn idle_snapshot() -> RuntimeSnapshot {
@@ -1618,6 +1763,24 @@ mod tests {
             workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
             project: FIXTURE_PROJECT.to_owned(),
             query: query.to_owned(),
+            cursor: cursor.map(ToOwned::to_owned),
+            page_size,
+        }
+    }
+
+    fn fixture_preview_args(identifier: &str, query: Option<&str>) -> PreviewContextArgs {
+        PreviewContextArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            identifier: identifier.to_owned(),
+            query: query.map(ToOwned::to_owned),
+        }
+    }
+
+    fn fixture_activity_args(cursor: Option<&str>, page_size: Option<u32>) -> ListActivityArgs {
+        ListActivityArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
             cursor: cursor.map(ToOwned::to_owned),
             page_size,
         }
@@ -1786,13 +1949,69 @@ mod tests {
                 cursor: None,
                 page_size: Some(2),
             }),
-            snapshot,
+            snapshot.clone(),
             &mut route,
             &PanicLibrary,
             &backups::EmptyBackupStore,
         )
         .unwrap_err();
         assert_eq!(search_query_path.category, ErrorCategory::Policy);
+        let preview_route = dispatch_with_library(
+            IpcCommand::PreviewContext(PreviewContextArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+                identifier: "welcome".to_owned(),
+                query: None,
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(preview_route.category, ErrorCategory::Policy);
+        let preview_path = dispatch_with_library(
+            IpcCommand::PreviewContext(PreviewContextArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                identifier: r"C:\Users\someone\vault\note.md".to_owned(),
+                query: None,
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(preview_path.category, ErrorCategory::Policy);
+        let preview_query_path = dispatch_with_library(
+            IpcCommand::PreviewContext(PreviewContextArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                identifier: "welcome".to_owned(),
+                query: Some(r"C:\Users\someone\vault\note.md".to_owned()),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(preview_query_path.category, ErrorCategory::Policy);
+        let activity_route = dispatch_with_library(
+            IpcCommand::ListActivity(ListActivityArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+                cursor: None,
+                page_size: Some(2),
+            }),
+            snapshot,
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(activity_route.category, ErrorCategory::Policy);
         assert_eq!(route.project, None);
     }
 
@@ -1924,6 +2143,45 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(search_truncated.category, ErrorCategory::Unsupported);
+        let activity_zero = dispatch_with_library(
+            IpcCommand::ListActivity(fixture_activity_args(None, Some(0))),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(activity_zero.category, ErrorCategory::Schema);
+        let activity_huge = dispatch_with_library(
+            IpcCommand::ListActivity(fixture_activity_args(
+                None,
+                Some(library::MAX_PAGE_SIZE + 1),
+            )),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(activity_huge.category, ErrorCategory::Schema);
+        let activity_empty_cursor = dispatch_with_library(
+            IpcCommand::ListActivity(fixture_activity_args(Some(""), Some(2))),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(activity_empty_cursor.category, ErrorCategory::Schema);
+        let activity_truncated = dispatch_with_library(
+            IpcCommand::ListActivity(fixture_activity_args(None, Some(2))),
+            idle_snapshot(),
+            &mut route,
+            &TruncatingLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(activity_truncated.category, ErrorCategory::Unsupported);
     }
 
     #[test]
@@ -4483,6 +4741,362 @@ mod tests {
             library::SEMANTIC_SEARCH_UNVERIFIED,
             library::OFFICIAL_SEARCH_MCP_UNVERIFIED,
             library::OFFICIAL_FETCH_MCP_UNVERIFIED,
+        );
+    }
+
+    struct EnvelopePreviewLibrary;
+
+    impl NoteLibrary for EnvelopePreviewLibrary {
+        fn list_tree(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            Ok(library::TreePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: false,
+            })
+        }
+
+        fn read_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            Err(library::LibraryError::unsupported(
+                library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
+            ))
+        }
+
+        fn preview_context(
+            &self,
+            identifier: &str,
+            query: Option<&str>,
+        ) -> Result<library::ContextPreviewDto, library::LibraryError> {
+            Ok(library::ContextPreviewDto {
+                identifier: identifier.to_owned(),
+                query: query.map(ToOwned::to_owned),
+                snippet: "Saved successfully".to_owned(),
+                executed: false,
+                unsafe_html_present: false,
+                observation: library::NoteCrudObservationDto {
+                    classified_as: library::NoteCrudClass::AcceptedUnverified,
+                    disk_verified: false,
+                    envelope_is_not_disk_proof: true,
+                },
+                engine_context: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+            })
+        }
+    }
+
+    #[test]
+    fn preview_context_empty_library_is_empty_not_user_vault() {
+        let mut route = RouteState::default();
+        let IpcResponse::ContextPreview(preview) = dispatch_with_library(
+            IpcCommand::PreviewContext(fixture_preview_args("welcome", Some("欢迎"))),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(preview.snippet.is_empty());
+        assert!(!preview.executed);
+        assert!(!preview.engine_context);
+        assert!(!preview.files_written);
+        assert!(!preview.scanned_user_obsidian_vault);
+        assert!(!preview.scanned_user_basic_memory_home);
+        assert_eq!(
+            preview.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        assert!(!preview.observation.disk_verified);
+        assert!(preview.observation.envelope_is_not_disk_proof);
+        let json = serde_json::to_value(&IpcResponse::ContextPreview(preview)).unwrap();
+        assert_eq!(json["kind"], "context_preview");
+        assert_eq!(json["executed"], false);
+        assert_eq!(json["engine_context"], false);
+        assert!(json.get("path").is_none());
+        assert!(json.get("expected_tools").is_none());
+        let missing = dispatch_with_library(
+            IpcCommand::PreviewContext(fixture_preview_args("", None)),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(missing.category, ErrorCategory::Schema);
+        let _ = (
+            library::ENGINE_CONTEXT_NOT_OWNED,
+            library::BUILD_CONTEXT_MCP_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn preview_context_fixture_snippet_matches_physical_utf8() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t22-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let body = "# 中文夹具笔记\n\n这是 BMDock 自有夹具正文。参见 [[欢迎]]。\n<script>alert(1)</script>\n";
+        std::fs::write(dir.join("welcome.md"), body).unwrap();
+        let library = library::FixtureLibrary::new(dir.clone());
+        let mut route = RouteState::default();
+        let IpcResponse::ContextPreview(preview) = dispatch_with_library(
+            IpcCommand::PreviewContext(fixture_preview_args("welcome", Some("欢迎"))),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let disk = std::fs::read_to_string(dir.join("welcome.md")).unwrap();
+        assert!(disk.contains(&preview.snippet));
+        assert!(preview.snippet.contains("欢迎"));
+        assert!(!preview.executed);
+        assert!(preview.unsafe_html_present);
+        assert!(!preview.engine_context);
+        assert_eq!(
+            preview.observation.classified_as,
+            library::NoteCrudClass::DiskVerified
+        );
+        assert!(preview.observation.disk_verified);
+        assert!(preview.observation.envelope_is_not_disk_proof);
+        let json = serde_json::to_value(&IpcResponse::ContextPreview(preview)).unwrap();
+        assert_eq!(json["kind"], "context_preview");
+        assert_eq!(json["executed"], false);
+        assert!(json.get("path").is_none());
+        assert!(json.get("expected_tools").is_none());
+        let IpcResponse::ContextPreview(missing) = dispatch_with_library(
+            IpcCommand::PreviewContext(fixture_preview_args("absent", None)),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(missing.snippet.is_empty());
+        assert_eq!(
+            missing.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        let IpcResponse::ContextPreview(envelope) = dispatch_with_library(
+            IpcCommand::PreviewContext(fixture_preview_args("welcome", Some("欢迎"))),
+            idle_snapshot(),
+            &mut route,
+            &EnvelopePreviewLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(
+            envelope.observation.classified_as,
+            library::NoteCrudClass::AcceptedUnverified
+        );
+        assert!(!envelope.observation.disk_verified);
+        assert!(envelope.observation.envelope_is_not_disk_proof);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn list_activity_empty_library_is_empty_not_user_vault() {
+        let mut route = RouteState::default();
+        let IpcResponse::ActivityPage(page) = dispatch_with_library(
+            IpcCommand::ListActivity(fixture_activity_args(
+                None,
+                Some(library::DEFAULT_PAGE_SIZE),
+            )),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(page.entries.is_empty());
+        assert_eq!(page.next_cursor, None);
+        assert!(!page.truncated);
+        assert!(!page.engine_activity);
+        assert!(!page.files_written);
+        assert_eq!(
+            page.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        let json = serde_json::to_value(&IpcResponse::ActivityPage(page)).unwrap();
+        assert_eq!(json["kind"], "activity_page");
+        assert_eq!(json["engine_activity"], false);
+        assert!(json.get("path").is_none());
+        assert!(json.get("expected_tools").is_none());
+        let _ = (
+            library::ENGINE_ACTIVITY_NOT_OWNED,
+            library::RECENT_ACTIVITY_MCP_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn list_activity_fixture_follows_physical_mtime_permalinks() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t22-activity-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("alpha.md"), "# alpha\n\nolder\n").unwrap();
+        std::fs::write(dir.join("welcome.md"), "# welcome\n\nmiddle\n").unwrap();
+        std::fs::write(dir.join("欢迎.md"), "# 欢迎\n\nnewer 中文\n").unwrap();
+        let t0 = std::time::UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_100);
+        let t1 = std::time::UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_200);
+        let t2 = std::time::UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_300);
+        std::fs::OpenOptions::new()
+            .write(true)
+            .open(dir.join("alpha.md"))
+            .unwrap()
+            .set_modified(t0)
+            .unwrap();
+        std::fs::OpenOptions::new()
+            .write(true)
+            .open(dir.join("welcome.md"))
+            .unwrap()
+            .set_modified(t1)
+            .unwrap();
+        std::fs::OpenOptions::new()
+            .write(true)
+            .open(dir.join("欢迎.md"))
+            .unwrap()
+            .set_modified(t2)
+            .unwrap();
+        let library = library::FixtureLibrary::new(dir.clone());
+        let mut route = RouteState::default();
+        let IpcResponse::ActivityPage(first) = dispatch_with_library(
+            IpcCommand::ListActivity(fixture_activity_args(None, Some(2))),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(first.entries.len(), 2);
+        assert_eq!(first.entries[0].identifier, "欢迎");
+        assert_eq!(first.entries[1].identifier, "welcome");
+        assert!(first.entries[0].observed_mtime >= first.entries[1].observed_mtime);
+        assert!(!first.engine_activity);
+        assert!(!first.truncated);
+        assert_eq!(
+            first.observation.classified_as,
+            library::NoteCrudClass::DiskVerified
+        );
+        for entry in &first.entries {
+            assert!(!entry.identifier.contains('\\'));
+            assert!(!entry.identifier.contains(':'));
+            assert!(dir.join(format!("{}.md", entry.identifier)).is_file());
+        }
+        let json = serde_json::to_value(&IpcResponse::ActivityPage(first.clone())).unwrap();
+        assert_eq!(json["kind"], "activity_page");
+        assert_eq!(json["engine_activity"], false);
+        assert!(json.get("path").is_none());
+        let IpcResponse::ActivityPage(second) = dispatch_with_library(
+            IpcCommand::ListActivity(fixture_activity_args(first.next_cursor.as_deref(), Some(2))),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(second
+            .entries
+            .iter()
+            .any(|entry| entry.identifier == "alpha"));
+        let looped = library::accept_activity_page(
+            first.next_cursor.as_deref(),
+            library::ActivityPageDto {
+                next_cursor: first.next_cursor.clone(),
+                ..second
+            },
+        );
+        assert_eq!(
+            looped.unwrap_err(),
+            library::LibraryError::schema(library::SCHEMA_INVALID_CURSOR)
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn preview_and_activity_do_not_merge_engine_profiles_or_claim_engine_mcp() {
+        let release = crate::supervisor::EngineProfile::Release;
+        let preview_profile = crate::supervisor::EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(
+            preview_profile.commit(),
+            "3452c821d76c083823d020984d71e06904a1ff1e"
+        );
+        assert_eq!(release.expected_tools(), 21);
+        assert_eq!(preview_profile.expected_tools(), 27);
+        let mut route = RouteState::default();
+        let IpcResponse::ContextPreview(preview) = dispatch_with_library(
+            IpcCommand::PreviewContext(fixture_preview_args("welcome", Some("欢迎"))),
+            RuntimeSnapshot {
+                state: ConnectionState::Connected,
+                profile: Some(release),
+                child_pid: Some(7),
+                failure: None,
+                shutdown: None,
+            },
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let preview_json = serde_json::to_value(&IpcResponse::ContextPreview(preview)).unwrap();
+        assert!(preview_json.get("expected_tools").is_none());
+        assert!(preview_json.get("profile").is_none());
+        assert_eq!(preview_json["engine_context"], false);
+        assert_eq!(preview_json["executed"], false);
+        let IpcResponse::ActivityPage(page) = dispatch_with_library(
+            IpcCommand::ListActivity(fixture_activity_args(None, Some(2))),
+            RuntimeSnapshot {
+                state: ConnectionState::Connected,
+                profile: Some(preview_profile),
+                child_pid: Some(9),
+                failure: None,
+                shutdown: None,
+            },
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let activity_json = serde_json::to_value(&IpcResponse::ActivityPage(page)).unwrap();
+        assert!(activity_json.get("expected_tools").is_none());
+        assert!(activity_json.get("profile").is_none());
+        assert_eq!(activity_json["engine_activity"], false);
+        let _ = (
+            library::ENGINE_CONTEXT_NOT_OWNED,
+            library::ENGINE_ACTIVITY_NOT_OWNED,
+            library::RECENT_ACTIVITY_MCP_UNVERIFIED,
+            library::BUILD_CONTEXT_MCP_UNVERIFIED,
         );
     }
 }

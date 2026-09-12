@@ -100,6 +100,29 @@ export const messages = {
   searchMcpUnverified:
     "官方 search / fetch MCP 仍为未验证。未加入 rmcp，也未把 just contract 当作本任务证明。未实现 T23 Inspector。",
   unexpectedSearch: "检索分页响应格式不符合预期",
+  previewEmptyTitle: "还没有上下文预览",
+  previewEmptyBody:
+    "空预览表示当前没有可显示的夹具 Markdown 片段，也不是已打开用户 vault。生产空库是空态，不是用户 vault 成功。检索命中预览复用 preview_context，不是第二套索引。",
+  previewReadyTitle: "预览",
+  previewReadyBody:
+    "下列片段来自 BMDock 自有夹具 Markdown 的物理 UTF-8 正文。它是物理文件的子串，不是信封成功证明。HTML 仍以纯文本显示，不会执行。",
+  previewErrorTitle: "无法读取预览",
+  previewNotEngineContext: "不是官方 build_context MCP，也不是第二套笔记索引",
+  previewHtmlIsText: "HTML 以纯文本显示（executed=false），不使用 dangerouslySetInnerHTML",
+  unexpectedPreview: "上下文预览响应格式不符合预期",
+  activityEmptyTitle: "还没有近期活动",
+  activityEmptyBody:
+    "空活动列表表示当前夹具库没有可列出的 Markdown，也不是已打开用户 vault。生产空库是空态，不是用户 vault 成功。",
+  activityReadyTitle: "近期活动",
+  activityReadyBody:
+    "下列标识来自 BMDock 自有夹具 Markdown 的文件修改时间顺序。标识是 permalink，不是文件系统路径。不是官方 recent_activity MCP。",
+  activityErrorTitle: "无法读取近期活动",
+  activityLoadMore: "加载更多",
+  activityMtimeLabel: "观察修改时间",
+  activityPermalinkNotPath: "活动标识是 permalink，不是文件系统路径",
+  activityMcpUnverified:
+    "官方 recent_activity / build_context 仍为未验证。未加入 rmcp，也未把 just contract 当作本任务证明。",
+  unexpectedActivity: "近期活动分页响应格式不符合预期",
   workbenchErrorTitle: "无法读取工作台状态",
   workbenchErrorBody:
     "只读快照或分页读取失败。下面是分类后的错误，不会启动 Supervisor，也不会写入资料库。",
@@ -346,9 +369,9 @@ export const messages = {
     "native GUI / IME 会话仍为未验证。cargo test 与 npm build 不是原生窗口输入。",
   contentSafetyHelpNotT39: "帮助与无障碍完备性仍属 T39，本任务不关闭。",
   aboutIntro:
-    "这是桌面布局壳加只读预检、显式项目路由、分页目录、笔记预览、观察与关系语义面板、局部图谱渐进展开、夹具全文词法检索、草稿编辑器会话、夹具笔记写入编辑移动删除、同目标冲突与超时未知协调、宿主正常退出排空、夹具备份恢复基线、Windows 运行时原型观察，以及编辑器内容安全与 CRLF 精确字节往返。默认界面语言为简体中文。帮助与无障碍完备性也不在本任务关闭。",
+    "这是桌面布局壳加只读预检、显式项目路由、分页目录、笔记预览、观察与关系语义面板、局部图谱渐进展开、夹具全文词法检索、上下文预览与近期活动、草稿编辑器会话、夹具笔记写入编辑移动删除、同目标冲突与超时未知协调、宿主正常退出排空、夹具备份恢复基线、Windows 运行时原型观察，以及编辑器内容安全与 CRLF 精确字节往返。默认界面语言为简体中文。帮助与无障碍完备性也不在本任务关闭。",
   aboutSafety:
-    "调用 get_capabilities、get_runtime_state、list_projects、run_preflight、discover_config、list_tree、read_note、list_relations、expand_graph、search_notes、list_backups、restore_fixture、inspect_windows_runtime、save_draft、load_draft、write_note、edit_note、move_note、delete_note 与 begin_shutdown。选择项目仅允许 bmdock-fixture。list_tree、read_note、list_relations、expand_graph、search_notes、list_backups、restore_fixture、save_draft、load_draft、write_note、edit_note、move_note 与 delete_note 每次都携带显式 workspace 与 project。关系与局部图谱来自夹具 Markdown 的 wiki-link，一次只展开一跳，不是第二套笔记索引，也不是官方引擎图谱。检索是夹具 Markdown 的词法命中，不是官方 search / fetch，也没有嵌入后端。Markdown 与 HTML 以 labeled textarea 和 pre 纯文本往返，不使用 dangerouslySetInnerHTML，也不执行 script 或 onerror。CRLF 按精确字节落盘；行尾丢失不得标为 disk_verified。不会 raw callTool、不会写入用户 vault、不会启动 Supervisor。save_draft 与 write_note 保持区分。超时未知留在运行状态 DTO，不进入 IPC 错误联合体。同目标冲突不是 policy-for-path。begin_shutdown 在未启动时记录空闲排空收据，不是活动引擎寿命，也不会强杀子进程。native GUI / IME 会话未验证。官方 recent_activity / build_context / search / fetch 仍为未验证。",
+    "调用 get_capabilities、get_runtime_state、list_projects、run_preflight、discover_config、list_tree、read_note、list_relations、expand_graph、search_notes、preview_context、list_activity、list_backups、restore_fixture、inspect_windows_runtime、save_draft、load_draft、write_note、edit_note、move_note、delete_note 与 begin_shutdown。选择项目仅允许 bmdock-fixture。list_tree、read_note、list_relations、expand_graph、search_notes、preview_context、list_activity、list_backups、restore_fixture、save_draft、load_draft、write_note、edit_note、move_note 与 delete_note 每次都携带显式 workspace 与 project。关系与局部图谱来自夹具 Markdown 的 wiki-link，一次只展开一跳，不是第二套笔记索引，也不是官方引擎图谱。检索是夹具 Markdown 的词法命中，不是官方 search / fetch，也没有嵌入后端。上下文预览是夹具 Markdown 的纯文本片段，近期活动是夹具文件 mtime 顺序，都不是官方 recent_activity / build_context。Markdown 与 HTML 以 labeled textarea 和 pre 纯文本往返，不使用 dangerouslySetInnerHTML，也不执行 script 或 onerror。CRLF 按精确字节落盘；行尾丢失不得标为 disk_verified。不会 raw callTool、不会写入用户 vault、不会启动 Supervisor。save_draft 与 write_note 保持区分。超时未知留在运行状态 DTO，不进入 IPC 错误联合体。同目标冲突不是 policy-for-path。begin_shutdown 在未启动时记录空闲排空收据，不是活动引擎寿命，也不会强杀子进程。native GUI / IME 会话未验证。官方 recent_activity / build_context / search / fetch 仍为未验证。",
   aboutProfiles:
     "release（c0bd87c6，21 个工具）与 main-preview（3452c821，27 个工具）保持隔离。本界面不把工具清单或 just contract 当作功能验收。",
   aboutCommands:

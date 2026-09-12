@@ -3,6 +3,8 @@ use std::fs;
 use std::path::Path;
 #[cfg(test)]
 use std::path::{Component, PathBuf};
+#[cfg(test)]
+use std::time::UNIX_EPOCH;
 
 use serde::{Deserialize, Serialize};
 
@@ -18,6 +20,10 @@ pub const SCHEMA_MOVE_SAME_IDENTIFIER: &str = "move destination must differ from
 pub const SCHEMA_SEARCH_QUERY: &str = "search query is required";
 pub const UNSUPPORTED_TRUNCATED: &str = "truncated inventory is not a success";
 pub const GRAPH_DEPTH: u32 = 1;
+#[cfg(test)]
+pub const PREVIEW_SNIPPET_LIMIT: usize = 240;
+#[cfg(test)]
+pub const PREVIEW_QUERY_PAD: usize = 80;
 #[cfg(test)]
 pub const LEXICAL_SCORE_TITLE: u32 = 2;
 #[cfg(test)]
@@ -47,6 +53,12 @@ pub const ENGINE_GRAPH_NOT_OWNED: &str =
 #[cfg(test)]
 pub const ENGINE_SEARCH_NOT_OWNED: &str =
     "search is BMDock-owned fixture lexical matching, not a second database and not official engine search MCP";
+#[cfg(test)]
+pub const ENGINE_CONTEXT_NOT_OWNED: &str =
+    "context preview is BMDock-owned fixture markdown snippet, not official build_context MCP";
+#[cfg(test)]
+pub const ENGINE_ACTIVITY_NOT_OWNED: &str =
+    "recent activity is BMDock-owned fixture markdown mtimes, not official recent_activity MCP";
 #[cfg(test)]
 pub const SEMANTIC_SEARCH_UNVERIFIED: &str =
     "official semantic search and embedding backend remain UNVERIFIED";
@@ -330,6 +342,125 @@ pub fn empty_search_page(query: &str) -> SearchPageDto {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ContextPreviewDto {
+    pub identifier: String,
+    pub query: Option<String>,
+    pub snippet: String,
+    pub executed: bool,
+    pub unsafe_html_present: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_context: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub files_written: bool,
+}
+
+pub fn empty_context_preview(identifier: &str, query: Option<&str>) -> ContextPreviewDto {
+    ContextPreviewDto {
+        identifier: identifier.to_owned(),
+        query: query
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(ToOwned::to_owned),
+        snippet: String::new(),
+        executed: false,
+        unsafe_html_present: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_context: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        files_written: false,
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ActivityEntryDto {
+    pub identifier: String,
+    pub observed_mtime: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ActivityPageDto {
+    pub entries: Vec<ActivityEntryDto>,
+    pub next_cursor: Option<String>,
+    pub page: u32,
+    pub truncated: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_activity: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub files_written: bool,
+}
+
+pub fn empty_activity_page() -> ActivityPageDto {
+    ActivityPageDto {
+        entries: Vec::new(),
+        next_cursor: None,
+        page: 1,
+        truncated: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_activity: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        files_written: false,
+    }
+}
+
+#[cfg(test)]
+pub fn preview_snippet(body: &str, query: Option<&str>) -> String {
+    let query = query.map(str::trim).filter(|value| !value.is_empty());
+    if let Some(needle) = query {
+        if let Some(index) = body.find(needle) {
+            let start = floor_char_boundary(body, index.saturating_sub(PREVIEW_QUERY_PAD));
+            let end = ceil_char_boundary(
+                body,
+                (index + needle.len())
+                    .saturating_add(PREVIEW_QUERY_PAD)
+                    .min(body.len()),
+            );
+            return body[start..end].to_owned();
+        }
+    }
+    prefix_snippet(body, PREVIEW_SNIPPET_LIMIT)
+}
+
+#[cfg(test)]
+fn floor_char_boundary(body: &str, mut index: usize) -> usize {
+    if index >= body.len() {
+        return body.len();
+    }
+    while index > 0 && !body.is_char_boundary(index) {
+        index -= 1;
+    }
+    index
+}
+
+#[cfg(test)]
+fn ceil_char_boundary(body: &str, mut index: usize) -> usize {
+    if index >= body.len() {
+        return body.len();
+    }
+    while index < body.len() && !body.is_char_boundary(index) {
+        index += 1;
+    }
+    index
+}
+
+#[cfg(test)]
+fn prefix_snippet(body: &str, max_bytes: usize) -> String {
+    let end = ceil_char_boundary(body, max_bytes.min(body.len()));
+    body[..end].to_owned()
+}
+
 #[cfg(test)]
 pub fn extract_wiki_link_identifiers(body: &str) -> Vec<String> {
     let mut out = Vec::new();
@@ -390,6 +521,28 @@ pub trait NoteLibrary: Send + Sync {
             return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
         }
         Ok(empty_search_page(query))
+    }
+
+    fn preview_context(
+        &self,
+        identifier: &str,
+        query: Option<&str>,
+    ) -> Result<ContextPreviewDto, LibraryError> {
+        reject_note_identifier(identifier)?;
+        let query = reject_preview_query(query)?;
+        Ok(empty_context_preview(identifier, query))
+    }
+
+    fn list_activity(
+        &self,
+        cursor: Option<&str>,
+        page_size: u32,
+    ) -> Result<ActivityPageDto, LibraryError> {
+        let _ = bound_page_size(Some(page_size))?;
+        if cursor.is_some() {
+            return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        }
+        Ok(empty_activity_page())
     }
 
     fn write_note(
@@ -642,6 +795,57 @@ impl FixtureLibrary {
         }
         Ok(hits)
     }
+
+    fn collect_activity_entries(&self) -> Result<Vec<ActivityEntryDto>, LibraryError> {
+        let reader = fs::read_dir(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_TRUNCATED))?;
+        let mut entries = Vec::new();
+        for item in reader {
+            let item = item.map_err(|_| LibraryError::unsupported(UNSUPPORTED_TRUNCATED))?;
+            let file_type = item
+                .file_type()
+                .map_err(|_| LibraryError::unsupported(UNSUPPORTED_TRUNCATED))?;
+            if file_type.is_symlink() {
+                return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+            }
+            if !file_type.is_file() {
+                continue;
+            }
+            let name = item.file_name();
+            let name = name.to_string_lossy();
+            if !name.ends_with(".md") {
+                continue;
+            }
+            let identifier = name.trim_end_matches(".md").to_string();
+            if looks_like_filesystem_path(&identifier) {
+                return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+            }
+            let path = item.path();
+            if !path.is_file() {
+                continue;
+            }
+            let metadata = fs::metadata(&path)
+                .map_err(|_| LibraryError::unsupported(UNSUPPORTED_TRUNCATED))?;
+            let modified = metadata
+                .modified()
+                .map_err(|_| LibraryError::unsupported(UNSUPPORTED_TRUNCATED))?;
+            let observed_mtime = modified
+                .duration_since(UNIX_EPOCH)
+                .map(|duration| duration.as_secs())
+                .unwrap_or(0);
+            entries.push(ActivityEntryDto {
+                identifier,
+                observed_mtime,
+            });
+        }
+        entries.sort_by(|left, right| {
+            right
+                .observed_mtime
+                .cmp(&left.observed_mtime)
+                .then_with(|| left.identifier.cmp(&right.identifier))
+        });
+        Ok(entries)
+    }
 }
 
 #[cfg(test)]
@@ -808,6 +1012,96 @@ impl NoteLibrary for FixtureLibrary {
             observation: crud_observation(classified, disk_verified),
             semantic_enabled: false,
             engine_search: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            files_written: false,
+        })
+    }
+
+    fn preview_context(
+        &self,
+        identifier: &str,
+        query: Option<&str>,
+    ) -> Result<ContextPreviewDto, LibraryError> {
+        reject_note_identifier(identifier)?;
+        let query = reject_preview_query(query)?;
+        let candidate = self.resolve_create_path(identifier)?;
+        if !candidate.is_file() {
+            return Ok(empty_context_preview(identifier, query));
+        }
+        let path = self.resolve_note_path(identifier)?;
+        let disk = crate::content_safety::read_exact_text(&path)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let snippet = preview_snippet(&disk, query);
+        if !disk.contains(&snippet) {
+            return Ok(ContextPreviewDto {
+                identifier: identifier.to_owned(),
+                query: query.map(ToOwned::to_owned),
+                snippet,
+                executed: false,
+                unsafe_html_present: crate::content_safety::classify_body(&disk)
+                    .unsafe_html_present,
+                observation: crud_observation(NoteCrudClass::AcceptedUnverified, false),
+                engine_context: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+            });
+        }
+        let safety = crate::content_safety::classify_body(&snippet);
+        Ok(ContextPreviewDto {
+            identifier: identifier.to_owned(),
+            query: query.map(ToOwned::to_owned),
+            snippet,
+            executed: false,
+            unsafe_html_present: safety.unsafe_html_present,
+            observation: crud_observation(NoteCrudClass::DiskVerified, true),
+            engine_context: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            files_written: false,
+        })
+    }
+
+    fn list_activity(
+        &self,
+        cursor: Option<&str>,
+        page_size: u32,
+    ) -> Result<ActivityPageDto, LibraryError> {
+        let page_size = bound_page_size(Some(page_size))?;
+        let entries = self.collect_activity_entries()?;
+        let offset = parse_offset(cursor, entries.len())?;
+        let size = page_size as usize;
+        let end = offset.saturating_add(size).min(entries.len());
+        let page_entries = entries[offset..end].to_vec();
+        let next_cursor = if end < entries.len() {
+            Some(end.to_string())
+        } else {
+            None
+        };
+        let page = u32::try_from(offset / size)
+            .map_err(|_| LibraryError::schema(SCHEMA_INVALID_CURSOR))?
+            .saturating_add(1);
+        let (classified, disk_verified) = if page_entries.is_empty() {
+            (NoteCrudClass::Empty, false)
+        } else if page_entries.iter().all(|entry| {
+            !looks_like_filesystem_path(&entry.identifier)
+                && self
+                    .resolve_create_path(&entry.identifier)
+                    .ok()
+                    .is_some_and(|path| path.is_file())
+        }) {
+            (NoteCrudClass::DiskVerified, true)
+        } else {
+            (NoteCrudClass::Empty, false)
+        };
+        Ok(ActivityPageDto {
+            entries: page_entries,
+            next_cursor,
+            page,
+            truncated: false,
+            observation: crud_observation(classified, disk_verified),
+            engine_activity: false,
             scanned_user_obsidian_vault: false,
             scanned_user_basic_memory_home: false,
             files_written: false,
@@ -1115,6 +1409,40 @@ pub fn accept_search_page(
     Ok(page)
 }
 
+pub fn accept_activity_page(
+    request_cursor: Option<&str>,
+    page: ActivityPageDto,
+) -> Result<ActivityPageDto, LibraryError> {
+    if page.truncated {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if page.engine_activity {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if page.page == 0 {
+        return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+    }
+    if page.entries.len() > MAX_PAGE_SIZE as usize {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if page
+        .entries
+        .iter()
+        .any(|entry| looks_like_filesystem_path(&entry.identifier))
+    {
+        return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+    }
+    if let Some(next) = page.next_cursor.as_deref() {
+        if next.is_empty() {
+            return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        }
+        if request_cursor == Some(next) {
+            return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        }
+    }
+    Ok(page)
+}
+
 pub fn reject_filesystem_identifier(identifier: &str) -> Result<(), LibraryError> {
     if looks_like_filesystem_path(identifier) {
         Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER))
@@ -1157,6 +1485,16 @@ pub fn reject_search_query(query: &str) -> Result<(), LibraryError> {
         Err(LibraryError::policy(POLICY_FILESYSTEM_QUERY))
     } else {
         Ok(())
+    }
+}
+
+pub fn reject_preview_query(query: Option<&str>) -> Result<Option<&str>, LibraryError> {
+    match query.map(str::trim).filter(|value| !value.is_empty()) {
+        None => Ok(None),
+        Some(value) if looks_like_filesystem_path(value) => {
+            Err(LibraryError::policy(POLICY_FILESYSTEM_QUERY))
+        }
+        Some(value) => Ok(Some(value)),
     }
 }
 
@@ -1374,6 +1712,15 @@ mod tests {
         }
     }
 
+    fn set_file_mtime(path: &Path, time: SystemTime) {
+        fs::OpenOptions::new()
+            .write(true)
+            .open(path)
+            .unwrap()
+            .set_modified(time)
+            .unwrap();
+    }
+
     impl Drop for TempFixture {
         fn drop(&mut self) {
             let _ = fs::remove_dir_all(&self.dir);
@@ -1479,6 +1826,24 @@ mod tests {
                 files_written: false,
             })
         }
+
+        fn list_activity(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<ActivityPageDto, LibraryError> {
+            Ok(ActivityPageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: true,
+                observation: crud_observation(NoteCrudClass::Unclassified, false),
+                engine_activity: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+            })
+        }
     }
 
     struct LoopingLibrary;
@@ -1524,6 +1889,27 @@ mod tests {
                 observation: crud_observation(NoteCrudClass::Unclassified, false),
                 semantic_enabled: false,
                 engine_search: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+            })
+        }
+
+        fn list_activity(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<ActivityPageDto, LibraryError> {
+            Ok(ActivityPageDto {
+                entries: vec![ActivityEntryDto {
+                    identifier: "loop".to_owned(),
+                    observed_mtime: 1,
+                }],
+                next_cursor: Some("same".to_owned()),
+                page: 1,
+                truncated: false,
+                observation: crud_observation(NoteCrudClass::Unclassified, false),
+                engine_activity: false,
                 scanned_user_obsidian_vault: false,
                 scanned_user_basic_memory_home: false,
                 files_written: false,
@@ -1575,9 +1961,23 @@ mod tests {
         assert_eq!(search.observation.classified_as, NoteCrudClass::Empty);
         assert!(!search.observation.disk_verified);
         assert!(search.observation.envelope_is_not_disk_proof);
+        let preview = library.preview_context("welcome", None).unwrap();
+        assert!(preview.snippet.is_empty());
+        assert!(!preview.executed);
+        assert!(!preview.engine_context);
+        assert_eq!(preview.observation.classified_as, NoteCrudClass::Empty);
+        assert!(!preview.observation.disk_verified);
+        let activity = library.list_activity(None, DEFAULT_PAGE_SIZE).unwrap();
+        assert!(activity.entries.is_empty());
+        assert_eq!(activity.next_cursor, None);
+        assert!(!activity.truncated);
+        assert!(!activity.engine_activity);
+        assert_eq!(activity.observation.classified_as, NoteCrudClass::Empty);
         let _ = (
             ENGINE_GRAPH_NOT_OWNED,
             ENGINE_SEARCH_NOT_OWNED,
+            ENGINE_CONTEXT_NOT_OWNED,
+            ENGINE_ACTIVITY_NOT_OWNED,
             SEMANTIC_SEARCH_UNVERIFIED,
             OFFICIAL_SEARCH_MCP_UNVERIFIED,
             OFFICIAL_FETCH_MCP_UNVERIFIED,
@@ -1602,6 +2002,10 @@ mod tests {
             .search_notes("欢迎", Some("1"), DEFAULT_PAGE_SIZE)
             .unwrap_err();
         assert_eq!(search_cursor, LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        let activity_cursor = EmptyLibrary
+            .list_activity(Some("1"), DEFAULT_PAGE_SIZE)
+            .unwrap_err();
+        assert_eq!(activity_cursor, LibraryError::schema(SCHEMA_INVALID_CURSOR));
         assert_eq!(
             EmptyLibrary
                 .search_notes("", None, DEFAULT_PAGE_SIZE)
@@ -1714,6 +2118,16 @@ mod tests {
             accept_search_page(Some("same"), looping_search).unwrap_err(),
             LibraryError::schema(SCHEMA_INVALID_CURSOR)
         );
+        assert_eq!(
+            accept_activity_page(None, TruncatingLibrary.list_activity(None, 2).unwrap())
+                .unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_TRUNCATED)
+        );
+        let looping_activity = LoopingLibrary.list_activity(Some("same"), 2).unwrap();
+        assert_eq!(
+            accept_activity_page(Some("same"), looping_activity).unwrap_err(),
+            LibraryError::schema(SCHEMA_INVALID_CURSOR)
+        );
     }
 
     #[test]
@@ -1756,6 +2170,83 @@ mod tests {
         assert!(missed.hits.is_empty());
         assert_eq!(missed.observation.classified_as, NoteCrudClass::Empty);
         assert!(!missed.semantic_enabled);
+    }
+
+    #[test]
+    fn fixture_preview_snippet_is_physical_substring_including_chinese() {
+        let fixture = TempFixture::create();
+        fixture.write_note(
+            "welcome",
+            "中文夹具笔记",
+            "这是 BMDock 自有夹具正文。参见 [[欢迎]]。\n<script>alert(1)</script>\n",
+        );
+        let library = FixtureLibrary::new(fixture.dir.clone());
+        let preview = library.preview_context("welcome", Some("欢迎")).unwrap();
+        let disk = fs::read_to_string(fixture.dir.join("welcome.md")).unwrap();
+        assert!(disk.contains(&preview.snippet));
+        assert!(preview.snippet.contains("欢迎"));
+        assert!(!preview.executed);
+        assert!(preview.unsafe_html_present);
+        assert!(!preview.engine_context);
+        assert_eq!(
+            preview.observation.classified_as,
+            NoteCrudClass::DiskVerified
+        );
+        assert!(preview.observation.disk_verified);
+        assert!(preview.observation.envelope_is_not_disk_proof);
+        let missing = library.preview_context("absent", None).unwrap();
+        assert!(missing.snippet.is_empty());
+        assert_eq!(missing.observation.classified_as, NoteCrudClass::Empty);
+        assert!(!missing.observation.disk_verified);
+        assert_eq!(
+            library
+                .preview_context(r"C:\Users\someone\vault\note.md", None)
+                .unwrap_err(),
+            LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER)
+        );
+    }
+
+    #[test]
+    fn fixture_activity_follows_physical_mtime_and_permalinks() {
+        let fixture = TempFixture::create();
+        let older = fixture.write_note("alpha", "alpha", "older fixture body");
+        let newer = fixture.write_note("欢迎", "欢迎", "newer 中文夹具正文");
+        let middle = fixture.write_note("welcome", "welcome", "middle fixture body");
+        let t0 = UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_100);
+        let t1 = UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_200);
+        let t2 = UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_300);
+        set_file_mtime(&older, t0);
+        set_file_mtime(&middle, t1);
+        set_file_mtime(&newer, t2);
+        let library = FixtureLibrary::new(fixture.dir.clone());
+        let page = library.list_activity(None, 2).unwrap();
+        assert_eq!(page.entries.len(), 2);
+        assert_eq!(page.entries[0].identifier, "欢迎");
+        assert_eq!(page.entries[1].identifier, "welcome");
+        assert!(page.entries[0].observed_mtime >= page.entries[1].observed_mtime);
+        assert!(!page.engine_activity);
+        assert!(!page.truncated);
+        assert_eq!(page.observation.classified_as, NoteCrudClass::DiskVerified);
+        for entry in &page.entries {
+            assert!(!looks_like_filesystem_path(&entry.identifier));
+            assert!(fixture
+                .dir
+                .join(format!("{}.md", entry.identifier))
+                .is_file());
+        }
+        let second = library
+            .list_activity(page.next_cursor.as_deref(), 2)
+            .unwrap();
+        assert!(second
+            .entries
+            .iter()
+            .any(|entry| entry.identifier == "alpha"));
+        let missing_root = TempFixture::create();
+        let empty = FixtureLibrary::new(missing_root.dir.clone())
+            .list_activity(None, DEFAULT_PAGE_SIZE)
+            .unwrap();
+        assert!(empty.entries.is_empty());
+        assert_eq!(empty.observation.classified_as, NoteCrudClass::Empty);
     }
 
     #[test]

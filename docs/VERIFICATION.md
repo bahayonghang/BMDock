@@ -344,3 +344,23 @@ zh-CN 工作台「检索」区分空态 / 错误 / 就绪，查询输入有 labe
 本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t21-hybrid-search` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 138 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 15 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方语义检索 / hosted CI 证据；这些仍为 `UNVERIFIED`。
 
 T21 证据与验收映射见 [t21-hybrid-search.json](../execution/evidence/t21-hybrid-search.json)。`execution/status.json` 仅将 T21 标为 `completed`；未改 T05–T20/G0。
+
+## T22：上下文预览与近期活动
+
+T22 在现有 `ipc_invoke` 上增加 typed `preview_context`（`ExplicitRouteArgs` + 必填 `identifier` + optional `query`）与 `list_activity`（`ExplicitRouteArgs` + optional `cursor` / `page_size`，`deny_unknown_fields`）。额外 `path`/`root` 为 schema。缺 preview identifier 为 schema。非 fixture 路由或文件系统 identifier / query-as-path 为 policy，且不打开库。`page_size` 0 或过大、非法/重复 cursor 为 schema。截断库存为 unsupported，不是成功。capabilities 精确允许列为 23 个命令。typed `preview_context` / `list_activity` 允许；MCP identity `search` / `recent_activity` / `build_context` 与 `call_tool` 仍拒绝。
+
+预览是 BMDock 自有夹具 Markdown 的物理 UTF-8 片段（可选 query 窗口），不是官方 `build_context`，也不是第二套索引。测试注入 `FixtureLibrary`，并观察片段是物理文件的子串（含中文）。HTML 仍以纯文本显示，`executed=false`。信封文案不是磁盘证明。核对物理文件后 `classified_as=disk_verified`。生产 `EmptyLibrary` 与缺文件返回空片段与 empty 观察，不是用户 vault 成功。检索命中预览复用 `preview_context`。
+
+近期活动是夹具 Markdown permalink 的文件 mtime 顺序，不是官方 `recent_activity`。测试观察列出的标识对应夹具目录中的物理文件，顺序跟随 mtime。标识是 permalink，不是文件系统路径。`engine_activity=false`。空库为空态，不是用户 vault。有界分页；空与错误保持区分。
+
+AC30：预览片段匹配物理文件子串（含中文）。信封不是磁盘证明。
+
+AC31：近期活动是夹具本地、有界、空与错误可分。官方 `recent_activity` / `build_context` 仍为 `UNVERIFIED`。未加入 rmcp。未把 `just contract` 当作 T22 证明。
+
+zh-CN 工作台「预览」/「近期活动」区分空态 / 错误 / 就绪。预览在 `<pre data-preview="text" data-executed="false">`。活动列出 permalink 与观察 mtime。无 `dangerouslySetInnerHTML`。不启动 Supervisor。无新 npm 依赖。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T22 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t22-context-activity-preview` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 145 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 16 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方 recent_activity / build_context / hosted CI 证据；这些仍为 `UNVERIFIED`。
+
+T22 证据与验收映射见 [t22-context-activity-preview.json](../execution/evidence/t22-context-activity-preview.json)。`execution/status.json` 仅将 T22 标为 `completed`；未改 T05–T21/G0。

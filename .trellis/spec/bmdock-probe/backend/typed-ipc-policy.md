@@ -20,7 +20,11 @@ graph MCP), and T20 `expand_graph` local one-hop neighborhood
 plus bounded progressive expansion, and T21 typed
 `search_notes` BMDock-owned fixture lexical search with a
 hybrid DTO that exposes distinct `lexical_score` vs
-`semantic_score` (`semantic_enabled=false`). It applies to
+`semantic_score` (`semantic_enabled=false`), and T22
+`preview_context` BMDock-owned fixture markdown snippet
+preview (`executed=false`) plus `list_activity` fixture
+markdown mtimes (`engine_activity=false`, not official
+`recent_activity` / `build_context`). It applies to
 `apps/bmdock-desktop/src-tauri/src/ipc.rs`,
 `apps/bmdock-desktop/src-tauri/src/library.rs`,
 `apps/bmdock-desktop/src-tauri/src/conflict.rs`,
@@ -71,6 +75,31 @@ interfaces remain separate. Lifecycle ownership lives in
   release/main-preview tool counts into the search DTO.
   Official MCP `search` / `fetch` remain UNVERIFIED. Do not add
   rmcp. MCP identity `search` and `call_tool` stay denied.
+- T22 `preview_context` is BMDock-owned fixture markdown snippet
+  preview from `FixtureLibrary` physical UTF-8. Optional `query`
+  windows the snippet around a match; the snippet must remain a
+  substring of the physical file (including Chinese). HTML stays
+  text (`executed=false`). Observation `classified_as` is distinct
+  and is `disk_verified` after reading the physical file. Envelope
+  text is not disk proof. Search hit preview reuses this command
+  rather than a second index. Production `EmptyLibrary` returns
+  empty preview (empty observation), not user-vault success.
+  Missing files are empty, not user-vault. Extra `path` / `root`
+  fail closed as `schema`. Missing identifier is `schema`.
+  Non-fixture routes and filesystem identifiers are `policy` and
+  do not open the library. Official `build_context` remains
+  UNVERIFIED. Do not add rmcp.
+- T22 `list_activity` is BMDock-owned fixture markdown mtime order
+  of owned permalinks. It is not official MCP `recent_activity` /
+  `build_context`. `engine_activity=false`. Tests inject
+  `FixtureLibrary` and observe that listed identifiers match physical
+  files in the fixture dir and order follows file mtime (or write
+  order). Permalinks only. Missing files are empty, not user-vault.
+  Extra `path` / `root` fail closed as `schema`. Non-fixture is
+  `policy`. `page_size` 0/huge / invalid cursor are `schema`.
+  Truncated inventory is `unsupported`. Production `EmptyLibrary`
+  returns empty entries (empty observation), not user-vault.
+  Official `recent_activity` remains UNVERIFIED. Do not add rmcp.
 - The boundary does not start or stop the Supervisor, call the official
   engine over rmcp, access a user vault, or expose raw `callTool`. T14
   drafts are BMDock-owned session artifacts, not a second note index and
@@ -110,7 +139,10 @@ interfaces remain separate. Lifecycle ownership lives in
   explicit `ExplicitRouteArgs` (`workspace` + `project`) on every call and
   must not inherit an implicit current project. T21 `search_notes`
   also carries `ExplicitRouteArgs` on every call plus a required
-  `query` and optional `cursor` / `page_size`. T16 coordinates overlapping
+  `query` and optional `cursor` / `page_size`. T22 `preview_context`
+  carries `ExplicitRouteArgs` plus `identifier` and optional `query`.
+  T22 `list_activity` carries `ExplicitRouteArgs` plus optional
+  `cursor` / `page_size`. T16 coordinates overlapping
   same-identifier inflight writes on those CRUD commands: the second
   overlapping same-target call returns `classified_as: conflict` (not
   `disk_verified`, not `timeout_unknown`, not policy-for-path). Sequential
@@ -162,6 +194,8 @@ read_note: { workspace, project, identifier }
 list_relations: { workspace, project, identifier }
 expand_graph: { workspace, project, identifier, cursor?, page_size? }
 search_notes: { workspace, project, query, cursor?, page_size? }
+preview_context: { workspace, project, identifier, query? }
+list_activity: { workspace, project, cursor?, page_size? }
 list_backups: { workspace, project }
 restore_fixture: { workspace, project, backup_id }
 inspect_windows_runtime: {}
@@ -206,7 +240,13 @@ struct plus a required `query` and optional `cursor` / `page_size` (same
 bounds as T11). Extra `path` / `root` fail closed as `schema`. Extra `id`
 (fetch identity swap) fails closed as `schema`. Missing or empty `query`
 is `schema`. Filesystem query-as-path is `policy` and does not open the
-library. T12 `list_backups` consumes this struct on every call.
+library. T22 `preview_context` consumes this struct plus required
+`identifier` and optional `query`. Extra `path` / `root` fail closed
+as `schema`. Missing identifier is `schema`. Filesystem identifiers
+and filesystem query-as-path are `policy` and do not open the library.
+T22 `list_activity` consumes this struct plus optional `cursor` /
+`page_size` (same bounds as T11). Extra `path` / `root` fail closed
+as `schema`. T12 `list_backups` consumes this struct on every call.
 `restore_fixture` adds a generated `backup_id` (not a filesystem `path` or
 `root`). T14 `save_draft` and `load_draft` consume this struct on every call
 plus a draft `identifier` (permalink, not a filesystem `path`) and, for
@@ -221,7 +261,7 @@ fail closed as `schema`.
 
 ### Request and response fields
 
-- `get_capabilities` returns `kind: "capabilities"`, the twenty-one command names,
+- `get_capabilities` returns `kind: "capabilities"`, the twenty-three command names,
   the two event names, and a policy DTO.
 - `get_runtime_state` returns `kind: "runtime_state"` projected from the
   managed `Supervisor` snapshot plus T10 `RouteState`:
@@ -346,6 +386,45 @@ fail closed as `schema`.
   remain UNVERIFIED. Do not add rmcp. Do not implement T23 inspector.
   Do not mix release/main-preview tool counts into the search DTO.
   MCP identity `search` and `call_tool` stay denied.
+- `preview_context` returns `kind: "context_preview"` with
+  `identifier`, optional `query`, markdown `snippet`,
+  `executed=false`, `unsafe_html_present`, an observation DTO
+  (`classified_as`: `disk_verified` / `accepted_unverified` /
+  `conflict` / `empty` / `unclassified`) distinct from envelope
+  text, `engine_context=false`, and vault-scan flags false. Args
+  are `ExplicitRouteArgs` plus required `identifier` plus optional
+  `query`. Extra `path` / `root` fail closed as `schema`. Missing
+  identifier is `schema`. Non-fixture routes and filesystem
+  identifiers are `policy` and do not open the library. The snippet
+  is a substring of the physical UTF-8 fixture markdown, including
+  Chinese. Optional query windows the snippet around the first
+  match. HTML stays text; the renderer uses `<pre data-preview="text"
+  data-executed="false">` and never `dangerouslySetInnerHTML`.
+  Envelope text is not disk proof
+  (`envelope_is_not_disk_proof=true`). Classify `disk_verified` after
+  reading the physical file. Missing files and production
+  `EmptyLibrary` return empty snippet with `classified_as: empty`,
+  not user-vault. Search hit preview reuses this command rather
+  than a second index. Official `build_context` remains UNVERIFIED.
+  Do not add rmcp.
+- `list_activity` returns `kind: "activity_page"` with `entries[]`
+  of permalink/identifier values plus `observed_mtime` (never
+  filesystem paths), `next_cursor` (null on the last page), `page`,
+  `truncated=false`, an observation DTO distinct from envelope
+  text, `engine_activity=false`, and vault-scan flags false. Args
+  are `ExplicitRouteArgs` plus optional `cursor` and bounded
+  `page_size` (default 20, reject 0 / greater than 64 as
+  `schema`). Extra `path` / `root` fail closed as `schema`.
+  Invalid cursor, empty cursor, repeated next-cursor loops, and
+  truncated/partial inventory fail closed as `schema` or
+  `unsupported`. Non-fixture is `policy` and does not open the
+  library. Entries are BMDock-owned fixture markdown ordered by
+  physical file mtime (newest first). Tests inject `FixtureLibrary`
+  and observe that listed identifiers match physical files and that
+  order follows mtime. Production `EmptyLibrary` returns empty
+  `entries[]` with `classified_as: empty`, not user-vault. Official
+  `recent_activity` / `build_context` remain UNVERIFIED. Do not
+  add rmcp.
 - `list_backups` returns `kind: "backup_catalog"` with BMDock-owned
   generated fixture backup records only. Args are `ExplicitRouteArgs`.
   Flags: `scanned_user_obsidian_vault=false`,
@@ -497,11 +576,11 @@ The capability policy must report:
 ```
 
 `SelectProjectArgs`, `ExplicitRouteArgs`, `ListTreeArgs`, `ReadNoteArgs`,
-`ListRelationsArgs`, `ExpandGraphArgs`, `SearchNotesArgs`, `RestoreFixtureArgs`, `SaveDraftArgs`, `LoadDraftArgs`, `WriteNoteArgs`,
+`ListRelationsArgs`, `ExpandGraphArgs`, `SearchNotesArgs`, `PreviewContextArgs`, `ListActivityArgs`, `RestoreFixtureArgs`, `SaveDraftArgs`, `LoadDraftArgs`, `WriteNoteArgs`,
 `EditNoteArgs`, `MoveNoteArgs`, `DeleteNoteArgs`, and `EmptyArgs`
 use `#[serde(deny_unknown_fields)]`.
 There is no path field on `list_projects` / `run_preflight` /
-`discover_config` / `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `list_backups` /
+`discover_config` / `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `preview_context` / `list_activity` / `list_backups` /
 `restore_fixture` / `inspect_windows_runtime` / `save_draft` /
 `load_draft` / `write_note` / `edit_note` / `move_note` /
 `delete_note` / `begin_shutdown` and no raw `callTool` handler. Typed
@@ -570,16 +649,28 @@ query (including Chinese). Permalinks only. Hybrid DTO keeps
 `semantic_enabled=false`. Official MCP `search` / `fetch` remain
 UNVERIFIED. MCP identity `search` and `call_tool` stay denied. T21
 does not start Supervisor or add rmcp.
+T22 adds `preview_context` and `list_activity` on the same
+`ipc_invoke` union. Preview is a BMDock-owned fixture markdown
+snippet (`executed=false`). Activity is fixture markdown mtime
+order (`engine_activity=false`). Neither is official
+`recent_activity` / `build_context`. Production `EmptyLibrary`
+returns empty preview / empty activity (empty state). Tests inject
+`FixtureLibrary` and observe that the preview snippet is a
+substring of the physical UTF-8 file (including Chinese) and that
+activity identifiers match physical files in mtime order.
+Permalinks only. Search hit preview reuses `preview_context`.
+Official MCP `recent_activity` / `build_context` remain
+UNVERIFIED. T22 does not start Supervisor or add rmcp.
 
 ## 4. Validation & Error Matrix
 
 | Input or condition | Boundary behavior | Category |
 | --- | --- | --- |
 | Known command with its exact DTO | Dispatch the typed response | — |
-| Unknown `command`, including `call_tool` and MCP identity `search` | Serde deserialization fails closed | `schema` at the boundary |
+| Unknown `command`, including `call_tool` and MCP identity `search` / `recent_activity` / `build_context` | Serde deserialization fails closed | `schema` at the boundary |
 | Incomplete `write_note` args (for example only `project`) | `deny_unknown_fields` / missing fields | `schema` |
 | Extra field in `args` | `deny_unknown_fields` rejects the DTO | `schema` |
-| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
 | Extra top-level field such as `path` beside `command`/`args` | `deny_unknown_fields` on `IpcCommand` | `schema` |
 | `select_project` for any value other than `bmdock-fixture` | Dispatcher rejects without filesystem access | `policy` |
 | `ExplicitRouteArgs` missing `project`/`workspace` or carrying an extra `path` | `deny_unknown_fields` rejects the DTO | `schema` |
@@ -609,6 +700,18 @@ does not start Supervisor or add rmcp.
 | Truncated or partial search inventory | Reject; `truncated=true` is not a success | `unsupported` |
 | Empty library `search_notes` | Empty `hits[]`, `classified_as: empty`, `semantic_enabled=false`, `engine_search=false` | empty state |
 | Envelope-only search hits | Classify `accepted_unverified`; not disk proof | — |
+| Missing `preview_context` identifier | Reject without opening the library | `schema` |
+| `preview_context` identifier that looks like a user vault filesystem path | Reject without opening the library | `policy` |
+| Non-fixture `preview_context` | Reject without opening the library | `policy` |
+| Empty library `preview_context` | Empty snippet, `classified_as: empty`, `executed=false`, `engine_context=false` | empty state |
+| Missing fixture file `preview_context` | Empty snippet, `classified_as: empty`, not user-vault | empty state |
+| Envelope-only preview snippet | Classify `accepted_unverified`; not disk proof | — |
+| Extra `path` / `root` on `preview_context` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Non-fixture `list_activity` | Reject without opening the library | `policy` |
+| `list_activity` `page_size` 0 or greater than 64 | Reject without listing | `schema` |
+| `list_activity` invalid cursor, empty cursor, or next-cursor loop | Reject; do not return a partial page | `schema` |
+| Truncated or partial activity inventory | Reject; `truncated=true` is not a success | `unsupported` |
+| Empty library `list_activity` | Empty `entries[]`, `classified_as: empty`, `engine_activity=false` | empty state |
 | `save_draft` / `load_draft` identifier that looks like a user vault filesystem path | Reject without opening the draft store | `policy` |
 | `write_note` / `edit_note` / `delete_note` identifier that looks like a user vault filesystem path | Reject without opening the library | `policy` |
 | `move_note` destination that looks like a filesystem path | Reject without opening the library | `policy` |
@@ -740,6 +843,16 @@ does not start Supervisor or add rmcp.
   `search` and `call_tool` stay denied.
 - Bad: send `{"command":"search_notes","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","query":"C:\\\\Users\\\\someone\\\\vault\\\\note.md"}}`;
   policy rejects the filesystem query without opening the library.
+- Bad: send `{"command":"preview_context","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","path":"C:\\vault"}}`
+  or `preview_context` with an extra `root`; extra fields fail closed.
+- Bad: send `{"command":"preview_context","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}`;
+  missing identifier is schema.
+- Bad: send `{"command":"preview_context","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"C:\\\\Users\\\\someone\\\\vault\\\\note.md"}}`;
+  policy rejects the filesystem identifier without opening the library.
+- Bad: send `{"command":"list_activity","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","path":"C:\\vault"}}`
+  or `list_activity` with an extra `root`; extra fields fail closed.
+- Bad: send `{"command":"recent_activity","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}` or
+  `{"command":"build_context","args":{"identifier":"welcome"}}`; official MCP identity stays denied.
 - Bad: send `{"command":"list_backups","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","path":"C:\\vault"}}`
   or `restore_fixture` with an extra `path` / `root`; extra fields fail closed.
 - Bad: send `{"command":"restore_fixture","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","backup_id":"%APPDATA%\\\\Obsidian"}}`;
@@ -768,16 +881,16 @@ does not start Supervisor or add rmcp.
 
 ## 6. Tests Required
 
-- Rust unit test: capability response lists exactly twenty-one commands and two
+- Rust unit test: capability response lists exactly twenty-three commands and two
   events, and both arbitrary-path and raw-callTool policy flags are false.
-  `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `list_backups`, `restore_fixture`,
+  `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`,
   `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`,
-  `edit_note`, `move_note`, `delete_note`, and `begin_shutdown` are present; `call_tool` and
-  MCP identity `search` are absent. Incomplete `write_note` args remain schema.
+  `edit_note`, `move_note`, `delete_note`, and `begin_shutdown` are present; `call_tool`,
+  MCP identity `search`, `recent_activity`, and `build_context` are absent. Incomplete `write_note` args remain schema.
 - Rust unit test: a non-fixture project returns `ErrorCategory::Policy`.
 - Rust unit test: unknown command including `call_tool`, extra project path,
   extra runtime-state path, extra `list_projects` path/root, extra preflight
-  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `expand_graph` path/root, extra `search_notes` path/root/`id`, extra `list_backups`
+  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `expand_graph` path/root,   extra `search_notes` path/root/`id`, extra `preview_context` path/root, extra `list_activity` path/root, extra `list_backups`
   path/root, extra `restore_fixture` path, extra
   `inspect_windows_runtime` path/root, extra `save_draft` path/root, extra
   `load_draft` path/root, and extra `begin_shutdown` path/root all fail
@@ -795,7 +908,7 @@ does not start Supervisor or add rmcp.
   scan user vaults, and keeps `cross_project_search_allowed` and
   `implicit_current_project_writes` false.   `ExplicitRouteArgs` requires both
   fields, rejects extra paths as schema, and rejects non-fixture routes as
-  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `expand_graph` / `list_backups` /
+  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `preview_context` / `list_activity` / `list_backups` /
   `restore_fixture` / `save_draft` / `load_draft` / `write_note` /
   `edit_note` / `move_note` / `delete_note` must not open the library,
   backup store, or draft store.
@@ -854,6 +967,28 @@ does not start Supervisor or add rmcp.
   search DTO. Official MCP `search` / `fetch` remain UNVERIFIED. MCP
   identity `search` and `call_tool` stay denied. T23 inspector is not
   implemented.
+- Rust unit test: `preview_context` requires `ExplicitRouteArgs` plus
+  `identifier` plus optional `query`. Extra `path` / `root` fail
+  closed as `schema`. Missing identifier is `schema`. Non-fixture
+  routes and filesystem identifiers are `policy` and do not open the
+  library. Empty library preview is empty snippet with
+  `classified_as: empty`, not user-vault. Fixture snippet is a
+  substring of the physical UTF-8 file, including Chinese. HTML stays
+  text; `executed=false`. Observation `classified_as` is
+  `disk_verified` after reading the physical file. Envelope-only
+  snippet is `accepted_unverified`. `engine_context=false`. Search hit
+  preview reuses this command. Dual profiles stay isolated. Official
+  `build_context` remains UNVERIFIED.
+- Rust unit test: `list_activity` requires `ExplicitRouteArgs` plus
+  optional `cursor` / `page_size`. Extra `path` / `root` fail closed
+  as `schema`. Non-fixture is `policy` and does not open the library.
+  `page_size` 0 or huge, invalid/repeated cursor fail closed as
+  `schema`. Truncated inventory is `unsupported`, not success. Empty
+  library activity is empty `entries[]` with `classified_as: empty`,
+  not user-vault. Fixture listed identifiers match physical files and
+  order follows file mtime. Permalinks only. `engine_activity=false`.
+  Dual profiles stay isolated (21 vs 27). Official
+  `recent_activity` / `build_context` remain UNVERIFIED.
 - Rust unit test: `list_backups` returns only BMDock-owned generated backup
   ids, does not scan user vaults, and keeps `files_written` false until a
   restore actually writes owned files. Empty catalog is empty state, not a
@@ -947,6 +1082,7 @@ does not start Supervisor or add rmcp.
   `RelationListDto` / `RelationDto` / `RelationTargetClass` /
   `GraphPageDto` / `GraphNodeDto` / `GraphEdgeDto` / `GraphNodeClass` /
   `SearchPageDto` / `SearchHitDto` /
+  `ContextPreviewDto` / `ActivityPageDto` / `ActivityEntryDto` /
   `DrainResultDto` / `DrainPhase` stay aligned with that JSON shape through
   `npm run build`.
 - Validation checks: `task.py validate`, `cargo fmt --all -- --check`,
@@ -1003,6 +1139,14 @@ await invokeTyped({
 await invokeTyped({
   command: "search_notes",
   args: { workspace: route.workspace, project: route.project, query, page_size: 20 },
+});
+await invokeTyped({
+  command: "preview_context",
+  args: { workspace: route.workspace, project: route.project, identifier, query },
+});
+await invokeTyped({
+  command: "list_activity",
+  args: { workspace: route.workspace, project: route.project, page_size: 20 },
 });
 await invokeTyped({
   command: "list_backups",
@@ -1067,7 +1211,7 @@ await listenTyped("runtime_state", (state) => renderState(state));
 These calls use the shared DTOs and the explicit fixture/event allowlist.
 `list_projects`, `run_preflight`, and `discover_config` take empty args.
 `select_project` remains fixture-only. `list_tree`, `read_note`,
-`list_relations`, `expand_graph`, `search_notes`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
+`list_relations`, `expand_graph`, `search_notes`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
 `write_note`, `edit_note`, `move_note`, and `delete_note` copy
 `ExplicitRouteArgs` on every call and must not treat `runtime.project` as
 an implicit target.
