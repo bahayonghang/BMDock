@@ -1,0 +1,197 @@
+{
+  "task": "T30",
+  "title": "本地可选extra和文档摄取支持",
+  "status": "accepted_with_limits",
+  "date": "2026-09-13",
+  "host_boundary": "T30 adds typed inspect_extras (ExplicitRouteArgs plus optional extra_id) and ingest_document (ExplicitRouteArgs plus required source_id as a fixture identifier, not a filesystem path). deny_unknown_fields. Extra path/root is schema. Missing route is schema. Empty extra_id is schema. Missing source_id is schema. Non-fixture routes and filesystem extra/source ids are policy and do not open the library. Extras catalog is BMDock-owned over FixtureLibrary test files {temp}/bmdock-t30-*. Hits match physical UTF-8 including Chinese. Envelope text is not disk proof. Production EmptyLibrary is extras_enabled=false, empty catalog, classified_as empty. extras_enabled=false by default. Claiming extras_enabled=true without disk files is unsupported. semantic_enabled=false. model_loaded=false. ingest_document copies a named .txt/.md extra sidecar into fixture notes and is distinct from T28 import_notes. Official Basic Memory extras / PDF/Office ingest remain UNVERIFIED. Dual profiles stay isolated (21 vs 27). T30 does not start Supervisor, add rmcp, spawn engine_worker, or treat just contract as T30 proof. just build stays the G0 probe.",
+  "acceptance": {
+    "AC39": {
+      "status": "fixture_owned_extras_catalog_and_sidecar_ingest",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "inspect_extras catalogs BMDock-owned fixture extras over {temp}/bmdock-t30-*. Hits match physical UTF-8. Envelope success is not disk proof. Production EmptyLibrary is extras_enabled=false, empty catalog, classified_as empty, not user-vault success. ingest_document copies a named extra sidecar into fixture notes. User Obsidian vaults and global Basic Memory homes are not scanned.",
+      "unverified": [
+        "official Basic Memory extras",
+        "official PDF/Office ingest",
+        "native GUI session",
+        "real user vault"
+      ]
+    },
+    "AC41": {
+      "status": "explicit_unavailable_unless_fixture_extra_on_disk",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "extras/semantic/cloud stay explicit unavailable unless a fixture extra is actually present on disk. extras_enabled=false by default. Claiming extras_enabled=true without disk files is unsupported. semantic_enabled=false. model_loaded=false. Official extras ingest, cloud, live MCP, official schema MCP, and live CLI remain UNVERIFIED.",
+      "unverified": [
+        "official extras/document ingestion",
+        "PDF/Office ingest",
+        "cloud/remote auth",
+        "live MCP",
+        "official schema MCP",
+        "live official CLI",
+        "native GUI session"
+      ]
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t30-extras-document-ingestion",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 175 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 24 passed"
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T30 extras/document ingest proof. Probe entries remain independent. Official extras / PDF/Office ingest remain UNVERIFIED."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window was launched. AC39/AC41 proof is typed fixture extras catalog plus sidecar ingest, not a native GUI session."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_180_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_desktop_shell": "24_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "typed_command_count": 34,
+    "typed_inspect_extras": "allowed",
+    "typed_ingest_document": "allowed",
+    "extra_path_root_is_schema": true,
+    "missing_route_is_schema": true,
+    "empty_extra_id_is_schema": true,
+    "missing_source_id_is_schema": true,
+    "non_fixture_is_policy": true,
+    "filesystem_extra_or_source_is_policy": true,
+    "empty_library_extras_is_empty_state": true,
+    "extras_enabled_default": false,
+    "extras_enabled_without_disk_is_unsupported": true,
+    "semantic_enabled": false,
+    "model_loaded": false,
+    "ingest_distinct_from_import_notes": true,
+    "dangerouslySetInnerHTML": "absent",
+    "supervisor_started_by_t30": false,
+    "rmcp_live_client": "not_added_in_t30",
+    "official_extras_document_ingestion": "UNVERIFIED",
+    "official_pdf_office_ingest": "UNVERIFIED",
+    "cloud_remote_auth": "UNVERIFIED",
+    "live_mcp": "UNVERIFIED",
+    "native_gui_session": "UNVERIFIED",
+    "webview2_session": "UNVERIFIED",
+    "installer": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "real_vault": "UNVERIFIED"
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed_unchanged",
+    "T10": "completed_unchanged",
+    "T11": "completed_unchanged",
+    "T12": "completed_unchanged",
+    "T13": "completed_unchanged",
+    "T14": "completed_unchanged",
+    "T15": "completed_unchanged",
+    "T16": "completed_unchanged",
+    "T17": "completed_unchanged",
+    "T18": "completed_unchanged",
+    "T19": "completed_unchanged",
+    "T20": "completed_unchanged",
+    "T21": "completed_unchanged",
+    "T22": "completed_unchanged",
+    "T23": "completed_unchanged",
+    "T24": "completed_unchanged",
+    "T25": "completed_unchanged",
+    "T26": "completed_unchanged",
+    "T27": "completed_unchanged",
+    "T28": "completed_unchanged",
+    "T29": "completed_unchanged",
+    "T30": "completed"
+  },
+  "scope_limits": [
+    "inspect_extras catalogs BMDock-owned fixture extras; ingest_document copies a named extra sidecar into fixture notes. This is not official Basic Memory extras or PDF/Office ingest.",
+    "Envelope text is not disk proof. Production EmptyLibrary empty catalog is empty state, not user-vault success.",
+    "extras_enabled=false by default. Claiming extras_enabled=true without disk files is unsupported. semantic_enabled=false. model_loaded=false.",
+    "Official extras / PDF/Office ingest, cloud, live MCP, native GUI, WebView2, installer, hosted CI, and real user vaults remain UNVERIFIED.",
+    "IPC error union stays policy/schema/unsupported. Dual profiles stay isolated (21 vs 27).",
+    "just build stays scripts.tasks build. just contract* stay probe. just tauri-dev/tauri-build stay desktop.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "T31-T40 were not implemented."
+  ],
+  "rollback": "Remove inspect_extras and ingest_document from the ipc_invoke union, drop ExtrasPanel, restore the 32-command allowlist, and leave T28 import_notes plus T29 inspect_api_audit in place. Do not revert T05-T29 status to make unit green."
+}

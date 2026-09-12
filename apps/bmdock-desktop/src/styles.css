@@ -459,7 +459,8 @@ main {
 .tool-list,
 .cli-list,
 .import-list,
-.audit-list {
+.audit-list,
+.extras-list {
   margin: 0.75rem 0 0;
   padding: 0;
   display: grid;
@@ -472,7 +473,8 @@ main {
 .tool-list li,
 .cli-list li,
 .import-list li,
-.audit-list li {
+.audit-list li,
+.extras-list li {
   display: flex;
   justify-content: space-between;
   align-items: center;

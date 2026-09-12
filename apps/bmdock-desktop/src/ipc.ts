@@ -82,6 +82,14 @@ export type InspectApiAuditArgs = ExplicitRouteArgs & {
   profile_id: EngineProfile;
 };
 
+export type InspectExtrasArgs = ExplicitRouteArgs & {
+  extra_id?: string;
+};
+
+export type IngestDocumentArgs = ExplicitRouteArgs & {
+  source_id: string;
+};
+
 export type PreviewContextArgs = ExplicitRouteArgs & {
   identifier: string;
   query?: string;
@@ -146,6 +154,8 @@ export type IpcCommand =
   | { command: "list_cli_inventory"; args: ListCliInventoryArgs }
   | { command: "import_notes"; args: ImportNotesArgs }
   | { command: "inspect_api_audit"; args: InspectApiAuditArgs }
+  | { command: "inspect_extras"; args: InspectExtrasArgs }
+  | { command: "ingest_document"; args: IngestDocumentArgs }
   | { command: "preview_context"; args: PreviewContextArgs }
   | { command: "list_activity"; args: ListActivityArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
@@ -646,6 +656,39 @@ export interface ApiAuditDto {
   files_written: false;
 }
 
+export interface ExtraEntryDto {
+  extra_id: string;
+  kind: string;
+  body: string;
+}
+
+export interface ExtrasCatalogDto {
+  extra_id: string | null;
+  extras: ExtraEntryDto[];
+  extras_enabled: boolean;
+  semantic_enabled: false;
+  model_loaded: false;
+  observation: NoteCrudObservationDto;
+  engine_extras: false;
+  official_pdf_office: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  files_written: false;
+}
+
+export interface IngestResultDto {
+  source_id: string;
+  extra_id: string;
+  files: ImportedFileDto[];
+  files_written: boolean;
+  observation: ImportObservationDto;
+  extras_enabled: boolean;
+  engine_extras: false;
+  official_pdf_office: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+}
+
 export type DraftClass = "empty" | "disk_verified" | "accepted_unverified" | "unclassified";
 
 export interface DraftObservationDto {
@@ -753,6 +796,8 @@ export type IpcResponse =
   | { kind: "cli_inventory" } & CliInventoryDto
   | { kind: "notes_imported" } & ImportResultDto
   | { kind: "api_audit" } & ApiAuditDto
+  | { kind: "extras_catalog" } & ExtrasCatalogDto
+  | { kind: "document_ingested" } & IngestResultDto
   | { kind: "context_preview" } & ContextPreviewDto
   | { kind: "activity_page" } & ActivityPageDto
   | { kind: "backup_catalog" } & BackupCatalogDto
@@ -808,6 +853,8 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "list_cli_inventory":
     case "import_notes":
     case "inspect_api_audit":
+    case "inspect_extras":
+    case "ingest_document":
     case "preview_context":
     case "list_activity":
     case "list_backups":
@@ -1102,6 +1149,30 @@ export const inspectApiAudit = (profile_id: EngineProfile) => {
       workspace: route.workspace,
       project: route.project,
       profile_id,
+    },
+  });
+};
+
+export const inspectExtras = (extra_id?: string) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "extras_catalog" } & ExtrasCatalogDto>({
+    command: "inspect_extras",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      ...(extra_id ? { extra_id } : {}),
+    },
+  });
+};
+
+export const ingestDocument = (source_id: string) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "document_ingested" } & IngestResultDto>({
+    command: "ingest_document",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      source_id,
     },
   });
 };

@@ -118,6 +118,16 @@ pub const ENGINE_AUDIT_NOT_OWNED: &str =
 #[cfg(test)]
 pub const OFFICIAL_API_COVERAGE_UNVERIFIED: &str =
     "official CLI/API leaves remain uncovered; the audit does not claim full API coverage";
+pub const SCHEMA_EXTRA_ID: &str = "extra_id is required when provided";
+pub const POLICY_FILESYSTEM_EXTRA: &str =
+    "Extra ids are BMDock-owned fixture identifiers, not user vault filesystem paths";
+pub const ENGINE_EXTRAS_NOT_OWNED: &str =
+    "inspect_extras catalogs BMDock-owned fixture extras and ingest_document copies a named extra into fixture notes; this is not official Basic Memory extras or PDF/Office ingest";
+#[cfg(test)]
+pub const OFFICIAL_EXTRAS_UNVERIFIED: &str =
+    "official Basic Memory extras / PDF/Office ingest remain UNVERIFIED";
+pub const UNSUPPORTED_EXTRAS_ENABLED_WITHOUT_DISK: &str =
+    "extras_enabled=true without fixture extra files on disk is unsupported";
 pub const CAPABILITY_SEMANTIC: &str = "semantic";
 pub const CAPABILITY_EXTRAS_INGEST: &str = "extras_ingest";
 pub const CAPABILITY_CLOUD: &str = "cloud";
@@ -168,6 +178,8 @@ pub const ALLOWLISTED_IPC_COMMANDS: &[&str] = &[
     "list_cli_inventory",
     "import_notes",
     "inspect_api_audit",
+    "inspect_extras",
+    "ingest_document",
     "preview_context",
     "list_activity",
     "list_backups",
@@ -1090,6 +1102,177 @@ pub fn reject_source_id(source_id: &str) -> Result<(), LibraryError> {
     Ok(())
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ExtraEntryDto {
+    pub extra_id: String,
+    pub kind: String,
+    pub body: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ExtrasCatalogDto {
+    pub extra_id: Option<String>,
+    pub extras: Vec<ExtraEntryDto>,
+    pub extras_enabled: bool,
+    pub semantic_enabled: bool,
+    pub model_loaded: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_extras: bool,
+    pub official_pdf_office: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub files_written: bool,
+}
+
+pub fn empty_extras_catalog(extra_id: Option<&str>) -> ExtrasCatalogDto {
+    ExtrasCatalogDto {
+        extra_id: extra_id.map(ToOwned::to_owned),
+        extras: Vec::new(),
+        extras_enabled: false,
+        semantic_enabled: false,
+        model_loaded: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_extras: false,
+        official_pdf_office: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        files_written: false,
+    }
+}
+
+pub fn reject_extra_id(extra_id: Option<&str>) -> Result<Option<&str>, LibraryError> {
+    match extra_id {
+        None => Ok(None),
+        Some(value) => {
+            if value.trim().is_empty() {
+                return Err(LibraryError::schema(SCHEMA_EXTRA_ID));
+            }
+            if looks_like_filesystem_path(value) || value.contains('/') {
+                return Err(LibraryError::policy(POLICY_FILESYSTEM_EXTRA));
+            }
+            Ok(Some(value.trim()))
+        }
+    }
+}
+
+pub fn accept_extras_catalog(report: ExtrasCatalogDto) -> Result<ExtrasCatalogDto, LibraryError> {
+    if report.engine_extras || report.official_pdf_office {
+        return Err(LibraryError::unsupported(ENGINE_EXTRAS_NOT_OWNED));
+    }
+    if report.scanned_user_obsidian_vault || report.scanned_user_basic_memory_home {
+        return Err(LibraryError::policy(POLICY_FILESYSTEM_EXTRA));
+    }
+    if report.files_written {
+        return Err(LibraryError::unsupported(ENGINE_EXTRAS_NOT_OWNED));
+    }
+    if report.semantic_enabled || report.model_loaded {
+        return Err(LibraryError::unsupported(
+            UNSUPPORTED_EXTRAS_ENABLED_WITHOUT_DISK,
+        ));
+    }
+    if report
+        .extras
+        .iter()
+        .any(|entry| looks_like_filesystem_path(&entry.extra_id) || entry.extra_id.contains('/'))
+    {
+        return Err(LibraryError::policy(POLICY_FILESYSTEM_EXTRA));
+    }
+    if let Some(extra_id) = report.extra_id.as_deref() {
+        reject_extra_id(Some(extra_id))?;
+    }
+    let mut report = report;
+    report.observation.envelope_is_not_disk_proof = true;
+    report.semantic_enabled = false;
+    report.model_loaded = false;
+    if report.extras_enabled && (report.extras.is_empty() || !report.observation.disk_verified) {
+        return Err(LibraryError::unsupported(
+            UNSUPPORTED_EXTRAS_ENABLED_WITHOUT_DISK,
+        ));
+    }
+    if !report.extras_enabled {
+        report.observation.disk_verified = false;
+        if report.extras.is_empty() {
+            report.observation.classified_as = NoteCrudClass::Empty;
+        }
+    }
+    Ok(report)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct IngestResultDto {
+    pub source_id: String,
+    pub extra_id: String,
+    pub files: Vec<ImportedFileDto>,
+    pub files_written: bool,
+    pub observation: ImportObservationDto,
+    pub extras_enabled: bool,
+    pub engine_extras: bool,
+    pub official_pdf_office: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+}
+
+pub fn empty_ingest_result(source_id: &str) -> IngestResultDto {
+    IngestResultDto {
+        source_id: source_id.to_owned(),
+        extra_id: source_id.to_owned(),
+        files: Vec::new(),
+        files_written: false,
+        observation: ImportObservationDto {
+            classified_as: ImportClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        extras_enabled: false,
+        engine_extras: false,
+        official_pdf_office: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+    }
+}
+
+pub fn accept_ingest_result(report: IngestResultDto) -> Result<IngestResultDto, LibraryError> {
+    reject_source_id(&report.source_id)?;
+    if looks_like_filesystem_path(&report.extra_id) || report.extra_id.contains('/') {
+        return Err(LibraryError::policy(POLICY_FILESYSTEM_EXTRA));
+    }
+    if report.engine_extras || report.official_pdf_office {
+        return Err(LibraryError::unsupported(ENGINE_EXTRAS_NOT_OWNED));
+    }
+    if report.scanned_user_obsidian_vault || report.scanned_user_basic_memory_home {
+        return Err(LibraryError::policy(POLICY_FILESYSTEM_SOURCE));
+    }
+    if report
+        .files
+        .iter()
+        .any(|file| looks_like_filesystem_path(&file.identifier) || file.identifier.contains('/'))
+    {
+        return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+    }
+    let mut report = report;
+    report.observation.envelope_is_not_disk_proof = true;
+    if report.extras_enabled && report.files.is_empty() && !report.files_written {
+        return Err(LibraryError::unsupported(
+            UNSUPPORTED_EXTRAS_ENABLED_WITHOUT_DISK,
+        ));
+    }
+    if !report.files_written
+        && (report.observation.disk_verified
+            || report.observation.classified_as == ImportClass::DiskVerified)
+    {
+        report.observation.disk_verified = false;
+        if report.observation.classified_as == ImportClass::DiskVerified {
+            report.observation.classified_as = ImportClass::AcceptedUnverified;
+        }
+        report.extras_enabled = false;
+    }
+    Ok(report)
+}
+
 pub fn accept_import_result(report: ImportResultDto) -> Result<ImportResultDto, LibraryError> {
     if report.engine_import {
         return Err(LibraryError::unsupported(ENGINE_IMPORT_NOT_OWNED));
@@ -1574,6 +1757,16 @@ pub trait NoteLibrary: Send + Sync {
         Ok(empty_api_audit(profile_id))
     }
 
+    fn inspect_extras(&self, extra_id: Option<&str>) -> Result<ExtrasCatalogDto, LibraryError> {
+        let extra_id = reject_extra_id(extra_id)?;
+        Ok(empty_extras_catalog(extra_id))
+    }
+
+    fn ingest_document(&self, source_id: &str) -> Result<IngestResultDto, LibraryError> {
+        reject_source_id(source_id)?;
+        Ok(empty_ingest_result(source_id))
+    }
+
     fn write_note(
         &self,
         identifier: &str,
@@ -1681,22 +1874,36 @@ struct CliLeafFile {
 pub struct FixtureLibrary {
     root: PathBuf,
     import_sources_root: PathBuf,
+    extras_root: PathBuf,
 }
 
 #[cfg(test)]
 impl FixtureLibrary {
     pub fn new(root: PathBuf) -> Self {
         let import_sources_root = root.join("import-sources");
+        let extras_root = root.join("extras");
         Self {
             root,
             import_sources_root,
+            extras_root,
         }
     }
 
     pub fn with_import_sources(root: PathBuf, import_sources_root: PathBuf) -> Self {
+        let extras_root = root.join("extras");
         Self {
             root,
             import_sources_root,
+            extras_root,
+        }
+    }
+
+    pub fn with_extras(root: PathBuf, extras_root: PathBuf) -> Self {
+        let import_sources_root = root.join("import-sources");
+        Self {
+            root,
+            import_sources_root,
+            extras_root,
         }
     }
 
@@ -2145,6 +2352,120 @@ impl FixtureLibrary {
         }
         files.sort_by(|left, right| left.0.cmp(&right.0));
         Ok(files)
+    }
+
+    fn require_extras_root(&self) -> Result<(), LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        reject_forbidden_library_root(&self.extras_root)?;
+        let root_ok = self.root.to_string_lossy().contains("bmdock-t30");
+        let extras_ok = self.extras_root.to_string_lossy().contains("bmdock-t30");
+        if !root_ok || !extras_ok {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        Ok(())
+    }
+
+    pub fn seed_extra(
+        &self,
+        extra_id: &str,
+        kind: &str,
+        body: &str,
+    ) -> Result<PathBuf, LibraryError> {
+        reject_extra_id(Some(extra_id))?;
+        self.require_extras_root()?;
+        if kind != "txt" && kind != "md" {
+            return Err(LibraryError::unsupported(ENGINE_EXTRAS_NOT_OWNED));
+        }
+        fs::create_dir_all(&self.extras_root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let path = self.extras_root.join(format!("{extra_id}.{kind}"));
+        crate::content_safety::persist_exact_utf8(&path, body)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        Ok(path)
+    }
+
+    fn collect_extras(&self, extra_id: Option<&str>) -> Result<Vec<ExtraEntryDto>, LibraryError> {
+        if !self.extras_root.exists() {
+            return Ok(Vec::new());
+        }
+        if self.extras_root.is_symlink() {
+            return Err(LibraryError::policy(POLICY_FILESYSTEM_EXTRA));
+        }
+        if !self.extras_root.is_dir() {
+            return Ok(Vec::new());
+        }
+        let reader = fs::read_dir(&self.extras_root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let mut extras = Vec::new();
+        for item in reader {
+            let item =
+                item.map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+            let file_type = item
+                .file_type()
+                .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+            if file_type.is_symlink() {
+                return Err(LibraryError::policy(POLICY_FILESYSTEM_EXTRA));
+            }
+            if !file_type.is_file() {
+                continue;
+            }
+            let name = item.file_name().to_string_lossy().into_owned();
+            let kind = if name.ends_with(".txt") {
+                "txt"
+            } else if name.ends_with(".md") {
+                "md"
+            } else {
+                continue;
+            };
+            let identifier = name
+                .trim_end_matches(".txt")
+                .trim_end_matches(".md")
+                .to_string();
+            reject_extra_id(Some(&identifier))?;
+            if extra_id.is_some_and(|wanted| wanted != identifier.as_str()) {
+                continue;
+            }
+            let body = crate::content_safety::read_exact_text(&item.path())
+                .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+            extras.push(ExtraEntryDto {
+                extra_id: identifier,
+                kind: kind.to_owned(),
+                body,
+            });
+        }
+        extras.sort_by(|left, right| left.extra_id.cmp(&right.extra_id));
+        Ok(extras)
+    }
+
+    fn resolve_extra_path(
+        &self,
+        extra_id: &str,
+    ) -> Result<Option<(PathBuf, String)>, LibraryError> {
+        reject_extra_id(Some(extra_id))?;
+        reject_forbidden_library_root(&self.extras_root)?;
+        let txt = self.extras_root.join(format!("{extra_id}.txt"));
+        let md = self.extras_root.join(format!("{extra_id}.md"));
+        let candidate = if txt.is_file() && !txt.is_symlink() {
+            Some((txt, "txt".to_owned()))
+        } else if md.is_file() && !md.is_symlink() {
+            Some((md, "md".to_owned()))
+        } else {
+            None
+        };
+        let Some((path, kind)) = candidate else {
+            return Ok(None);
+        };
+        let root = self
+            .extras_root
+            .canonicalize()
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let resolved = path
+            .canonicalize()
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        if !resolved.starts_with(&root) {
+            return Err(LibraryError::policy(POLICY_FILESYSTEM_EXTRA));
+        }
+        Ok(Some((resolved, kind)))
     }
 }
 
@@ -2787,6 +3108,87 @@ impl NoteLibrary for FixtureLibrary {
                 envelope_is_not_disk_proof: true,
             },
             engine_import: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+        })
+    }
+
+    fn inspect_extras(&self, extra_id: Option<&str>) -> Result<ExtrasCatalogDto, LibraryError> {
+        let extra_id = reject_extra_id(extra_id)?;
+        if self.extras_root.exists() {
+            self.require_extras_root()?;
+        }
+        let extras = self.collect_extras(extra_id)?;
+        if extras.is_empty() {
+            return Ok(empty_extras_catalog(extra_id));
+        }
+        let all_verified = extras.iter().all(|entry| {
+            !looks_like_filesystem_path(&entry.extra_id)
+                && (entry.kind == "txt" || entry.kind == "md")
+                && !entry.body.is_empty()
+        });
+        if !all_verified {
+            return Ok(empty_extras_catalog(extra_id));
+        }
+        Ok(ExtrasCatalogDto {
+            extra_id: extra_id.map(ToOwned::to_owned),
+            extras,
+            extras_enabled: true,
+            semantic_enabled: false,
+            model_loaded: false,
+            observation: crud_observation(NoteCrudClass::DiskVerified, true),
+            engine_extras: false,
+            official_pdf_office: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            files_written: false,
+        })
+    }
+
+    fn ingest_document(&self, source_id: &str) -> Result<IngestResultDto, LibraryError> {
+        reject_source_id(source_id)?;
+        reject_extra_id(Some(source_id))?;
+        self.require_extras_root()?;
+        let Some((source, kind)) = self.resolve_extra_path(source_id)? else {
+            return Ok(empty_ingest_result(source_id));
+        };
+        if kind != "txt" && kind != "md" {
+            return Err(LibraryError::unsupported(ENGINE_EXTRAS_NOT_OWNED));
+        }
+        fs::create_dir_all(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let dest = self.resolve_create_path(source_id)?;
+        if library_root_is_forbidden(&dest) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        let body = crate::content_safety::read_exact_text(&source)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        crate::content_safety::persist_exact_utf8(&dest, &body)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let (exists, verified, _) = Self::observe_exact_body(&dest, &body);
+        let classified = if exists && verified {
+            ImportClass::DiskVerified
+        } else if exists {
+            ImportClass::Unclassified
+        } else {
+            ImportClass::AcceptedUnverified
+        };
+        Ok(IngestResultDto {
+            source_id: source_id.to_owned(),
+            extra_id: source_id.to_owned(),
+            files: vec![ImportedFileDto {
+                identifier: source_id.to_owned(),
+                kind: crate::routing::OWNED_KIND.to_owned(),
+            }],
+            files_written: exists,
+            observation: ImportObservationDto {
+                classified_as: classified,
+                disk_verified: exists && verified,
+                envelope_is_not_disk_proof: true,
+            },
+            extras_enabled: exists && verified,
+            engine_extras: false,
+            official_pdf_office: false,
             scanned_user_obsidian_vault: false,
             scanned_user_basic_memory_home: false,
         })
@@ -4437,6 +4839,42 @@ mod tests {
                 .unwrap_err(),
             LibraryError::policy(POLICY_FILESYSTEM_PROFILE)
         );
+        let extras = library.inspect_extras(None).unwrap();
+        assert!(extras.extras.is_empty());
+        assert!(!extras.extras_enabled);
+        assert!(!extras.semantic_enabled);
+        assert!(!extras.model_loaded);
+        assert!(!extras.engine_extras);
+        assert!(!extras.official_pdf_office);
+        assert!(!extras.files_written);
+        assert_eq!(extras.observation.classified_as, NoteCrudClass::Empty);
+        assert_eq!(
+            library
+                .inspect_extras(Some(r"C:\Users\someone\vault\note.txt"))
+                .unwrap_err(),
+            LibraryError::policy(POLICY_FILESYSTEM_EXTRA)
+        );
+        assert_eq!(
+            library.inspect_extras(Some("")).unwrap_err(),
+            LibraryError::schema(SCHEMA_EXTRA_ID)
+        );
+        let ingested = library.ingest_document("fixture-welcome").unwrap();
+        assert!(ingested.files.is_empty());
+        assert!(!ingested.files_written);
+        assert!(!ingested.extras_enabled);
+        assert!(!ingested.engine_extras);
+        assert!(!ingested.official_pdf_office);
+        assert_eq!(ingested.observation.classified_as, ImportClass::Empty);
+        assert_eq!(
+            library
+                .ingest_document(r"C:\Users\someone\Documents\Obsidian")
+                .unwrap_err(),
+            LibraryError::policy(POLICY_FILESYSTEM_SOURCE)
+        );
+        assert_eq!(
+            library.ingest_document("").unwrap_err(),
+            LibraryError::schema(SCHEMA_SOURCE_ID)
+        );
         let _ = (
             ENGINE_GRAPH_NOT_OWNED,
             ENGINE_SEARCH_NOT_OWNED,
@@ -4460,6 +4898,8 @@ mod tests {
             OFFICIAL_IMPORT_UNVERIFIED,
             ENGINE_AUDIT_NOT_OWNED,
             OFFICIAL_API_COVERAGE_UNVERIFIED,
+            ENGINE_EXTRAS_NOT_OWNED,
+            OFFICIAL_EXTRAS_UNVERIFIED,
             ENGINE_CONTEXT_NOT_OWNED,
             ENGINE_ACTIVITY_NOT_OWNED,
             SEMANTIC_SEARCH_UNVERIFIED,
@@ -5860,5 +6300,106 @@ mod tests {
             accepted.observation.classified_as,
             ImportClass::DiskVerified
         );
+    }
+
+    #[test]
+    fn fixture_extras_catalog_matches_physical_utf8_and_ingest_copies_sidecar() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t30-{nanos}"));
+        let library_root = dir.join("library");
+        let extras_root = dir.join("extras");
+        fs::create_dir_all(&library_root).unwrap();
+        fs::create_dir_all(&extras_root).unwrap();
+        let library = FixtureLibrary::with_extras(library_root.clone(), extras_root);
+        let body = "欢迎使用 BMDock extra sidecar。\n";
+        library.seed_extra("fixture-welcome", "txt", body).unwrap();
+        let catalog = library.inspect_extras(None).unwrap();
+        assert!(catalog.extras_enabled);
+        assert!(!catalog.semantic_enabled);
+        assert!(!catalog.model_loaded);
+        assert!(!catalog.engine_extras);
+        assert!(!catalog.official_pdf_office);
+        assert!(!catalog.files_written);
+        assert_eq!(
+            catalog.observation.classified_as,
+            NoteCrudClass::DiskVerified
+        );
+        assert!(catalog.observation.envelope_is_not_disk_proof);
+        assert_eq!(catalog.extras.len(), 1);
+        assert_eq!(catalog.extras[0].extra_id, "fixture-welcome");
+        assert_eq!(catalog.extras[0].kind, "txt");
+        assert_eq!(catalog.extras[0].body, body);
+        let focused = library.inspect_extras(Some("fixture-welcome")).unwrap();
+        assert_eq!(focused.extras.len(), 1);
+        assert_eq!(focused.extras[0].body, body);
+        let missing = library.inspect_extras(Some("fixture-absent")).unwrap();
+        assert!(missing.extras.is_empty());
+        assert!(!missing.extras_enabled);
+        assert_eq!(missing.observation.classified_as, NoteCrudClass::Empty);
+        let ingested = library.ingest_document("fixture-welcome").unwrap();
+        assert_eq!(ingested.source_id, "fixture-welcome");
+        assert_eq!(ingested.extra_id, "fixture-welcome");
+        assert!(ingested.files_written);
+        assert!(ingested.extras_enabled);
+        assert!(!ingested.engine_extras);
+        assert!(!ingested.official_pdf_office);
+        assert_eq!(
+            ingested.observation.classified_as,
+            ImportClass::DiskVerified
+        );
+        assert!(ingested.observation.envelope_is_not_disk_proof);
+        let dest = library_root.join("fixture-welcome.md");
+        assert!(dest.is_file());
+        let disk = fs::read_to_string(&dest).unwrap();
+        assert_eq!(disk, body);
+        assert!(disk.contains("欢迎"));
+        assert_ne!(
+            ingested.observation.classified_as,
+            ImportClass::AcceptedUnverified
+        );
+        let absent = library.ingest_document("fixture-absent").unwrap();
+        assert!(absent.files.is_empty());
+        assert!(!absent.files_written);
+        assert!(!absent.extras_enabled);
+        assert_eq!(absent.observation.classified_as, ImportClass::Empty);
+        let claimed = ExtrasCatalogDto {
+            extras_enabled: true,
+            ..empty_extras_catalog(None)
+        };
+        assert_eq!(
+            accept_extras_catalog(claimed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_EXTRAS_ENABLED_WITHOUT_DISK)
+        );
+        let envelope = IngestResultDto {
+            files: vec![ImportedFileDto {
+                identifier: "fixture-welcome".to_owned(),
+                kind: crate::routing::OWNED_KIND.to_owned(),
+            }],
+            files_written: false,
+            extras_enabled: false,
+            observation: ImportObservationDto {
+                classified_as: ImportClass::DiskVerified,
+                disk_verified: true,
+                envelope_is_not_disk_proof: false,
+            },
+            ..empty_ingest_result("fixture-welcome")
+        };
+        let accepted = accept_ingest_result(envelope).unwrap();
+        assert!(!accepted.files_written);
+        assert!(!accepted.observation.disk_verified);
+        assert!(accepted.observation.envelope_is_not_disk_proof);
+        assert_eq!(
+            accepted.observation.classified_as,
+            ImportClass::AcceptedUnverified
+        );
+        let _ = (
+            ENGINE_EXTRAS_NOT_OWNED,
+            OFFICIAL_EXTRAS_UNVERIFIED,
+            UNSUPPORTED_EXTRAS_ENABLED_WITHOUT_DISK,
+        );
+        let _ = fs::remove_dir_all(&dir);
     }
 }

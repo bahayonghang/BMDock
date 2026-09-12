@@ -504,3 +504,21 @@ zh-CN 工作台「API/CLI 审计」区分空态 / 错误 / 就绪。无 `dangero
 本机 Windows 本轮命令见 [t29-api-cli-audit.json](../execution/evidence/t29-api-cli-audit.json)。`python -m scripts.tasks unit` 以 G0 未 passed 且 T05+ 已 completed 失败（未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 现场官方 CLI / live MCP / hosted CI 证据；这些仍为 `UNVERIFIED`。
 
 T29 证据与验收映射见 [t29-api-cli-audit.json](../execution/evidence/t29-api-cli-audit.json)。`execution/status.json` 仅将 T29 标为 `completed`；未改 T05–T28/G0。
+
+## T30：本地可选 extra 与文档摄取
+
+T30 在现有 `ipc_invoke` 上增加 typed `inspect_extras`（`ExplicitRouteArgs` + 可选 `extra_id`，`deny_unknown_fields`）与 typed `ingest_document`（`ExplicitRouteArgs` + 必填 `source_id`，夹具标识，不是文件系统路径）。额外 `path`/`root` 为 schema。缺路由为 schema。空 `extra_id` 为 schema。缺 `source_id` 为 schema。非 fixture 路由与文件系统 extra/source 为 policy，且不打开库。capabilities 精确允许列为 34 个命令。typed `inspect_extras` / `ingest_document` 允许。
+
+Extra 目录是 BMDock 自有夹具 sidecar（`.txt` / `.md`）清单。测试注入 `{temp}/bmdock-t30-*`，命中必须与物理 UTF-8 一致（含中文）。信封成功不是磁盘证明。生产 `EmptyLibrary` 返回 `extras_enabled=false`、空目录、`classified_as: empty`，不是用户 vault 成功。`ingest_document` 把命名 extra 复制进夹具笔记，与 T28 `import_notes`（Markdown 复制）分开。官方 Basic Memory extras / PDF/Office 摄取仍为 `UNVERIFIED`。未把 `just contract` 当作 T30 证明。不启动 Supervisor。无 rmcp。
+
+AC39：物理文件正文（含中文）才是 extras/ingest 证据。空库 extras/ingest 是 empty，不是用户 vault 成功。不扫描用户 Obsidian 或全局 Basic Memory 主目录。
+
+AC41：extras / semantic / cloud 保持显式不可用，除非夹具 extra 实际存在于磁盘。默认 `extras_enabled=false`。没有磁盘文件却宣称 `extras_enabled=true` 为 unsupported。`semantic_enabled=false`。`model_loaded=false`。从不静默当成已启用成功。
+
+zh-CN 工作台「Extra / 文档摄取」区分空态 / 错误 / 就绪。无 `dangerouslySetInnerHTML`。不启动 Supervisor。无新 npm 依赖。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T30 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令见 [t30-extras-document-ingestion.json](../execution/evidence/t30-extras-document-ingestion.json)。`python -m scripts.tasks unit` 以 G0 未 passed 且 T05+ 已 completed 失败（未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方 extras / PDF/Office / hosted CI 证据；这些仍为 `UNVERIFIED`。
+
+T30 证据与验收映射见 [t30-extras-document-ingestion.json](../execution/evidence/t30-extras-document-ingestion.json)。`execution/status.json` 仅将 T30 标为 `completed`；未改 T05–T29/G0。

@@ -41,6 +41,9 @@ import {
   type ImportResultDto,
   type ImportClass,
   type ApiAuditDto,
+  type ExtrasCatalogDto,
+  type ExtraEntryDto,
+  type IngestResultDto,
   type AuditedApiLeafDto,
   type AuditedCliLeafDto,
   type AuditedIpcCommandDto,
@@ -74,7 +77,7 @@ import {
   type ShellLoadState,
 } from "./shell";
 
-const SECTIONS = ["workbench", "runtime", "projects", "preflight", "backups", "import", "about"] as const;
+const SECTIONS = ["workbench", "runtime", "projects", "preflight", "backups", "import", "extras", "about"] as const;
 type SectionId = (typeof SECTIONS)[number];
 
 function sectionLabel(id: SectionId): string {
@@ -91,6 +94,8 @@ function sectionLabel(id: SectionId): string {
       return t("navBackups");
     case "import":
       return t("navImport");
+    case "extras":
+      return t("navExtras");
     case "about":
       return t("navAbout");
     default: {
@@ -199,6 +204,8 @@ function SectionBody({
       return <BackupPanel />;
     case "import":
       return <ImportPanel />;
+    case "extras":
+      return <ExtrasPanel />;
     case "about":
       return <AboutPanel />;
     default: {
@@ -398,6 +405,8 @@ function WorkbenchLibrary({
       case "cli_inventory":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
@@ -713,6 +722,8 @@ async function openNote(
       case "cli_inventory":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
@@ -793,6 +804,8 @@ async function loadRelations(
       case "cli_inventory":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setRelations(null);
         setRelationsError({ category: "schema", message: t("unexpectedRelations") });
@@ -906,6 +919,8 @@ async function loadGraph(
       case "cli_inventory":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setGraph(null);
         setGraphError(unexpectedGraphResponse());
@@ -986,6 +1001,8 @@ async function loadMoreGraph(
       case "cli_inventory":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setGraphError(unexpectedGraphResponse());
         return;
@@ -1066,6 +1083,8 @@ async function loadMoreTree(
       case "cli_inventory":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
@@ -1539,6 +1558,8 @@ async function runSearch(
       case "cli_inventory":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setSearch(null);
         setSearchError(unexpectedSearchResponse());
@@ -1619,6 +1640,8 @@ async function loadMoreSearch(
       case "cli_inventory":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setSearchError(unexpectedSearchResponse());
         return;
@@ -1823,6 +1846,8 @@ async function runInspectSearch(
       case "cli_inventory":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setInspector(null);
         setInspectorError(unexpectedInspectorResponse());
@@ -2056,6 +2081,8 @@ async function runRecallBenchmark(
       case "cli_inventory":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setRecall(null);
         setRecallError(unexpectedRecallResponse());
@@ -2279,6 +2306,8 @@ async function runSchemaValidate(
       case "note_deleted":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setSchema(null);
         setSchemaError(unexpectedSchemaResponse());
@@ -2512,6 +2541,8 @@ async function loadContextPreview(
       case "cli_inventory":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setPreview(null);
         setPreviewError(unexpectedPreviewResponse());
@@ -2684,6 +2715,8 @@ async function loadActivity(
       case "cli_inventory":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setActivity(null);
         setActivityError(unexpectedActivityResponse());
@@ -2763,6 +2796,8 @@ async function loadMoreActivity(
       case "cli_inventory":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setActivityError(unexpectedActivityResponse());
         return;
@@ -2926,6 +2961,8 @@ async function loadResources(
       case "schema_validated":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setResources(null);
         setResourcesError(unexpectedResourceResponse());
@@ -3005,6 +3042,8 @@ async function loadMoreResources(
       case "schema_validated":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setResourcesError(unexpectedResourceResponse());
         return;
@@ -3169,6 +3208,8 @@ async function loadPrompts(
       case "schema_validated":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setPrompts(null);
         setPromptsError(unexpectedPromptResponse());
@@ -3248,6 +3289,8 @@ async function loadMorePrompts(
       case "schema_validated":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setPromptsError(unexpectedPromptResponse());
         return;
@@ -3414,6 +3457,8 @@ async function loadTools(
       case "schema_validated":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setTools(null);
         setToolsError(unexpectedToolsResponse());
@@ -3600,6 +3645,8 @@ async function loadCli(
       case "schema_validated":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setCli(null);
         setCliError(unexpectedCliResponse());
@@ -3681,6 +3728,8 @@ async function loadMoreCli(
       case "schema_validated":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setCliError(unexpectedCliResponse());
         return;
@@ -3885,6 +3934,8 @@ async function loadApiAudit(
       case "recall_benchmark":
       case "schema_validated":
       case "notes_imported":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setAudit(null);
         setAuditError(unexpectedAuditResponse());
@@ -4388,6 +4439,8 @@ async function applyCrudResponse(
       case "cli_inventory":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
       setError(unexpectedCrudResponse());
       return;
@@ -4723,6 +4776,8 @@ async function persistDraft(
       case "cli_inventory":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -4808,6 +4863,8 @@ async function reloadDraft(
       case "cli_inventory":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -5154,6 +5211,8 @@ function ProjectPanel({
       case "cli_inventory":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
                   setSelectError({
                     category: "schema",
@@ -5512,6 +5571,8 @@ function ImportPanel() {
         case "tool_inspection":
         case "cli_inventory":
         case "api_audit":
+        case "extras_catalog":
+        case "document_ingested":
         case "shutdown_begun":
           setError(unexpectedImportResponse());
           setResult(null);
@@ -5598,6 +5659,335 @@ function ImportPanel() {
         </ul>
       ) : null}
       {result ? <p>{importObservationLabel(result.observation.classified_as)}</p> : null}
+    </section>
+  );
+}
+
+type ExtrasError = {
+  category: "policy" | "schema" | "unsupported" | "invoke";
+  message: string;
+};
+
+function unexpectedExtrasResponse(): ExtrasError {
+  return { category: "schema", message: t("unexpectedExtras") };
+}
+
+function extrasObservationLabel(classified: ImportClass | NoteCrudClass): string {
+  switch (classified) {
+    case "disk_verified":
+      return t("extrasObservationDisk");
+    case "accepted_unverified":
+      return t("extrasObservationUnverified");
+    case "empty":
+      return t("extrasObservationEmpty");
+    case "unclassified":
+      return t("extrasObservationUnclassified");
+    case "conflict":
+      return t("extrasObservationUnverified");
+    default: {
+      const exhaustive: never = classified;
+      return exhaustive;
+    }
+  }
+}
+
+function ExtrasPanel() {
+  const [sourceId, setSourceId] = useState("");
+  const [phase, setPhase] = useState<"empty" | "ready" | "error">("empty");
+  const [catalog, setCatalog] = useState<ExtrasCatalogDto | null>(null);
+  const [ingested, setIngested] = useState<IngestResultDto | null>(null);
+  const [error, setError] = useState<ExtrasError | null>(null);
+
+  const loadExtras = async (extraId?: string) => {
+    const route = copyFixtureRoute();
+    try {
+      const response = await invokeTyped<IpcResponse>({
+        command: "inspect_extras",
+        args: {
+          workspace: route.workspace,
+          project: route.project,
+          ...(extraId ? { extra_id: extraId } : {}),
+        },
+      });
+      switch (response.kind) {
+        case "error":
+          setError({ category: response.category, message: response.message });
+          setCatalog(null);
+          setPhase("error");
+          return;
+        case "extras_catalog":
+          if (
+            response.engine_extras ||
+            response.official_pdf_office ||
+            response.semantic_enabled ||
+            response.model_loaded ||
+            response.scanned_user_obsidian_vault ||
+            (response.extras_enabled &&
+              (response.extras.length === 0 || !response.observation.disk_verified))
+          ) {
+            setError(unexpectedExtrasResponse());
+            setCatalog(null);
+            setPhase("error");
+            return;
+          }
+          setError(null);
+          setCatalog({
+            extra_id: response.extra_id,
+            extras: response.extras,
+            extras_enabled: response.extras_enabled,
+            semantic_enabled: false,
+            model_loaded: false,
+            observation: response.observation,
+            engine_extras: false,
+            official_pdf_office: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            files_written: false,
+          });
+          setPhase(response.extras.length === 0 ? "empty" : "ready");
+          return;
+        case "capabilities":
+        case "runtime_state":
+        case "project_selected":
+        case "project_catalog":
+        case "preflight":
+        case "config_discovery":
+        case "tree_page":
+        case "note_read":
+        case "backup_catalog":
+        case "fixture_restored":
+        case "windows_runtime":
+        case "draft_saved":
+        case "draft_loaded":
+        case "note_written":
+        case "note_edited":
+        case "note_moved":
+        case "note_deleted":
+        case "relation_list":
+        case "graph_page":
+        case "search_page":
+        case "context_preview":
+        case "activity_page":
+        case "search_inspector":
+        case "recall_benchmark":
+        case "schema_validated":
+        case "resource_page":
+        case "prompt_page":
+        case "tool_inspection":
+        case "cli_inventory":
+        case "notes_imported":
+        case "api_audit":
+        case "document_ingested":
+        case "shutdown_begun":
+          setError(unexpectedExtrasResponse());
+          setCatalog(null);
+          setPhase("error");
+          return;
+        default: {
+          const exhaustive: never = response;
+          return exhaustive;
+        }
+      }
+    } catch (cause) {
+      setError({
+        category: "invoke",
+        message: cause instanceof Error ? cause.message : String(cause),
+      });
+      setCatalog(null);
+      setPhase("error");
+    }
+  };
+
+  const runIngest = async () => {
+    if (!isFixtureSourceId(sourceId)) {
+      setError({ category: "policy", message: t("extrasSourceDenied") });
+      setPhase("error");
+      return;
+    }
+    const route = copyFixtureRoute();
+    try {
+      const response = await invokeTyped<IpcResponse>({
+        command: "ingest_document",
+        args: {
+          workspace: route.workspace,
+          project: route.project,
+          source_id: sourceId.trim(),
+        },
+      });
+      switch (response.kind) {
+        case "error":
+          setError({ category: response.category, message: response.message });
+          setIngested(null);
+          setPhase("error");
+          return;
+        case "document_ingested":
+          if (
+            response.engine_extras ||
+            response.official_pdf_office ||
+            response.scanned_user_obsidian_vault ||
+            (response.extras_enabled && response.files.length === 0 && !response.files_written) ||
+            (response.observation.disk_verified && !response.files_written)
+          ) {
+            setError(unexpectedExtrasResponse());
+            setIngested(null);
+            setPhase("error");
+            return;
+          }
+          setError(null);
+          setIngested({
+            source_id: response.source_id,
+            extra_id: response.extra_id,
+            files: response.files,
+            files_written: response.files_written,
+            observation: response.observation,
+            extras_enabled: response.extras_enabled,
+            engine_extras: false,
+            official_pdf_office: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+          });
+          setPhase(response.files.length === 0 ? "empty" : "ready");
+          return;
+        case "capabilities":
+        case "runtime_state":
+        case "project_selected":
+        case "project_catalog":
+        case "preflight":
+        case "config_discovery":
+        case "tree_page":
+        case "note_read":
+        case "backup_catalog":
+        case "fixture_restored":
+        case "windows_runtime":
+        case "draft_saved":
+        case "draft_loaded":
+        case "note_written":
+        case "note_edited":
+        case "note_moved":
+        case "note_deleted":
+        case "relation_list":
+        case "graph_page":
+        case "search_page":
+        case "context_preview":
+        case "activity_page":
+        case "search_inspector":
+        case "recall_benchmark":
+        case "schema_validated":
+        case "resource_page":
+        case "prompt_page":
+        case "tool_inspection":
+        case "cli_inventory":
+        case "notes_imported":
+        case "api_audit":
+        case "extras_catalog":
+        case "shutdown_begun":
+          setError(unexpectedExtrasResponse());
+          setIngested(null);
+          setPhase("error");
+          return;
+        default: {
+          const exhaustive: never = response;
+          return exhaustive;
+        }
+      }
+    } catch (cause) {
+      setError({
+        category: "invoke",
+        message: cause instanceof Error ? cause.message : String(cause),
+      });
+      setIngested(null);
+      setPhase("error");
+    }
+  };
+
+  const empty = phase === "empty" && !error;
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error
+    ? t("extrasErrorTitle")
+    : empty
+      ? t("extrasEmptyTitle")
+      : t("extrasReadyTitle");
+
+  return (
+    <section
+      className="panel"
+      data-state={state}
+      aria-labelledby="extras-title"
+      role={error ? "alert" : undefined}
+    >
+      <p className="state-badge">{badge}</p>
+      <h2 id="extras-title">{heading}</h2>
+      <p>
+        {error
+          ? `${errorCategoryLabel(error.category)}：${error.message}`
+          : empty
+            ? t("extrasEmptyBody")
+            : t("extrasReadyBody")}
+      </p>
+      <p>{t("extrasNotImport")}</p>
+      <p>{t("extrasNotOfficial")}</p>
+      <p>{t("extrasEnvelopeNote")}</p>
+      <ul className="policy-list">
+        <li>
+          {t("extrasEnabledLabel")}：
+          {catalog?.extras_enabled ? t("extrasEnabledTrue") : t("extrasEnabledFalse")}
+        </li>
+        <li>
+          {t("extrasSemanticLabel")}：{t("extrasSemanticFalse")}
+        </li>
+        <li>
+          {t("extrasModelLabel")}：{t("extrasModelFalse")}
+        </li>
+      </ul>
+      <button type="button" className="action" onClick={() => void loadExtras()}>
+        {t("extrasInspect")}
+      </button>
+      <div className="crud-editor">
+        <label htmlFor="extras-source-id">{t("extrasSourceLabel")}</label>
+        <input
+          id="extras-source-id"
+          type="text"
+          value={sourceId}
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(event) => {
+            setSourceId(event.target.value);
+            setError(null);
+          }}
+        />
+      </div>
+      <button type="button" className="action" onClick={() => void runIngest()}>
+        {t("extrasIngest")}
+      </button>
+      <ul className="policy-list">
+        <li>{t("extrasNoVault")}</li>
+        <li>
+          {t("extrasFilesWrittenLabel")}：
+          {ingested?.files_written ? t("extrasWroteFiles") : t("extrasNoWrite")}
+        </li>
+      </ul>
+      {catalog ? (
+        <ul className="extras-list">
+          {catalog.extras.map((entry: ExtraEntryDto) => (
+            <li key={entry.extra_id}>
+              <span>{entry.extra_id}</span>
+              <span>{entry.kind}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {catalog ? <p>{extrasObservationLabel(catalog.observation.classified_as)}</p> : null}
+      {ingested ? (
+        <ul className="extras-list">
+          {ingested.files.map((file) => (
+            <li key={file.identifier}>
+              <span>{file.identifier}</span>
+              <span>{extrasObservationLabel(ingested.observation.classified_as)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </section>
   );
 }
@@ -5698,6 +6088,8 @@ function BackupPanel() {
       case "cli_inventory":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
             setError(unexpectedBackupResponse());
             setPhase("error");
@@ -5888,6 +6280,8 @@ async function restoreNamedFixture(
       case "cli_inventory":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
@@ -6053,6 +6447,8 @@ function WindowsRuntimeCard() {
       case "cli_inventory":
       case "notes_imported":
       case "api_audit":
+      case "extras_catalog":
+      case "document_ingested":
       case "shutdown_begun":
             setError(unexpectedWindowsResponse());
             setPhase("error");

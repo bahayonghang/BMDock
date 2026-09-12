@@ -43,7 +43,10 @@ plus named CLI leaf catalog (`engine_tools=false`,
 (`engine_import=false`), and T29 typed `inspect_api_audit`
 BMDock-owned named-leaf API/CLI gap audit
 (`full_api_coverage=false`, `semantic_enabled=false`,
-`model_loaded=false`). It applies to
+`model_loaded=false`), and T30 typed `inspect_extras` /
+`ingest_document` BMDock-owned fixture extra catalog plus
+sidecar ingest (`extras_enabled=false` unless extras exist
+on disk; official PDF/Office extras remain UNVERIFIED). It applies to
 `apps/bmdock-desktop/src-tauri/src/ipc.rs`,
 `apps/bmdock-desktop/src-tauri/src/library.rs`,
 `apps/bmdock-desktop/src-tauri/src/conflict.rs`,
@@ -286,6 +289,25 @@ interfaces remain separate. Lifecycle ownership lives in
   Do not spawn `engine_worker.py`, run `just contract`, or live CLI.
   Dual profiles stay isolated (21 vs 27). Do not add rmcp. Do not
   start Supervisor. Do not treat `just contract` as T29 proof.
+- T30 `inspect_extras` catalogs BMDock-owned fixture extras over
+  `FixtureLibrary` test files `{temp}/bmdock-t30-*`. Args are
+  `ExplicitRouteArgs` plus optional `extra_id`. `deny_unknown_fields`.
+  Extra `path` / `root` fail closed as `schema`. Missing route is
+  `schema`. Non-fixture routes and filesystem `extra_id` are `policy`
+  and do not open the library. Hits match physical UTF-8. Envelope
+  text is not disk proof. Production `EmptyLibrary` returns
+  `extras_enabled=false`, empty catalog, `classified_as: empty`.
+  `extras_enabled=false` by default. Claiming `extras_enabled=true`
+  without disk files is `unsupported`. `semantic_enabled=false`.
+  `model_loaded=false`. Do not scan user vaults.
+- T30 `ingest_document` copies a named extra sidecar (`.txt` / `.md`)
+  into fixture notes. Args are `ExplicitRouteArgs` plus required
+  `source_id` (fixture identifier, not a filesystem path). Same
+  fail-closed rules as extras inspect. Distinct from T28
+  `import_notes` (markdown copy). Official Basic Memory extras /
+  PDF/Office ingest remain UNVERIFIED. Dual profiles stay isolated
+  (21 vs 27). Do not add rmcp. Do not start Supervisor. Do not treat
+  `just contract` as T30 proof.
 - The boundary does not start or stop the Supervisor, call the official
   engine over rmcp, access a user vault, or expose raw `callTool`. T14
   drafts are BMDock-owned session artifacts, not a second note index and
@@ -338,7 +360,9 @@ interfaces remain separate. Lifecycle ownership lives in
   `cursor` / `page_size`. T28 `import_notes` carries
   `ExplicitRouteArgs` plus required `source_id`. T29
   `inspect_api_audit` carries `ExplicitRouteArgs` plus required
-  `profile_id`. T22 `preview_context`
+  `profile_id`. T30 `inspect_extras` carries `ExplicitRouteArgs`
+  plus optional `extra_id`. T30 `ingest_document` carries
+  `ExplicitRouteArgs` plus required `source_id`. T22 `preview_context`
   carries `ExplicitRouteArgs` plus `identifier` and optional `query`.
   T22 `list_activity` carries `ExplicitRouteArgs` plus optional
   `cursor` / `page_size`. T16 coordinates overlapping
@@ -402,6 +426,8 @@ inspect_tools: { workspace, project, profile_id }
 list_cli_inventory: { workspace, project, profile_id, cursor?, page_size? }
 import_notes: { workspace, project, source_id }
 inspect_api_audit: { workspace, project, profile_id }
+inspect_extras: { workspace, project, extra_id? }
+ingest_document: { workspace, project, source_id }
 preview_context: { workspace, project, identifier, query? }
 list_activity: { workspace, project, cursor?, page_size? }
 list_backups: { workspace, project }
@@ -485,7 +511,7 @@ fail closed as `schema`.
 
 ### Request and response fields
 
-- `get_capabilities` returns `kind: "capabilities"`, the thirty-two command names,
+- `get_capabilities` returns `kind: "capabilities"`, the thirty-four command names,
   the two event names, and a policy DTO.
 - `get_runtime_state` returns `kind: "runtime_state"` projected from the
   managed `Supervisor` snapshot plus T10 `RouteState`:
@@ -884,11 +910,11 @@ The capability policy must report:
 ```
 
 `SelectProjectArgs`, `ExplicitRouteArgs`, `ListTreeArgs`, `ReadNoteArgs`,
-`ListRelationsArgs`, `ExpandGraphArgs`, `SearchNotesArgs`, `InspectSearchArgs`, `RecallBenchmarkArgs`, `SchemaValidateArgs`, `ListResourcesArgs`, `ListPromptsArgs`, `InspectToolsArgs`, `ListCliInventoryArgs`, `ImportNotesArgs`, `InspectApiAuditArgs`, `PreviewContextArgs`, `ListActivityArgs`, `RestoreFixtureArgs`, `SaveDraftArgs`, `LoadDraftArgs`, `WriteNoteArgs`,
+`ListRelationsArgs`, `ExpandGraphArgs`, `SearchNotesArgs`, `InspectSearchArgs`, `RecallBenchmarkArgs`, `SchemaValidateArgs`, `ListResourcesArgs`, `ListPromptsArgs`, `InspectToolsArgs`, `ListCliInventoryArgs`, `ImportNotesArgs`, `InspectApiAuditArgs`, `InspectExtrasArgs`, `IngestDocumentArgs`, `PreviewContextArgs`, `ListActivityArgs`, `RestoreFixtureArgs`, `SaveDraftArgs`, `LoadDraftArgs`, `WriteNoteArgs`,
 `EditNoteArgs`, `MoveNoteArgs`, `DeleteNoteArgs`, and `EmptyArgs`
 use `#[serde(deny_unknown_fields)]`.
 There is no path field on `list_projects` / `run_preflight` /
-`discover_config` / `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `preview_context` / `list_activity` / `list_backups` /
+`discover_config` / `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `preview_context` / `list_activity` / `list_backups` /
 `restore_fixture` / `inspect_windows_runtime` / `save_draft` /
 `load_draft` / `write_note` / `edit_note` / `move_note` /
 `delete_note` / `begin_shutdown` and no raw `callTool` handler. Typed
@@ -1046,6 +1072,18 @@ schema MCP, live CLI) are explicit `unavailable` / `unverified`.
 not user-vault or full-API success. Tests inject `{temp}/bmdock-t29-*`.
 Do not spawn `engine_worker.py` or run `just contract`. T29 does
 not start Supervisor or add rmcp.
+T30 adds `inspect_extras` and `ingest_document` on the same
+`ipc_invoke` union. Extras catalog is BMDock-owned over
+`{temp}/bmdock-t30-*` fixture files. Hits match physical UTF-8.
+Envelope text is not disk proof. Production `EmptyLibrary` is
+`extras_enabled=false`, empty catalog, `classified_as: empty`.
+`extras_enabled=false` by default. Claiming `extras_enabled=true`
+without disk files is `unsupported`. `semantic_enabled=false`.
+`model_loaded=false`. `ingest_document` copies a named extra
+sidecar into fixture notes and is distinct from `import_notes`.
+Official extras / PDF/Office ingest remain UNVERIFIED. Extra
+`path` / `root` fail closed as `schema`. Non-fixture is `policy`.
+T30 does not start Supervisor or add rmcp.
 T22 adds `preview_context` and `list_activity` on the same
 `ipc_invoke` union. Preview is a BMDock-owned fixture markdown
 snippet (`executed=false`). Activity is fixture markdown mtime
@@ -1067,7 +1105,7 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 | Unknown `command`, including `call_tool` and MCP identity `search` / `fetch` / `recent_activity` / `build_context` / `schema_infer` / `schema_diff` / `resources/list` / `resources/read` / `prompts/list` / `prompts/get` / `tools/call` | Serde deserialization fails closed | `schema` at the boundary |
 | Incomplete `write_note` args (for example only `project`) | `deny_unknown_fields` / missing fields | `schema` |
 | Extra field in `args` | `deny_unknown_fields` rejects the DTO | `schema` |
-| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
 | Extra top-level field such as `path` beside `command`/`args` | `deny_unknown_fields` on `IpcCommand` | `schema` |
 | `select_project` for any value other than `bmdock-fixture` | Dispatcher rejects without filesystem access | `policy` |
 | `ExplicitRouteArgs` missing `project`/`workspace` or carrying an extra `path` | `deny_unknown_fields` rejects the DTO | `schema` |
@@ -1169,6 +1207,18 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 | Empty library `inspect_api_audit` | Empty audit, `classified_as: empty`, `full_api_coverage=false`, `semantic_enabled=false`, `model_loaded=false` | empty state |
 | Audit DTO claiming `full_api_coverage`, `semantic_enabled`, `model_loaded`, live MCP/CLI, or silently omitting unavailable capabilities | Reject; gaps stay explicit | `unsupported` |
 | Coarse CLI bucket on `inspect_api_audit` | Reject; named leaves only | `unsupported` |
+| Extra `path` / `root` on `inspect_extras` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Empty `inspect_extras` `extra_id` when provided | Reject without opening the library | `schema` |
+| Non-fixture `inspect_extras` | Reject without opening the library | `policy` |
+| `inspect_extras` `extra_id` that looks like a user vault / `%APPDATA%` / `.basic-memory` path | Reject without opening the library | `policy` |
+| Empty library `inspect_extras` | Empty catalog, `extras_enabled=false`, `classified_as: empty`, `semantic_enabled=false`, `model_loaded=false` | empty state |
+| Claiming `extras_enabled=true` without disk extra files | Reject; extras stay disabled | `unsupported` |
+| Extra `path` / `root` on `ingest_document` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Missing `ingest_document` `source_id` | Reject without opening the library | `schema` |
+| Non-fixture `ingest_document` | Reject without opening the library | `policy` |
+| `ingest_document` `source_id` that looks like a user vault / `%APPDATA%` / `.basic-memory` path | Reject without opening the library | `policy` |
+| Empty library `ingest_document` | Empty `files[]`, `classified_as: empty`, `extras_enabled=false`, not user-vault | empty state |
+| Envelope-only ingest | Classify `accepted_unverified`; not disk proof | — |
 | Unknown official tool name in the selected profile baseline | List as `denied` / `missing`; do not auto-admit | — |
 | Missing `preview_context` identifier | Reject without opening the library | `schema` |
 | `preview_context` identifier that looks like a user vault filesystem path | Reject without opening the library | `policy` |
@@ -1379,23 +1429,24 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 
 ## 6. Tests Required
 
-- Rust unit test: capability response lists exactly thirty-two commands and two
+- Rust unit test: capability response lists exactly thirty-four commands and two
   events, and both arbitrary-path and raw-callTool policy flags are false.
-  `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`,
+  `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`,
   `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`,
   `edit_note`, `move_note`, `delete_note`, and `begin_shutdown` are present; `call_tool`,
   MCP identity `search`, `fetch`, `recent_activity`, `build_context`, `schema_infer`, `schema_diff`, `resources/list`, `resources/read`, `prompts/list`, `prompts/get`, and `tools/call` are absent. Incomplete `write_note` args remain schema.
 - Rust unit test: a non-fixture project returns `ErrorCategory::Policy`.
 - Rust unit test: unknown command including `call_tool`, extra project path,
   extra runtime-state path, extra `list_projects` path/root, extra preflight
-  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `expand_graph` path/root,   extra `search_notes` path/root/`id`, extra `inspect_search` path/root/`id`, extra `run_recall_benchmark` path/root, extra `schema_validate` path/root, extra `list_resources` path/root, extra `list_prompts` path/root, extra `inspect_tools` path/root, extra `list_cli_inventory` path/root, extra `import_notes` path/root, extra `inspect_api_audit` path/root, extra `preview_context` path/root, extra `list_activity` path/root, extra `list_backups`
+  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `expand_graph` path/root,   extra `search_notes` path/root/`id`, extra `inspect_search` path/root/`id`, extra `run_recall_benchmark` path/root, extra `schema_validate` path/root, extra `list_resources` path/root, extra `list_prompts` path/root, extra `inspect_tools` path/root, extra `list_cli_inventory` path/root, extra `import_notes` path/root, extra `inspect_api_audit` path/root, extra `inspect_extras` path/root, extra `ingest_document` path/root, extra `preview_context` path/root, extra `list_activity` path/root, extra `list_backups`
   path/root, extra `restore_fixture` path, extra
   `inspect_windows_runtime` path/root, extra `save_draft` path/root, extra
   `load_draft` path/root, and extra `begin_shutdown` path/root all fail
   `serde_json::from_str::<IpcCommand>`. Incomplete
   `read_note` args (missing workspace/identifier), incomplete
   `restore_fixture` args (missing backup_id), incomplete `import_notes`
-  args (missing source_id), incomplete `save_draft`
+  args (missing source_id), incomplete `ingest_document` args
+  (missing source_id), incomplete `save_draft`
   args (missing body), and incomplete `load_draft` args (missing
   identifier) also fail closed.
 - Rust unit test: a connected snapshot projects `status`/`profile` and keeps
@@ -1407,7 +1458,7 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
   scan user vaults, and keeps `cross_project_search_allowed` and
   `implicit_current_project_writes` false.   `ExplicitRouteArgs` requires both
   fields, rejects extra paths as schema, and rejects non-fixture routes as
-  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `preview_context` / `list_activity` / `list_backups` /
+  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `preview_context` / `list_activity` / `list_backups` /
   `restore_fixture` / `save_draft` / `load_draft` / `write_note` /
   `edit_note` / `move_note` / `delete_note` must not open the library,
   backup store, or draft store.
@@ -1591,6 +1642,25 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
   `{temp}/bmdock-t29-*`. Official MCP, live CLI, extras ingest, and
   cloud remain UNVERIFIED. T29 does not start Supervisor, add rmcp,
   or spawn `engine_worker.py`.
+- Rust unit test: `inspect_extras` requires `ExplicitRouteArgs` plus
+  optional `extra_id`. Extra `path` / `root` fail closed as `schema`.
+  Empty `extra_id` is `schema`. Non-fixture routes and filesystem
+  `extra_id` are `policy` and do not open the library. Production
+  `EmptyLibrary` is empty with `extras_enabled=false` and
+  `classified_as: empty`. Tests inject `{temp}/bmdock-t30-*` extras
+  and observe physical UTF-8, including Chinese. Claiming
+  `extras_enabled=true` without disk files is `unsupported`.
+  `semantic_enabled=false`. `model_loaded=false`. Official extras /
+  PDF/Office ingest remain UNVERIFIED. T30 does not start Supervisor
+  or add rmcp.
+- Rust unit test: `ingest_document` requires `ExplicitRouteArgs` plus
+  required `source_id`. Extra `path` / `root` fail closed as `schema`.
+  Missing `source_id` is `schema`. Non-fixture routes and filesystem
+  `source_id` are `policy`. Production `EmptyLibrary` is empty, not
+  user-vault. Fixture ingest copies a named `.txt` / `.md` extra into
+  fixture notes and observes physical UTF-8. Envelope success is not
+  disk proof. Distinct from `import_notes`. Dual profiles stay
+  isolated. T30 does not start Supervisor or add rmcp.
 - Rust unit test: `preview_context` requires `ExplicitRouteArgs` plus
   `identifier` plus optional `query`. Extra `path` / `root` fail
   closed as `schema`. Missing identifier is `schema`. Non-fixture
@@ -1805,6 +1875,14 @@ await invokeTyped({
   args: { workspace: route.workspace, project: route.project, profile_id: "release" },
 });
 await invokeTyped({
+  command: "inspect_extras",
+  args: { workspace: route.workspace, project: route.project },
+});
+await invokeTyped({
+  command: "ingest_document",
+  args: { workspace: route.workspace, project: route.project, source_id: "fixture-welcome" },
+});
+await invokeTyped({
   command: "preview_context",
   args: { workspace: route.workspace, project: route.project, identifier, query },
 });
@@ -1875,7 +1953,7 @@ await listenTyped("runtime_state", (state) => renderState(state));
 These calls use the shared DTOs and the explicit fixture/event allowlist.
 `list_projects`, `run_preflight`, and `discover_config` take empty args.
 `select_project` remains fixture-only. `list_tree`, `read_note`,
-`list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
+`list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
 `write_note`, `edit_note`, `move_note`, and `delete_note` copy
 `ExplicitRouteArgs` on every call and must not treat `runtime.project` as
 an implicit target.
@@ -1883,7 +1961,10 @@ an implicit target.
 target; it does not restore a user vault. `import_notes` copies
 BMDock-owned fixture markdown identified by `source_id` into an owned
 fixture library; it is distinct from `restore_fixture` and is not
-official extras/document ingestion. `save_draft` / `load_draft`
+official extras/document ingestion. `inspect_extras` lists BMDock-owned
+fixture extras; `ingest_document` copies a named extra sidecar into fixture
+notes and is distinct from `import_notes`. Official extras / PDF/Office
+ingest remain UNVERIFIED. `save_draft` / `load_draft`
 persist BMDock-owned session drafts, not official engine notes. Typed
 `write_note` is a host command on `NoteLibrary`, not raw `callTool`.
 Preflight reports

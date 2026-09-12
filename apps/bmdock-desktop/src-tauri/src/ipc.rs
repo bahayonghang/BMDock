@@ -5,10 +5,11 @@ use crate::conflict::{self, ConflictCoordinator};
 use crate::drafts::{self, DraftResultDto, DraftStore};
 use crate::drain::{self, DrainPhase, DrainResultDto, HostDrain};
 use crate::library::{
-    self, ActivityPageDto, ApiAuditDto, CliInventoryDto, ContextPreviewDto, GraphPageDto,
-    ImportResultDto, NoteDeleteDto, NoteEditDto, NoteLibrary, NoteMoveDto, NoteReadDto,
-    NoteWriteDto, PromptPageDto, RecallBenchmarkDto, RelationListDto, ResourcePageDto,
-    SchemaValidateDto, SearchInspectorDto, SearchPageDto, ToolInspectionDto, TreePageDto,
+    self, ActivityPageDto, ApiAuditDto, CliInventoryDto, ContextPreviewDto, ExtrasCatalogDto,
+    GraphPageDto, ImportResultDto, IngestResultDto, NoteDeleteDto, NoteEditDto, NoteLibrary,
+    NoteMoveDto, NoteReadDto, NoteWriteDto, PromptPageDto, RecallBenchmarkDto, RelationListDto,
+    ResourcePageDto, SchemaValidateDto, SearchInspectorDto, SearchPageDto, ToolInspectionDto,
+    TreePageDto,
 };
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
@@ -40,6 +41,8 @@ pub enum IpcCommandName {
     ListCliInventory,
     ImportNotes,
     InspectApiAudit,
+    InspectExtras,
+    IngestDocument,
     PreviewContext,
     ListActivity,
     ListBackups,
@@ -76,6 +79,8 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::ListCliInventory,
         IpcCommandName::ImportNotes,
         IpcCommandName::InspectApiAudit,
+        IpcCommandName::InspectExtras,
+        IpcCommandName::IngestDocument,
         IpcCommandName::PreviewContext,
         IpcCommandName::ListActivity,
         IpcCommandName::ListBackups,
@@ -374,6 +379,41 @@ impl InspectApiAuditArgs {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
+pub struct InspectExtrasArgs {
+    pub workspace: String,
+    pub project: String,
+    #[serde(default)]
+    pub extra_id: Option<String>,
+}
+
+impl InspectExtrasArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct IngestDocumentArgs {
+    pub workspace: String,
+    pub project: String,
+    pub source_id: String,
+}
+
+impl IngestDocumentArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct PreviewContextArgs {
     pub workspace: String,
     pub project: String,
@@ -563,6 +603,8 @@ pub enum IpcCommand {
     ListCliInventory(ListCliInventoryArgs),
     ImportNotes(ImportNotesArgs),
     InspectApiAudit(InspectApiAuditArgs),
+    InspectExtras(InspectExtrasArgs),
+    IngestDocument(IngestDocumentArgs),
     PreviewContext(PreviewContextArgs),
     ListActivity(ListActivityArgs),
     ListBackups(ExplicitRouteArgs),
@@ -639,6 +681,8 @@ pub enum IpcResponse {
     CliInventory(CliInventoryDto),
     NotesImported(ImportResultDto),
     ApiAudit(ApiAuditDto),
+    ExtrasCatalog(ExtrasCatalogDto),
+    DocumentIngested(IngestResultDto),
     ContextPreview(ContextPreviewDto),
     ActivityPage(ActivityPageDto),
     BackupCatalog(BackupCatalogDto),
@@ -908,6 +952,20 @@ pub fn dispatch_with_drain(
             let report = library.inspect_api_audit(args.profile_id.id())?;
             Ok(IpcResponse::ApiAudit(library::accept_api_audit(report)?))
         }
+        IpcCommand::InspectExtras(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            let extra_id = library::reject_extra_id(args.extra_id.as_deref())?;
+            Ok(IpcResponse::ExtrasCatalog(library::accept_extras_catalog(
+                library.inspect_extras(extra_id)?,
+            )?))
+        }
+        IpcCommand::IngestDocument(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            library::reject_source_id(&args.source_id)?;
+            Ok(IpcResponse::DocumentIngested(
+                library::accept_ingest_result(library.ingest_document(&args.source_id)?)?,
+            ))
+        }
         IpcCommand::PreviewContext(args) => {
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
@@ -1105,6 +1163,8 @@ mod tests {
                 IpcCommandName::ListCliInventory,
                 IpcCommandName::ImportNotes,
                 IpcCommandName::InspectApiAudit,
+                IpcCommandName::InspectExtras,
+                IpcCommandName::IngestDocument,
                 IpcCommandName::PreviewContext,
                 IpcCommandName::ListActivity,
                 IpcCommandName::ListBackups,
@@ -1119,14 +1179,14 @@ mod tests {
                 IpcCommandName::BeginShutdown,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 32);
+        assert_eq!(capabilities.commands.len(), 34);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 32);
+        assert_eq!(commands.len(), 34);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
@@ -1149,6 +1209,8 @@ mod tests {
         assert!(commands
             .iter()
             .any(|command| command == "inspect_api_audit"));
+        assert!(commands.iter().any(|command| command == "inspect_extras"));
+        assert!(commands.iter().any(|command| command == "ingest_document"));
         assert!(commands.iter().any(|command| command == "preview_context"));
         assert!(commands.iter().any(|command| command == "list_activity"));
         assert!(commands.iter().any(|command| command == "list_backups"));
@@ -1572,6 +1634,45 @@ mod tests {
             r#"{"command":"inspect_api_audit","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","profile_id":"release"}}"#,
         );
         assert!(well_formed_audit.is_ok());
+        let extra_path_on_extras = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_extras","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_extras.is_err());
+        let extra_root_on_extras = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_extras","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_extras.is_err());
+        let extras_without_route =
+            serde_json::from_str::<IpcCommand>(r#"{"command":"inspect_extras","args":{}}"#);
+        assert!(extras_without_route.is_err());
+        let well_formed_extras = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_extras","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(well_formed_extras.is_ok());
+        let well_formed_extras_id = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_extras","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","extra_id":"fixture-welcome"}}"#,
+        );
+        assert!(well_formed_extras_id.is_ok());
+        let extra_path_on_ingest = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"ingest_document","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","source_id":"fixture-welcome","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_ingest.is_err());
+        let extra_root_on_ingest = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"ingest_document","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","source_id":"fixture-welcome","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_ingest.is_err());
+        let missing_source_ingest = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"ingest_document","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(missing_source_ingest.is_err());
+        let ingest_without_route = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"ingest_document","args":{"source_id":"fixture-welcome"}}"#,
+        );
+        assert!(ingest_without_route.is_err());
+        let well_formed_ingest = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"ingest_document","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","source_id":"fixture-welcome"}}"#,
+        );
+        assert!(well_formed_ingest.is_ok());
         let mcp_tools_call = serde_json::from_str::<IpcCommand>(
             r#"{"command":"tools/call","args":{"name":"search"}}"#,
         );
@@ -2150,6 +2251,20 @@ mod tests {
             panic!("policy rejection must not open the library")
         }
 
+        fn inspect_extras(
+            &self,
+            _extra_id: Option<&str>,
+        ) -> Result<library::ExtrasCatalogDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
+        fn ingest_document(
+            &self,
+            _source_id: &str,
+        ) -> Result<library::IngestResultDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
         fn write_note(
             &self,
             _identifier: &str,
@@ -2512,6 +2627,22 @@ mod tests {
             workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
             project: FIXTURE_PROJECT.to_owned(),
             profile_id: profile,
+        }
+    }
+
+    fn fixture_extras_args(extra_id: Option<&str>) -> InspectExtrasArgs {
+        InspectExtrasArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            extra_id: extra_id.map(ToOwned::to_owned),
+        }
+    }
+
+    fn fixture_ingest_args(source_id: &str) -> IngestDocumentArgs {
+        IngestDocumentArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            source_id: source_id.to_owned(),
         }
     }
 
@@ -2919,6 +3050,58 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(audit_route.category, ErrorCategory::Policy);
+        let extras_route = dispatch_with_library(
+            IpcCommand::InspectExtras(InspectExtrasArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+                extra_id: None,
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(extras_route.category, ErrorCategory::Policy);
+        let filesystem_extra = dispatch_with_library(
+            IpcCommand::InspectExtras(InspectExtrasArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                extra_id: Some(r"C:\Users\someone\vault\note.txt".to_owned()),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(filesystem_extra.category, ErrorCategory::Policy);
+        let ingest_route = dispatch_with_library(
+            IpcCommand::IngestDocument(IngestDocumentArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+                source_id: "fixture-welcome".to_owned(),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(ingest_route.category, ErrorCategory::Policy);
+        let filesystem_ingest = dispatch_with_library(
+            IpcCommand::IngestDocument(IngestDocumentArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                source_id: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(filesystem_ingest.category, ErrorCategory::Policy);
         let prompts_route = dispatch_with_library(
             IpcCommand::ListPrompts(ListPromptsArgs {
                 workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
@@ -7871,7 +8054,7 @@ mod tests {
             release.ipc_commands.len(),
             library::ALLOWLISTED_IPC_COMMANDS.len()
         );
-        assert_eq!(release.ipc_commands.len(), 32);
+        assert_eq!(release.ipc_commands.len(), 34);
         assert!(release.ipc_commands.iter().any(|command| {
             command.name == "inspect_api_audit"
                 && command.coverage == library::AuditCoverage::Present
@@ -8169,5 +8352,275 @@ mod tests {
         });
         report.uncovered.push("schema_infer".to_owned());
         report.unavailable = library::explicit_unavailable_capabilities();
+    }
+
+    #[test]
+    fn inspect_extras_empty_library_is_empty_not_user_vault() {
+        let mut route = RouteState::default();
+        let IpcResponse::ExtrasCatalog(catalog) = dispatch_with_library(
+            IpcCommand::InspectExtras(fixture_extras_args(None)),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(catalog.extras.is_empty());
+        assert!(!catalog.extras_enabled);
+        assert!(!catalog.semantic_enabled);
+        assert!(!catalog.model_loaded);
+        assert!(!catalog.engine_extras);
+        assert!(!catalog.official_pdf_office);
+        assert!(!catalog.files_written);
+        assert_eq!(
+            catalog.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        assert!(!catalog.observation.disk_verified);
+        assert!(catalog.observation.envelope_is_not_disk_proof);
+        let json = serde_json::to_value(&IpcResponse::ExtrasCatalog(catalog)).unwrap();
+        assert_eq!(json["kind"], "extras_catalog");
+        assert_eq!(json["extras_enabled"], false);
+        let IpcResponse::DocumentIngested(ingested) = dispatch_with_library(
+            IpcCommand::IngestDocument(fixture_ingest_args("fixture-welcome")),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(ingested.files.is_empty());
+        assert!(!ingested.files_written);
+        assert!(!ingested.extras_enabled);
+        assert_eq!(
+            ingested.observation.classified_as,
+            library::ImportClass::Empty
+        );
+        let _ = (
+            library::ENGINE_EXTRAS_NOT_OWNED,
+            library::OFFICIAL_EXTRAS_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn inspect_extras_fixture_hits_match_physical_utf8() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t30-{nanos}"));
+        let library_root = dir.join("library");
+        let extras_root = dir.join("extras");
+        std::fs::create_dir_all(&library_root).unwrap();
+        std::fs::create_dir_all(&extras_root).unwrap();
+        let library = library::FixtureLibrary::with_extras(library_root.clone(), extras_root);
+        let body = "欢迎使用 BMDock extra sidecar。\n";
+        library.seed_extra("fixture-welcome", "txt", body).unwrap();
+        let mut route = RouteState::default();
+        let IpcResponse::ExtrasCatalog(catalog) = dispatch_with_library(
+            IpcCommand::InspectExtras(fixture_extras_args(None)),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(catalog.extras_enabled);
+        assert!(!catalog.semantic_enabled);
+        assert!(!catalog.model_loaded);
+        assert_eq!(
+            catalog.observation.classified_as,
+            library::NoteCrudClass::DiskVerified
+        );
+        assert!(catalog.observation.envelope_is_not_disk_proof);
+        assert_eq!(catalog.extras.len(), 1);
+        assert_eq!(catalog.extras[0].body, body);
+        assert!(catalog.extras[0].body.contains("欢迎"));
+        let IpcResponse::DocumentIngested(ingested) = dispatch_with_library(
+            IpcCommand::IngestDocument(fixture_ingest_args("fixture-welcome")),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(ingested.files_written);
+        assert!(ingested.extras_enabled);
+        assert!(!ingested.engine_extras);
+        assert_eq!(
+            ingested.observation.classified_as,
+            library::ImportClass::DiskVerified
+        );
+        let dest = library_root.join("fixture-welcome.md");
+        assert!(dest.is_file());
+        let disk = std::fs::read_to_string(&dest).unwrap();
+        assert_eq!(disk, body);
+        assert_ne!(
+            serde_json::to_value(&IpcCommand::IngestDocument(fixture_ingest_args(
+                "fixture-welcome"
+            )))
+            .unwrap()["command"],
+            "import_notes"
+        );
+        let release = EngineProfile::Release;
+        let preview = EngineProfile::MainPreview;
+        assert_eq!(release.expected_tools(), 21);
+        assert_eq!(preview.expected_tools(), 27);
+        assert_ne!(release.expected_tools(), preview.expected_tools());
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = (
+            library::ENGINE_EXTRAS_NOT_OWNED,
+            library::OFFICIAL_EXTRAS_UNVERIFIED,
+        );
+    }
+
+    struct EnvelopeExtrasLibrary;
+
+    impl NoteLibrary for EnvelopeExtrasLibrary {
+        fn list_tree(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            Ok(library::TreePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: false,
+            })
+        }
+
+        fn read_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            Err(library::LibraryError::unsupported(
+                library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
+            ))
+        }
+
+        fn inspect_extras(
+            &self,
+            extra_id: Option<&str>,
+        ) -> Result<library::ExtrasCatalogDto, library::LibraryError> {
+            let extra_id = library::reject_extra_id(extra_id)?;
+            Ok(library::ExtrasCatalogDto {
+                extra_id: extra_id.map(ToOwned::to_owned),
+                extras: Vec::new(),
+                extras_enabled: true,
+                semantic_enabled: false,
+                model_loaded: false,
+                observation: library::NoteCrudObservationDto {
+                    classified_as: library::NoteCrudClass::DiskVerified,
+                    disk_verified: true,
+                    envelope_is_not_disk_proof: false,
+                },
+                engine_extras: false,
+                official_pdf_office: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+            })
+        }
+
+        fn ingest_document(
+            &self,
+            source_id: &str,
+        ) -> Result<library::IngestResultDto, library::LibraryError> {
+            library::reject_source_id(source_id)?;
+            Ok(library::IngestResultDto {
+                source_id: source_id.to_owned(),
+                extra_id: source_id.to_owned(),
+                files: vec![library::ImportedFileDto {
+                    identifier: "欢迎".to_owned(),
+                    kind: crate::routing::OWNED_KIND.to_owned(),
+                }],
+                files_written: false,
+                observation: library::ImportObservationDto {
+                    classified_as: library::ImportClass::DiskVerified,
+                    disk_verified: true,
+                    envelope_is_not_disk_proof: false,
+                },
+                extras_enabled: false,
+                engine_extras: false,
+                official_pdf_office: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+            })
+        }
+    }
+
+    #[test]
+    fn extras_enabled_without_disk_files_is_unsupported_and_ingest_envelope_is_not_disk_proof() {
+        let mut route = RouteState::default();
+        let extras_error = dispatch_with_library(
+            IpcCommand::InspectExtras(fixture_extras_args(None)),
+            idle_snapshot(),
+            &mut route,
+            &EnvelopeExtrasLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(extras_error.category, ErrorCategory::Unsupported);
+        assert_eq!(
+            extras_error.message,
+            library::UNSUPPORTED_EXTRAS_ENABLED_WITHOUT_DISK
+        );
+        let IpcResponse::DocumentIngested(ingested) = dispatch_with_library(
+            IpcCommand::IngestDocument(fixture_ingest_args("fixture-welcome")),
+            idle_snapshot(),
+            &mut route,
+            &EnvelopeExtrasLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(!ingested.files_written);
+        assert!(!ingested.extras_enabled);
+        assert!(!ingested.observation.disk_verified);
+        assert!(ingested.observation.envelope_is_not_disk_proof);
+        assert_eq!(
+            ingested.observation.classified_as,
+            library::ImportClass::AcceptedUnverified
+        );
+        let json = serde_json::to_value(&IpcResponse::DocumentIngested(ingested)).unwrap();
+        assert_eq!(json["kind"], "document_ingested");
+        assert_ne!(json["observation"]["classified_as"], "disk_verified");
+        let empty_source = dispatch_with_library(
+            IpcCommand::IngestDocument(fixture_ingest_args("")),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(empty_source.category, ErrorCategory::Schema);
+        let empty_extra = dispatch_with_library(
+            IpcCommand::InspectExtras(fixture_extras_args(Some(""))),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(empty_extra.category, ErrorCategory::Schema);
+        let release = EngineProfile::Release;
+        let preview = EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(preview.commit(), "3452c821d76c083823d020984d71e06904a1ff1e");
+        assert_ne!(release.expected_tools(), preview.expected_tools());
+        let _ = (
+            library::ENGINE_EXTRAS_NOT_OWNED,
+            library::OFFICIAL_EXTRAS_UNVERIFIED,
+        );
     }
 }
