@@ -12,6 +12,10 @@
 | `status.json` | 阶段、G0–G7、T01–T40、限制说明 |
 | `evidence/g0-smoke-03c2839.json` | 双平台 smoke 数量与 SHA256 复核 |
 | `evidence/profile-comparison.json` | release vs main-preview 的工具/schema 观察差异 |
+| `evidence/t01-capability-baseline.json` | T01 双 profile 能力清单与范围限制 |
+| `evidence/t02-rmcp-interoperability.json` | T02 rmcp 互操作与错误分类 |
+| `evidence/t03-markdown-concurrency-recovery.json` | T03 Markdown 往返、并发与 UNVERIFIED 恢复边界 |
+| `evidence/t04-architecture-adr-licensing.json` | T04 命名、所有权、许可方向和 AC07/54/60 映射 |
 
 运行时 contract 报告写到仓库根 `artifacts/<profile>.contract.json`（gitignore），不在本目录。
 
@@ -41,12 +45,13 @@
 | P6 | T31–T35 | Cloud、Agent 集成、Provider |
 | P7 | T36–T40 | 安全 SBOM、安装升级、Release Gate |
 
-当前代码进度对应 T01 基础设施 + 部分 T02 smoke；JSON 里 T01 仍为 `in_progress`，T02 仍为 `planned`。更新 status 须与真实验收同步，禁止因文档交接而把 G0 标 `passed`。
+工作树中 T04 已标 `completed`，对应 ADR-0001 与 `t04-architecture-adr-licensing.json`；G0 仍为 `in_progress`。HEAD 在合入前 T04 为 `planned`，不要把未提交文档写成已发布门禁，也不要把 T01–T04 写成 HEAD 已全部完成。T05 为 `in_progress`，不属于 T04 交付。T06/T07 保持 `completed`，因此 `check_source` / `test_repository_phase_order` 会失败；T04 不得回退这些状态。更新 status 须与真实验收同步，禁止因文档交接而把 G0 标 `passed`。LICENSE/NOTICE/SBOM 仍为 T36 `UNVERIFIED`。
 
 ## 证据文件用法
 
 - `g0-smoke-03c2839.json`：`tested_code_commit`、`run_id`、两 OS 的 tools/prompts/resources/CLI/API 计数、7 项 checks、artifact SHA256。`product_gate` 字段明确 G0 未通过。
 - `profile-comparison.json`：`added_tools` 六项 Unix 风格工具；`changed_tool_input_schemas` 含 `read_note`/`search_notes`/`write_note` 等。注释写明描述/默认值变化不一定是破坏性变更。
+- `t04-architecture-adr-licensing.json`：AC07/AC54/AC60 文档映射。AGPL 是方向；`Cargo.toml` `license` 字段不是 LICENSE。`LICENSE`/`NOTICE`/SBOM 为 `UNVERIFIED_absent`。`product_gate` 保持 G0 `in_progress`。
 
 改门禁或任务状态时同步 README / docs/VERIFICATION.md / 根 `CLAUDE.md` 中的阶段描述。
 

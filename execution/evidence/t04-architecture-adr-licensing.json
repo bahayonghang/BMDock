@@ -1,0 +1,167 @@
+{
+  "kind": "t04_architecture_adr_licensing",
+  "task": "T04",
+  "title": "冻结命名、许可方向与架构ADR",
+  "status": "accepted_with_limits",
+  "date": "2026-09-12",
+  "product_gate": "G0 remains in_progress",
+  "decision": "docs/adr/0001-bmdock-boundaries-naming-licensing.md",
+  "harness": {
+    "note": "T04 is docs and evidence only. It does not implement T05 desktop code, does not run just contract, and is not license, native GUI, or real-vault proof.",
+    "just_contract": "not_run",
+    "just_setup": "not_run",
+    "t05_desktop_code": "not_implemented_by_t04"
+  },
+  "frozen_names": {
+    "product": "BMDock",
+    "probe": "bmdock-probe",
+    "tauri_rust_crate": "bmdock-app",
+    "desktop_package": "bmdock-desktop",
+    "desktop_app_dir": "apps/bmdock-desktop",
+    "renderer": "BMDock UI",
+    "profiles": ["release", "main-preview"]
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "version": "0.23.2",
+      "expected_tools_count": 21,
+      "merged_with_main_preview": false
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "version": null,
+      "expected_tools_count": 27,
+      "merged_with_release": false
+    }
+  },
+  "acceptance": {
+    "AC07": {
+      "status": "documented",
+      "claim": "Official Basic Memory remains the authority for Markdown, wiki-links, metadata, and its private database. BMDock owns UI, draft, session, and recovery state only; it does not create a second authoritative note index or write the engine database directly. Renderer paths and bmdock-probe control lines are not production write authorization.",
+      "evidence": [
+        "docs/adr/0001-bmdock-boundaries-naming-licensing.md",
+        "docs/G0_HANDOFF.md",
+        "docs/VERIFICATION.md",
+        "README.md"
+      ],
+      "unverified": [
+        "production desktop write-channel review of a shipping installer",
+        "real-user vault or global Basic Memory configuration",
+        "Cloud or remote project routing"
+      ]
+    },
+    "AC54": {
+      "status": "direction_recorded_unverified_for_release",
+      "claim": "BMDock original code targets AGPL-3.0-or-later as a license direction. README, this ADR, and Cargo.toml workspace license metadata are not a legal conclusion, LICENSE file, NOTICE, SBOM, dependency-license scan, source-delivery decision, or vulnerability review. Those remain T36 and UNVERIFIED.",
+      "evidence": [
+        "docs/adr/0001-bmdock-boundaries-naming-licensing.md",
+        "README.md",
+        "Cargo.toml",
+        "docs/VERIFICATION.md"
+      ],
+      "unverified": [
+        "LICENSE",
+        "NOTICE",
+        "SBOM",
+        "dependency license scan",
+        "source-delivery obligation review",
+        "vulnerability disposition",
+        "release-packaging license audit"
+      ]
+    },
+    "AC60": {
+      "status": "documented",
+      "claim": "Names, dual-profile isolation, official-engine ownership, T05 entry conditions, AC mapping, residual UNVERIFIED limits, and working-tree T04 status are traceable across the ADR, this JSON, VERIFICATION.md, and execution/status.json. This record does not claim HEAD already contains committed T01-T04 completion.",
+      "evidence": [
+        "docs/adr/0001-bmdock-boundaries-naming-licensing.md",
+        "execution/evidence/t04-architecture-adr-licensing.json",
+        "execution/status.json",
+        "docs/VERIFICATION.md",
+        "compatibility/profiles.json"
+      ],
+      "unverified": [
+        "G0 product gate",
+        "hosted CI for this T04 docs revision",
+        "native GUI and installer documentation completeness (T39/T40)"
+      ]
+    }
+  },
+  "license_artifacts": {
+    "LICENSE": "UNVERIFIED_absent",
+    "NOTICE": "UNVERIFIED_absent",
+    "SBOM": "UNVERIFIED_absent",
+    "cargo_workspace_license_field": "direction_only_not_LICENSE"
+  },
+  "source_evidence": [
+    "execution/evidence/t01-capability-baseline.json",
+    "execution/evidence/t02-rmcp-interoperability.json",
+    "execution/evidence/t03-markdown-concurrency-recovery.json"
+  ],
+  "validation": {
+    "task_validate": {
+      "command": "python ./.trellis/scripts/task.py validate 09-12-t04-architecture-adr-licensing",
+      "exit": 0,
+      "result": "passed"
+    },
+    "status_json": {
+      "command": "python -m json.tool execution/status.json",
+      "exit": 0,
+      "G0": "in_progress",
+      "T04": "completed",
+      "T05": "in_progress",
+      "T06": "completed",
+      "T07": "completed"
+    },
+    "evidence_json": {
+      "command": "python -m json.tool execution/evidence/t04-architecture-adr-licensing.json",
+      "exit": 0
+    },
+    "unittest_discover": {
+      "command": "python -m unittest discover -s tests -v",
+      "exit": 1,
+      "ran": 60,
+      "passed": 59,
+      "errors": 1,
+      "error": "test_repository_phase_order: RuntimeError: A later task was completed before G0",
+      "expected": "phase-order error because T06/T07 are completed while G0 is not passed"
+    },
+    "scripts_tasks_unit": {
+      "command": "python -m scripts.tasks unit",
+      "exit": 1,
+      "error": "ERROR: A later task was completed before G0",
+      "note": "T04 did not revert T06/T07"
+    },
+    "cargo_fmt": {"command": "cargo fmt --all -- --check", "exit": 0},
+    "cargo_test_workspace_locked_offline": {
+      "command": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "bmdock_probe": 5,
+      "bmdock_app": 14
+    },
+    "cargo_check_workspace_locked_offline": {
+      "command": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "note": "existing bmdock-app dead_code warnings are outside T04; T04 did not change that code"
+    },
+    "git_diff_check": {"command": "git diff --check", "exit": 0},
+    "just_contract": "not_run"
+  },
+  "working_tree_status": {
+    "T04": "completed",
+    "T05": "in_progress_not_in_t04_scope",
+    "T06": "completed_left_unchanged",
+    "T07": "completed_left_unchanged",
+    "G0": "in_progress",
+    "head_note": "HEAD still had T04 planned before this working-tree close; do not treat uncommitted docs as a published gate."
+  },
+  "scope_limits": [
+    "G0 remains in_progress.",
+    "LICENSE, NOTICE, and SBOM remain UNVERIFIED and are absent from the repository.",
+    "AGPL-3.0-or-later is a direction, not release-compliance proof. Cargo.toml workspace license metadata is not a LICENSE file.",
+    "No native GUI, real-vault, cancellation/lost-response, kill-recovery, disk-fault, or hosted-CI evidence is inferred.",
+    "just contract was not run and would not prove license, native GUI, or vault safety.",
+    "T04 did not implement T05 desktop product code and did not revert T06/T07 completed.",
+    "Dual release and main-preview profiles stay isolated; reports and tool counts are not merged."
+  ]
+}

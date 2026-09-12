@@ -68,6 +68,27 @@ T03 在 2026-09-12 沿用既有双 profile 隔离合约报告，未重跑 `just 
 
 丢响应、取消后接受、`timeout_unknown` 现场注入、强杀恢复和磁盘故障没有安全的跨平台注入器，全部明确记录为 `UNVERIFIED`。不同目标并发成功不等于相同目标冲突原子性；干净关闭也不等于丢响应、取消后接受或强杀恢复。本任务不是 native GUI、Job Object 或真实用户 vault 证据。后续 T12、T16、T17 负责产品级冲突协调和恢复链。
 
+## T04：命名、所有权、架构与许可方向
+
+T04 是文档与证据任务，没有实现 T05 桌面代码，也没有运行 `just contract`。
+产品和组件名称、双 profile 隔离、官方 Basic Memory 数据所有权、typed IPC
+设计边界及 T05 进入条件固化在 [ADR-0001](adr/0001-bmdock-boundaries-naming-licensing.md)。
+`bmdock-probe` 继续是 fixture-only 的 P0 开发者工具；Tauri Rust crate 名称冻结为
+`bmdock-app`，前端目录/npm 包名为 `bmdock-desktop`，renderer 对外名称为 BMDock UI，
+不直接访问 rmcp、文件系统或 raw `callTool`。这些名称冻结不等于 T05–T07 验收。
+release（v0.23.2 / `c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048`，21 tools）
+与 main-preview（`3452c821d76c083823d020984d71e06904a1ff1e`，27 tools）仍分别维护，
+不得合并清单或结果。
+
+原创代码的许可方向记录为 AGPL-3.0-or-later。该方向不构成完整发行法律结论。
+`Cargo.toml` 工作区 `license` 字段只是 crate 元数据，不是 `LICENSE` 文件。仓库
+当前没有 `LICENSE`、NOTICE 或 SBOM 文件；依赖许可归属、源码交付判断和漏洞处置
+仍属于 T36，当前均为 `UNVERIFIED`。README 许可文字不能替代这些产物。
+T04 的逐项 AC07/AC54/AC60 映射见 [t04-architecture-adr-licensing.json](../execution/evidence/t04-architecture-adr-licensing.json)。
+该记录只证明决策已文档化，不把 G0、真实 vault、native GUI、故障恢复或发行许可
+审查提前标为通过。工作树可将 T04 标为 `completed`；这不等于 HEAD 已发布该状态，
+也不回退已 `completed` 的 T06/T07。
+
 **完整 G0 仍未通过。** MCP resources/prompts/API/CLI 注册清单不是全部功能验收。完整原文往返、真正并发编辑、取消/丢响应、磁盘故障、强杀与恢复、Windows junction/睡眠恢复仍待验证；没有 Tauri GUI 或原生桌面安装器。具体交接要求见 [G0_HANDOFF.md](G0_HANDOFF.md)。
 
 本批全部操作使用自动生成的 fixture，没有连接用户真实 Obsidian vault、全局 Basic Memory 配置或 Agent 配置。环境过滤不等于 OS 网络沙箱；正常退出后的文件观察也不构成跨 Agent 原子写入保证。`just gate` 返回非零是当前完整产品门禁的真实状态，不能通过跳过测试来消除。
