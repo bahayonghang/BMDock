@@ -6,8 +6,8 @@ use crate::drafts::{self, DraftResultDto, DraftStore};
 use crate::drain::{self, DrainPhase, DrainResultDto, HostDrain};
 use crate::library::{
     self, ActivityPageDto, ContextPreviewDto, GraphPageDto, NoteDeleteDto, NoteEditDto,
-    NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto, RelationListDto, SearchInspectorDto,
-    SearchPageDto, TreePageDto,
+    NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto, RecallBenchmarkDto, RelationListDto,
+    SearchInspectorDto, SearchPageDto, TreePageDto,
 };
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
@@ -31,6 +31,7 @@ pub enum IpcCommandName {
     ExpandGraph,
     SearchNotes,
     InspectSearch,
+    RunRecallBenchmark,
     PreviewContext,
     ListActivity,
     ListBackups,
@@ -59,6 +60,7 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::ExpandGraph,
         IpcCommandName::SearchNotes,
         IpcCommandName::InspectSearch,
+        IpcCommandName::RunRecallBenchmark,
         IpcCommandName::PreviewContext,
         IpcCommandName::ListActivity,
         IpcCommandName::ListBackups,
@@ -198,6 +200,24 @@ pub struct InspectSearchArgs {
 }
 
 impl InspectSearchArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct RecallBenchmarkArgs {
+    pub workspace: String,
+    pub project: String,
+    #[serde(default)]
+    pub k: Option<u32>,
+}
+
+impl RecallBenchmarkArgs {
     fn route(&self) -> ExplicitRouteArgs {
         ExplicitRouteArgs {
             workspace: self.workspace.clone(),
@@ -389,6 +409,7 @@ pub enum IpcCommand {
     ExpandGraph(ExpandGraphArgs),
     SearchNotes(SearchNotesArgs),
     InspectSearch(InspectSearchArgs),
+    RunRecallBenchmark(RecallBenchmarkArgs),
     PreviewContext(PreviewContextArgs),
     ListActivity(ListActivityArgs),
     ListBackups(ExplicitRouteArgs),
@@ -457,6 +478,7 @@ pub enum IpcResponse {
     GraphPage(GraphPageDto),
     SearchPage(SearchPageDto),
     SearchInspector(SearchInspectorDto),
+    RecallBenchmark(RecallBenchmarkDto),
     ContextPreview(ContextPreviewDto),
     ActivityPage(ActivityPageDto),
     BackupCatalog(BackupCatalogDto),
@@ -666,6 +688,14 @@ pub fn dispatch_with_drain(
                 library::accept_search_inspector(inspector)?,
             ))
         }
+        IpcCommand::RunRecallBenchmark(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            let k = library::bound_recall_k(args.k)?;
+            let report = library.run_recall_benchmark(k)?;
+            Ok(IpcResponse::RecallBenchmark(
+                library::accept_recall_benchmark(report)?,
+            ))
+        }
         IpcCommand::PreviewContext(args) => {
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
@@ -855,6 +885,7 @@ mod tests {
                 IpcCommandName::ExpandGraph,
                 IpcCommandName::SearchNotes,
                 IpcCommandName::InspectSearch,
+                IpcCommandName::RunRecallBenchmark,
                 IpcCommandName::PreviewContext,
                 IpcCommandName::ListActivity,
                 IpcCommandName::ListBackups,
@@ -869,14 +900,14 @@ mod tests {
                 IpcCommandName::BeginShutdown,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 24);
+        assert_eq!(capabilities.commands.len(), 25);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 24);
+        assert_eq!(commands.len(), 25);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
@@ -885,6 +916,9 @@ mod tests {
         assert!(commands.iter().any(|command| command == "expand_graph"));
         assert!(commands.iter().any(|command| command == "search_notes"));
         assert!(commands.iter().any(|command| command == "inspect_search"));
+        assert!(commands
+            .iter()
+            .any(|command| command == "run_recall_benchmark"));
         assert!(commands.iter().any(|command| command == "preview_context"));
         assert!(commands.iter().any(|command| command == "list_activity"));
         assert!(commands.iter().any(|command| command == "list_backups"));
@@ -1148,6 +1182,22 @@ mod tests {
             r#"{"command":"inspect_search","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","query":"欢迎","identifier":"welcome"}}"#,
         );
         assert!(well_formed_inspect.is_ok());
+        let extra_path_on_recall = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"run_recall_benchmark","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","k":5,"path":"C:\\vault\\note.md"}}"#,
+        );
+        assert!(extra_path_on_recall.is_err());
+        let extra_root_on_recall = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"run_recall_benchmark","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_recall.is_err());
+        let recall_without_route = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"run_recall_benchmark","args":{"k":5}}"#,
+        );
+        assert!(recall_without_route.is_err());
+        let well_formed_recall = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"run_recall_benchmark","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","k":5}}"#,
+        );
+        assert!(well_formed_recall.is_ok());
         let extra_path_on_preview = serde_json::from_str::<IpcCommand>(
             r#"{"command":"preview_context","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","path":"C:\\vault\\note.md"}}"#,
         );
@@ -1629,6 +1679,13 @@ mod tests {
             panic!("policy rejection must not open the library")
         }
 
+        fn run_recall_benchmark(
+            &self,
+            _k: u32,
+        ) -> Result<library::RecallBenchmarkDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
         fn preview_context(
             &self,
             _identifier: &str,
@@ -1846,6 +1903,14 @@ mod tests {
             project: FIXTURE_PROJECT.to_owned(),
             query: query.to_owned(),
             identifier: identifier.map(ToOwned::to_owned),
+        }
+    }
+
+    fn fixture_recall_args(k: Option<u32>) -> RecallBenchmarkArgs {
+        RecallBenchmarkArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            k,
         }
     }
 
@@ -2079,6 +2144,19 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(inspect_identifier_path.category, ErrorCategory::Policy);
+        let recall_route = dispatch_with_library(
+            IpcCommand::RunRecallBenchmark(RecallBenchmarkArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+                k: Some(5),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(recall_route.category, ErrorCategory::Policy);
         let preview_route = dispatch_with_library(
             IpcCommand::PreviewContext(PreviewContextArgs {
                 workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
@@ -2275,6 +2353,24 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(inspect_empty_identifier.category, ErrorCategory::Schema);
+        let recall_zero = dispatch_with_library(
+            IpcCommand::RunRecallBenchmark(fixture_recall_args(Some(0))),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(recall_zero.category, ErrorCategory::Schema);
+        let recall_huge = dispatch_with_library(
+            IpcCommand::RunRecallBenchmark(fixture_recall_args(Some(library::MAX_PAGE_SIZE + 1))),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(recall_huge.category, ErrorCategory::Schema);
         let search_truncated = dispatch_with_library(
             IpcCommand::SearchNotes(fixture_search_args("欢迎", None, Some(2))),
             idle_snapshot(),
@@ -5516,6 +5612,182 @@ mod tests {
             library::ENGINE_ACTIVITY_NOT_OWNED,
             library::RECENT_ACTIVITY_MCP_UNVERIFIED,
             library::BUILD_CONTEXT_MCP_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn run_recall_benchmark_empty_library_is_empty_not_user_vault() {
+        let mut route = RouteState::default();
+        let IpcResponse::RecallBenchmark(report) = dispatch_with_library(
+            IpcCommand::RunRecallBenchmark(fixture_recall_args(None)),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(report.k, library::DEFAULT_PAGE_SIZE);
+        assert_eq!(report.query_count, 0);
+        assert!(report.queries.is_empty());
+        assert_eq!(report.recall_hits, 0);
+        assert_eq!(report.recall_relevant, 0);
+        assert!(!report.semantic_enabled);
+        assert!(!report.engine_search);
+        assert!(!report.native_gui);
+        assert!(!report.files_written);
+        assert!(!report.scanned_user_obsidian_vault);
+        assert!(!report.scanned_user_basic_memory_home);
+        assert_eq!(
+            report.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        assert!(!report.observation.disk_verified);
+        let json = serde_json::to_value(&IpcResponse::RecallBenchmark(report)).unwrap();
+        assert_eq!(json["kind"], "recall_benchmark");
+        assert_eq!(json["semantic_enabled"], false);
+        assert_eq!(json["engine_search"], false);
+        assert_eq!(json["native_gui"], false);
+        assert_eq!(json["files_written"], false);
+        assert!(json.get("path").is_none());
+        assert!(json.get("expected_tools").is_none());
+        assert_eq!(json["observation"]["classified_as"], "empty");
+        let _ = (
+            library::ENGINE_RECALL_NOT_OWNED,
+            library::RECALL_NATIVE_UNVERIFIED,
+            library::OFFICIAL_CHINESE_RECALL_UNVERIFIED,
+            library::NATIVE_GUI_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn run_recall_benchmark_fixture_gold_matches_physical_utf8() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t24-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            dir.join("welcome.md"),
+            "# 中文夹具笔记\n\n这是 BMDock 自有夹具正文。参见 [[欢迎]]。\n",
+        )
+        .unwrap();
+        std::fs::write(dir.join("欢迎.md"), "# 欢迎\n\n第二篇夹具正文。\n").unwrap();
+        std::fs::write(
+            dir.join("alpha.md"),
+            "# alpha\n\nEnglish body without CJK.\n",
+        )
+        .unwrap();
+        let library = library::FixtureLibrary::new(dir.clone());
+        let mut route = RouteState::default();
+        let IpcResponse::RecallBenchmark(report) = dispatch_with_library(
+            IpcCommand::RunRecallBenchmark(fixture_recall_args(Some(20))),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(report.k, 20);
+        assert_eq!(report.query_count, 1);
+        assert_eq!(report.queries[0].query, "欢迎");
+        assert!(!report.semantic_enabled);
+        assert!(!report.engine_search);
+        assert!(!report.native_gui);
+        assert_eq!(
+            report.observation.classified_as,
+            library::NoteCrudClass::DiskVerified
+        );
+        assert!(report.observation.disk_verified);
+        assert!(report.observation.envelope_is_not_disk_proof);
+        assert!(report.search_elapsed_ms < 60_000);
+        assert!(report.expand_elapsed_ms < 60_000);
+        assert!(report.chinese_permalinks.iter().any(|item| item == "欢迎"));
+        for identifier in &report.queries[0].relevant {
+            let path = dir.join(format!("{identifier}.md"));
+            let disk = std::fs::read_to_string(&path).unwrap();
+            assert!(disk.contains("欢迎"));
+        }
+        for identifier in &report.queries[0].hits {
+            let path = dir.join(format!("{identifier}.md"));
+            let disk = std::fs::read_to_string(&path).unwrap();
+            assert!(disk.contains("欢迎"));
+        }
+        assert!(report.queries[0].relevant.iter().any(|item| item == "欢迎"));
+        assert!(report.queries[0].hits.iter().any(|item| item == "欢迎"));
+        assert_eq!(report.recall_hits, report.recall_relevant);
+        assert_eq!(report.recall_relevant, 2);
+        let IpcResponse::RecallBenchmark(limited) = dispatch_with_library(
+            IpcCommand::RunRecallBenchmark(fixture_recall_args(Some(1))),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(limited.k, 1);
+        assert_eq!(limited.recall_hits, 1);
+        assert_eq!(limited.recall_relevant, 2);
+        let json = serde_json::to_value(&IpcResponse::RecallBenchmark(report)).unwrap();
+        assert_eq!(json["kind"], "recall_benchmark");
+        assert_eq!(json["native_gui"], false);
+        assert!(json.get("expected_tools").is_none());
+        assert!(json.get("path").is_none());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn run_recall_benchmark_does_not_merge_engine_profiles_or_claim_native_gui() {
+        let release = crate::supervisor::EngineProfile::Release;
+        let preview = crate::supervisor::EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(preview.commit(), "3452c821d76c083823d020984d71e06904a1ff1e");
+        assert_eq!(release.expected_tools(), 21);
+        assert_eq!(preview.expected_tools(), 27);
+        let mut route = RouteState::default();
+        let IpcResponse::RecallBenchmark(report) = dispatch_with_library(
+            IpcCommand::RunRecallBenchmark(fixture_recall_args(None)),
+            RuntimeSnapshot {
+                state: ConnectionState::Connected,
+                profile: Some(release),
+                child_pid: Some(7),
+                failure: None,
+                shutdown: None,
+            },
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let json = serde_json::to_value(&IpcResponse::RecallBenchmark(report)).unwrap();
+        assert!(json.get("expected_tools").is_none());
+        assert!(json.get("profile").is_none());
+        assert!(json.get("tools").is_none());
+        assert_eq!(json["semantic_enabled"], false);
+        assert_eq!(json["engine_search"], false);
+        assert_eq!(json["native_gui"], false);
+        assert_eq!(json["kind"], "recall_benchmark");
+        let claimed = library::RecallBenchmarkDto {
+            native_gui: true,
+            engine_search: true,
+            ..library::empty_recall_benchmark(library::DEFAULT_PAGE_SIZE)
+        };
+        assert_eq!(
+            library::accept_recall_benchmark(claimed).unwrap_err(),
+            library::LibraryError::unsupported(library::UNSUPPORTED_TRUNCATED)
+        );
+        let _ = (
+            library::ENGINE_RECALL_NOT_OWNED,
+            library::RECALL_NATIVE_UNVERIFIED,
+            library::OFFICIAL_CHINESE_RECALL_UNVERIFIED,
         );
     }
 }

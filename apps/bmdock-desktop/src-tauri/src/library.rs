@@ -4,7 +4,7 @@ use std::path::Path;
 #[cfg(test)]
 use std::path::{Component, PathBuf};
 #[cfg(test)]
-use std::time::UNIX_EPOCH;
+use std::time::{Instant, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
@@ -18,6 +18,11 @@ pub const SCHEMA_NOTE_TITLE: &str = "note title is required";
 pub const SCHEMA_NOTE_DESTINATION: &str = "move destination is required";
 pub const SCHEMA_MOVE_SAME_IDENTIFIER: &str = "move destination must differ from identifier";
 pub const SCHEMA_SEARCH_QUERY: &str = "search query is required";
+pub const SCHEMA_RECALL_K: &str = "k must be bounded and greater than 0";
+#[cfg(test)]
+pub const CHINESE_RECALL_QUERIES: &[&str] = &["欢迎"];
+#[cfg(test)]
+pub const CHINESE_RECALL_PERMALINK: &str = "欢迎";
 pub const SEMANTIC_DISABLED_REASON: &str =
     "semantic search is unavailable; semantic_enabled=false; no embedding backend; official semantic/model remain UNVERIFIED";
 pub const UNSUPPORTED_TRUNCATED: &str = "truncated inventory is not a success";
@@ -60,6 +65,15 @@ pub const ENGINE_INSPECTOR_NOT_OWNED: &str =
     "inspect_search explains BMDock-owned fixture lexical search, not official engine semantic search, not an embedding backend, and not T24 recall";
 #[cfg(test)]
 pub const INSPECTOR_READ_ONLY: &str = "inspect_search is read-only; files_written=false";
+#[cfg(test)]
+pub const ENGINE_RECALL_NOT_OWNED: &str =
+    "run_recall_benchmark is BMDock-owned fixture Chinese recall over disk gold, not official engine Chinese recall and not official search MCP";
+#[cfg(test)]
+pub const RECALL_NATIVE_UNVERIFIED: &str =
+    "T24 records bounded in-process elapsed_ms only; cargo test / npm build / UI copy are not AC56 native proof";
+#[cfg(test)]
+pub const OFFICIAL_CHINESE_RECALL_UNVERIFIED: &str =
+    "official engine Chinese recall remains UNVERIFIED";
 #[cfg(test)]
 pub const INSPECTOR_MODEL_UNVERIFIED: &str =
     "unknown or unavailable semantic model stays unclassified/unverified; model_loaded=false; never treat missing semantic as enabled success";
@@ -409,6 +423,58 @@ pub fn empty_search_inspector(query: &str, identifier: Option<&str>) -> SearchIn
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RecallQueryDto {
+    pub query: String,
+    pub relevant: Vec<String>,
+    pub hits: Vec<String>,
+    pub retrieved_relevant: u32,
+    pub relevant_count: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RecallBenchmarkDto {
+    pub k: u32,
+    pub query_count: u32,
+    pub recall_hits: u32,
+    pub recall_relevant: u32,
+    pub queries: Vec<RecallQueryDto>,
+    pub chinese_permalinks: Vec<String>,
+    pub search_elapsed_ms: u64,
+    pub expand_elapsed_ms: u64,
+    pub observation: NoteCrudObservationDto,
+    pub semantic_enabled: bool,
+    pub engine_search: bool,
+    pub native_gui: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub files_written: bool,
+}
+
+pub fn empty_recall_benchmark(k: u32) -> RecallBenchmarkDto {
+    RecallBenchmarkDto {
+        k,
+        query_count: 0,
+        recall_hits: 0,
+        recall_relevant: 0,
+        queries: Vec::new(),
+        chinese_permalinks: Vec::new(),
+        search_elapsed_ms: 0,
+        expand_elapsed_ms: 0,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        semantic_enabled: false,
+        engine_search: false,
+        native_gui: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        files_written: false,
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ContextPreviewDto {
     pub identifier: String,
     pub query: Option<String>,
@@ -597,6 +663,11 @@ pub trait NoteLibrary: Send + Sync {
         reject_search_query(query)?;
         let identifier = reject_inspect_identifier(identifier)?;
         Ok(empty_search_inspector(query, identifier))
+    }
+
+    fn run_recall_benchmark(&self, k: u32) -> Result<RecallBenchmarkDto, LibraryError> {
+        let k = bound_recall_k(Some(k))?;
+        Ok(empty_recall_benchmark(k))
     }
 
     fn preview_context(
@@ -872,6 +943,25 @@ impl FixtureLibrary {
         Ok(hits)
     }
 
+    fn collect_disk_relevant(&self, query: &str) -> Result<Vec<String>, LibraryError> {
+        let mut relevant = Vec::new();
+        for entry in self.collect_entries()? {
+            if looks_like_filesystem_path(&entry.identifier) {
+                return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+            }
+            let path = self.resolve_create_path(&entry.identifier)?;
+            if !path.is_file() {
+                continue;
+            }
+            let disk = crate::content_safety::read_exact_text(&path)
+                .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+            if disk.contains(query) {
+                relevant.push(entry.identifier);
+            }
+        }
+        Ok(relevant)
+    }
+
     fn collect_activity_entries(&self) -> Result<Vec<ActivityEntryDto>, LibraryError> {
         let reader = fs::read_dir(&self.root)
             .map_err(|_| LibraryError::unsupported(UNSUPPORTED_TRUNCATED))?;
@@ -1134,6 +1224,90 @@ impl NoteLibrary for FixtureLibrary {
             scanned_user_obsidian_vault: false,
             scanned_user_basic_memory_home: false,
             semantic_disabled_reason: SEMANTIC_DISABLED_REASON.to_owned(),
+        })
+    }
+
+    fn run_recall_benchmark(&self, k: u32) -> Result<RecallBenchmarkDto, LibraryError> {
+        let k = bound_recall_k(Some(k))?;
+        let mut queries = Vec::new();
+        let mut search_elapsed_ms = 0u64;
+        let mut chinese_permalinks = Vec::new();
+        for query in CHINESE_RECALL_QUERIES {
+            let relevant = self.collect_disk_relevant(query)?;
+            let search_start = Instant::now();
+            let page = self.search_notes(query, None, k)?;
+            search_elapsed_ms =
+                search_elapsed_ms.saturating_add(search_start.elapsed().as_millis() as u64);
+            let mut hits = Vec::new();
+            for hit in page.hits.iter().take(k as usize) {
+                if looks_like_filesystem_path(&hit.identifier) {
+                    return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+                }
+                let candidate = self.resolve_create_path(&hit.identifier)?;
+                if !candidate.is_file() {
+                    continue;
+                }
+                let disk = crate::content_safety::read_exact_text(&candidate)
+                    .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+                if !disk.contains(*query) {
+                    continue;
+                }
+                hits.push(hit.identifier.clone());
+                push_chinese_permalink(&mut chinese_permalinks, &hit.identifier);
+            }
+            let retrieved_relevant = hits
+                .iter()
+                .filter(|identifier| relevant.iter().any(|item| item == *identifier))
+                .count() as u32;
+            let relevant_count = relevant.len() as u32;
+            for identifier in &relevant {
+                push_chinese_permalink(&mut chinese_permalinks, identifier);
+            }
+            queries.push(RecallQueryDto {
+                query: (*query).to_owned(),
+                relevant,
+                hits,
+                retrieved_relevant,
+                relevant_count,
+            });
+        }
+        let expand_start = Instant::now();
+        let expand_page = match self.expand_graph(CHINESE_RECALL_PERMALINK, None, k) {
+            Ok(page) => page,
+            Err(LibraryError::Unsupported(_)) => empty_graph_page(CHINESE_RECALL_PERMALINK),
+            Err(error) => return Err(error),
+        };
+        let expand_elapsed_ms = expand_start.elapsed().as_millis() as u64;
+        for node in &expand_page.nodes {
+            push_chinese_permalink(&mut chinese_permalinks, &node.identifier);
+        }
+        for edge in &expand_page.edges {
+            push_chinese_permalink(&mut chinese_permalinks, &edge.source);
+            push_chinese_permalink(&mut chinese_permalinks, &edge.target);
+        }
+        let recall_hits: u32 = queries.iter().map(|query| query.retrieved_relevant).sum();
+        let recall_relevant: u32 = queries.iter().map(|query| query.relevant_count).sum();
+        let (classified, disk_verified) = if recall_relevant == 0 {
+            (NoteCrudClass::Empty, false)
+        } else {
+            (NoteCrudClass::DiskVerified, true)
+        };
+        Ok(RecallBenchmarkDto {
+            k,
+            query_count: queries.len() as u32,
+            recall_hits,
+            recall_relevant,
+            queries,
+            chinese_permalinks,
+            search_elapsed_ms,
+            expand_elapsed_ms,
+            observation: crud_observation(classified, disk_verified),
+            semantic_enabled: false,
+            engine_search: false,
+            native_gui: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            files_written: false,
         })
     }
 
@@ -1438,6 +1612,15 @@ pub fn bound_page_size(page_size: Option<u32>) -> Result<u32, LibraryError> {
     }
 }
 
+pub fn bound_recall_k(k: Option<u32>) -> Result<u32, LibraryError> {
+    match k {
+        None => Ok(DEFAULT_PAGE_SIZE),
+        Some(0) => Err(LibraryError::schema(SCHEMA_RECALL_K)),
+        Some(size) if size > MAX_PAGE_SIZE => Err(LibraryError::schema(SCHEMA_RECALL_K)),
+        Some(size) => Ok(size),
+    }
+}
+
 pub fn validate_request_cursor(cursor: Option<&str>) -> Result<Option<&str>, LibraryError> {
     match cursor {
         None => Ok(None),
@@ -1585,6 +1768,54 @@ pub fn accept_search_inspector(
         return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
     }
     Ok(inspector)
+}
+
+pub fn accept_recall_benchmark(
+    report: RecallBenchmarkDto,
+) -> Result<RecallBenchmarkDto, LibraryError> {
+    if report.semantic_enabled || report.engine_search || report.native_gui || report.files_written
+    {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if report.k == 0 || report.k > MAX_PAGE_SIZE {
+        return Err(LibraryError::schema(SCHEMA_RECALL_K));
+    }
+    if report.query_count as usize != report.queries.len() {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if report.queries.iter().any(|query| {
+        looks_like_filesystem_path(&query.query)
+            || query
+                .relevant
+                .iter()
+                .any(|identifier| looks_like_filesystem_path(identifier))
+            || query
+                .hits
+                .iter()
+                .any(|identifier| looks_like_filesystem_path(identifier))
+    }) || report
+        .chinese_permalinks
+        .iter()
+        .any(|identifier| looks_like_filesystem_path(identifier))
+    {
+        return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+    }
+    Ok(report)
+}
+
+#[cfg(test)]
+fn contains_cjk(value: &str) -> bool {
+    value.chars().any(|ch| {
+        let code = ch as u32;
+        (0x3400..=0x9FFF).contains(&code) || (0xF900..=0xFAFF).contains(&code)
+    })
+}
+
+#[cfg(test)]
+fn push_chinese_permalink(out: &mut Vec<String>, identifier: &str) {
+    if contains_cjk(identifier) && !out.iter().any(|existing| existing == identifier) {
+        out.push(identifier.to_owned());
+    }
 }
 
 pub fn reject_filesystem_identifier(identifier: &str) -> Result<(), LibraryError> {
@@ -2128,6 +2359,19 @@ mod tests {
         assert_eq!(inspector.observation.classified_as, NoteCrudClass::Empty);
         assert!(!inspector.observation.disk_verified);
         assert_eq!(inspector.semantic_disabled_reason, SEMANTIC_DISABLED_REASON);
+        let recall = library.run_recall_benchmark(DEFAULT_PAGE_SIZE).unwrap();
+        assert_eq!(recall.query_count, 0);
+        assert!(recall.queries.is_empty());
+        assert_eq!(recall.recall_hits, 0);
+        assert_eq!(recall.recall_relevant, 0);
+        assert!(recall.chinese_permalinks.is_empty());
+        assert!(!recall.semantic_enabled);
+        assert!(!recall.engine_search);
+        assert!(!recall.native_gui);
+        assert!(!recall.files_written);
+        assert_eq!(recall.observation.classified_as, NoteCrudClass::Empty);
+        assert!(!recall.observation.disk_verified);
+        assert!(recall.observation.envelope_is_not_disk_proof);
         let preview = library.preview_context("welcome", None).unwrap();
         assert!(preview.snippet.is_empty());
         assert!(!preview.executed);
@@ -2146,6 +2390,9 @@ mod tests {
             ENGINE_INSPECTOR_NOT_OWNED,
             INSPECTOR_READ_ONLY,
             INSPECTOR_MODEL_UNVERIFIED,
+            ENGINE_RECALL_NOT_OWNED,
+            RECALL_NATIVE_UNVERIFIED,
+            OFFICIAL_CHINESE_RECALL_UNVERIFIED,
             ENGINE_CONTEXT_NOT_OWNED,
             ENGINE_ACTIVITY_NOT_OWNED,
             SEMANTIC_SEARCH_UNVERIFIED,
@@ -2222,6 +2469,25 @@ mod tests {
         );
         assert_eq!(bound_page_size(None).unwrap(), DEFAULT_PAGE_SIZE);
         assert_eq!(bound_page_size(Some(2)).unwrap(), 2);
+        assert_eq!(
+            bound_recall_k(Some(0)).unwrap_err(),
+            LibraryError::schema(SCHEMA_RECALL_K)
+        );
+        assert_eq!(
+            bound_recall_k(Some(MAX_PAGE_SIZE + 1)).unwrap_err(),
+            LibraryError::schema(SCHEMA_RECALL_K)
+        );
+        assert_eq!(bound_recall_k(None).unwrap(), DEFAULT_PAGE_SIZE);
+        assert_eq!(
+            EmptyLibrary.run_recall_benchmark(0).unwrap_err(),
+            LibraryError::schema(SCHEMA_RECALL_K)
+        );
+        assert_eq!(
+            EmptyLibrary
+                .run_recall_benchmark(MAX_PAGE_SIZE + 1)
+                .unwrap_err(),
+            LibraryError::schema(SCHEMA_RECALL_K)
+        );
     }
 
     #[test]
@@ -2393,6 +2659,102 @@ mod tests {
             accept_search_inspector(claimed).unwrap_err(),
             LibraryError::unsupported(UNSUPPORTED_TRUNCATED)
         );
+    }
+
+    #[test]
+    fn fixture_chinese_recall_at_k_matches_physical_utf8_gold() {
+        let fixture = TempFixture::create();
+        fixture.write_note(
+            "welcome",
+            "中文夹具笔记",
+            "这是 BMDock 自有夹具正文。参见 [[欢迎]]。",
+        );
+        fixture.write_note("欢迎", "欢迎", "第二篇中文正文，不含检索独有词。");
+        fixture.write_note("alpha", "alpha", "English body without the CJK query.");
+        let library = FixtureLibrary::new(fixture.dir.clone());
+        let full = library.run_recall_benchmark(DEFAULT_PAGE_SIZE).unwrap();
+        assert_eq!(full.k, DEFAULT_PAGE_SIZE);
+        assert_eq!(full.query_count, 1);
+        assert_eq!(full.queries.len(), 1);
+        assert_eq!(full.queries[0].query, "欢迎");
+        assert!(!full.semantic_enabled);
+        assert!(!full.engine_search);
+        assert!(!full.native_gui);
+        assert!(!full.files_written);
+        assert_eq!(full.observation.classified_as, NoteCrudClass::DiskVerified);
+        assert!(full.observation.disk_verified);
+        assert!(full.observation.envelope_is_not_disk_proof);
+        assert!(full.search_elapsed_ms < 60_000);
+        assert!(full.expand_elapsed_ms < 60_000);
+        assert!(full.chinese_permalinks.iter().any(|item| item == "欢迎"));
+        for identifier in &full.queries[0].relevant {
+            assert!(!looks_like_filesystem_path(identifier));
+            let path = fixture.dir.join(format!("{identifier}.md"));
+            assert!(
+                path.is_file(),
+                "gold permalink must match a physical UTF-8 file"
+            );
+            let disk = fs::read_to_string(&path).unwrap();
+            assert!(
+                disk.contains("欢迎"),
+                "gold permalink must contain the query on disk"
+            );
+        }
+        for identifier in &full.queries[0].hits {
+            let path = fixture.dir.join(format!("{identifier}.md"));
+            let disk = fs::read_to_string(&path).unwrap();
+            assert!(
+                disk.contains("欢迎"),
+                "a hit counts only if the physical file contains the query"
+            );
+        }
+        assert!(full.queries[0]
+            .relevant
+            .iter()
+            .any(|item| item == "welcome"));
+        assert!(full.queries[0].relevant.iter().any(|item| item == "欢迎"));
+        assert!(!full.queries[0].relevant.iter().any(|item| item == "alpha"));
+        assert_eq!(full.recall_hits, full.recall_relevant);
+        assert_eq!(full.recall_relevant, 2);
+        let graph = library
+            .expand_graph("欢迎", None, DEFAULT_PAGE_SIZE)
+            .unwrap();
+        assert!(graph.nodes.iter().any(|node| node.identifier == "欢迎"));
+        let search = library
+            .search_notes("欢迎", None, DEFAULT_PAGE_SIZE)
+            .unwrap();
+        assert!(search.hits.iter().any(|hit| hit.identifier == "欢迎"));
+        let limited = library.run_recall_benchmark(1).unwrap();
+        assert_eq!(limited.k, 1);
+        assert_eq!(limited.queries[0].hits.len(), 1);
+        assert_eq!(limited.recall_relevant, 2);
+        assert_eq!(limited.recall_hits, 1);
+        let missing = TempFixture::create();
+        fixture_write_missing_gold(&missing);
+        let empty_gold = FixtureLibrary::new(missing.dir.clone());
+        let absent = empty_gold.run_recall_benchmark(DEFAULT_PAGE_SIZE).unwrap();
+        assert_eq!(absent.recall_relevant, 0);
+        assert_eq!(absent.observation.classified_as, NoteCrudClass::Empty);
+        assert!(!absent.native_gui);
+        let claimed = RecallBenchmarkDto {
+            native_gui: true,
+            semantic_enabled: true,
+            ..empty_recall_benchmark(DEFAULT_PAGE_SIZE)
+        };
+        assert_eq!(
+            accept_recall_benchmark(claimed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_TRUNCATED)
+        );
+        let _ = (
+            ENGINE_RECALL_NOT_OWNED,
+            RECALL_NATIVE_UNVERIFIED,
+            OFFICIAL_CHINESE_RECALL_UNVERIFIED,
+            NATIVE_GUI_UNVERIFIED,
+        );
+    }
+
+    fn fixture_write_missing_gold(fixture: &TempFixture) {
+        fixture.write_note("alpha", "alpha", "English body without the CJK query.");
     }
 
     #[test]

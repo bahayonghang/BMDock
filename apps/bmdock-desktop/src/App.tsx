@@ -20,6 +20,7 @@ import {
   type SearchPageDto,
   type SearchHitDto,
   type SearchInspectorDto,
+  type RecallBenchmarkDto,
   type ContextPreviewDto,
   type ActivityPageDto,
   type ActivityEntryDto,
@@ -251,6 +252,8 @@ function WorkbenchLibrary({
   const [searchError, setSearchError] = useState<WorkbenchError | null>(null);
   const [inspector, setInspector] = useState<SearchInspectorDto | null>(null);
   const [inspectorError, setInspectorError] = useState<WorkbenchError | null>(null);
+  const [recall, setRecall] = useState<RecallBenchmarkDto | null>(null);
+  const [recallError, setRecallError] = useState<WorkbenchError | null>(null);
   const [preview, setPreview] = useState<ContextPreviewDto | null>(null);
   const [previewError, setPreviewError] = useState<WorkbenchError | null>(null);
   const [activity, setActivity] = useState<ActivityPageDto | null>(null);
@@ -275,6 +278,8 @@ function WorkbenchLibrary({
     setSearchError(null);
     setInspector(null);
     setInspectorError(null);
+    setRecall(null);
+    setRecallError(null);
     setPreview(null);
     setPreviewError(null);
     setActivity(null);
@@ -333,6 +338,7 @@ function WorkbenchLibrary({
       case "context_preview":
       case "activity_page":
       case "search_inspector":
+      case "recall_benchmark":
       case "shutdown_begun":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
@@ -491,6 +497,13 @@ function WorkbenchLibrary({
           void runInspectSearch(query, identifier, setInspector, setInspectorError);
         }}
       />
+      <RecallBenchmarkPanel
+        recall={recall}
+        error={recallError}
+        onRun={(k) => {
+          void runRecallBenchmark(k, setRecall, setRecallError);
+        }}
+      />
       <ContextPreviewPanel preview={preview} error={previewError} />
       <ActivityPanel
         activity={activity}
@@ -578,6 +591,7 @@ async function openNote(
       case "context_preview":
       case "activity_page":
       case "search_inspector":
+      case "recall_benchmark":
       case "shutdown_begun":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
@@ -650,6 +664,7 @@ async function loadRelations(
       case "context_preview":
       case "activity_page":
       case "search_inspector":
+      case "recall_benchmark":
       case "shutdown_begun":
         setRelations(null);
         setRelationsError({ category: "schema", message: t("unexpectedRelations") });
@@ -755,6 +770,7 @@ async function loadGraph(
       case "context_preview":
       case "activity_page":
       case "search_inspector":
+      case "recall_benchmark":
       case "shutdown_begun":
         setGraph(null);
         setGraphError(unexpectedGraphResponse());
@@ -827,6 +843,7 @@ async function loadMoreGraph(
       case "context_preview":
       case "activity_page":
       case "search_inspector":
+      case "recall_benchmark":
       case "shutdown_begun":
         setGraphError(unexpectedGraphResponse());
         return;
@@ -899,6 +916,7 @@ async function loadMoreTree(
       case "context_preview":
       case "activity_page":
       case "search_inspector":
+      case "recall_benchmark":
       case "shutdown_begun":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
@@ -1364,6 +1382,7 @@ async function runSearch(
       case "context_preview":
       case "activity_page":
       case "search_inspector":
+      case "recall_benchmark":
       case "shutdown_begun":
         setSearch(null);
         setSearchError(unexpectedSearchResponse());
@@ -1436,6 +1455,7 @@ async function loadMoreSearch(
       case "context_preview":
       case "activity_page":
       case "search_inspector":
+      case "recall_benchmark":
       case "shutdown_begun":
         setSearchError(unexpectedSearchResponse());
         return;
@@ -1632,6 +1652,7 @@ async function runInspectSearch(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "recall_benchmark":
       case "shutdown_begun":
         setInspector(null);
         setInspectorError(unexpectedInspectorResponse());
@@ -1785,6 +1806,223 @@ function SearchInspectorPanel({
   );
 }
 
+function unexpectedRecallResponse(): WorkbenchError {
+  return { category: "schema", message: t("unexpectedRecall") };
+}
+
+function asRecallBenchmark(
+  response: Extract<IpcResponse, { kind: "recall_benchmark" }>,
+): RecallBenchmarkDto {
+  return {
+    k: response.k,
+    query_count: response.query_count,
+    recall_hits: response.recall_hits,
+    recall_relevant: response.recall_relevant,
+    queries: response.queries,
+    chinese_permalinks: response.chinese_permalinks,
+    search_elapsed_ms: response.search_elapsed_ms,
+    expand_elapsed_ms: response.expand_elapsed_ms,
+    observation: response.observation,
+    semantic_enabled: false,
+    engine_search: false,
+    native_gui: false,
+    scanned_user_obsidian_vault: false,
+    scanned_user_basic_memory_home: false,
+    files_written: false,
+  };
+}
+
+async function runRecallBenchmark(
+  k: number | null,
+  setRecall: (recall: RecallBenchmarkDto | null) => void,
+  setRecallError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "run_recall_benchmark",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        ...(k === null ? {} : { k }),
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setRecall(null);
+        setRecallError({ category: response.category, message: response.message });
+        return;
+      case "recall_benchmark":
+        setRecallError(null);
+        setRecall(asRecallBenchmark(response));
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "relation_list":
+      case "graph_page":
+      case "search_page":
+      case "search_inspector":
+      case "context_preview":
+      case "activity_page":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
+      case "shutdown_begun":
+        setRecall(null);
+        setRecallError(unexpectedRecallResponse());
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setRecall(null);
+    setRecallError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+function RecallBenchmarkPanel({
+  recall,
+  error,
+  onRun,
+}: {
+  recall: RecallBenchmarkDto | null;
+  error: WorkbenchError | null;
+  onRun: (k: number | null) => void;
+}) {
+  const [k, setK] = useState("");
+  const empty = recall === null || recall.query_count === 0 || recall.recall_relevant === 0;
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error
+    ? t("recallErrorTitle")
+    : empty
+      ? t("recallEmptyTitle")
+      : t("recallReadyTitle");
+  return (
+    <section
+      className="subpanel"
+      data-state={state}
+      aria-labelledby="recall-benchmark-title"
+      role={error ? "alert" : undefined}
+    >
+      <p className="state-badge">{badge}</p>
+      <h3 id="recall-benchmark-title">{heading}</h3>
+      <p>
+        {error
+          ? `${errorCategoryLabel(error.category)}：${error.message}`
+          : empty
+            ? t("recallEmptyBody")
+            : t("recallReadyBody")}
+      </p>
+      <p>{t("recallDiskGold")}</p>
+      <p>{t("recallChineseKept")}</p>
+      <p>{t("recallNativeUnverified")}</p>
+      <form
+        className="search-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const raw = k.trim();
+          if (raw === "") {
+            onRun(null);
+            return;
+          }
+          const parsed = Number.parseInt(raw, 10);
+          if (!Number.isFinite(parsed)) {
+            return;
+          }
+          onRun(parsed);
+        }}
+      >
+        <label htmlFor="recall-k">{t("recallKLabel")}</label>
+        <input
+          id="recall-k"
+          type="text"
+          inputMode="numeric"
+          value={k}
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(event) => setK(event.target.value)}
+        />
+        <button type="submit" className="action">
+          {t("recallSubmit")}
+        </button>
+      </form>
+      {recall ? (
+        <dl className="facts">
+          <div>
+            <dt>{t("recallAtKLabel")}</dt>
+            <dd>
+              {recall.recall_hits}/{recall.recall_relevant} @{recall.k}
+            </dd>
+          </div>
+          <div>
+            <dt>{t("recallQueryCountLabel")}</dt>
+            <dd>{recall.query_count}</dd>
+          </div>
+          <div>
+            <dt>{t("recallSearchElapsed")}</dt>
+            <dd>{recall.search_elapsed_ms}</dd>
+          </div>
+          <div>
+            <dt>{t("recallExpandElapsed")}</dt>
+            <dd>{recall.expand_elapsed_ms}</dd>
+          </div>
+          <div>
+            <dt>classified_as</dt>
+            <dd data-observation={recall.observation.classified_as}>
+              {observationClassLabel(recall.observation.classified_as)}
+            </dd>
+          </div>
+          <div>
+            <dt>{t("searchSemanticEnabledLabel")}</dt>
+            <dd>
+              {recall.semantic_enabled ? t("searchSemanticOn") : t("searchSemanticOff")}
+            </dd>
+          </div>
+          <div>
+            <dt>{t("recallNativeGuiLabel")}</dt>
+            <dd>{t("recallNativeGuiFalse")}</dd>
+          </div>
+        </dl>
+      ) : null}
+      {recall && recall.queries.length > 0 ? (
+        <ul className="benchmark-list">
+          {recall.queries.map((query) => (
+            <li key={query.query}>
+              <span>{query.query}</span>
+              <span>
+                {t("recallAtKLabel")}: {query.retrieved_relevant}/{query.relevant_count}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {recall && recall.chinese_permalinks.length > 0 ? (
+        <p>
+          {t("recallChinesePermalinks")}: {recall.chinese_permalinks.join("、")}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 function unexpectedPreviewResponse(): WorkbenchError {
   return { category: "schema", message: t("unexpectedPreview") };
 }
@@ -1854,6 +2092,7 @@ async function loadContextPreview(
       case "note_moved":
       case "note_deleted":
       case "search_inspector":
+      case "recall_benchmark":
       case "shutdown_begun":
         setPreview(null);
         setPreviewError(unexpectedPreviewResponse());
@@ -2018,6 +2257,7 @@ async function loadActivity(
       case "note_moved":
       case "note_deleted":
       case "search_inspector":
+      case "recall_benchmark":
       case "shutdown_begun":
         setActivity(null);
         setActivityError(unexpectedActivityResponse());
@@ -2089,6 +2329,7 @@ async function loadMoreActivity(
       case "note_moved":
       case "note_deleted":
       case "search_inspector":
+      case "recall_benchmark":
       case "shutdown_begun":
         setActivityError(unexpectedActivityResponse());
         return;
@@ -2510,6 +2751,7 @@ async function applyCrudResponse(
       case "context_preview":
       case "activity_page":
       case "search_inspector":
+      case "recall_benchmark":
       case "shutdown_begun":
       setError(unexpectedCrudResponse());
       return;
@@ -2837,6 +3079,7 @@ async function persistDraft(
       case "context_preview":
       case "activity_page":
       case "search_inspector":
+      case "recall_benchmark":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -2914,6 +3157,7 @@ async function reloadDraft(
       case "context_preview":
       case "activity_page":
       case "search_inspector":
+      case "recall_benchmark":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -3252,6 +3496,7 @@ function ProjectPanel({
       case "context_preview":
       case "activity_page":
       case "search_inspector":
+      case "recall_benchmark":
       case "shutdown_begun":
                   setSelectError({
                     category: "schema",
@@ -3575,6 +3820,7 @@ function BackupPanel() {
       case "context_preview":
       case "activity_page":
       case "search_inspector":
+      case "recall_benchmark":
       case "shutdown_begun":
             setError(unexpectedBackupResponse());
             setPhase("error");
@@ -3757,6 +4003,7 @@ async function restoreNamedFixture(
       case "context_preview":
       case "activity_page":
       case "search_inspector":
+      case "recall_benchmark":
       case "shutdown_begun":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
@@ -3914,6 +4161,7 @@ function WindowsRuntimeCard() {
       case "context_preview":
       case "activity_page":
       case "search_inspector":
+      case "recall_benchmark":
       case "shutdown_begun":
             setError(unexpectedWindowsResponse());
             setPhase("error");

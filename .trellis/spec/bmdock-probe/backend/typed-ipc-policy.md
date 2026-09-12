@@ -28,7 +28,9 @@ markdown mtimes (`engine_activity=false`, not official
 `inspect_search` explaining a BMDock-owned T21 fixture
 lexical search with distinct `lexical_score` vs
 `semantic_score`, `semantic_enabled=false`,
-`model_loaded=false`, `embedding_backend=none`. It applies to
+`model_loaded=false`, `embedding_backend=none`, and T24
+`run_recall_benchmark` fixture Chinese recall@k plus bounded
+in-process elapsed_ms (`native_gui=false`). It applies to
 `apps/bmdock-desktop/src-tauri/src/ipc.rs`,
 `apps/bmdock-desktop/src-tauri/src/library.rs`,
 `apps/bmdock-desktop/src-tauri/src/conflict.rs`,
@@ -123,12 +125,37 @@ interfaces remain separate. Lifecycle ownership lives in
   user-vault success. Tests inject `FixtureLibrary` and observe
   that inspector hits match physical UTF-8 files containing
   the query (including Chinese) with `lexical_score > 0` and
-  `semantic_score=0`. Dual profiles stay isolated (21 vs 27).
+  `semantic_score=0`.   Dual profiles stay isolated (21 vs 27).
   Official semantic/model remain UNVERIFIED. This is not
   official engine semantic, not an embedding backend, and not
-  T24 recall. Do not implement T30 extras or T34 providers.
+  T24 recall. T24 `run_recall_benchmark` is the Chinese recall
+  command. Do not implement T30 extras or T34 providers.
   Do not add rmcp. `get_runtime_state` may project
   `semantic_model_loaded=false` without claiming a loaded model.
+- T24 `run_recall_benchmark` is a BMDock-owned Chinese recall
+  and in-process timing baseline over `FixtureLibrary`. Args are
+  `ExplicitRouteArgs` plus optional `k`. Extra `path` / `root`
+  fail closed as `schema`. Non-fixture routes are `policy` and
+  do not open the library. `k` 0 or huge is `schema`. Default
+  `k` is 20, max 64. The gold set is a small Chinese query list
+  (such as `欢迎`) whose relevant permalinks are observed on
+  physical UTF-8 files (file body contains the query). recall@k
+  is computed from T21 `search_notes` hits. A hit counts only
+  if the physical file contains the query. Missing relevant
+  files are empty, not user-vault. The DTO records bounded
+  in-process `search_elapsed_ms` and `expand_elapsed_ms`.
+  `semantic_enabled=false`. `engine_search=false`.
+  `native_gui=false`. Chinese permalinks such as `欢迎` remain
+  in graph expansion and search hits; expansion/search do not
+  drop CJK. Production `EmptyLibrary` returns recall with zero
+  queries and `classified_as: empty`, not user-vault success.
+  Official engine Chinese recall remains UNVERIFIED. Native
+  window freeze, WebView2, installer, and hosted CI remain
+  UNVERIFIED. cargo test / npm build / UI copy are not AC56
+  native proof. Do not claim full-vault performance. Dual
+  profiles stay isolated (21 vs 27). Do not add rmcp. Do not
+  start Supervisor. MCP identity `search` and `call_tool`
+  stay denied.
 - The boundary does not start or stop the Supervisor, call the official
   engine over rmcp, access a user vault, or expose raw `callTool`. T14
   drafts are BMDock-owned session artifacts, not a second note index and
@@ -168,9 +195,10 @@ interfaces remain separate. Lifecycle ownership lives in
   explicit `ExplicitRouteArgs` (`workspace` + `project`) on every call and
   must not inherit an implicit current project. T21 `search_notes`
   also carries `ExplicitRouteArgs` on every call plus a required
-  `query` and optional `cursor` / `page_size`. T23 `inspect_search`
+  `query` and optional `cursor` / `page_size`.   T23 `inspect_search`
   carries `ExplicitRouteArgs` plus required `query` and optional
-  `identifier`. T22 `preview_context`
+  `identifier`. T24 `run_recall_benchmark` carries
+  `ExplicitRouteArgs` plus optional `k`. T22 `preview_context`
   carries `ExplicitRouteArgs` plus `identifier` and optional `query`.
   T22 `list_activity` carries `ExplicitRouteArgs` plus optional
   `cursor` / `page_size`. T16 coordinates overlapping
@@ -226,6 +254,7 @@ list_relations: { workspace, project, identifier }
 expand_graph: { workspace, project, identifier, cursor?, page_size? }
 search_notes: { workspace, project, query, cursor?, page_size? }
 inspect_search: { workspace, project, query, identifier? }
+run_recall_benchmark: { workspace, project, k? }
 preview_context: { workspace, project, identifier, query? }
 list_activity: { workspace, project, cursor?, page_size? }
 list_backups: { workspace, project }
@@ -277,7 +306,10 @@ library. T23 `inspect_search` consumes this struct plus a required
 as `schema`. Extra `id` (fetch identity swap) fails closed as `schema`.
 Missing or empty `query` is `schema`. Empty identifier is `schema`.
 Filesystem query-as-path and filesystem identifier are `policy` and do
-not open the library. T22 `preview_context` consumes this struct plus required
+not open the library. T24 `run_recall_benchmark` consumes this
+struct plus optional `k` (same bounds as T11 `page_size`:
+default 20, reject 0 / greater than 64 as `schema`). Extra
+`path` / `root` fail closed as `schema`. T22 `preview_context` consumes this struct plus required
 `identifier` and optional `query`. Extra `path` / `root` fail closed
 as `schema`. Missing identifier is `schema`. Filesystem identifiers
 and filesystem query-as-path are `policy` and do not open the library.
@@ -298,7 +330,7 @@ fail closed as `schema`.
 
 ### Request and response fields
 
-- `get_capabilities` returns `kind: "capabilities"`, the twenty-four command names,
+- `get_capabilities` returns `kind: "capabilities"`, the twenty-five command names,
   the two event names, and a policy DTO.
 - `get_runtime_state` returns `kind: "runtime_state"` projected from the
   managed `Supervisor` snapshot plus T10 `RouteState`:
@@ -454,6 +486,33 @@ fail closed as `schema`.
   is fail-closed as `unsupported`. Official semantic/model
   remain UNVERIFIED. Dual profiles stay isolated. MCP identity
   `search` and `call_tool` stay denied. Do not add rmcp.
+- `run_recall_benchmark` returns `kind: "recall_benchmark"` with
+  `k`, `query_count`, `recall_hits` / `recall_relevant` (the
+  integer recall@k fraction), per-query gold `relevant[]` and
+  counted `hits[]` permalinks, `chinese_permalinks[]`, bounded
+  in-process `search_elapsed_ms` and `expand_elapsed_ms`, an
+  observation DTO distinct from envelope text,
+  `semantic_enabled=false`, `engine_search=false`,
+  `native_gui=false`, `files_written=false`, and vault-scan
+  flags false. Args are `ExplicitRouteArgs` plus optional `k`
+  (default 20, reject 0 / greater than 64 as `schema`). Extra
+  `path` / `root` fail closed as `schema`. Non-fixture is
+  `policy` and does not open the library. Gold queries such as
+  `欢迎` are BMDock-owned. Relevant permalinks are observed on
+  physical UTF-8 files whose body contains the query. recall@k
+  is computed from T21 `search_notes` hits. A hit counts only
+  if the physical file contains the query. Missing relevant
+  files are empty, not user-vault. Chinese permalinks such as
+  `欢迎` remain in graph expansion and search hits.
+  Production `EmptyLibrary` returns zero queries with
+  `classified_as: empty`, not user-vault. Claiming
+  `native_gui` or `semantic_enabled` is fail-closed as
+  `unsupported`. Official engine Chinese recall remains
+  UNVERIFIED. Native window freeze, WebView2, installer, and
+  hosted CI remain UNVERIFIED. cargo test / npm build / UI
+  copy are not native proof. Dual profiles stay isolated
+  (21 vs 27). MCP identity `search` and `call_tool` stay
+  denied. Do not add rmcp.
 - `preview_context` returns `kind: "context_preview"` with
   `identifier`, optional `query`, markdown `snippet`,
   `executed=false`, `unsafe_html_present`, an observation DTO
@@ -644,11 +703,11 @@ The capability policy must report:
 ```
 
 `SelectProjectArgs`, `ExplicitRouteArgs`, `ListTreeArgs`, `ReadNoteArgs`,
-`ListRelationsArgs`, `ExpandGraphArgs`, `SearchNotesArgs`, `InspectSearchArgs`, `PreviewContextArgs`, `ListActivityArgs`, `RestoreFixtureArgs`, `SaveDraftArgs`, `LoadDraftArgs`, `WriteNoteArgs`,
+`ListRelationsArgs`, `ExpandGraphArgs`, `SearchNotesArgs`, `InspectSearchArgs`, `RecallBenchmarkArgs`, `PreviewContextArgs`, `ListActivityArgs`, `RestoreFixtureArgs`, `SaveDraftArgs`, `LoadDraftArgs`, `WriteNoteArgs`,
 `EditNoteArgs`, `MoveNoteArgs`, `DeleteNoteArgs`, and `EmptyArgs`
 use `#[serde(deny_unknown_fields)]`.
 There is no path field on `list_projects` / `run_preflight` /
-`discover_config` / `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `preview_context` / `list_activity` / `list_backups` /
+`discover_config` / `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `preview_context` / `list_activity` / `list_backups` /
 `restore_fixture` / `inspect_windows_runtime` / `save_draft` /
 `load_draft` / `write_note` / `edit_note` / `move_note` /
 `delete_note` / `begin_shutdown` and no raw `callTool` handler. Typed
@@ -730,6 +789,19 @@ read-only (`files_written=false`). Dual profiles stay isolated.
 Official semantic/model remain UNVERIFIED. T23 does not start
 Supervisor or add rmcp. `get_runtime_state` projects
 `semantic_model_loaded=false` without claiming a loaded model.
+T24 adds `run_recall_benchmark` on the same `ipc_invoke`
+union. The benchmark is BMDock-owned fixture Chinese recall
+over disk gold plus bounded in-process elapsed_ms for
+`search_notes` and `expand_graph`. Production
+`EmptyLibrary` returns zero queries (empty state). Tests
+inject `FixtureLibrary` and observe that relevant permalinks
+match physical UTF-8 files containing the query (including
+`欢迎`). A hit counts only if the physical file contains the
+query. `semantic_enabled=false`. `engine_search=false`.
+`native_gui=false`. Official engine Chinese recall remains
+UNVERIFIED. Native GUI / installer / hosted CI remain
+UNVERIFIED. Dual profiles stay isolated. T24 does not start
+Supervisor or add rmcp.
 T22 adds `preview_context` and `list_activity` on the same
 `ipc_invoke` union. Preview is a BMDock-owned fixture markdown
 snippet (`executed=false`). Activity is fixture markdown mtime
@@ -751,7 +823,7 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 | Unknown `command`, including `call_tool` and MCP identity `search` / `recent_activity` / `build_context` | Serde deserialization fails closed | `schema` at the boundary |
 | Incomplete `write_note` args (for example only `project`) | `deny_unknown_fields` / missing fields | `schema` |
 | Extra field in `args` | `deny_unknown_fields` rejects the DTO | `schema` |
-| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
 | Extra top-level field such as `path` beside `command`/`args` | `deny_unknown_fields` on `IpcCommand` | `schema` |
 | `select_project` for any value other than `bmdock-fixture` | Dispatcher rejects without filesystem access | `policy` |
 | `ExplicitRouteArgs` missing `project`/`workspace` or carrying an extra `path` | `deny_unknown_fields` rejects the DTO | `schema` |
@@ -790,6 +862,12 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 | Empty library `inspect_search` | Empty `hits[]`, `classified_as: empty`, `semantic_enabled=false`, `model_loaded=false`, `embedding_backend=none` | empty state |
 | Envelope-only inspector hits | Classify `accepted_unverified`; not disk proof; `model_loaded` stays false | — |
 | Inspector DTO claiming `semantic_enabled` or `model_loaded` | Reject; missing semantic is never enabled success | `unsupported` |
+| Extra `path` / `root` on `run_recall_benchmark` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Non-fixture `run_recall_benchmark` | Reject without opening the library | `policy` |
+| `run_recall_benchmark` `k` 0 or greater than 64 | Reject without opening the library | `schema` |
+| Empty library `run_recall_benchmark` | Zero queries, `classified_as: empty`, `semantic_enabled=false`, `engine_search=false`, `native_gui=false` | empty state |
+| Missing relevant files in fixture `run_recall_benchmark` | Empty, not user-vault | empty state |
+| Recall DTO claiming `native_gui` or `semantic_enabled` | Reject; cargo test / npm build / UI copy are not native proof | `unsupported` |
 | Missing `preview_context` identifier | Reject without opening the library | `schema` |
 | `preview_context` identifier that looks like a user vault filesystem path | Reject without opening the library | `policy` |
 | Non-fixture `preview_context` | Reject without opening the library | `policy` |
@@ -939,6 +1017,10 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
   missing ExplicitRouteArgs is schema, not success.
 - Bad: send `{"command":"inspect_search","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","query":"C:\\\\Users\\\\someone\\\\vault\\\\note.md"}}`;
   policy rejects the filesystem query without opening the library.
+- Bad: send `{"command":"run_recall_benchmark","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","k":5,"path":"C:\\vault"}}`
+  or `run_recall_benchmark` with an extra `root`; extra fields fail closed.
+- Bad: send `{"command":"run_recall_benchmark","args":{"k":5}}`;
+  missing ExplicitRouteArgs is schema, not success.
 - Bad: send `{"command":"preview_context","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","path":"C:\\vault"}}`
   or `preview_context` with an extra `root`; extra fields fail closed.
 - Bad: send `{"command":"preview_context","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}`;
@@ -977,16 +1059,16 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 
 ## 6. Tests Required
 
-- Rust unit test: capability response lists exactly twenty-four commands and two
+- Rust unit test: capability response lists exactly twenty-five commands and two
   events, and both arbitrary-path and raw-callTool policy flags are false.
-  `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`,
+  `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`,
   `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`,
   `edit_note`, `move_note`, `delete_note`, and `begin_shutdown` are present; `call_tool`,
   MCP identity `search`, `recent_activity`, and `build_context` are absent. Incomplete `write_note` args remain schema.
 - Rust unit test: a non-fixture project returns `ErrorCategory::Policy`.
 - Rust unit test: unknown command including `call_tool`, extra project path,
   extra runtime-state path, extra `list_projects` path/root, extra preflight
-  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `expand_graph` path/root,   extra `search_notes` path/root/`id`, extra `inspect_search` path/root/`id`, extra `preview_context` path/root, extra `list_activity` path/root, extra `list_backups`
+  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `expand_graph` path/root,   extra `search_notes` path/root/`id`, extra `inspect_search` path/root/`id`, extra `run_recall_benchmark` path/root, extra `preview_context` path/root, extra `list_activity` path/root, extra `list_backups`
   path/root, extra `restore_fixture` path, extra
   `inspect_windows_runtime` path/root, extra `save_draft` path/root, extra
   `load_draft` path/root, and extra `begin_shutdown` path/root all fail
@@ -1004,7 +1086,7 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
   scan user vaults, and keeps `cross_project_search_allowed` and
   `implicit_current_project_writes` false.   `ExplicitRouteArgs` requires both
   fields, rejects extra paths as schema, and rejects non-fixture routes as
-  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `preview_context` / `list_activity` / `list_backups` /
+  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `preview_context` / `list_activity` / `list_backups` /
   `restore_fixture` / `save_draft` / `load_draft` / `write_note` /
   `edit_note` / `move_note` / `delete_note` must not open the library,
   backup store, or draft store.
@@ -1085,6 +1167,25 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
   MCP identity `search` and `call_tool` stay denied. T23 does
   not start Supervisor or add rmcp. `get_runtime_state`
   projects `semantic_model_loaded=false`.
+- Rust unit test: `run_recall_benchmark` requires `ExplicitRouteArgs`
+  plus optional `k`. Extra `path` / `root` fail closed as
+  `schema`. Non-fixture is `policy` and does not open the
+  library. `k` 0 or huge is `schema`. Empty library recall is
+  zero queries with `classified_as: empty`, not user-vault.
+  Fixture gold relevant permalinks match physical UTF-8
+  files containing the query, including Chinese. A hit
+  counts only if the physical file contains the query.
+  Missing relevant files are empty. Chinese permalinks such
+  as `欢迎` remain in expansion and search hits.
+  `semantic_enabled=false`. `engine_search=false`.
+  `native_gui=false`. Bounded in-process `search_elapsed_ms`
+  and `expand_elapsed_ms` are recorded. Dual profiles stay
+  isolated (21 vs 27) and are not mixed into the recall DTO.
+  Official engine Chinese recall remains UNVERIFIED. Native
+  GUI / installer / hosted CI remain UNVERIFIED. cargo test /
+  npm build / UI copy are not AC56 native proof. MCP identity
+  `search` and `call_tool` stay denied. T24 does not start
+  Supervisor or add rmcp.
 - Rust unit test: `preview_context` requires `ExplicitRouteArgs` plus
   `identifier` plus optional `query`. Extra `path` / `root` fail
   closed as `schema`. Missing identifier is `schema`. Non-fixture
@@ -1200,6 +1301,7 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
   `RelationListDto` / `RelationDto` / `RelationTargetClass` /
   `GraphPageDto` / `GraphNodeDto` / `GraphEdgeDto` / `GraphNodeClass` /
   `SearchPageDto` / `SearchHitDto` / `SearchInspectorDto` /
+  `RecallBenchmarkDto` / `RecallQueryDto` /
   `ContextPreviewDto` / `ActivityPageDto` / `ActivityEntryDto` /
   `DrainResultDto` / `DrainPhase` stay aligned with that JSON shape through
   `npm run build`.
@@ -1217,6 +1319,7 @@ invoke("select_project", { project: userSuppliedPath });
 invoke("list_projects", { root: userHomeBasicMemory });
 invoke("search_notes", { query: "all projects" }); // missing ExplicitRouteArgs
 invoke("inspect_search", { query: "all projects" }); // missing ExplicitRouteArgs
+invoke("run_recall_benchmark", { k: 5 }); // missing ExplicitRouteArgs
 invoke("search", { query: "x" }); // MCP identity search stays denied
 invoke("call_tool", { name: "search_notes", arguments: { query: "x" } });
 invoke("write_note", { title: "x" }); // implicit current project
@@ -1262,6 +1365,10 @@ await invokeTyped({
 await invokeTyped({
   command: "inspect_search",
   args: { workspace: route.workspace, project: route.project, query, identifier },
+});
+await invokeTyped({
+  command: "run_recall_benchmark",
+  args: { workspace: route.workspace, project: route.project, k: 20 },
 });
 await invokeTyped({
   command: "preview_context",
@@ -1334,7 +1441,7 @@ await listenTyped("runtime_state", (state) => renderState(state));
 These calls use the shared DTOs and the explicit fixture/event allowlist.
 `list_projects`, `run_preflight`, and `discover_config` take empty args.
 `select_project` remains fixture-only. `list_tree`, `read_note`,
-`list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
+`list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
 `write_note`, `edit_note`, `move_note`, and `delete_note` copy
 `ExplicitRouteArgs` on every call and must not treat `runtime.project` as
 an implicit target.

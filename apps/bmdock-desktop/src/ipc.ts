@@ -45,6 +45,10 @@ export type InspectSearchArgs = ExplicitRouteArgs & {
   identifier?: string;
 };
 
+export type RecallBenchmarkArgs = ExplicitRouteArgs & {
+  k?: number;
+};
+
 export type PreviewContextArgs = ExplicitRouteArgs & {
   identifier: string;
   query?: string;
@@ -101,6 +105,7 @@ export type IpcCommand =
   | { command: "expand_graph"; args: ExpandGraphArgs }
   | { command: "search_notes"; args: SearchNotesArgs }
   | { command: "inspect_search"; args: InspectSearchArgs }
+  | { command: "run_recall_benchmark"; args: RecallBenchmarkArgs }
   | { command: "preview_context"; args: PreviewContextArgs }
   | { command: "list_activity"; args: ListActivityArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
@@ -344,6 +349,32 @@ export interface SearchInspectorDto {
   semantic_disabled_reason: string;
 }
 
+export interface RecallQueryDto {
+  query: string;
+  relevant: string[];
+  hits: string[];
+  retrieved_relevant: number;
+  relevant_count: number;
+}
+
+export interface RecallBenchmarkDto {
+  k: number;
+  query_count: number;
+  recall_hits: number;
+  recall_relevant: number;
+  queries: RecallQueryDto[];
+  chinese_permalinks: string[];
+  search_elapsed_ms: number;
+  expand_elapsed_ms: number;
+  observation: NoteCrudObservationDto;
+  semantic_enabled: false;
+  engine_search: false;
+  native_gui: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  files_written: false;
+}
+
 export interface ContextPreviewDto {
   identifier: string;
   query: string | null;
@@ -507,6 +538,7 @@ export type IpcResponse =
   | { kind: "graph_page" } & GraphPageDto
   | { kind: "search_page" } & SearchPageDto
   | { kind: "search_inspector" } & SearchInspectorDto
+  | { kind: "recall_benchmark" } & RecallBenchmarkDto
   | { kind: "context_preview" } & ContextPreviewDto
   | { kind: "activity_page" } & ActivityPageDto
   | { kind: "backup_catalog" } & BackupCatalogDto
@@ -554,6 +586,7 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "expand_graph":
     case "search_notes":
     case "inspect_search":
+    case "run_recall_benchmark":
     case "preview_context":
     case "list_activity":
     case "list_backups":
@@ -696,6 +729,18 @@ export const inspectSearch = (args: { query: string; identifier?: string }) => {
       project: route.project,
       query: args.query,
       ...(args.identifier ? { identifier: args.identifier } : {}),
+    },
+  });
+};
+
+export const runRecallBenchmark = (args: { k?: number } = {}) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "recall_benchmark" } & RecallBenchmarkDto>({
+    command: "run_recall_benchmark",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      ...(args.k !== undefined ? { k: args.k } : {}),
     },
   });
 };

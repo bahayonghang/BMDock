@@ -1,0 +1,211 @@
+{
+  "task": "T24",
+  "title": "中文召回与性能基准",
+  "status": "accepted_with_limits",
+  "date": "2026-09-13",
+  "host_boundary": "T24 adds typed run_recall_benchmark with ExplicitRouteArgs plus optional k. deny_unknown_fields. Extra path/root is schema. Non-fixture routes are policy and do not open the library. k 0 or greater than 64 is schema. Default k is 20. The benchmark is BMDock-owned over FixtureLibrary: a small Chinese gold set (queries such as 欢迎) whose relevant permalinks are observed on physical UTF-8 files whose body contains the query. recall@k is computed from T21 search_notes hits. A hit counts only if the physical file contains the query. Missing relevant files are empty, not user-vault. The DTO records bounded in-process search_elapsed_ms and expand_elapsed_ms. semantic_enabled=false. engine_search=false. native_gui=false. Chinese permalinks such as 欢迎 remain in graph expansion and search hits; expansion/search do not drop CJK. Production EmptyLibrary returns recall with zero queries and classified_as empty, not user-vault success. Envelope text is not disk proof. Dual profiles stay isolated and are not mixed into the recall DTO. MCP identity search and call_tool stay denied. T24 does not start Supervisor, add rmcp, or run just contract as proof. just build stays the G0 probe.",
+  "acceptance": {
+    "AC26": {
+      "status": "fixture_disk_gold_recall_at_k",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Chinese recall@k is computed from fixture disk gold, not UI copy. Gold queries such as 欢迎 have relevant permalinks observed on physical UTF-8 files whose body contains the query. A hit counts only if the physical file contains the query. Missing relevant files are empty, not user-vault. Official engine Chinese recall remains UNVERIFIED.",
+      "unverified": [
+        "official engine Chinese recall",
+        "official MCP search/fetch",
+        "native GUI session",
+        "real user vault",
+        "full-vault recall"
+      ]
+    },
+    "AC29": {
+      "status": "cjk_permalinks_retained_in_expand_and_search",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Chinese permalinks such as 欢迎 remain in graph expansion and search hits. Expansion and search do not drop CJK. This is fixture identity, not official search MCP.",
+      "unverified": [
+        "official search MCP",
+        "official graph MCP",
+        "native GUI session",
+        "real user vault"
+      ]
+    },
+    "AC56": {
+      "status": "bounded_in_process_elapsed_ms_only",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "The DTO records bounded in-process search_elapsed_ms and expand_elapsed_ms only. native_gui=false. cargo test, npm build, and UI copy are not AC56 native proof. Full-vault performance is not claimed.",
+      "unverified": [
+        "native window freeze",
+        "WebView2 session",
+        "installer",
+        "hosted CI",
+        "full-vault performance",
+        "native GUI session"
+      ]
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t24-chinese-recall-benchmark",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 152 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 18 passed"
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T24 recall/performance proof. Probe entries remain independent. Official engine Chinese recall remains UNVERIFIED."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window was launched. AC56 proof is in-process elapsed_ms on FixtureLibrary, not window freeze."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_157_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_desktop_shell": "18_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "typed_command_count": 25,
+    "typed_run_recall_benchmark": "allowed",
+    "raw_call_tool": "absent",
+    "mcp_identity_search": "absent",
+    "dangerouslySetInnerHTML": "absent",
+    "supervisor_started_by_t24": false,
+    "rmcp_live_client": "not_added_in_t24",
+    "engine_search": false,
+    "semantic_enabled": false,
+    "native_gui": false,
+    "timeout_unknown_on_ipc_error_union": false,
+    "official_chinese_recall": "UNVERIFIED",
+    "official_search_mcp": "UNVERIFIED",
+    "native_gui_session": "UNVERIFIED",
+    "native_window_freeze": "UNVERIFIED",
+    "webview2_session": "UNVERIFIED",
+    "installer": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "full_vault_performance": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "t25_schema_workbench": "not_implemented",
+    "fixture_gold_matches_physical_utf8": true,
+    "hit_counts_only_if_physical_file_contains_query": true,
+    "missing_relevant_files_are_empty": true,
+    "empty_library_recall_is_empty_state": true,
+    "cjk_permalinks_retained": true,
+    "in_process_elapsed_ms_recorded": true
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed_unchanged",
+    "T10": "completed_unchanged",
+    "T11": "completed_unchanged",
+    "T12": "completed_unchanged",
+    "T13": "completed_unchanged",
+    "T14": "completed_unchanged",
+    "T15": "completed_unchanged",
+    "T16": "completed_unchanged",
+    "T17": "completed_unchanged",
+    "T18": "completed_unchanged",
+    "T19": "completed_unchanged",
+    "T20": "completed_unchanged",
+    "T21": "completed_unchanged",
+    "T22": "completed_unchanged",
+    "T23": "completed_unchanged",
+    "T24": "completed",
+    "T25": "planned_unchanged"
+  },
+  "scope_limits": [
+    "Chinese recall@k is computed from fixture disk gold, not UI copy.",
+    "A hit counts only if the physical UTF-8 file contains the query.",
+    "Missing relevant files are empty, not user-vault.",
+    "EmptyLibrary zero-query recall is empty state, not user-vault success.",
+    "Chinese permalinks such as 欢迎 remain in expand_graph and search_notes hits; this is fixture identity, not official search MCP.",
+    "semantic_enabled=false. engine_search=false. native_gui=false.",
+    "elapsed_ms is bounded in-process timing only. cargo test / npm build / UI copy are not AC56 native proof.",
+    "Official engine Chinese recall remains UNVERIFIED. Native window freeze, WebView2, installer, and hosted CI remain UNVERIFIED.",
+    "Full-vault performance is not claimed.",
+    "IPC error union stays policy/schema/unsupported. Dual profiles stay isolated (21 vs 27).",
+    "just build stays scripts.tasks build. just contract* stay probe. just tauri-dev/tauri-build stay desktop.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "T25-T40 were not implemented."
+  ],
+  "rollback": "Remove run_recall_benchmark from the ipc_invoke union, drop RecallBenchmarkPanel, restore the 24-command allowlist, and leave T20 expand_graph, T21 search_notes, and T23 inspect_search in place. Do not revert T05-T23 status to make unit green."
+}

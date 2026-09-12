@@ -384,3 +384,23 @@ zh-CN 工作台「检索 Inspector」区分空态 / 错误 / 就绪，显示查�
 本机 Windows 本轮命令（2026-09-13）：`python ./.trellis/scripts/task.py validate 09-12-t23-search-inspector-model-state` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 148 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 17 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方语义模型 / hosted CI 证据；这些仍为 `UNVERIFIED`。
 
 T23 证据与验收映射见 [t23-search-inspector-model-state.json](../execution/evidence/t23-search-inspector-model-state.json)。`execution/status.json` 仅将 T23 标为 `completed`；未改 T05–T22/G0。
+
+## T24：中文召回与性能基准
+
+T24 在现有 `ipc_invoke` 上增加 typed `run_recall_benchmark`（`ExplicitRouteArgs` + optional `k`，`deny_unknown_fields`）。额外 `path`/`root` 为 schema。非 fixture 为 policy，且不打开库。`k` 0 或大于 64 为 schema。默认 `k` 为 20。capabilities 精确允许列为 25 个命令。typed `run_recall_benchmark` 允许；MCP identity `search` 与 `call_tool` 仍拒绝。
+
+基准是 BMDock 自有夹具能力，覆盖 `FixtureLibrary`：小中文 gold 集（查询如 `欢迎`），相关 permalink 以物理 UTF-8 文件正文包含查询为准。recall@k 来自 T21 `search_notes` 命中。命中仅在物理文件包含查询时计数。缺失相关文件为空态，不是用户 vault。DTO 记录进程内 `search_elapsed_ms` 与 `expand_elapsed_ms`。`semantic_enabled=false`。`engine_search=false`。`native_gui=false`。生产 `EmptyLibrary` 返回零查询空基准（`classified_as: empty`），不是用户 vault 成功。信封文案不是磁盘证明。
+
+AC26：中文 recall@k 由夹具磁盘 gold 计算，不是 UI 文案。命中仅在物理文件包含查询时计数。缺失相关文件为空态，不是用户 vault。官方引擎中文召回仍为 `UNVERIFIED`。
+
+AC29：中文 permalink（`欢迎`）仍出现在图谱展开与检索命中中；展开/检索不丢弃 CJK。这是夹具身份，不是官方 search MCP。
+
+AC56：只记录有界进程内 timings。native 窗口卡顿、WebView2、安装包、hosted CI 仍为 `UNVERIFIED`。`cargo test` / `npm build` / UI 文案不是 AC56 native 证明。未宣称全库性能。
+
+zh-CN 工作台「基准」区分空态 / 错误 / 就绪，显示 recall@k、查询数、elapsed_ms、`semantic_enabled=false`、`native_gui=false`。无 `dangerouslySetInnerHTML`。不启动 Supervisor。无新 npm 依赖。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T24 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令（2026-09-13）：`python ./.trellis/scripts/task.py validate 09-12-t24-chinese-recall-benchmark` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 152 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 18 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方中文召回 / hosted CI 证据；这些仍为 `UNVERIFIED`。
+
+T24 证据与验收映射见 [t24-chinese-recall-benchmark.json](../execution/evidence/t24-chinese-recall-benchmark.json)。`execution/status.json` 仅将 T24 标为 `completed`；未改 T05–T23/G0。
