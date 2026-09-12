@@ -1,0 +1,54 @@
+{
+  "task": "T06",
+  "title": "实现typed IPC及权限策略",
+  "status": "accepted_with_limits",
+  "date": "2026-09-12",
+  "acceptance": {
+    "AC06": {
+      "status": "typed_fixture_project_boundary",
+      "evidence": ["apps/bmdock-desktop/src-tauri/src/ipc.rs", "apps/bmdock-desktop/src/ipc.ts"],
+      "claim": "Project selection is typed and accepts only bmdock-fixture."
+    },
+    "AC07": {
+      "status": "preserved",
+      "evidence": ["apps/bmdock-desktop/src-tauri/src/main.rs", "docs/adr/0001-bmdock-boundaries-naming-licensing.md"],
+      "claim": "Renderer receives DTOs only; the official engine remains the future data owner and no direct database or vault access was added."
+    },
+    "AC20": {
+      "status": "policy_rejection_tested",
+      "evidence": ["apps/bmdock-desktop/src-tauri/src/ipc.rs"],
+      "claim": "Unknown commands, arbitrary path fields, non-fixture projects, and raw callTool-shaped DTOs are rejected."
+    },
+    "AC37": {
+      "status": "typed_command_allowlist",
+      "evidence": ["apps/bmdock-desktop/src-tauri/src/ipc.rs", "apps/bmdock-desktop/src/ipc.ts"],
+      "claim": "The renderer command union and Rust dispatcher expose three explicit T06 commands only."
+    },
+    "AC45": {
+      "status": "local_boundary_only",
+      "evidence": [".trellis/tasks/09-12-t06-typed-ipc-policy/implement.md"],
+      "claim": "No cloud, remote, credential, or real-vault route is exposed."
+    },
+    "AC58": {
+      "status": "explicit_capability_contract",
+      "evidence": ["apps/bmdock-desktop/src-tauri/src/ipc.rs", "apps/bmdock-desktop/src/ipc.ts"],
+      "claim": "Capabilities are enumerated and unknown commands fail closed instead of being forwarded."
+    }
+  },
+  "checks": {
+    "cargo_test_workspace_locked_offline": "passed_7_tests",
+    "cargo_check_workspace_locked_offline": "passed",
+    "npm_ci_ignore_scripts": "passed",
+    "npm_build": "passed",
+    "task_validate": "passed",
+    "python_unit": "passed_43_tests",
+    "cargo_fmt": "passed",
+    "git_diff_check": "passed",
+    "native_gui": "UNVERIFIED",
+    "supervisor_or_real_engine": "out_of_scope"
+  },
+  "scope_limits": [
+    "No Supervisor, note CRUD, real vault, search, installer, or raw MCP callTool is implemented.",
+    "P0 bmdock-probe and just contract/contract-main semantics remain independent."
+  ]
+}
