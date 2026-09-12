@@ -681,3 +681,29 @@ zh-CN 工作台「安装 / 升级 / 恢复」区分空态 / 错误 / 就绪，�
 本机 Windows 本轮命令见 [t37-install-upgrade-recovery.json](../execution/evidence/t37-install-upgrade-recovery.json)。`python -m scripts.tasks unit` 以 G0 未 passed 且 T05+ 已 completed 失败（未回退）。未把 UI 文案、工具清单、编译 exe、`tauri-build` 或 `just contract` 当作 native GUI / WebView2 / Job Object / 真实 vault / 签名安装包证据；这些仍为 `UNVERIFIED`。
 
 T37 证据与验收映射见 [t37-install-upgrade-recovery.json](../execution/evidence/t37-install-upgrade-recovery.json)。`execution/status.json` 仅将 T37 标为 `completed`；未改 T05–T36/G0。
+
+## T38：原生安装包及故障回归
+
+T38 在现有 `ipc_invoke` 上增加 typed `inspect_bundle`（`ExplicitRouteArgs`，`deny_unknown_fields`）。额外 `path`/`root`/`token`/`host` 为 schema。缺路由为 schema。非 fixture 路由为 policy，且不打开库。capabilities 精确允许列为 43 个命令。typed `inspect_bundle` 允许。`restore_sync` / raw `callTool` 不在允许列。
+
+生产 `EmptyLibrary`：空 catalog、`classified_as: empty`、`files_written=false`。`inspect_bundle` 报告 `installer_artifact_present=false`、`installer_bundle_active=false`、`signed=false`、`native_gui=false`、`installer_rollback=false`、`recovery_command=restore_fixture`、`search_elapsed_ms=0`、`search_elapsed_host_side=true`。`signing` / native GUI / 强杀 / Job Object / 睡眠恢复 / 磁盘故障为 `UNVERIFIED`，不得报告为已恢复。测试注入 `{temp}/bmdock-t38-*`。夹具 `bundle-claimed` / `installer-present` 为 unsupported，不是原生安装包。宣称故障注入成功为 unsupported。conflict / `timeout_unknown` / `disk_verified` / `accepted_unverified` 保持区分。IPC 错误联合仍为 `policy` / `schema` / `unsupported`。无 `dangerouslySetInnerHTML`。不启动 Supervisor。无 rmcp。无新 npm 依赖。
+
+AC18：强杀 / Job Object / 睡眠恢复 / 磁盘故障仍为 `UNVERIFIED`。`inspect_bundle` 不得把它们报告为已恢复。宣称故障注入成功不受支持。与 conflict / `timeout_unknown` 保持区分。
+
+AC50：原生安装包产物缺席。未制作 MSI / NSIS / AppImage / dmg。`installer_artifact_present=false`。编译 debug exe 不是安装包。
+
+AC51：保持 `bundle.active=false`。`installer_bundle_active=false`，`signed=false`。未启用打包。
+
+AC52：恢复仍是 T12 `restore_fixture`。`restore_sync` 缺席。`inspect_bundle` 不发明安装器回滚用户 vault。
+
+AC55：`just build` 仍是 `scripts.tasks` build（G0 探针）。`just tauri-dev` / `tauri-build` 仍是桌面入口。`just contract*` 仍是探针。未改 justfile 配方。
+
+AC56：T24 宿主侧 recall 计时不是 native GUI jank / WebView2 / 安装包证明。`native_gui=false`。`search_elapsed_ms` 仍属 T24 宿主侧。
+
+zh-CN 工作台「原生安装包 / 故障回归」区分空态 / 错误 / 就绪，均显示无安装包 / 故障注入未验证。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just tauri-build` 不是安装器；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T38 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令见 [t38-native-installer-regression.json](../execution/evidence/t38-native-installer-regression.json)。`python -m scripts.tasks unit` 以 G0 未 passed 且 T05+ 已 completed 失败（未回退）。未把 UI 文案、工具清单、编译 exe、`tauri-build`、cargo test 或 `just contract` 当作 native GUI / WebView2 / Job Object / 真实 vault / 安装包证据；这些仍为 `UNVERIFIED`。
+
+T38 证据与验收映射见 [t38-native-installer-regression.json](../execution/evidence/t38-native-installer-regression.json)。`execution/status.json` 仅将 T38 标为 `completed`；未改 T05–T37/G0。

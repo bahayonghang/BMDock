@@ -52,6 +52,7 @@ import {
   type RouteInspectionDto,
   type PrivacyInspectionDto,
   type InstallInspectionDto,
+  type BundleInspectionDto,
   type AuditedApiLeafDto,
   type AuditedCliLeafDto,
   type AuditedIpcCommandDto,
@@ -85,7 +86,7 @@ import {
   type ShellLoadState,
 } from "./shell";
 
-const SECTIONS = ["workbench", "runtime", "projects", "preflight", "backups", "import", "extras", "cloud", "sync", "hooks", "providers", "routes", "privacy", "install", "about"] as const;
+const SECTIONS = ["workbench", "runtime", "projects", "preflight", "backups", "import", "extras", "cloud", "sync", "hooks", "providers", "routes", "privacy", "install", "bundle", "about"] as const;
 type SectionId = (typeof SECTIONS)[number];
 
 function sectionLabel(id: SectionId): string {
@@ -118,6 +119,8 @@ function sectionLabel(id: SectionId): string {
       return t("navPrivacy");
     case "install":
       return t("navInstall");
+    case "bundle":
+      return t("navBundle");
     case "about":
       return t("navAbout");
     default: {
@@ -242,6 +245,8 @@ function SectionBody({
       return <PrivacyPanel />;
     case "install":
       return <InstallPanel />;
+    case "bundle":
+      return <BundlePanel />;
     case "about":
       return <AboutPanel />;
     default: {
@@ -451,6 +456,7 @@ function WorkbenchLibrary({
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
@@ -776,6 +782,7 @@ async function openNote(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
@@ -866,6 +873,7 @@ async function loadRelations(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setRelations(null);
         setRelationsError({ category: "schema", message: t("unexpectedRelations") });
@@ -989,6 +997,7 @@ async function loadGraph(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setGraph(null);
         setGraphError(unexpectedGraphResponse());
@@ -1079,6 +1088,7 @@ async function loadMoreGraph(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setGraphError(unexpectedGraphResponse());
         return;
@@ -1169,6 +1179,7 @@ async function loadMoreTree(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
@@ -1652,6 +1663,7 @@ async function runSearch(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setSearch(null);
         setSearchError(unexpectedSearchResponse());
@@ -1742,6 +1754,7 @@ async function loadMoreSearch(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setSearchError(unexpectedSearchResponse());
         return;
@@ -1956,6 +1969,7 @@ async function runInspectSearch(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setInspector(null);
         setInspectorError(unexpectedInspectorResponse());
@@ -2199,6 +2213,7 @@ async function runRecallBenchmark(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setRecall(null);
         setRecallError(unexpectedRecallResponse());
@@ -2432,6 +2447,7 @@ async function runSchemaValidate(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setSchema(null);
         setSchemaError(unexpectedSchemaResponse());
@@ -2675,6 +2691,7 @@ async function loadContextPreview(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setPreview(null);
         setPreviewError(unexpectedPreviewResponse());
@@ -2857,6 +2874,7 @@ async function loadActivity(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setActivity(null);
         setActivityError(unexpectedActivityResponse());
@@ -2946,6 +2964,7 @@ async function loadMoreActivity(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setActivityError(unexpectedActivityResponse());
         return;
@@ -3119,6 +3138,7 @@ async function loadResources(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setResources(null);
         setResourcesError(unexpectedResourceResponse());
@@ -3208,6 +3228,7 @@ async function loadMoreResources(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setResourcesError(unexpectedResourceResponse());
         return;
@@ -3382,6 +3403,7 @@ async function loadPrompts(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setPrompts(null);
         setPromptsError(unexpectedPromptResponse());
@@ -3471,6 +3493,7 @@ async function loadMorePrompts(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setPromptsError(unexpectedPromptResponse());
         return;
@@ -3647,6 +3670,7 @@ async function loadTools(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setTools(null);
         setToolsError(unexpectedToolsResponse());
@@ -3843,6 +3867,7 @@ async function loadCli(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setCli(null);
         setCliError(unexpectedCliResponse());
@@ -3934,6 +3959,7 @@ async function loadMoreCli(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setCliError(unexpectedCliResponse());
         return;
@@ -4148,6 +4174,7 @@ async function loadApiAudit(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setAudit(null);
         setAuditError(unexpectedAuditResponse());
@@ -4661,6 +4688,7 @@ async function applyCrudResponse(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
       setError(unexpectedCrudResponse());
       return;
@@ -5006,6 +5034,7 @@ async function persistDraft(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -5101,6 +5130,7 @@ async function reloadDraft(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -5458,6 +5488,7 @@ function ProjectPanel({
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
                   setSelectError({
                     category: "schema",
@@ -5826,6 +5857,7 @@ function ImportPanel() {
         case "route_inspection":
         case "privacy_inspection":
         case "install_inspection":
+        case "bundle_inspection":
         case "shutdown_begun":
           setError(unexpectedImportResponse());
           setResult(null);
@@ -6039,6 +6071,7 @@ function ExtrasPanel() {
         case "route_inspection":
         case "privacy_inspection":
         case "install_inspection":
+        case "bundle_inspection":
         case "shutdown_begun":
           setError(unexpectedExtrasResponse());
           setCatalog(null);
@@ -6149,6 +6182,7 @@ function ExtrasPanel() {
         case "route_inspection":
         case "privacy_inspection":
         case "install_inspection":
+        case "bundle_inspection":
         case "shutdown_begun":
           setError(unexpectedExtrasResponse());
           setIngested(null);
@@ -6379,6 +6413,7 @@ function CloudPanel() {
         case "route_inspection":
         case "privacy_inspection":
         case "install_inspection":
+          case "bundle_inspection":
           setError(unexpectedCloudResponse());
           setReport(null);
           setPhase("error");
@@ -6577,6 +6612,7 @@ function SyncPanel() {
         case "route_inspection":
         case "privacy_inspection":
         case "install_inspection":
+        case "bundle_inspection":
         case "shutdown_begun":
           setError(unexpectedSyncResponse());
           setReport(null);
@@ -6707,6 +6743,7 @@ function SyncPanel() {
         case "route_inspection":
         case "privacy_inspection":
         case "install_inspection":
+        case "bundle_inspection":
         case "shutdown_begun":
           setError(unexpectedSyncResponse());
           setReport(null);
@@ -6929,6 +6966,7 @@ function HookPanel() {
         case "route_inspection":
         case "privacy_inspection":
         case "install_inspection":
+        case "bundle_inspection":
         case "shutdown_begun":
           setError(unexpectedHookResponse());
           setReport(null);
@@ -7158,6 +7196,7 @@ function ProviderPanel() {
         case "route_inspection":
         case "privacy_inspection":
         case "install_inspection":
+        case "bundle_inspection":
         case "shutdown_begun":
           setError(unexpectedProviderResponse());
           setReport(null);
@@ -7414,6 +7453,7 @@ function RoutePanel() {
         case "provider_inspection":
         case "privacy_inspection":
         case "install_inspection":
+        case "bundle_inspection":
         case "shutdown_begun":
           setError(unexpectedRouteResponse());
           setReport(null);
@@ -7646,6 +7686,7 @@ function PrivacyPanel() {
         case "provider_inspection":
         case "route_inspection":
         case "install_inspection":
+        case "bundle_inspection":
         case "shutdown_begun":
           setError(unexpectedPrivacyResponse());
           setReport(null);
@@ -7893,6 +7934,7 @@ function InstallPanel() {
         case "provider_inspection":
         case "route_inspection":
         case "privacy_inspection":
+        case "bundle_inspection":
         case "shutdown_begun":
           setError(unexpectedInstallResponse());
           setReport(null);
@@ -8008,6 +8050,254 @@ function InstallPanel() {
   );
 }
 
+type BundleError = {
+  category: "policy" | "schema" | "unsupported" | "invoke";
+  message: string;
+};
+
+function unexpectedBundleResponse(): BundleError {
+  return { category: "schema", message: t("unexpectedBundle") };
+}
+
+function BundlePanel() {
+  const [phase, setPhase] = useState<"empty" | "ready" | "error">("empty");
+  const [report, setReport] = useState<BundleInspectionDto | null>(null);
+  const [error, setError] = useState<BundleError | null>(null);
+
+  const loadBundle = async () => {
+    const route = copyFixtureRoute();
+    try {
+      const response = await invokeTyped<IpcResponse>({
+        command: "inspect_bundle",
+        args: {
+          workspace: route.workspace,
+          project: route.project,
+        },
+      });
+      switch (response.kind) {
+        case "error":
+          setError({ category: response.category, message: response.message });
+          setReport(null);
+          setPhase("error");
+          return;
+        case "bundle_inspection":
+          if (
+            response.installer_artifact_present ||
+            response.installer_bundle_active ||
+            response.signed ||
+            response.native_gui ||
+            response.installer_rollback ||
+            response.restore_sync_present ||
+            response.files_written ||
+            response.bundle_claimed ||
+            response.installer_present ||
+            response.remote_hosts_contacted ||
+            response.secrets_stored ||
+            response.env_tokens_read ||
+            response.mixed_profiles ||
+            response.engine_bundle ||
+            response.scanned_user_obsidian_vault ||
+            response.catalog.length > 0 ||
+            !response.local_offline ||
+            !response.search_elapsed_host_side ||
+            response.search_elapsed_ms !== 0 ||
+            response.signing !== "UNVERIFIED" ||
+            response.native_gui_status !== "UNVERIFIED" ||
+            response.kill_recovery !== "UNVERIFIED" ||
+            response.job_object !== "UNVERIFIED" ||
+            response.sleep_resume !== "UNVERIFIED" ||
+            response.disk_failure !== "UNVERIFIED" ||
+            response.recovery_command !== "restore_fixture"
+          ) {
+            setError(unexpectedBundleResponse());
+            setReport(null);
+            setPhase("error");
+            return;
+          }
+          setError(null);
+          setReport({
+            catalog: [],
+            installer_artifact_present: false,
+            installer_bundle_active: false,
+            signed: false,
+            signing: "UNVERIFIED",
+            native_gui: false,
+            native_gui_status: "UNVERIFIED",
+            installer_rollback: false,
+            recovery_command: "restore_fixture",
+            restore_sync_present: false,
+            files_written: false,
+            bundle_claimed: false,
+            installer_present: false,
+            kill_recovery: "UNVERIFIED",
+            job_object: "UNVERIFIED",
+            sleep_resume: "UNVERIFIED",
+            disk_failure: "UNVERIFIED",
+            search_elapsed_ms: 0,
+            search_elapsed_host_side: true,
+            secrets_stored: false,
+            env_tokens_read: false,
+            remote_hosts_contacted: false,
+            local_offline: true,
+            mixed_profiles: false,
+            observation: response.observation,
+            engine_bundle: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+          });
+          setPhase("ready");
+          return;
+        case "capabilities":
+        case "runtime_state":
+        case "project_selected":
+        case "project_catalog":
+        case "preflight":
+        case "config_discovery":
+        case "tree_page":
+        case "note_read":
+        case "backup_catalog":
+        case "fixture_restored":
+        case "windows_runtime":
+        case "draft_saved":
+        case "draft_loaded":
+        case "note_written":
+        case "note_edited":
+        case "note_moved":
+        case "note_deleted":
+        case "relation_list":
+        case "graph_page":
+        case "search_page":
+        case "context_preview":
+        case "activity_page":
+        case "search_inspector":
+        case "recall_benchmark":
+        case "schema_validated":
+        case "resource_page":
+        case "prompt_page":
+        case "tool_inspection":
+        case "cli_inventory":
+        case "notes_imported":
+        case "api_audit":
+        case "extras_catalog":
+        case "document_ingested":
+        case "cloud_inspection":
+        case "sync_inspection":
+        case "share_catalog":
+        case "hook_inspection":
+        case "provider_inspection":
+        case "route_inspection":
+        case "privacy_inspection":
+        case "install_inspection":
+        case "shutdown_begun":
+          setError(unexpectedBundleResponse());
+          setReport(null);
+          setPhase("error");
+          return;
+        default: {
+          const exhaustive: never = response;
+          return exhaustive;
+        }
+      }
+    } catch (cause) {
+      setError({
+        category: "invoke",
+        message: cause instanceof Error ? cause.message : String(cause),
+      });
+      setReport(null);
+      setPhase("error");
+    }
+  };
+
+  const empty = phase === "empty" && !error;
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error
+    ? t("bundleErrorTitle")
+    : empty
+      ? t("bundleEmptyTitle")
+      : t("bundleReadyTitle");
+
+  return (
+    <section
+      className="panel"
+      data-state={state}
+      aria-labelledby="bundle-title"
+      role={error ? "alert" : undefined}
+    >
+      <p className="state-badge">{badge}</p>
+      <h2 id="bundle-title">{heading}</h2>
+      <p>
+        {error
+          ? `${errorCategoryLabel(error.category)}：${error.message}`
+          : empty
+            ? t("bundleEmptyBody")
+            : t("bundleReadyBody")}
+      </p>
+      <p>{t("bundleNoArtifact")}</p>
+      <p>{t("bundleFaultUnverified")}</p>
+      <ul className="policy-list">
+        <li>
+          {t("bundleArtifactLabel")}：{t("bundleNoArtifact")}
+        </li>
+        <li>
+          {t("bundleActiveLabel")}：{t("bundleInactive")}
+        </li>
+        <li>
+          {t("bundleSignedLabel")}：{t("bundleUnsigned")}
+        </li>
+        <li>
+          {t("bundleNativeGuiLabel")}：{t("bundleNativeGuiUnverified")}
+        </li>
+        <li>
+          {t("bundleRecoveryLabel")}：{t("bundleRecoveryFixture")}
+        </li>
+      </ul>
+      <button type="button" className="action" onClick={() => void loadBundle()}>
+        {t("bundleInspect")}
+      </button>
+      <ul className="policy-list">
+        <li>{t("bundleNoVault")}</li>
+        <li>{t("bundleNoNativeGui")}</li>
+        <li>{t("bundleNotOfficial")}</li>
+        <li>
+          {t("bundleFilesWrittenLabel")}：
+          {report?.files_written ? t("bundleWroteFiles") : t("bundleNoWrite")}
+        </li>
+      </ul>
+      <ul className="bundle-list">
+        <li>
+          <span>{t("bundleKillLabel")}</span>
+          <span>{t("bundleKillUnverified")}</span>
+        </li>
+        <li>
+          <span>{t("bundleJobLabel")}</span>
+          <span>{t("bundleJobUnverified")}</span>
+        </li>
+        <li>
+          <span>{t("bundleSleepLabel")}</span>
+          <span>{t("bundleSleepUnverified")}</span>
+        </li>
+        <li>
+          <span>{t("bundleDiskLabel")}</span>
+          <span>{t("bundleDiskUnverified")}</span>
+        </li>
+        <li>
+          <span>{t("bundleElapsedLabel")}</span>
+          <span>{t("bundleElapsedHostSide")}</span>
+        </li>
+        <li>
+          <span>{t("bundleObservationLabel")}</span>
+          <span>
+            {report == null || report.observation.classified_as === "empty"
+              ? t("bundleObservationEmpty")
+              : t("bundleObservationUnverified")}
+          </span>
+        </li>
+      </ul>
+    </section>
+  );
+}
+
 type BackupError = {
   category: "policy" | "schema" | "unsupported" | "invoke";
   message: string;
@@ -8114,6 +8404,7 @@ function BackupPanel() {
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
             setError(unexpectedBackupResponse());
             setPhase("error");
@@ -8314,6 +8605,7 @@ async function restoreNamedFixture(
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
@@ -8489,6 +8781,7 @@ function WindowsRuntimeCard() {
       case "route_inspection":
       case "privacy_inspection":
       case "install_inspection":
+      case "bundle_inspection":
       case "shutdown_begun":
             setError(unexpectedWindowsResponse());
             setPhase("error");

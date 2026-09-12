@@ -81,12 +81,20 @@ cross-project/live remote route is unsupported), and T36 typed
 `env_tokens_read=false`, `remote_hosts_contacted=false`; LICENSE /
 NOTICE / SBOM present; `vulnerability_scan=UNVERIFIED`; claiming G7
 or a live privacy-cleared review is unsupported), and T37 typed
-`inspect_install` FAIL-CLOSED local-only unsigned/unbundled
+  `inspect_install` FAIL-CLOSED local-only unsigned/unbundled
 install/upgrade/recovery status (`installer_bundle_active=false`,
 `signed=false`, `upgrade_channel=false`, `native_gui=false`,
 `installer_rollback=false`, `recovery_command=restore_fixture`;
 `restore_sync` stays absent; signing remains `UNVERIFIED` because no
-real bundle was signed; claiming a signed upgrade is unsupported).
+real bundle was signed; claiming a signed upgrade is unsupported), and T38 typed
+`inspect_bundle` FAIL-CLOSED local-only absent native-installer and
+fault-injection regression (`installer_artifact_present=false`,
+`installer_bundle_active=false`, `signed=false`, `native_gui=false`,
+`installer_rollback=false`, `recovery_command=restore_fixture`;
+`restore_sync` stays absent; kill / Job Object / sleep-resume /
+disk-failure stay `UNVERIFIED` and must not be reported as recovered;
+T24 `search_elapsed_ms` stays host-side; claiming a native installer or
+recovered fault injection is unsupported).
 It applies to
 `apps/bmdock-desktop/src-tauri/src/ipc.rs`,
 `apps/bmdock-desktop/src-tauri/src/library.rs`,
@@ -447,7 +455,7 @@ interfaces remain separate. Lifecycle ownership lives in
   enabled. `inspect_routes` must not report `connected` / `synced` /
   `installed`. Claiming live cloud/sync/agent from this command is
   `unsupported`. The typed allowlist is the source of present
-  commands (42). Commands outside the allowlist stay absent
+  commands (43). Commands outside the allowlist stay absent
   (`enable_provider`, `restore_sync`, `list_hooks`,
   `connect_provider`, raw `callTool`). `full_api_coverage=false`.
   Do not infer official MCP from the allowlist. Production
@@ -484,7 +492,7 @@ interfaces remain separate. Lifecycle ownership lives in
   `timeout_unknown` / `disk_verified` / `accepted_unverified` stay
   distinct; `inspect_privacy` does not collapse them. IPC error union
   stays `policy` / `schema` / `unsupported`. The typed allowlist is the
-  source of present commands (42). Tests inject `FixtureLibrary` over
+  source of present commands (43). Tests inject `FixtureLibrary` over
   `{temp}/bmdock-t36-*`. A BMDock-owned fixture `privacy-claimed` /
   `sbom-cleared` flag is `unsupported`, not a passed security review.
   Dual profiles stay isolated (21 vs 27). Official engine is not
@@ -512,13 +520,44 @@ interfaces remain separate. Lifecycle ownership lives in
   Conflict / `timeout_unknown` / `disk_verified` /
   `accepted_unverified` stay distinct. IPC error union stays
   `policy` / `schema` / `unsupported`. The typed allowlist is the
-  source of present commands (42). Tests inject `FixtureLibrary` over
+  source of present commands (43). Tests inject `FixtureLibrary` over
   `{temp}/bmdock-t37-*`. A BMDock-owned fixture `install-claimed` /
   `signed-upgrade` flag is `unsupported`, not a signed installer.
   Dual profiles stay isolated (21 vs 27). T37 does not start
   Supervisor or add rmcp. Do not treat `just contract`, UI copy,
   `tauri-build`, or a compiled exe as native GUI / WebView2 / Job
   Object / real vault / signed installer proof.
+- T38 `inspect_bundle` is FAIL-CLOSED local-only. Args are
+  `ExplicitRouteArgs`. `deny_unknown_fields`. Extra `path` / `root` /
+  `token` / `host` fail closed as `schema`. Missing route is `schema`.
+  Non-fixture routes are `policy` and do not open the library.
+  Production default: `installer_artifact_present=false`,
+  `installer_bundle_active=false`, `signed=false`, `native_gui=false`,
+  `installer_rollback=false`, `files_written=false`,
+  `recovery_command=restore_fixture`, `restore_sync_present=false`,
+  `search_elapsed_ms=0`, `search_elapsed_host_side=true`. Production
+  catalog is empty, `classified_as: empty`. `signing`,
+  `native_gui_status`, kill / Job Object / sleep-resume / disk-failure
+  stay `UNVERIFIED`. `inspect_bundle` must not report those faults as
+  recovered. Claiming a native installer, MSI, NSIS, AppImage, dmg,
+  signed bundle, installer rollback, recovered fault injection, or
+  native GUI session is `unsupported`. Unauthorized remote / env token
+  / stored secret is `policy`. Recovery remains T12 `restore_fixture`.
+  `restore_sync` stays absent. Keep `bundle.active=false`. Do not
+  produce MSI / NSIS / AppImage / dmg. A compiled debug exe is not an
+  installer. T24 `search_elapsed_ms` stays host-side and is not native
+  GUI / WebView2 / installer proof. `just build` stays the G0 probe.
+  `just tauri-build` is still not an installer. Conflict /
+  `timeout_unknown` / `disk_verified` / `accepted_unverified` stay
+  distinct. IPC error union stays `policy` / `schema` /
+  `unsupported`. The typed allowlist is the source of present
+  commands (43). Tests inject `FixtureLibrary` over
+  `{temp}/bmdock-t38-*`. A BMDock-owned fixture `bundle-claimed` /
+  `installer-present` flag is `unsupported`, not a native installer.
+  Dual profiles stay isolated (21 vs 27). T38 does not start
+  Supervisor or add rmcp. Do not treat `just contract`, UI copy,
+  `tauri-build`, cargo test, or a compiled exe as native GUI /
+  WebView2 / Job Object / real vault / installer proof.
 - The boundary does not start or stop the Supervisor, call the official
   engine over rmcp, access a user vault, or expose raw `callTool`. T14
   drafts are BMDock-owned session artifacts, not a second note index and
@@ -655,6 +694,7 @@ inspect_providers: { workspace, project }
 inspect_routes: { workspace, project }
 inspect_privacy: { workspace, project }
 inspect_install: { workspace, project }
+inspect_bundle: { workspace, project }
 preview_context: { workspace, project, identifier, query? }
 list_activity: { workspace, project, cursor?, page_size? }
 list_backups: { workspace, project }
@@ -1052,6 +1092,23 @@ fail closed as `schema`.
   T13 `inspect_windows_runtime`. T37 does not launch a native GUI
   session. Compiled exe / npm build / cargo test are not a native
   window.
+- `inspect_bundle` returns `kind: "bundle_inspection"` with a
+  FAIL-CLOSED absent-installer DTO. Args are `ExplicitRouteArgs`.
+  Extra `path` / `root` / `token` / `host` fail closed as `schema`.
+  Missing route is `schema`. Non-fixture is `policy` and does not open
+  the library. Production `EmptyLibrary` is an empty catalog,
+  `installer_artifact_present=false`, `installer_bundle_active=false`,
+  `signed=false`, `native_gui=false`, `installer_rollback=false`,
+  `files_written=false`, `classified_as: empty`,
+  `recovery_command=restore_fixture`, `restore_sync_present=false`,
+  `search_elapsed_ms=0`, `search_elapsed_host_side=true`. `signing` /
+  native GUI / kill / Job Object / sleep-resume / disk-failure stay
+  `UNVERIFIED` and must not be reported as recovered. Keep
+  `tauri.conf.json` `bundle.active=false`. Do not produce MSI, NSIS,
+  AppImage, or dmg. A compiled debug exe is not an installer. Recovery
+  remains T12 `restore_fixture`. T24 timings stay host-side.
+  `just build` stays the G0 probe. `just tauri-build` is not an
+  installer.
 - `save_draft` returns `kind: "draft_saved"` with `identifier`, `body`,
   `files_written`, `engine_persisted=false`, vault-scan flags false, and an
   observation DTO. Args are `ExplicitRouteArgs` plus `identifier` and
@@ -1159,7 +1216,7 @@ The capability policy must report:
 `EditNoteArgs`, `MoveNoteArgs`, `DeleteNoteArgs`, and `EmptyArgs`
 use `#[serde(deny_unknown_fields)]`.
 There is no path field on `list_projects` / `run_preflight` /
-`discover_config` / `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `inspect_cloud` / `inspect_sync` / `list_shares` / `inspect_hooks` / `inspect_providers` / `inspect_routes` / `inspect_privacy` / `inspect_install` / `preview_context` / `list_activity` / `list_backups` /
+`discover_config` / `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `inspect_cloud` / `inspect_sync` / `list_shares` / `inspect_hooks` / `inspect_providers` / `inspect_routes` / `inspect_privacy` / `inspect_install` / `inspect_bundle` / `preview_context` / `list_activity` / `list_backups` /
 `restore_fixture` / `inspect_windows_runtime` / `save_draft` /
 `load_draft` / `write_note` / `edit_note` / `move_note` /
 `delete_note` / `begin_shutdown` and no raw `callTool` handler. Typed
@@ -1419,7 +1476,7 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 | Unknown `command`, including `call_tool` and MCP identity `search` / `fetch` / `recent_activity` / `build_context` / `schema_infer` / `schema_diff` / `resources/list` / `resources/read` / `prompts/list` / `prompts/get` / `tools/call` | Serde deserialization fails closed | `schema` at the boundary |
 | Incomplete `write_note` args (for example only `project`) | `deny_unknown_fields` / missing fields | `schema` |
 | Extra field in `args` | `deny_unknown_fields` rejects the DTO | `schema` |
-| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `inspect_providers`, `inspect_routes`, `inspect_privacy`, `inspect_install`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `inspect_providers`, `inspect_routes`, `inspect_privacy`, `inspect_install`, `inspect_bundle`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
 | Extra top-level field such as `path` beside `command`/`args` | `deny_unknown_fields` on `IpcCommand` | `schema` |
 | `select_project` for any value other than `bmdock-fixture` | Dispatcher rejects without filesystem access | `policy` |
 | `ExplicitRouteArgs` missing `project`/`workspace` or carrying an extra `path` | `deny_unknown_fields` rejects the DTO | `schema` |
@@ -1588,6 +1645,13 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 | Empty library `inspect_install` | Empty `catalog[]`, `installer_bundle_active=false`, `signed=false`, `upgrade_channel=false`, `native_gui=false`, `installer_rollback=false`, `files_written=false`, `classified_as: empty`, `recovery_command=restore_fixture`, `restore_sync_present=false`; `signing` / native GUI / kill / Job Object / sleep-resume / disk-failure stay `UNVERIFIED` | empty state |
 | Claiming a signed installer / MSI / NSIS / AppImage / upgrade channel / installer rollback / native GUI from `inspect_install` | Reject; not a signed bundle | `unsupported` |
 | Fixture `install-claimed` / `signed-upgrade` flag on `{temp}/bmdock-t37-*` | Classify `unsupported`, not a signed installer | `unsupported` |
+| Extra `path` / `root` / `token` / `host` on `inspect_bundle` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Missing `inspect_bundle` route | Reject without opening the library | `schema` |
+| Non-fixture `inspect_bundle` | Reject without opening the library | `policy` |
+| Unauthorized remote / env token / stored secret / remote host / real vault on `inspect_bundle` | Reject; do not open a credential route | `policy` |
+| Empty library `inspect_bundle` | Empty `catalog[]`, `installer_artifact_present=false`, `installer_bundle_active=false`, `signed=false`, `native_gui=false`, `installer_rollback=false`, `files_written=false`, `classified_as: empty`, `recovery_command=restore_fixture`, `restore_sync_present=false`, `search_elapsed_ms=0`, `search_elapsed_host_side=true`; `signing` / native GUI / kill / Job Object / sleep-resume / disk-failure stay `UNVERIFIED` and are not recovered | empty state |
+| Claiming a native installer / MSI / NSIS / AppImage / dmg / recovered kill / Job Object / sleep-resume / disk-failure / native GUI from `inspect_bundle` | Reject; not a native installer and not recovered fault injection | `unsupported` |
+| Fixture `bundle-claimed` / `installer-present` flag on `{temp}/bmdock-t38-*` | Classify `unsupported`, not a native installer | `unsupported` |
 | Cloud/sync restore / `restore_sync` | Unknown command is `schema`; if a restore-sync path were added it stays `unsupported` / `policy`, not disk-verified user-vault/cloud restore. Recovery remains T12 `restore_fixture`. Envelope `"synced"` / `"restored"` is not disk proof. | `schema` / `unsupported` / `policy` |
 | Unknown official tool name in the selected profile baseline | List as `denied` / `missing`; do not auto-admit | — |
 | Missing `preview_context` identifier | Reject without opening the library | `schema` |
@@ -1799,16 +1863,16 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 
 ## 6. Tests Required
 
-- Rust unit test: capability response lists exactly forty commands and two
+- Rust unit test: capability response lists exactly forty-three commands and two
   events, and both arbitrary-path and raw-callTool policy flags are false.
-  `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `inspect_providers`, `inspect_routes`, `inspect_privacy`, `inspect_install`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`,
+  `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `inspect_providers`, `inspect_routes`, `inspect_privacy`, `inspect_install`, `inspect_bundle`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`,
   `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`,
   `edit_note`, `move_note`, `delete_note`, and `begin_shutdown` are present; `call_tool`,
   MCP identity `search`, `fetch`, `recent_activity`, `build_context`, `schema_infer`, `schema_diff`, `resources/list`, `resources/read`, `prompts/list`, `prompts/get`, and `tools/call` are absent. Incomplete `write_note` args remain schema.
 - Rust unit test: a non-fixture project returns `ErrorCategory::Policy`.
 - Rust unit test: unknown command including `call_tool`, extra project path,
   extra runtime-state path, extra `list_projects` path/root, extra preflight
-  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `expand_graph` path/root,   extra `search_notes` path/root/`id`, extra `inspect_search` path/root/`id`, extra `run_recall_benchmark` path/root, extra `schema_validate` path/root, extra `list_resources` path/root, extra `list_prompts` path/root, extra `inspect_tools` path/root, extra `list_cli_inventory` path/root, extra `import_notes` path/root, extra `inspect_api_audit` path/root, extra `inspect_extras` path/root, extra `ingest_document` path/root, extra `inspect_cloud` path/root, extra `inspect_sync` path/root/token/host, extra `list_shares` path/root/token/host, extra `inspect_hooks` path/root/token/host, extra `inspect_providers` path/root/token/host/api_key, extra `inspect_routes` path/root/token/host/api_key, extra `inspect_privacy` path/root/token/host/api_key, extra `inspect_install` path/root/token/host, extra `preview_context` path/root, extra `list_activity` path/root, extra `list_backups`
+  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `expand_graph` path/root,   extra `search_notes` path/root/`id`, extra `inspect_search` path/root/`id`, extra `run_recall_benchmark` path/root, extra `schema_validate` path/root, extra `list_resources` path/root, extra `list_prompts` path/root, extra `inspect_tools` path/root, extra `list_cli_inventory` path/root, extra `import_notes` path/root, extra `inspect_api_audit` path/root, extra `inspect_extras` path/root, extra `ingest_document` path/root, extra `inspect_cloud` path/root, extra `inspect_sync` path/root/token/host, extra `list_shares` path/root/token/host, extra `inspect_hooks` path/root/token/host, extra `inspect_providers` path/root/token/host/api_key, extra `inspect_routes` path/root/token/host/api_key, extra `inspect_privacy` path/root/token/host/api_key, extra `inspect_install` path/root/token/host, extra `inspect_bundle` path/root/token/host, extra `preview_context` path/root, extra `list_activity` path/root, extra `list_backups`
   path/root, extra `restore_fixture` path, extra
   `inspect_windows_runtime` path/root, extra `save_draft` path/root, extra
   `load_draft` path/root, and extra `begin_shutdown` path/root all fail
@@ -1828,7 +1892,7 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
   scan user vaults, and keeps `cross_project_search_allowed` and
   `implicit_current_project_writes` false.   `ExplicitRouteArgs` requires both
   fields, rejects extra paths as schema, and rejects non-fixture routes as
-  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `inspect_cloud` / `inspect_sync` / `list_shares` / `inspect_hooks` / `inspect_providers` / `inspect_routes` / `inspect_privacy` / `inspect_install` / `preview_context` / `list_activity` / `list_backups` /
+  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `inspect_cloud` / `inspect_sync` / `list_shares` / `inspect_hooks` / `inspect_providers` / `inspect_routes` / `inspect_privacy` / `inspect_install` / `inspect_bundle` / `preview_context` / `list_activity` / `list_backups` /
   `restore_fixture` / `save_draft` / `load_draft` / `write_note` /
   `edit_note` / `move_note` / `delete_note` must not open the library,
   backup store, or draft store.
@@ -2158,6 +2222,26 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
   or add rmcp. Do not treat `just contract`, UI copy, `tauri-build`,
   or a compiled exe as native GUI / WebView2 / Job Object / real
   vault / signed installer proof.
+- Rust unit test: `inspect_bundle` requires `ExplicitRouteArgs`. Extra
+  `path` / `root` / `token` / `host` fail closed as `schema`. Missing
+  route is `schema`. Non-fixture is `policy` and does not open the
+  library. Production `EmptyLibrary` is an empty catalog,
+  `installer_artifact_present=false`, `installer_bundle_active=false`,
+  `signed=false`, `native_gui=false`, `installer_rollback=false`,
+  `files_written=false`, `classified_as: empty`,
+  `recovery_command=restore_fixture`. Kill / Job Object / sleep-resume
+  / disk-failure stay `UNVERIFIED` and must not be reported as
+  recovered. Tests inject `{temp}/bmdock-t38-*`. A BMDock-owned fixture
+  `bundle-claimed` / `installer-present` flag is `unsupported`, not a
+  native installer. Claiming a native installer / MSI / NSIS /
+  AppImage / dmg / recovered fault injection / native GUI is
+  `unsupported`. Unauthorized remote / env tokens / stored secrets are
+  `policy`. Recovery remains T12 `restore_fixture`. `restore_sync`
+  stays absent. T24 `search_elapsed_ms` stays host-side. Dual profiles
+  stay isolated (21 vs 27). T38 does not start Supervisor or add rmcp.
+  Do not treat `just contract`, UI copy, `tauri-build`, cargo test, or
+  a compiled exe as native GUI / WebView2 / Job Object / real vault /
+  installer proof.
 - Rust unit test: `preview_context` requires `ExplicitRouteArgs` plus
   `identifier` plus optional `query`. Extra `path` / `root` fail
   closed as `schema`. Missing identifier is `schema`. Non-fixture
@@ -2412,6 +2496,10 @@ await invokeTyped({
   args: { workspace: route.workspace, project: route.project },
 });
 await invokeTyped({
+  command: "inspect_bundle",
+  args: { workspace: route.workspace, project: route.project },
+});
+await invokeTyped({
   command: "preview_context",
   args: { workspace: route.workspace, project: route.project, identifier, query },
 });
@@ -2482,7 +2570,7 @@ await listenTyped("runtime_state", (state) => renderState(state));
 These calls use the shared DTOs and the explicit fixture/event allowlist.
 `list_projects`, `run_preflight`, and `discover_config` take empty args.
 `select_project` remains fixture-only. `list_tree`, `read_note`,
-`list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `inspect_providers`, `inspect_routes`, `inspect_privacy`, `inspect_install`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
+`list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `inspect_providers`, `inspect_routes`, `inspect_privacy`, `inspect_install`, `inspect_bundle`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
 `write_note`, `edit_note`, `move_note`, and `delete_note` copy
 `ExplicitRouteArgs` on every call and must not treat `runtime.project` as
 an implicit target.
@@ -2526,6 +2614,13 @@ FAIL-CLOSED local-only (`installer_bundle_active=false`, `signed=false`,
 `files_written=false`, `recovery_command=restore_fixture`). Signing stays
 `UNVERIFIED` because no real bundle was signed. Claiming a signed
 upgrade is unsupported. Recovery remains T12 `restore_fixture`.
+`inspect_bundle` is FAIL-CLOSED local-only
+(`installer_artifact_present=false`, `installer_bundle_active=false`,
+`signed=false`, `native_gui=false`, `installer_rollback=false`,
+`files_written=false`, `recovery_command=restore_fixture`). Kill / Job
+Object / sleep-resume / disk-failure stay `UNVERIFIED` and must not be
+reported as recovered. Claiming a native installer or recovered fault
+injection is unsupported. T24 `search_elapsed_ms` stays host-side.
 `save_draft` / `load_draft`
 persist BMDock-owned session drafts, not official engine notes. Typed
 `write_note` is a host command on `NoteLibrary`, not raw `callTool`.

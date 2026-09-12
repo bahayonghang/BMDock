@@ -238,6 +238,21 @@ pub const RECOVERY_COMMAND_RESTORE_FIXTURE: &str = "restore_fixture";
 pub const INSTALL_CLAIMED_FLAG: &str = "install-claimed";
 #[cfg(test)]
 pub const SIGNED_UPGRADE_FLAG: &str = "signed-upgrade";
+pub const ENGINE_BUNDLE_NOT_OWNED: &str =
+    "inspect_bundle is a BMDock-owned local-only absent-installer status; it is not a native installer, MSI/NSIS/AppImage/dmg, signed bundle, native GUI/WebView2 session, Job Object assignment, or installer rollback of a user vault";
+#[cfg(test)]
+pub const OFFICIAL_BUNDLE_UNVERIFIED: &str =
+    "native installer artifact, native GUI/WebView2 session, Job Object assignment, kill/sleep-resume/disk-failure recovery, and installer rollback of a user vault remain UNVERIFIED";
+pub const UNSUPPORTED_BUNDLE_CLAIMED_NOT_INSTALLER: &str =
+    "fixture bundle-claimed / installer-present flag is unsupported, not a native installer; claiming a native installer artifact or recovered fault injection is unsupported";
+pub const POLICY_BUNDLE_CREDENTIAL_ROUTE: &str =
+    "unauthorized remote, credential, env-token, stored-secret, api-key, or real-vault native-installer/fault-regression routes are policy and are not opened";
+pub const UNSUPPORTED_BUNDLE_INSTALLER_CLAIM: &str =
+    "inspect_bundle must not claim a native installer, MSI, NSIS, AppImage, dmg, signed bundle, installer rollback, recovered kill/Job Object/sleep-resume/disk-failure, or native GUI session";
+#[cfg(test)]
+pub const BUNDLE_CLAIMED_FLAG: &str = "bundle-claimed";
+#[cfg(test)]
+pub const INSTALLER_PRESENT_FLAG: &str = "installer-present";
 pub const ABSENT_ALLOWLIST_COMMANDS: &[&str] = &[
     "enable_provider",
     "restore_sync",
@@ -311,6 +326,7 @@ pub const ALLOWLISTED_IPC_COMMANDS: &[&str] = &[
     "inspect_routes",
     "inspect_privacy",
     "inspect_install",
+    "inspect_bundle",
     "preview_context",
     "list_activity",
     "list_backups",
@@ -2208,6 +2224,80 @@ pub fn empty_install_inspection() -> InstallInspectionDto {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct BundleRecordDto {
+    pub identifier: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct BundleInspectionDto {
+    pub catalog: Vec<BundleRecordDto>,
+    pub installer_artifact_present: bool,
+    pub installer_bundle_active: bool,
+    pub signed: bool,
+    pub signing: String,
+    pub native_gui: bool,
+    pub native_gui_status: String,
+    pub installer_rollback: bool,
+    pub recovery_command: String,
+    pub restore_sync_present: bool,
+    pub files_written: bool,
+    pub bundle_claimed: bool,
+    pub installer_present: bool,
+    pub kill_recovery: String,
+    pub job_object: String,
+    pub sleep_resume: String,
+    pub disk_failure: String,
+    pub search_elapsed_ms: u64,
+    pub search_elapsed_host_side: bool,
+    pub secrets_stored: bool,
+    pub env_tokens_read: bool,
+    pub remote_hosts_contacted: bool,
+    pub local_offline: bool,
+    pub mixed_profiles: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_bundle: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+}
+
+pub fn empty_bundle_inspection() -> BundleInspectionDto {
+    BundleInspectionDto {
+        catalog: Vec::new(),
+        installer_artifact_present: false,
+        installer_bundle_active: false,
+        signed: false,
+        signing: SIGNING_UNVERIFIED.to_owned(),
+        native_gui: false,
+        native_gui_status: NATIVE_GUI_STATUS_UNVERIFIED.to_owned(),
+        installer_rollback: false,
+        recovery_command: RECOVERY_COMMAND_RESTORE_FIXTURE.to_owned(),
+        restore_sync_present: false,
+        files_written: false,
+        bundle_claimed: false,
+        installer_present: false,
+        kill_recovery: KILL_RECOVERY_UNVERIFIED.to_owned(),
+        job_object: JOB_OBJECT_UNVERIFIED.to_owned(),
+        sleep_resume: SLEEP_RESUME_UNVERIFIED.to_owned(),
+        disk_failure: DISK_FAILURE_UNVERIFIED.to_owned(),
+        search_elapsed_ms: 0,
+        search_elapsed_host_side: true,
+        secrets_stored: false,
+        env_tokens_read: false,
+        remote_hosts_contacted: false,
+        local_offline: true,
+        mixed_profiles: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_bundle: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+    }
+}
+
 fn absent_command_is_allowlisted(name: &str) -> bool {
     ABSENT_ALLOWLIST_COMMANDS.contains(&name)
         || name == SEARCH_IDENTITY
@@ -2400,6 +2490,59 @@ pub fn accept_install_inspection(
         ));
     }
     Ok(empty_install_inspection())
+}
+
+pub fn accept_bundle_inspection(
+    report: BundleInspectionDto,
+) -> Result<BundleInspectionDto, LibraryError> {
+    if report.scanned_user_obsidian_vault
+        || report.scanned_user_basic_memory_home
+        || report.remote_hosts_contacted
+        || report.secrets_stored
+        || report.env_tokens_read
+    {
+        return Err(LibraryError::policy(POLICY_BUNDLE_CREDENTIAL_ROUTE));
+    }
+    if report.engine_bundle {
+        return Err(LibraryError::unsupported(ENGINE_BUNDLE_NOT_OWNED));
+    }
+    if report.mixed_profiles {
+        return Err(LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES));
+    }
+    if report.installer_artifact_present
+        || report.signed
+        || report.installer_bundle_active
+        || report.installer_rollback
+        || report.native_gui
+        || report.signing != SIGNING_UNVERIFIED
+        || report.native_gui_status != NATIVE_GUI_STATUS_UNVERIFIED
+        || report.recovery_command != RECOVERY_COMMAND_RESTORE_FIXTURE
+        || report.restore_sync_present
+        || report.kill_recovery != KILL_RECOVERY_UNVERIFIED
+        || report.job_object != JOB_OBJECT_UNVERIFIED
+        || report.sleep_resume != SLEEP_RESUME_UNVERIFIED
+        || report.disk_failure != DISK_FAILURE_UNVERIFIED
+        || !report.search_elapsed_host_side
+        || report.search_elapsed_ms != 0
+    {
+        return Err(LibraryError::unsupported(
+            UNSUPPORTED_BUNDLE_INSTALLER_CLAIM,
+        ));
+    }
+    if report.files_written
+        || report.bundle_claimed
+        || report.installer_present
+        || !report.catalog.is_empty()
+        || report.observation.disk_verified
+        || report.observation.classified_as == NoteCrudClass::DiskVerified
+        || report.observation.classified_as == NoteCrudClass::Conflict
+        || report.observation.classified_as == NoteCrudClass::AcceptedUnverified
+    {
+        return Err(LibraryError::unsupported(
+            UNSUPPORTED_BUNDLE_CLAIMED_NOT_INSTALLER,
+        ));
+    }
+    Ok(empty_bundle_inspection())
 }
 
 pub fn accept_import_result(report: ImportResultDto) -> Result<ImportResultDto, LibraryError> {
@@ -2926,6 +3069,10 @@ pub trait NoteLibrary: Send + Sync {
 
     fn inspect_install(&self) -> Result<InstallInspectionDto, LibraryError> {
         Ok(empty_install_inspection())
+    }
+
+    fn inspect_bundle(&self) -> Result<BundleInspectionDto, LibraryError> {
+        Ok(empty_bundle_inspection())
     }
 
     fn write_note(
@@ -3756,6 +3903,46 @@ impl FixtureLibrary {
         crate::content_safety::persist_exact_utf8(
             &path,
             "fixture-signed-upgrade-not-signed-installer\n",
+        )
+        .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        Ok(path)
+    }
+
+    fn require_bundle_root(&self) -> Result<(), LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        if !self.root.to_string_lossy().contains("bmdock-t38") {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        Ok(())
+    }
+
+    pub fn seed_bundle_claimed_flag(&self) -> Result<PathBuf, LibraryError> {
+        self.require_bundle_root()?;
+        fs::create_dir_all(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let path = self.root.join(BUNDLE_CLAIMED_FLAG);
+        if library_root_is_forbidden(&path) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        crate::content_safety::persist_exact_utf8(
+            &path,
+            "fixture-bundle-claimed-not-native-installer\n",
+        )
+        .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        Ok(path)
+    }
+
+    pub fn seed_installer_present_flag(&self) -> Result<PathBuf, LibraryError> {
+        self.require_bundle_root()?;
+        fs::create_dir_all(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let path = self.root.join(INSTALLER_PRESENT_FLAG);
+        if library_root_is_forbidden(&path) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        crate::content_safety::persist_exact_utf8(
+            &path,
+            "fixture-installer-present-not-native-installer\n",
         )
         .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
         Ok(path)
@@ -4729,6 +4916,31 @@ impl NoteLibrary for FixtureLibrary {
             ));
         }
         Ok(empty_install_inspection())
+    }
+
+    fn inspect_bundle(&self) -> Result<BundleInspectionDto, LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        let bundle_flag = self.root.join(BUNDLE_CLAIMED_FLAG);
+        let installer_flag = self.root.join(INSTALLER_PRESENT_FLAG);
+        if bundle_flag.is_symlink() || installer_flag.is_symlink() {
+            return Err(LibraryError::policy(POLICY_BUNDLE_CREDENTIAL_ROUTE));
+        }
+        if bundle_flag.is_file() || installer_flag.is_file() {
+            let flag = if bundle_flag.is_file() {
+                &bundle_flag
+            } else {
+                &installer_flag
+            };
+            if library_root_is_forbidden(flag)
+                || !self.root.to_string_lossy().contains("bmdock-t38")
+            {
+                return Err(LibraryError::policy(POLICY_BUNDLE_CREDENTIAL_ROUTE));
+            }
+            return Err(LibraryError::unsupported(
+                UNSUPPORTED_BUNDLE_CLAIMED_NOT_INSTALLER,
+            ));
+        }
+        Ok(empty_bundle_inspection())
     }
 
     fn write_note(
@@ -6572,6 +6784,38 @@ mod tests {
             NoteCrudClass::AcceptedUnverified
         );
         assert!(!install.observation.disk_verified);
+        let bundle = library.inspect_bundle().unwrap();
+        assert!(bundle.catalog.is_empty());
+        assert!(!bundle.installer_artifact_present);
+        assert!(!bundle.installer_bundle_active);
+        assert!(!bundle.signed);
+        assert_eq!(bundle.signing, SIGNING_UNVERIFIED);
+        assert!(!bundle.native_gui);
+        assert_eq!(bundle.native_gui_status, NATIVE_GUI_STATUS_UNVERIFIED);
+        assert!(!bundle.installer_rollback);
+        assert_eq!(bundle.recovery_command, RECOVERY_COMMAND_RESTORE_FIXTURE);
+        assert!(!bundle.restore_sync_present);
+        assert!(!bundle.files_written);
+        assert!(!bundle.bundle_claimed);
+        assert!(!bundle.installer_present);
+        assert_eq!(bundle.kill_recovery, KILL_RECOVERY_UNVERIFIED);
+        assert_eq!(bundle.job_object, JOB_OBJECT_UNVERIFIED);
+        assert_eq!(bundle.sleep_resume, SLEEP_RESUME_UNVERIFIED);
+        assert_eq!(bundle.disk_failure, DISK_FAILURE_UNVERIFIED);
+        assert_eq!(bundle.search_elapsed_ms, 0);
+        assert!(bundle.search_elapsed_host_side);
+        assert!(!bundle.secrets_stored);
+        assert!(!bundle.env_tokens_read);
+        assert!(!bundle.remote_hosts_contacted);
+        assert!(bundle.local_offline);
+        assert!(!bundle.engine_bundle);
+        assert_eq!(bundle.observation.classified_as, NoteCrudClass::Empty);
+        assert_ne!(bundle.observation.classified_as, NoteCrudClass::Conflict);
+        assert_ne!(
+            bundle.observation.classified_as,
+            NoteCrudClass::AcceptedUnverified
+        );
+        assert!(!bundle.observation.disk_verified);
         let _ = (
             ENGINE_GRAPH_NOT_OWNED,
             ENGINE_SEARCH_NOT_OWNED,
@@ -8877,6 +9121,165 @@ mod tests {
             OFFICIAL_INSTALL_UNVERIFIED,
             UNSUPPORTED_INSTALL_CLAIMED_NOT_SIGNED,
             UNSUPPORTED_INSTALL_SIGNED_CLAIM,
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn fixture_bundle_inspection_is_absent_and_claimed_flag_is_unsupported() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t38-{nanos}"));
+        fs::create_dir_all(&dir).unwrap();
+        let library = FixtureLibrary::new(dir.clone());
+        let report = library.inspect_bundle().unwrap();
+        assert!(report.catalog.is_empty());
+        assert!(!report.installer_artifact_present);
+        assert!(!report.installer_bundle_active);
+        assert!(!report.signed);
+        assert_eq!(report.signing, SIGNING_UNVERIFIED);
+        assert!(!report.native_gui);
+        assert_eq!(report.native_gui_status, NATIVE_GUI_STATUS_UNVERIFIED);
+        assert!(!report.installer_rollback);
+        assert_eq!(report.recovery_command, RECOVERY_COMMAND_RESTORE_FIXTURE);
+        assert!(!report.restore_sync_present);
+        assert!(!report.files_written);
+        assert!(!report.bundle_claimed);
+        assert!(!report.installer_present);
+        assert_eq!(report.kill_recovery, KILL_RECOVERY_UNVERIFIED);
+        assert_eq!(report.job_object, JOB_OBJECT_UNVERIFIED);
+        assert_eq!(report.sleep_resume, SLEEP_RESUME_UNVERIFIED);
+        assert_eq!(report.disk_failure, DISK_FAILURE_UNVERIFIED);
+        assert_eq!(report.search_elapsed_ms, 0);
+        assert!(report.search_elapsed_host_side);
+        assert!(!report.secrets_stored);
+        assert!(!report.env_tokens_read);
+        assert!(!report.remote_hosts_contacted);
+        assert!(report.local_offline);
+        assert!(!report.engine_bundle);
+        assert_eq!(report.observation.classified_as, NoteCrudClass::Empty);
+        assert!(!report.observation.disk_verified);
+        let flag = library.seed_bundle_claimed_flag().unwrap();
+        assert!(flag.is_file());
+        let disk = fs::read_to_string(&flag).unwrap();
+        assert!(disk.contains("fixture-bundle-claimed-not-native-installer"));
+        assert_eq!(
+            library.inspect_bundle().unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_BUNDLE_CLAIMED_NOT_INSTALLER)
+        );
+        let _ = fs::remove_file(&flag);
+        let installer_flag = library.seed_installer_present_flag().unwrap();
+        assert!(installer_flag.is_file());
+        let installer_disk = fs::read_to_string(&installer_flag).unwrap();
+        assert!(installer_disk.contains("fixture-installer-present-not-native-installer"));
+        assert_eq!(
+            library.inspect_bundle().unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_BUNDLE_CLAIMED_NOT_INSTALLER)
+        );
+        let claimed = BundleInspectionDto {
+            bundle_claimed: true,
+            installer_present: true,
+            ..empty_bundle_inspection()
+        };
+        assert_eq!(
+            accept_bundle_inspection(claimed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_BUNDLE_CLAIMED_NOT_INSTALLER)
+        );
+        let catalog = BundleInspectionDto {
+            catalog: vec![BundleRecordDto {
+                identifier: "msi".to_owned(),
+            }],
+            ..empty_bundle_inspection()
+        };
+        assert_eq!(
+            accept_bundle_inspection(catalog).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_BUNDLE_CLAIMED_NOT_INSTALLER)
+        );
+        let artifact = BundleInspectionDto {
+            installer_artifact_present: true,
+            installer_bundle_active: true,
+            signed: true,
+            ..empty_bundle_inspection()
+        };
+        assert_eq!(
+            accept_bundle_inspection(artifact).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_BUNDLE_INSTALLER_CLAIM)
+        );
+        let recovered = BundleInspectionDto {
+            kill_recovery: "recovered".to_owned(),
+            job_object: "recovered".to_owned(),
+            sleep_resume: "recovered".to_owned(),
+            disk_failure: "recovered".to_owned(),
+            ..empty_bundle_inspection()
+        };
+        assert_eq!(
+            accept_bundle_inspection(recovered).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_BUNDLE_INSTALLER_CLAIM)
+        );
+        let native = BundleInspectionDto {
+            native_gui: true,
+            installer_rollback: true,
+            ..empty_bundle_inspection()
+        };
+        assert_eq!(
+            accept_bundle_inspection(native).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_BUNDLE_INSTALLER_CLAIM)
+        );
+        let restore_sync = BundleInspectionDto {
+            restore_sync_present: true,
+            recovery_command: "restore_sync".to_owned(),
+            ..empty_bundle_inspection()
+        };
+        assert_eq!(
+            accept_bundle_inspection(restore_sync).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_BUNDLE_INSTALLER_CLAIM)
+        );
+        let elapsed = BundleInspectionDto {
+            search_elapsed_ms: 12,
+            search_elapsed_host_side: false,
+            ..empty_bundle_inspection()
+        };
+        assert_eq!(
+            accept_bundle_inspection(elapsed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_BUNDLE_INSTALLER_CLAIM)
+        );
+        let collapsed = BundleInspectionDto {
+            observation: NoteCrudObservationDto {
+                classified_as: NoteCrudClass::Conflict,
+                disk_verified: true,
+                envelope_is_not_disk_proof: true,
+            },
+            ..empty_bundle_inspection()
+        };
+        assert_eq!(
+            accept_bundle_inspection(collapsed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_BUNDLE_CLAIMED_NOT_INSTALLER)
+        );
+        let credentials = BundleInspectionDto {
+            env_tokens_read: true,
+            secrets_stored: true,
+            remote_hosts_contacted: true,
+            ..empty_bundle_inspection()
+        };
+        assert_eq!(
+            accept_bundle_inspection(credentials).unwrap_err(),
+            LibraryError::policy(POLICY_BUNDLE_CREDENTIAL_ROUTE)
+        );
+        let mixed = BundleInspectionDto {
+            mixed_profiles: true,
+            ..empty_bundle_inspection()
+        };
+        assert_eq!(
+            accept_bundle_inspection(mixed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES)
+        );
+        let _ = (
+            ENGINE_BUNDLE_NOT_OWNED,
+            OFFICIAL_BUNDLE_UNVERIFIED,
+            UNSUPPORTED_BUNDLE_CLAIMED_NOT_INSTALLER,
+            UNSUPPORTED_BUNDLE_INSTALLER_CLAIM,
         );
         let _ = fs::remove_dir_all(&dir);
     }

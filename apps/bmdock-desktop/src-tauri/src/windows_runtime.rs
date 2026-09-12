@@ -203,7 +203,7 @@ mod tests {
     fn installer_bundle_active_matches_committed_tauri_conf() {
         assert!(
             !on_disk_bundle_active(),
-            "T13 must not enable installer bundling; T37 keeps bundle.active=false and signing UNVERIFIED"
+            "T13 must not enable installer bundling; T37/T38 keep bundle.active=false and signing UNVERIFIED"
         );
         let dto = inspect_windows_runtime();
         assert_eq!(dto.installer_bundle_active, on_disk_bundle_active());

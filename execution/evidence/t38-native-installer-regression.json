@@ -1,0 +1,247 @@
+{
+  "task": "T38",
+  "title": "原生安装包及故障回归",
+  "status": "accepted_with_limits",
+  "date": "2026-09-13",
+  "host_boundary": "T38 adds typed inspect_bundle with ExplicitRouteArgs. deny_unknown_fields. Extra path/root/token/host is schema. Missing route is schema. Non-fixture is policy and does not open the library. Production default: installer_artifact_present=false, installer_bundle_active=false, signed=false, native_gui=false, installer_rollback=false, files_written=false, recovery_command=restore_fixture, restore_sync_present=false, search_elapsed_ms=0, search_elapsed_host_side=true. Production catalog is empty with classified_as empty. signing, native_gui_status, kill/Job Object/sleep-resume/disk-failure stay UNVERIFIED and must not be reported as recovered. inspect_bundle must not claim a native installer, MSI, NSIS, AppImage, dmg, signed bundle, installer rollback, recovered fault injection, or native GUI session. Claiming a native installer or recovered fault injection is unsupported. Unauthorized remote / env token / stored secret is policy. Recovery remains T12 restore_fixture, not cloud restore and not installer rollback of a user vault. restore_sync stays absent. Keep bundle.active=false. Do not produce MSI/NSIS/AppImage/dmg. A compiled debug exe is not an installer. T24 search_elapsed_ms stays host-side and is not native GUI / WebView2 / installer proof. just build stays the G0 probe. just tauri-build is still not an installer. Conflict / timeout_unknown / disk_verified / accepted_unverified stay distinct. IPC error union stays policy/schema/unsupported. The typed allowlist is the source of present commands (43). Tests inject FixtureLibrary {temp}/bmdock-t38-*. A BMDock-owned fixture bundle-claimed / installer-present flag is unsupported, not a native installer. Dual profiles stay isolated (21 vs 27). T38 does not start Supervisor, add rmcp, spawn engine_worker, store secrets, read user tokens from env, contact remote hosts, open a credential route, enable bundle.active, or treat just contract / UI copy / tauri-build / cargo test / compiled exe as native GUI / WebView2 / Job Object / real vault / installer proof.",
+  "acceptance": {
+    "AC18": {
+      "status": "kill_job_sleep_disk_stay_unverified",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Kill / Job Object / sleep-resume / disk-failure stay UNVERIFIED. inspect_bundle must not report those as recovered. Claiming fault-injection success is unsupported. Distinct from conflict and timeout_unknown.",
+      "unverified": [
+        "kill recovery",
+        "Job Object assignment",
+        "sleep-resume",
+        "disk-failure injection"
+      ]
+    },
+    "AC50": {
+      "status": "native_installer_artifact_absent",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/tauri.conf.json",
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "tests/test_desktop_shell.py"
+      ],
+      "claim": "Native installer artifact is absent. No MSI/NSIS/AppImage/dmg was produced. installer_artifact_present=false. A compiled debug exe is not an installer.",
+      "unverified": [
+        "native installer artifact",
+        "MSI / NSIS / AppImage / dmg"
+      ]
+    },
+    "AC51": {
+      "status": "bundle_active_false_unsigned_unbundled",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/tauri.conf.json",
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/windows_runtime.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "tests/test_desktop_shell.py"
+      ],
+      "claim": "bundle.active remains false. installer_bundle_active=false, signed=false. Bundling was not enabled.",
+      "unverified": [
+        "signed installer bundle",
+        "code signing of a real bundle"
+      ]
+    },
+    "AC52": {
+      "status": "recovery_is_t12_restore_fixture_not_installer_rollback",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Recovery remains T12 restore_fixture. restore_sync stays absent. inspect_bundle does not invent installer rollback of a user vault.",
+      "unverified": [
+        "installer rollback of a user vault",
+        "production upgrade recovery of a user vault"
+      ]
+    },
+    "AC55": {
+      "status": "justfile_recipes_unchanged",
+      "evidence": [
+        "justfile",
+        "tests/test_desktop_shell.py",
+        "docs/VERIFICATION.md"
+      ],
+      "claim": "just build stays scripts.tasks build (G0 probe). just tauri-dev / tauri-build stay desktop. just contract* stay probe. justfile recipes were not changed to make T38 look like an installer.",
+      "unverified": [
+        "native installer recipe",
+        "desktop installer bundle"
+      ]
+    },
+    "AC56": {
+      "status": "t24_host_timings_not_native_gui",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts"
+      ],
+      "claim": "T24 host-bounded recall timings are not native GUI jank / WebView2 / installer proof. native_gui=false. search_elapsed_ms from T24 stays host-side.",
+      "unverified": [
+        "native GUI session",
+        "WebView2 session",
+        "native GUI jank measurements"
+      ]
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t38-native-installer-regression",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "bmdock_app": 208,
+      "bmdock_probe": 5
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "note": "existing T07 supervisor dead_code warnings remain; T38 did not start Supervisor"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "tsc -b && vite build; npm ci not run this session"
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "ran": 32
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "error": "A later task was completed before G0",
+      "note": "G0 is not passed and T05+ are completed; T38 did not revert T05-T37"
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window was launched. AC56 proof is typed inspect_bundle plus T24 host-side search_elapsed_ms remaining host-side, not a native GUI / WebView2 session."
+    },
+    {
+      "cmd": "native installer / MSI / NSIS / AppImage / dmg",
+      "exit": "not_run",
+      "result": "bundle.active stayed false. No installer was produced. installer_artifact_present remains false."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_213_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_desktop_shell": "32_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop_tauri_build_is_not_installer",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "typed_command_count": 43,
+    "typed_inspect_bundle": "allowed",
+    "restore_sync": "not_allowlisted",
+    "raw_call_tool": "not_allowlisted",
+    "extra_path_root_token_host_is_schema": true,
+    "missing_route_is_schema": true,
+    "non_fixture_is_policy": true,
+    "installer_artifact_present": false,
+    "installer_bundle_active": false,
+    "bundle_active": false,
+    "signed": false,
+    "native_gui": false,
+    "installer_rollback": false,
+    "files_written_default": false,
+    "recovery_command": "restore_fixture",
+    "restore_sync_present": false,
+    "search_elapsed_ms": 0,
+    "search_elapsed_host_side": true,
+    "signing": "UNVERIFIED",
+    "native_gui_status": "UNVERIFIED",
+    "kill_recovery": "UNVERIFIED",
+    "job_object": "UNVERIFIED",
+    "sleep_resume": "UNVERIFIED",
+    "disk_failure": "UNVERIFIED",
+    "bundle_catalog_empty_in_production": true,
+    "bundle_claimed_fixture_flag_is_unsupported_not_native_installer": true,
+    "installer_present_fixture_flag_is_unsupported_not_native_installer": true,
+    "table_driven_explicit_route_regression_includes_inspect_bundle": true,
+    "supervisor_not_started_by_table": true,
+    "dangerouslySetInnerHTML": "absent",
+    "supervisor_started_by_t38": false,
+    "rmcp_live_client": "not_added_in_t38",
+    "new_npm_deps": false,
+    "native_gui_session": "UNVERIFIED",
+    "webview2_session": "UNVERIFIED",
+    "installer": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "g0": "in_progress",
+    "g7": "not_passed"
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false,
+    "official_engine_redistributed_as_bmdock": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "G7": "not_started",
+    "T05": "completed_unchanged",
+    "T24": "completed_unchanged",
+    "T37": "completed_unchanged",
+    "T38": "completed",
+    "T39": "planned_unchanged",
+    "T40": "planned_unchanged"
+  },
+  "unverified": [
+    "G0 product gate",
+    "G7 release gate",
+    "hosted CI for this T38 revision",
+    "native GUI / WebView2 session",
+    "Job Object assignment",
+    "kill recovery",
+    "sleep-resume",
+    "disk-failure injection",
+    "native installer artifact",
+    "MSI / NSIS / AppImage / dmg",
+    "code signing of a real bundle",
+    "installer rollback of a user vault",
+    "real user vault",
+    "official live engine / MCP session"
+  ],
+  "rollback": "Remove inspect_bundle from the ipc_invoke union, drop BundlePanel, restore the 42-command allowlist, and leave T37 inspect_install plus T13 inspect_windows_runtime in place. Keep bundle.active=false. Do not revert T05-T37 status to make unit green."
+}

@@ -5,12 +5,13 @@ use crate::conflict::{self, ConflictCoordinator};
 use crate::drafts::{self, DraftResultDto, DraftStore};
 use crate::drain::{self, DrainPhase, DrainResultDto, HostDrain};
 use crate::library::{
-    self, ActivityPageDto, ApiAuditDto, CliInventoryDto, CloudInspectionDto, ContextPreviewDto,
-    ExtrasCatalogDto, GraphPageDto, HookInspectionDto, ImportResultDto, IngestResultDto,
-    InstallInspectionDto, NoteDeleteDto, NoteEditDto, NoteLibrary, NoteMoveDto, NoteReadDto,
-    NoteWriteDto, PrivacyInspectionDto, PromptPageDto, ProviderInspectionDto, RecallBenchmarkDto,
-    RelationListDto, ResourcePageDto, RouteInspectionDto, SchemaValidateDto, SearchInspectorDto,
-    SearchPageDto, ShareCatalogDto, SyncInspectionDto, ToolInspectionDto, TreePageDto,
+    self, ActivityPageDto, ApiAuditDto, BundleInspectionDto, CliInventoryDto, CloudInspectionDto,
+    ContextPreviewDto, ExtrasCatalogDto, GraphPageDto, HookInspectionDto, ImportResultDto,
+    IngestResultDto, InstallInspectionDto, NoteDeleteDto, NoteEditDto, NoteLibrary, NoteMoveDto,
+    NoteReadDto, NoteWriteDto, PrivacyInspectionDto, PromptPageDto, ProviderInspectionDto,
+    RecallBenchmarkDto, RelationListDto, ResourcePageDto, RouteInspectionDto, SchemaValidateDto,
+    SearchInspectorDto, SearchPageDto, ShareCatalogDto, SyncInspectionDto, ToolInspectionDto,
+    TreePageDto,
 };
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
@@ -52,6 +53,7 @@ pub enum IpcCommandName {
     InspectRoutes,
     InspectPrivacy,
     InspectInstall,
+    InspectBundle,
     PreviewContext,
     ListActivity,
     ListBackups,
@@ -98,6 +100,7 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::InspectRoutes,
         IpcCommandName::InspectPrivacy,
         IpcCommandName::InspectInstall,
+        IpcCommandName::InspectBundle,
         IpcCommandName::PreviewContext,
         IpcCommandName::ListActivity,
         IpcCommandName::ListBackups,
@@ -630,6 +633,7 @@ pub enum IpcCommand {
     InspectRoutes(ExplicitRouteArgs),
     InspectPrivacy(ExplicitRouteArgs),
     InspectInstall(ExplicitRouteArgs),
+    InspectBundle(ExplicitRouteArgs),
     PreviewContext(PreviewContextArgs),
     ListActivity(ListActivityArgs),
     ListBackups(ExplicitRouteArgs),
@@ -718,6 +722,7 @@ pub enum IpcResponse {
     RouteInspection(RouteInspectionDto),
     PrivacyInspection(PrivacyInspectionDto),
     InstallInspection(InstallInspectionDto),
+    BundleInspection(BundleInspectionDto),
     ContextPreview(ContextPreviewDto),
     ActivityPage(ActivityPageDto),
     BackupCatalog(BackupCatalogDto),
@@ -1051,6 +1056,12 @@ pub fn dispatch_with_drain(
                 library::accept_install_inspection(library.inspect_install()?)?,
             ))
         }
+        IpcCommand::InspectBundle(route_args) => {
+            require_explicit_fixture_route(&route_args)?;
+            Ok(IpcResponse::BundleInspection(
+                library::accept_bundle_inspection(library.inspect_bundle()?)?,
+            ))
+        }
         IpcCommand::PreviewContext(args) => {
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
@@ -1279,6 +1290,7 @@ mod tests {
                 IpcCommandName::InspectRoutes,
                 IpcCommandName::InspectPrivacy,
                 IpcCommandName::InspectInstall,
+                IpcCommandName::InspectBundle,
                 IpcCommandName::PreviewContext,
                 IpcCommandName::ListActivity,
                 IpcCommandName::ListBackups,
@@ -1293,14 +1305,14 @@ mod tests {
                 IpcCommandName::BeginShutdown,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 42);
+        assert_eq!(capabilities.commands.len(), 43);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 42);
+        assert_eq!(commands.len(), 43);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
@@ -1335,6 +1347,7 @@ mod tests {
         assert!(commands.iter().any(|command| command == "inspect_routes"));
         assert!(commands.iter().any(|command| command == "inspect_privacy"));
         assert!(commands.iter().any(|command| command == "inspect_install"));
+        assert!(commands.iter().any(|command| command == "inspect_bundle"));
         assert!(commands.iter().any(|command| command == "preview_context"));
         assert!(commands.iter().any(|command| command == "list_activity"));
         assert!(commands.iter().any(|command| command == "list_backups"));
@@ -2004,6 +2017,33 @@ mod tests {
             r#"{"command":"inspect_install","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
         );
         assert!(well_formed_install.is_ok());
+        let extra_path_on_bundle = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_bundle","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_bundle.is_err());
+        let extra_root_on_bundle = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_bundle","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_bundle.is_err());
+        let extra_token_on_bundle = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_bundle","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","token":"env-token"}}"#,
+        );
+        assert!(extra_token_on_bundle.is_err());
+        let extra_host_on_bundle = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_bundle","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","host":"https://example.invalid"}}"#,
+        );
+        assert!(extra_host_on_bundle.is_err());
+        let extra_api_key_on_bundle = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_bundle","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","api_key":"sk-test"}}"#,
+        );
+        assert!(extra_api_key_on_bundle.is_err());
+        let bundle_without_route =
+            serde_json::from_str::<IpcCommand>(r#"{"command":"inspect_bundle","args":{}}"#);
+        assert!(bundle_without_route.is_err());
+        let well_formed_bundle = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_bundle","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(well_formed_bundle.is_ok());
         let enable_provider = serde_json::from_str::<IpcCommand>(
             r#"{"command":"enable_provider","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
         );
@@ -2651,6 +2691,10 @@ mod tests {
         }
 
         fn inspect_install(&self) -> Result<library::InstallInspectionDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
+        fn inspect_bundle(&self) -> Result<library::BundleInspectionDto, library::LibraryError> {
             panic!("policy rejection must not open the library")
         }
 
@@ -8522,7 +8566,7 @@ mod tests {
             release.ipc_commands.len(),
             library::ALLOWLISTED_IPC_COMMANDS.len()
         );
-        assert_eq!(release.ipc_commands.len(), 42);
+        assert_eq!(release.ipc_commands.len(), 43);
         assert!(release.ipc_commands.iter().any(|command| {
             command.name == "inspect_api_audit"
                 && command.coverage == library::AuditCoverage::Present
@@ -8539,6 +8583,9 @@ mod tests {
         }));
         assert!(release.ipc_commands.iter().any(|command| {
             command.name == "inspect_install" && command.coverage == library::AuditCoverage::Present
+        }));
+        assert!(release.ipc_commands.iter().any(|command| {
+            command.name == "inspect_bundle" && command.coverage == library::AuditCoverage::Present
         }));
         assert!(!release.ipc_commands.iter().any(|command| {
             command.name == library::CALL_TOOL_IDENTITY
@@ -10461,6 +10508,14 @@ mod tests {
                 }),
             ),
             (
+                "inspect_bundle",
+                "",
+                IpcCommand::InspectBundle(ExplicitRouteArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                }),
+            ),
+            (
                 "preview_context",
                 r#","identifier":"welcome""#,
                 IpcCommand::PreviewContext(PreviewContextArgs {
@@ -10566,6 +10621,7 @@ mod tests {
             "inspect_routes",
             "inspect_privacy",
             "inspect_install",
+            "inspect_bundle",
             "inspect_cloud",
             "inspect_sync",
             "inspect_hooks",
@@ -10640,7 +10696,7 @@ mod tests {
             panic!("wrong response variant")
         };
         assert!(report.routes.is_empty());
-        assert_eq!(report.present_commands.len(), 42);
+        assert_eq!(report.present_commands.len(), 43);
         assert!(report
             .present_commands
             .iter()
@@ -10653,6 +10709,10 @@ mod tests {
             .present_commands
             .iter()
             .any(|command| command == "inspect_install"));
+        assert!(report
+            .present_commands
+            .iter()
+            .any(|command| command == "inspect_bundle"));
         assert!(report
             .present_commands
             .iter()
@@ -10960,7 +11020,7 @@ mod tests {
         let IpcResponse::Capabilities(capabilities) = capabilities else {
             panic!("wrong response variant")
         };
-        assert_eq!(capabilities.commands.len(), 42);
+        assert_eq!(capabilities.commands.len(), 43);
         assert!(capabilities
             .commands
             .iter()
@@ -11245,11 +11305,15 @@ mod tests {
         let IpcResponse::Capabilities(capabilities) = capabilities else {
             panic!("wrong response variant")
         };
-        assert_eq!(capabilities.commands.len(), 42);
+        assert_eq!(capabilities.commands.len(), 43);
         assert!(capabilities
             .commands
             .iter()
             .any(|command| *command == IpcCommandName::InspectInstall));
+        assert!(capabilities
+            .commands
+            .iter()
+            .any(|command| *command == IpcCommandName::InspectBundle));
         assert!(!capabilities
             .commands
             .iter()
@@ -11458,6 +11522,302 @@ mod tests {
         let _ = (
             library::ENGINE_INSTALL_NOT_OWNED,
             library::OFFICIAL_INSTALL_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn inspect_bundle_empty_library_is_absent_not_native_installer() {
+        let mut route = RouteState::default();
+        let IpcResponse::BundleInspection(report) = dispatch_with_library(
+            IpcCommand::InspectBundle(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(report.catalog.is_empty());
+        assert!(!report.installer_artifact_present);
+        assert!(!report.installer_bundle_active);
+        assert!(!report.signed);
+        assert_eq!(report.signing, library::SIGNING_UNVERIFIED);
+        assert!(!report.native_gui);
+        assert_eq!(
+            report.native_gui_status,
+            library::NATIVE_GUI_STATUS_UNVERIFIED
+        );
+        assert!(!report.installer_rollback);
+        assert_eq!(
+            report.recovery_command,
+            library::RECOVERY_COMMAND_RESTORE_FIXTURE
+        );
+        assert!(!report.restore_sync_present);
+        assert!(!report.files_written);
+        assert!(!report.bundle_claimed);
+        assert!(!report.installer_present);
+        assert_eq!(report.kill_recovery, library::KILL_RECOVERY_UNVERIFIED);
+        assert_eq!(report.job_object, library::JOB_OBJECT_UNVERIFIED);
+        assert_eq!(report.sleep_resume, library::SLEEP_RESUME_UNVERIFIED);
+        assert_eq!(report.disk_failure, library::DISK_FAILURE_UNVERIFIED);
+        assert_eq!(report.search_elapsed_ms, 0);
+        assert!(report.search_elapsed_host_side);
+        assert!(!report.secrets_stored);
+        assert!(!report.env_tokens_read);
+        assert!(!report.remote_hosts_contacted);
+        assert!(report.local_offline);
+        assert!(!report.engine_bundle);
+        assert_eq!(
+            report.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        assert_ne!(
+            report.observation.classified_as,
+            library::NoteCrudClass::Conflict
+        );
+        assert_ne!(
+            report.observation.classified_as,
+            library::NoteCrudClass::AcceptedUnverified
+        );
+        assert!(!report.observation.disk_verified);
+        assert!(report.observation.envelope_is_not_disk_proof);
+        let json = serde_json::to_value(&IpcResponse::BundleInspection(report)).unwrap();
+        assert_eq!(json["kind"], "bundle_inspection");
+        assert_eq!(json["installer_artifact_present"], false);
+        assert_eq!(json["installer_bundle_active"], false);
+        assert_eq!(json["signed"], false);
+        assert_eq!(json["signing"], "UNVERIFIED");
+        assert_eq!(json["native_gui"], false);
+        assert_eq!(json["native_gui_status"], "UNVERIFIED");
+        assert_eq!(json["installer_rollback"], false);
+        assert_eq!(json["recovery_command"], "restore_fixture");
+        assert_eq!(json["restore_sync_present"], false);
+        assert_eq!(json["kill_recovery"], "UNVERIFIED");
+        assert_eq!(json["job_object"], "UNVERIFIED");
+        assert_eq!(json["sleep_resume"], "UNVERIFIED");
+        assert_eq!(json["disk_failure"], "UNVERIFIED");
+        assert_eq!(json["search_elapsed_ms"], 0);
+        assert_eq!(json["search_elapsed_host_side"], true);
+        assert_eq!(json["files_written"], false);
+        assert!(json["catalog"].as_array().unwrap().is_empty());
+        assert!(!windows_runtime::installer_bundle_active());
+        let capabilities = dispatch(IpcCommand::GetCapabilities(EmptyArgs {})).unwrap();
+        let IpcResponse::Capabilities(capabilities) = capabilities else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(capabilities.commands.len(), 43);
+        assert!(capabilities
+            .commands
+            .iter()
+            .any(|command| *command == IpcCommandName::InspectBundle));
+        assert!(!capabilities
+            .commands
+            .iter()
+            .any(|name| { command_name_string(name.clone()) == "restore_sync" }));
+        let _ = (
+            library::ENGINE_BUNDLE_NOT_OWNED,
+            library::OFFICIAL_BUNDLE_UNVERIFIED,
+            library::UNSUPPORTED_BUNDLE_INSTALLER_CLAIM,
+        );
+    }
+
+    #[test]
+    fn inspect_bundle_fixture_stays_absent_and_claimed_flag_is_unsupported() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t38-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let library = library::FixtureLibrary::new(dir.clone());
+        let mut route = RouteState::default();
+        let IpcResponse::BundleInspection(report) = dispatch_with_library(
+            IpcCommand::InspectBundle(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(report.catalog.is_empty());
+        assert!(!report.installer_artifact_present);
+        assert!(!report.installer_bundle_active);
+        assert!(!report.signed);
+        assert!(!report.native_gui);
+        assert!(!report.installer_rollback);
+        assert_eq!(
+            report.recovery_command,
+            library::RECOVERY_COMMAND_RESTORE_FIXTURE
+        );
+        assert!(!report.files_written);
+        assert_eq!(report.search_elapsed_ms, 0);
+        assert!(report.search_elapsed_host_side);
+        assert_eq!(
+            report.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        let flag = library.seed_bundle_claimed_flag().unwrap();
+        assert!(flag.is_file());
+        let disk = std::fs::read_to_string(&flag).unwrap();
+        assert!(disk.contains("fixture-bundle-claimed-not-native-installer"));
+        let claimed = dispatch_with_library(
+            IpcCommand::InspectBundle(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(claimed.category, ErrorCategory::Unsupported);
+        assert_eq!(
+            claimed.message,
+            library::UNSUPPORTED_BUNDLE_CLAIMED_NOT_INSTALLER
+        );
+        let _ = std::fs::remove_file(&flag);
+        let installer_flag = library.seed_installer_present_flag().unwrap();
+        assert!(installer_flag.is_file());
+        let installer_claimed = dispatch_with_library(
+            IpcCommand::InspectBundle(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(installer_claimed.category, ErrorCategory::Unsupported);
+        assert_eq!(
+            installer_claimed.message,
+            library::UNSUPPORTED_BUNDLE_CLAIMED_NOT_INSTALLER
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    struct ClaimedBundleLibrary;
+
+    impl NoteLibrary for ClaimedBundleLibrary {
+        fn list_tree(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            Ok(library::TreePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: false,
+            })
+        }
+
+        fn read_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            Err(library::LibraryError::unsupported(
+                library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
+            ))
+        }
+
+        fn inspect_bundle(&self) -> Result<library::BundleInspectionDto, library::LibraryError> {
+            Ok(library::BundleInspectionDto {
+                installer_artifact_present: true,
+                installer_bundle_active: true,
+                native_gui: true,
+                kill_recovery: "recovered".to_owned(),
+                ..library::empty_bundle_inspection()
+            })
+        }
+    }
+
+    struct CredentialBundleLibrary;
+
+    impl NoteLibrary for CredentialBundleLibrary {
+        fn list_tree(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            Ok(library::TreePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: false,
+            })
+        }
+
+        fn read_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            Err(library::LibraryError::unsupported(
+                library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
+            ))
+        }
+
+        fn inspect_bundle(&self) -> Result<library::BundleInspectionDto, library::LibraryError> {
+            Ok(library::BundleInspectionDto {
+                env_tokens_read: true,
+                secrets_stored: true,
+                remote_hosts_contacted: true,
+                ..library::empty_bundle_inspection()
+            })
+        }
+    }
+
+    #[test]
+    fn inspect_bundle_installer_claim_or_env_tokens_are_not_success() {
+        let mut route = RouteState::default();
+        let claimed = dispatch_with_library(
+            IpcCommand::InspectBundle(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &ClaimedBundleLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(claimed.category, ErrorCategory::Unsupported);
+        assert_eq!(claimed.message, library::UNSUPPORTED_BUNDLE_INSTALLER_CLAIM);
+        let credentials = dispatch_with_library(
+            IpcCommand::InspectBundle(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &CredentialBundleLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(credentials.category, ErrorCategory::Policy);
+        assert_eq!(credentials.message, library::POLICY_BUNDLE_CREDENTIAL_ROUTE);
+        let runtime = dispatch(IpcCommand::GetRuntimeState(EmptyArgs {})).unwrap();
+        let IpcResponse::RuntimeState(state) = runtime else {
+            panic!("wrong response variant")
+        };
+        assert!(matches!(
+            state.failure,
+            None | Some(FailureKind::TimeoutUnknown)
+                | Some(FailureKind::Policy)
+                | Some(FailureKind::Transport)
+                | Some(FailureKind::Process)
+                | Some(FailureKind::Unverified)
+        ));
+        let error = IpcError {
+            category: ErrorCategory::Schema,
+            message: "missing route".to_owned(),
+        };
+        assert_ne!(error.category, ErrorCategory::Policy);
+        assert!(matches!(
+            error.category,
+            ErrorCategory::Policy | ErrorCategory::Schema | ErrorCategory::Unsupported
+        ));
+        let release = EngineProfile::Release;
+        let preview = EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(preview.commit(), "3452c821d76c083823d020984d71e06904a1ff1e");
+        assert_ne!(release.expected_tools(), preview.expected_tools());
+        let _ = (
+            library::ENGINE_BUNDLE_NOT_OWNED,
+            library::OFFICIAL_BUNDLE_UNVERIFIED,
         );
     }
 }

@@ -98,6 +98,7 @@ export type InspectProvidersArgs = ExplicitRouteArgs;
 export type InspectRoutesArgs = ExplicitRouteArgs;
 export type InspectPrivacyArgs = ExplicitRouteArgs;
 export type InspectInstallArgs = ExplicitRouteArgs;
+export type InspectBundleArgs = ExplicitRouteArgs;
 
 export type PreviewContextArgs = ExplicitRouteArgs & {
   identifier: string;
@@ -173,6 +174,7 @@ export type IpcCommand =
   | { command: "inspect_routes"; args: InspectRoutesArgs }
   | { command: "inspect_privacy"; args: InspectPrivacyArgs }
   | { command: "inspect_install"; args: InspectInstallArgs }
+  | { command: "inspect_bundle"; args: InspectBundleArgs }
   | { command: "preview_context"; args: PreviewContextArgs }
   | { command: "list_activity"; args: ListActivityArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
@@ -937,6 +939,41 @@ export interface InstallInspectionDto {
   scanned_user_basic_memory_home: false;
 }
 
+export interface BundleRecordDto {
+  identifier: string;
+}
+
+export interface BundleInspectionDto {
+  catalog: BundleRecordDto[];
+  installer_artifact_present: false;
+  installer_bundle_active: false;
+  signed: false;
+  signing: "UNVERIFIED";
+  native_gui: false;
+  native_gui_status: "UNVERIFIED";
+  installer_rollback: false;
+  recovery_command: "restore_fixture";
+  restore_sync_present: false;
+  files_written: false;
+  bundle_claimed: false;
+  installer_present: false;
+  kill_recovery: "UNVERIFIED";
+  job_object: "UNVERIFIED";
+  sleep_resume: "UNVERIFIED";
+  disk_failure: "UNVERIFIED";
+  search_elapsed_ms: 0;
+  search_elapsed_host_side: true;
+  secrets_stored: false;
+  env_tokens_read: false;
+  remote_hosts_contacted: false;
+  local_offline: true;
+  mixed_profiles: false;
+  observation: NoteCrudObservationDto;
+  engine_bundle: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+}
+
 export type DraftClass = "empty" | "disk_verified" | "accepted_unverified" | "unclassified";
 
 export interface DraftObservationDto {
@@ -1054,6 +1091,7 @@ export type IpcResponse =
   | { kind: "route_inspection" } & RouteInspectionDto
   | { kind: "privacy_inspection" } & PrivacyInspectionDto
   | { kind: "install_inspection" } & InstallInspectionDto
+  | { kind: "bundle_inspection" } & BundleInspectionDto
   | { kind: "context_preview" } & ContextPreviewDto
   | { kind: "activity_page" } & ActivityPageDto
   | { kind: "backup_catalog" } & BackupCatalogDto
@@ -1119,6 +1157,7 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "inspect_routes":
     case "inspect_privacy":
     case "inspect_install":
+    case "inspect_bundle":
     case "preview_context":
     case "list_activity":
     case "list_backups":
@@ -1522,6 +1561,17 @@ export const inspectInstall = () => {
   const route = copyFixtureRoute();
   return invokeTyped<{ kind: "install_inspection" } & InstallInspectionDto>({
     command: "inspect_install",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+    },
+  });
+};
+
+export const inspectBundle = () => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "bundle_inspection" } & BundleInspectionDto>({
+    command: "inspect_bundle",
     args: {
       workspace: route.workspace,
       project: route.project,
