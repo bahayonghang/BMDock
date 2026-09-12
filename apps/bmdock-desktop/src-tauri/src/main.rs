@@ -10,15 +10,18 @@ use tauri::State;
 
 mod ipc;
 mod preflight;
+mod routing;
 mod supervisor;
 
+struct AppState {
+    supervisor: supervisor::Supervisor,
+    route: routing::RouteState,
+}
+
 #[tauri::command]
-fn ipc_invoke(
-    state: State<'_, Mutex<supervisor::Supervisor>>,
-    command: ipc::IpcCommand,
-) -> ipc::IpcResponse {
-    let snapshot = match state.lock() {
-        Ok(supervisor) => supervisor.snapshot(),
+fn ipc_invoke(state: State<'_, Mutex<AppState>>, command: ipc::IpcCommand) -> ipc::IpcResponse {
+    let mut host = match state.lock() {
+        Ok(host) => host,
         Err(_) => {
             return ipc::IpcResponse::Error(ipc::IpcError {
                 category: ipc::ErrorCategory::Unsupported,
@@ -26,7 +29,8 @@ fn ipc_invoke(
             })
         }
     };
-    match ipc::dispatch_with_snapshot(command, snapshot) {
+    let snapshot = host.supervisor.snapshot();
+    match ipc::dispatch_with_route(command, snapshot, &mut host.route) {
         Ok(response) => response,
         Err(error) => ipc::IpcResponse::Error(error),
     }
@@ -34,7 +38,10 @@ fn ipc_invoke(
 
 fn main() {
     tauri::Builder::default()
-        .manage(Mutex::new(supervisor::Supervisor::default()))
+        .manage(Mutex::new(AppState {
+            supervisor: supervisor::Supervisor::default(),
+            route: routing::RouteState::default(),
+        }))
         .invoke_handler(tauri::generate_handler![ipc_invoke])
         .run(tauri::generate_context!())
         .expect("error while running BMDock application");

@@ -1,0 +1,158 @@
+{
+  "task": "T10",
+  "title": "项目、工作区与显式路由",
+  "status": "accepted_with_limits",
+  "date": "2026-09-12",
+  "host_boundary": "T10 owns explicit fixture routing on the existing ipc_invoke union: fixture-only select_project, read-only list_projects of BMDock-owned workspace/project records, RouteState projection onto get_runtime_state.project, and ExplicitRouteArgs for later read/write tasks. It does not start or stop Supervisor, spawn the official engine, write files, scan user Obsidian vaults or global Basic Memory home, expose note read/CRUD, search, or raw callTool. T07 remains the owner of engine lifecycle. P0 bmdock-probe and just contract/contract-main stay independent. just build stays the G0 probe. just dev remains the T08 Tauri shell.",
+  "acceptance": {
+    "AC06": {
+      "status": "typed_fixture_project_boundary",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src-tauri/src/routing.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Project selection remains typed and accepts only bmdock-fixture. Non-fixture projects return policy without filesystem access. Extra path/root fields on select_project and list_projects fail serde deny_unknown_fields as schema."
+    },
+    "AC14": {
+      "status": "explicit_workspace_project_route_no_implicit_writes",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/routing.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        ".trellis/spec/bmdock-probe/backend/typed-ipc-policy.md",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "list_projects returns BMDock-owned workspace bmdock-workspace and project bmdock-fixture only. RouteState is a projection, not an implicit write target (implicit_current_project_writes=false, files_written=false). ExplicitRouteArgs requires workspace+project, rejects extra paths as schema, and rejects non-fixture routes as policy. write_note/read_note commands are absent."
+    },
+    "AC25": {
+      "status": "routing_does_not_invent_cross_project_search",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/routing.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Capabilities advertise six commands and do not include search_notes, search, or call_tool. list_projects sets cross_project_search_allowed=false. Unknown search/write/read commands fail closed as schema. Dual profiles stay isolated and are not mixed into a cross-project capability."
+    },
+    "AC38": {
+      "status": "local_offline_no_cloud_credential_route",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/routing.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        ".trellis/spec/bmdock-probe/backend/typed-ipc-policy.md"
+      ],
+      "claim": "Project catalog reports cloud_or_credential_required=false and local_offline=true. It does not scan user Obsidian vaults or global Basic Memory home. Capabilities still advertise arbitrary_paths_allowed=false and raw_call_tool_allowed=false."
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t10-project-workspace-routing",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 35 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 6 passed"
+    },
+    {
+      "cmd": "python -m unittest discover -s tests -v",
+      "exit": 1,
+      "result": "66 tests: 65 ok, 1 ERROR test_repository_phase_order via check_source because G0 is in_progress while T05+ are completed. DesktopShellTests 6 passed. T05-T09 were not reverted."
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T10 proof. Probe entries remain independent."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window, WebView2, or Job Object session was exercised."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_40_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_discover": "65_ok_1_error_phase_order",
+    "python_unittest_desktop_shell": "6_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "native_gui": "UNVERIFIED",
+    "webview2": "UNVERIFIED",
+    "job_object": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "official_engine_spawn": "UNVERIFIED_not_started_by_t10"
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed_unchanged",
+    "T10": "completed"
+  },
+  "scope_limits": [
+    "list_projects is read-only and returns a generated BMDock-owned catalog. It does not scan user vaults or global Basic Memory home.",
+    "select_project remains fixture-only. RouteState.project is a projection, not an implicit write target.",
+    "ExplicitRouteArgs is the contract for later T11/T15 commands. T10 does not add note read or CRUD handlers.",
+    "IPC error union stays policy/schema/unsupported. Runtime failure kinds stay on RuntimeStateDto.",
+    "just build stays scripts.tasks build. just contract* stay probe. just dev remains T08 Tauri.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "UI copy, tool lists, compiled exe, and just contract are not native GUI / WebView2 / Job Object / real vault / hosted CI proof."
+  ],
+  "rollback": "Remove list_projects from the IpcCommand union, restore the five-command allowlist, drop routing.rs/RouteState, and remove the 项目 nav section. Do not revert T05-T09 status to make unit green."
+}

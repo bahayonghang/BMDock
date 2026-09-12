@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
+use crate::routing::{self, ProjectCatalogDto, RouteState};
 use crate::supervisor::{FailureKind, RuntimeSnapshot, ShutdownReceipt};
 
 pub const FIXTURE_PROJECT: &str = "bmdock-fixture";
@@ -11,6 +12,7 @@ pub enum IpcCommandName {
     GetCapabilities,
     GetRuntimeState,
     SelectProject,
+    ListProjects,
     RunPreflight,
     DiscoverConfig,
 }
@@ -20,6 +22,7 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::GetCapabilities,
         IpcCommandName::GetRuntimeState,
         IpcCommandName::SelectProject,
+        IpcCommandName::ListProjects,
         IpcCommandName::RunPreflight,
         IpcCommandName::DiscoverConfig,
     ]
@@ -53,6 +56,7 @@ pub enum IpcCommand {
     GetCapabilities(EmptyArgs),
     GetRuntimeState(EmptyArgs),
     SelectProject(SelectProjectArgs),
+    ListProjects(EmptyArgs),
     RunPreflight(EmptyArgs),
     DiscoverConfig(EmptyArgs),
 }
@@ -100,6 +104,7 @@ pub enum IpcResponse {
     Capabilities(CapabilitiesDto),
     RuntimeState(RuntimeStateDto),
     ProjectSelected { project: &'static str },
+    ProjectCatalog(ProjectCatalogDto),
     Preflight(PreflightDto),
     ConfigDiscovery(ConfigDiscoveryDto),
     Error(IpcError),
@@ -119,9 +124,19 @@ pub fn dispatch(command: IpcCommand) -> Result<IpcResponse, IpcError> {
     )
 }
 
+#[cfg(test)]
 pub fn dispatch_with_snapshot(
     command: IpcCommand,
     snapshot: RuntimeSnapshot,
+) -> Result<IpcResponse, IpcError> {
+    let mut route = RouteState::default();
+    dispatch_with_route(command, snapshot, &mut route)
+}
+
+pub fn dispatch_with_route(
+    command: IpcCommand,
+    snapshot: RuntimeSnapshot,
+    route: &mut RouteState,
 ) -> Result<IpcResponse, IpcError> {
     match command {
         IpcCommand::GetCapabilities(_) => Ok(IpcResponse::Capabilities(CapabilitiesDto {
@@ -133,16 +148,20 @@ pub fn dispatch_with_snapshot(
                 raw_call_tool_allowed: false,
             },
         })),
-        IpcCommand::GetRuntimeState(_) => Ok(IpcResponse::RuntimeState(runtime_state(snapshot))),
+        IpcCommand::GetRuntimeState(_) => {
+            Ok(IpcResponse::RuntimeState(runtime_state(snapshot, route)))
+        }
         IpcCommand::SelectProject(args) if args.project == FIXTURE_PROJECT => {
+            route.select_fixture();
             Ok(IpcResponse::ProjectSelected {
                 project: FIXTURE_PROJECT,
             })
         }
         IpcCommand::SelectProject(_) => Err(IpcError {
             category: ErrorCategory::Policy,
-            message: "Only the generated fixture project is allowed".to_owned(),
+            message: routing::POLICY_NON_OWNED_PROJECT.to_owned(),
         }),
+        IpcCommand::ListProjects(_) => Ok(IpcResponse::ProjectCatalog(routing::owned_catalog())),
         IpcCommand::RunPreflight(_) => {
             Ok(IpcResponse::Preflight(preflight::run_preflight(&snapshot)))
         }
@@ -152,10 +171,10 @@ pub fn dispatch_with_snapshot(
     }
 }
 
-fn runtime_state(snapshot: RuntimeSnapshot) -> RuntimeStateDto {
+fn runtime_state(snapshot: RuntimeSnapshot, route: &RouteState) -> RuntimeStateDto {
     RuntimeStateDto {
         status: snapshot.state.as_str().to_owned(),
-        project: None,
+        project: route.project.clone(),
         profile: snapshot.profile.map(|profile| profile.id().to_owned()),
         failure: snapshot.failure,
         shutdown: snapshot.shutdown,
@@ -186,35 +205,95 @@ mod tests {
                 IpcCommandName::GetCapabilities,
                 IpcCommandName::GetRuntimeState,
                 IpcCommandName::SelectProject,
+                IpcCommandName::ListProjects,
                 IpcCommandName::RunPreflight,
                 IpcCommandName::DiscoverConfig,
             ]
         );
+        assert_eq!(capabilities.commands.len(), 6);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
+        let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
+        let commands = json["commands"].as_array().unwrap();
+        assert_eq!(commands.len(), 6);
+        assert!(commands.iter().any(|command| command == "list_projects"));
+        assert!(commands.iter().any(|command| command == "select_project"));
+        assert!(!commands.iter().any(|command| {
+            command == "search_notes" || command == "call_tool" || command == "search"
+        }));
     }
 
     #[test]
     fn select_project_accepts_fixture() {
-        let IpcResponse::ProjectSelected { project } =
-            dispatch(IpcCommand::SelectProject(SelectProjectArgs {
+        let mut route = RouteState::default();
+        let IpcResponse::ProjectSelected { project } = dispatch_with_route(
+            IpcCommand::SelectProject(SelectProjectArgs {
                 project: FIXTURE_PROJECT.to_owned(),
-            }))
-            .unwrap()
-        else {
+            }),
+            RuntimeSnapshot {
+                state: crate::supervisor::ConnectionState::NotStarted,
+                profile: None,
+                child_pid: None,
+                failure: None,
+                shutdown: None,
+            },
+            &mut route,
+        )
+        .unwrap() else {
             panic!("wrong response variant")
         };
         assert_eq!(project, "bmdock-fixture");
+        assert_eq!(route.project.as_deref(), Some(FIXTURE_PROJECT));
+        assert_eq!(
+            route.workspace.as_deref(),
+            Some(crate::routing::OWNED_WORKSPACE_ID)
+        );
     }
 
     #[test]
     fn project_policy_rejects_non_fixture() {
-        let result = dispatch(IpcCommand::SelectProject(SelectProjectArgs {
-            project: "C:\\Users\\someone\\vault".to_owned(),
-        }));
+        let snapshot = RuntimeSnapshot {
+            state: crate::supervisor::ConnectionState::NotStarted,
+            profile: None,
+            child_pid: None,
+            failure: None,
+            shutdown: None,
+        };
+        let mut route = RouteState::default();
+        route.select_fixture();
+        for project in [
+            "C:\\Users\\someone\\vault",
+            "C:\\Users\\someone\\.basic-memory",
+            "/home/someone/.basic-memory",
+            "",
+        ] {
+            let result = dispatch_with_route(
+                IpcCommand::SelectProject(SelectProjectArgs {
+                    project: project.to_owned(),
+                }),
+                snapshot.clone(),
+                &mut route,
+            );
+            assert_eq!(result.unwrap_err().category, ErrorCategory::Policy);
+            assert_eq!(route.project.as_deref(), Some(FIXTURE_PROJECT));
+            assert_eq!(
+                route.workspace.as_deref(),
+                Some(crate::routing::OWNED_WORKSPACE_ID)
+            );
+        }
+        let mut empty_route = RouteState::default();
+        let result = dispatch_with_route(
+            IpcCommand::SelectProject(SelectProjectArgs {
+                project: "C:\\Users\\someone\\Documents\\Obsidian".to_owned(),
+            }),
+            snapshot,
+            &mut empty_route,
+        );
         assert_eq!(result.unwrap_err().category, ErrorCategory::Policy);
+        assert_eq!(empty_route.project, None);
+        assert_eq!(empty_route.workspace, None);
     }
 
     #[test]
@@ -319,6 +398,122 @@ mod tests {
             r#"{"command":"run_preflight","args":{},"path":"C:\\vault"}"#,
         );
         assert!(top_level_path.is_err());
+        let path_on_list = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_projects","args":{"path":"C:\\Users\\someone\\vault"}}"#,
+        );
+        assert!(path_on_list.is_err());
+        let root_on_list = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_projects","args":{"root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(root_on_list.is_err());
+        let search = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"search_notes","args":{"query":"cross-project"}}"#,
+        );
+        assert!(search.is_err());
+        let write_note = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"write_note","args":{"project":"bmdock-fixture"}}"#,
+        );
+        assert!(write_note.is_err());
+        let read_note = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"read_note","args":{"project":"bmdock-fixture"}}"#,
+        );
+        assert!(read_note.is_err());
+    }
+
+    #[test]
+    fn list_projects_returns_owned_catalog_without_user_vaults() {
+        let snapshot = RuntimeSnapshot {
+            state: crate::supervisor::ConnectionState::NotStarted,
+            profile: None,
+            child_pid: None,
+            failure: None,
+            shutdown: None,
+        };
+        let before = snapshot.clone();
+        let mut route = RouteState::default();
+        let IpcResponse::ProjectCatalog(catalog) = dispatch_with_route(
+            IpcCommand::ListProjects(EmptyArgs {}),
+            snapshot.clone(),
+            &mut route,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(snapshot, before);
+        assert_eq!(route.project, None);
+        assert_eq!(route.workspace, None);
+        assert_eq!(catalog.workspaces.len(), 1);
+        assert_eq!(catalog.workspaces[0].id, crate::routing::OWNED_WORKSPACE_ID);
+        assert_eq!(catalog.workspaces[0].kind, crate::routing::OWNED_KIND);
+        assert_eq!(catalog.projects.len(), 1);
+        assert_eq!(catalog.projects[0].id, FIXTURE_PROJECT);
+        assert_eq!(
+            catalog.projects[0].workspace,
+            crate::routing::OWNED_WORKSPACE_ID
+        );
+        assert!(!catalog.scanned_user_obsidian_vault);
+        assert!(!catalog.scanned_user_basic_memory_home);
+        assert!(!catalog.cross_project_search_allowed);
+        assert!(!catalog.implicit_current_project_writes);
+        assert!(!catalog.cloud_or_credential_required);
+        assert!(catalog.local_offline);
+        assert!(!catalog.files_written);
+        let json = serde_json::to_value(&IpcResponse::ProjectCatalog(catalog)).unwrap();
+        assert_eq!(json["kind"], "project_catalog");
+        assert_eq!(json["workspaces"][0]["id"], "bmdock-workspace");
+        assert_eq!(json["projects"][0]["id"], "bmdock-fixture");
+        assert_eq!(json["scanned_user_obsidian_vault"], false);
+        assert_eq!(json["scanned_user_basic_memory_home"], false);
+        assert_eq!(json["cross_project_search_allowed"], false);
+        assert_eq!(json["implicit_current_project_writes"], false);
+        assert_eq!(json["cloud_or_credential_required"], false);
+        assert_eq!(json["local_offline"], true);
+        assert_eq!(json["files_written"], false);
+        assert!(json.get("child_pid").is_none());
+        assert!(json.get("search").is_none());
+        assert!(json.get("query").is_none());
+    }
+
+    #[test]
+    fn selected_fixture_is_projected_without_implicit_writes() {
+        let snapshot = RuntimeSnapshot {
+            state: ConnectionState::NotStarted,
+            profile: None,
+            child_pid: None,
+            failure: None,
+            shutdown: None,
+        };
+        let mut route = RouteState::default();
+        let IpcResponse::RuntimeState(before) = dispatch_with_route(
+            IpcCommand::GetRuntimeState(EmptyArgs {}),
+            snapshot.clone(),
+            &mut route,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(before.project, None);
+        dispatch_with_route(
+            IpcCommand::SelectProject(SelectProjectArgs {
+                project: FIXTURE_PROJECT.to_owned(),
+            }),
+            snapshot.clone(),
+            &mut route,
+        )
+        .unwrap();
+        let IpcResponse::RuntimeState(after) = dispatch_with_route(
+            IpcCommand::GetRuntimeState(EmptyArgs {}),
+            snapshot.clone(),
+            &mut route,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(after.project.as_deref(), Some(FIXTURE_PROJECT));
+        assert_eq!(snapshot.state, ConnectionState::NotStarted);
+        assert!(!routing::owned_catalog().implicit_current_project_writes);
+        assert!(!routing::owned_catalog().files_written);
+        assert!(!routing::owned_catalog().cross_project_search_allowed);
     }
 
     #[test]
@@ -405,5 +600,8 @@ mod tests {
             message: error.to_owned(),
         };
         assert_eq!(mapped.category, ErrorCategory::Policy);
+        let project_error =
+            routing::owned_project_or_policy(r"C:\Users\someone\Documents\Obsidian").unwrap_err();
+        assert_eq!(project_error, routing::POLICY_NON_OWNED_PROJECT);
     }
 }

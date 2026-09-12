@@ -6,6 +6,7 @@ import {
   type FailureKind,
   type IpcResponse,
   type PreflightDto,
+  type ProjectCatalogDto,
   type RuntimeStateDto,
   type RuntimeStatus,
 } from "./ipc";
@@ -13,7 +14,12 @@ import { t } from "./i18n";
 
 export type ShellLoadState =
   | { phase: "loading" }
-  | { phase: "ready"; capabilities: CapabilitiesDto; runtime: RuntimeStateDto }
+  | {
+      phase: "ready";
+      capabilities: CapabilitiesDto;
+      runtime: RuntimeStateDto;
+      catalog: ProjectCatalogDto;
+    }
   | { phase: "error"; category: ErrorCategory | "invoke"; message: string };
 
 export type PreflightLoadState =
@@ -61,6 +67,25 @@ export async function readShellSnapshot(): Promise<Exclude<ShellLoadState, { pha
       };
     }
 
+    const catalogResponse = await invokeTyped<IpcResponse>({
+      command: "list_projects",
+      args: {},
+    });
+    if (catalogResponse.kind === "error") {
+      return {
+        phase: "error",
+        category: catalogResponse.category,
+        message: catalogResponse.message,
+      };
+    }
+    if (catalogResponse.kind !== "project_catalog") {
+      return {
+        phase: "error",
+        category: "schema",
+        message: t("unexpectedCatalog"),
+      };
+    }
+
     return {
       phase: "ready",
       capabilities: {
@@ -74,6 +99,17 @@ export async function readShellSnapshot(): Promise<Exclude<ShellLoadState, { pha
         profile: runtimeResponse.profile,
         failure: runtimeResponse.failure,
         shutdown: runtimeResponse.shutdown,
+      },
+      catalog: {
+        workspaces: catalogResponse.workspaces,
+        projects: catalogResponse.projects,
+        scanned_user_obsidian_vault: catalogResponse.scanned_user_obsidian_vault,
+        scanned_user_basic_memory_home: catalogResponse.scanned_user_basic_memory_home,
+        cross_project_search_allowed: catalogResponse.cross_project_search_allowed,
+        implicit_current_project_writes: catalogResponse.implicit_current_project_writes,
+        cloud_or_credential_required: catalogResponse.cloud_or_credential_required,
+        local_offline: catalogResponse.local_offline,
+        files_written: catalogResponse.files_written,
       },
     };
   } catch (cause) {

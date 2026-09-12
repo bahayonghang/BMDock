@@ -1,10 +1,14 @@
 import { useEffect, useState, type ReactNode } from "react";
-import type {
-  CapabilitiesDto,
-  ConfigDiscoveryDto,
-  EngineProfile,
-  PreflightDto,
-  RuntimeStateDto,
+import {
+  FIXTURE_PROJECT,
+  invokeTyped,
+  type CapabilitiesDto,
+  type ConfigDiscoveryDto,
+  type EngineProfile,
+  type IpcResponse,
+  type PreflightDto,
+  type ProjectCatalogDto,
+  type RuntimeStateDto,
 } from "./ipc";
 import { t } from "./i18n";
 import {
@@ -17,7 +21,7 @@ import {
   type ShellLoadState,
 } from "./shell";
 
-const SECTIONS = ["workbench", "runtime", "preflight", "about"] as const;
+const SECTIONS = ["workbench", "runtime", "projects", "preflight", "about"] as const;
 type SectionId = (typeof SECTIONS)[number];
 
 function sectionLabel(id: SectionId): string {
@@ -26,6 +30,8 @@ function sectionLabel(id: SectionId): string {
       return t("navWorkbench");
     case "runtime":
       return t("navRuntime");
+    case "projects":
+      return t("navProjects");
     case "preflight":
       return t("navPreflight");
     case "about":
@@ -123,6 +129,8 @@ function SectionBody({
       return <WorkbenchPanel load={load} onRefresh={onRefresh} />;
     case "runtime":
       return <RuntimePanel load={load} onRefresh={onRefresh} />;
+    case "projects":
+      return <ProjectPanel load={load} onRefresh={onRefresh} />;
     case "preflight":
       return <PreflightPanel />;
     case "about":
@@ -279,6 +287,176 @@ function ReadyRuntime({
         <li>{t("policyNoPaths")}</li>
         <li>{t("policyNoCallTool")}</li>
       </ul>
+      {refresh}
+    </section>
+  );
+}
+
+function ProjectPanel({
+  load,
+  onRefresh,
+}: {
+  load: ShellLoadState;
+  onRefresh: () => void;
+}) {
+  const [selectError, setSelectError] = useState<{
+    category: "policy" | "schema" | "unsupported" | "invoke";
+    message: string;
+  } | null>(null);
+
+  const refresh = (
+    <button
+      type="button"
+      className="action"
+      onClick={() => {
+        setSelectError(null);
+        onRefresh();
+      }}
+    >
+      {t("projectsRefresh")}
+    </button>
+  );
+
+  switch (load.phase) {
+    case "loading":
+      return (
+        <section className="panel" data-state="status" aria-labelledby="projects-title" aria-busy="true">
+          <p className="state-badge">{t("statusBadge")}</p>
+          <h2 id="projects-title">{t("projectsTitle")}</h2>
+          <p role="status">{t("projectsLoading")}</p>
+        </section>
+      );
+    case "error":
+      return (
+        <section className="panel" data-state="error" aria-labelledby="projects-error-title" role="alert">
+          <p className="state-badge">{t("errorBadge")}</p>
+          <h2 id="projects-error-title">{t("projectsErrorTitle")}</h2>
+          <p>
+            {errorCategoryLabel(load.category)}：{load.message}
+          </p>
+          {refresh}
+        </section>
+      );
+    case "ready":
+      if (selectError) {
+        return (
+          <section className="panel" data-state="error" aria-labelledby="projects-error-title" role="alert">
+            <p className="state-badge">{t("errorBadge")}</p>
+            <h2 id="projects-error-title">{t("projectsErrorTitle")}</h2>
+            <p>
+              {errorCategoryLabel(selectError.category)}：{selectError.message}
+            </p>
+            {refresh}
+          </section>
+        );
+      }
+      return (
+        <ReadyProjects
+          catalog={load.catalog}
+          selectedProject={load.runtime.project}
+          refresh={refresh}
+          onSelectFixture={async () => {
+            try {
+              const response = await invokeTyped<IpcResponse>({
+                command: "select_project",
+                args: { project: FIXTURE_PROJECT },
+              });
+              switch (response.kind) {
+                case "error":
+                  setSelectError({
+                    category: response.category,
+                    message: response.message,
+                  });
+                  return;
+                case "project_selected":
+                  setSelectError(null);
+                  onRefresh();
+                  return;
+                case "capabilities":
+                case "runtime_state":
+                case "project_catalog":
+                case "preflight":
+                case "config_discovery":
+                  setSelectError({
+                    category: "schema",
+                    message: t("unexpectedCatalog"),
+                  });
+                  return;
+                default: {
+                  const exhaustive: never = response;
+                  return exhaustive;
+                }
+              }
+            } catch (cause) {
+              setSelectError({
+                category: "invoke",
+                message: cause instanceof Error ? cause.message : String(cause),
+              });
+            }
+          }}
+        />
+      );
+    default: {
+      const exhaustive: never = load;
+      return exhaustive;
+    }
+  }
+}
+
+function ReadyProjects({
+  catalog,
+  selectedProject,
+  refresh,
+  onSelectFixture,
+}: {
+  catalog: ProjectCatalogDto;
+  selectedProject: RuntimeStateDto["project"];
+  refresh: ReactNode;
+  onSelectFixture: () => Promise<void>;
+}) {
+  const noneFound = catalog.projects.length === 0;
+  const selected = selectedProject === FIXTURE_PROJECT;
+  const state = selected ? "status" : "empty";
+  const title = noneFound
+    ? t("projectsEmptyNoneFoundTitle")
+    : selected
+      ? t("projectsReadyTitle")
+      : t("projectsEmptyNoneSelectedTitle");
+  const body = noneFound
+    ? t("projectsEmptyNoneFoundBody")
+    : selected
+      ? t("projectsReadyBody")
+      : t("projectsEmptyNoneSelectedBody");
+
+  return (
+    <section className="panel" data-state={state} aria-labelledby="projects-title">
+      <p className="state-badge">{selected ? t("statusBadge") : t("emptyBadge")}</p>
+      <h2 id="projects-title">{title}</h2>
+      <p>{body}</p>
+      <h3>{t("projectsCatalogTitle")}</h3>
+      {noneFound ? null : (
+        <dl className="facts">
+          <div>
+            <dt>{t("projectsWorkspaceLabel")}</dt>
+            <dd>{catalog.workspaces[0]?.id ?? t("runtimeNone")}</dd>
+          </div>
+          <div>
+            <dt>{t("projectsProjectLabel")}</dt>
+            <dd>{catalog.projects[0]?.id ?? t("runtimeNone")}</dd>
+          </div>
+        </dl>
+      )}
+      <ul className="policy-list">
+        <li>{t("projectsNoSearch")}</li>
+        <li>{t("projectsNoImplicitWrite")}</li>
+        <li>{t("projectsLocalOffline")}</li>
+        <li>{t("projectsNoVault")}</li>
+      </ul>
+      {noneFound || selected ? null : (
+        <button type="button" className="action" onClick={() => void onSelectFixture()}>
+          {t("projectsSelectFixture")}
+        </button>
+      )}
       {refresh}
     </section>
   );

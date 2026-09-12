@@ -1,10 +1,12 @@
 # Typed IPC and Fixture Policy
 
 This contract describes the T06 Tauri command boundary, the T07
-`get_runtime_state` snapshot projection, and the T09 read-only
-`run_preflight` / `discover_config` commands. It applies to
+`get_runtime_state` snapshot projection, the T09 read-only
+`run_preflight` / `discover_config` commands, and the T10 explicit
+project/workspace route. It applies to
 `apps/bmdock-desktop/src-tauri/src/ipc.rs`,
-`apps/bmdock-desktop/src-tauri/src/preflight.rs`, and
+`apps/bmdock-desktop/src-tauri/src/preflight.rs`,
+`apps/bmdock-desktop/src-tauri/src/routing.rs`, and
 `apps/bmdock-desktop/src/ipc.ts`; the P0 `bmdock-probe` and `just contract*`
 interfaces remain separate. Lifecycle ownership lives in
 [supervisor-state.md](./supervisor-state.md).
@@ -14,11 +16,16 @@ interfaces remain separate. Lifecycle ownership lives in
 - Trigger: a renderer needs to invoke Rust or listen for an application event.
 - Scope: typed command and event DTOs, capability discovery, the
   fixture-only project policy, read-only projection of Supervisor
-  runtime state, and side-effect-free preflight / config discovery.
+  runtime state, side-effect-free preflight / config discovery, and
+  BMDock-owned project/workspace listing with explicit routing.
 - The boundary does not start or stop the Supervisor, call the official
   engine, access a user vault, expose note CRUD, or expose raw `callTool`.
 - T09 preflight and discovery inspect BMDock-owned in-repo or explicitly
-  generated fixture paths only. T07 remains the owner of start/stop.
+  generated fixture paths only. T10 lists only generated BMDock-owned
+  workspace/project records. T07 remains the owner of start/stop.
+- T11 note read and T15 CRUD are out of scope. Later read/write commands
+  must carry an explicit `ExplicitRouteArgs` (`workspace` + `project`)
+  and must not inherit an implicit current project.
 
 ## 2. Signatures
 
@@ -35,6 +42,7 @@ fn ipc_invoke(command: ipc::IpcCommand) -> ipc::IpcResponse
 get_capabilities: {}
 get_runtime_state: {}
 select_project: { project: "bmdock-fixture" }
+list_projects: {}
 run_preflight: {}
 discover_config: {}
 ```
@@ -52,17 +60,27 @@ listenTyped<K extends IpcEventName>(
 The only event names are `runtime_state` and `policy`; `listenTyped` prefixes
 them with `bmdock://` before calling Tauri `listen`.
 
+Future read/write DTOs use:
+
+```rust
+#[serde(deny_unknown_fields)]
+struct ExplicitRouteArgs { workspace: String, project: String }
+```
+
+T10 does not add a note-read or CRUD command that consumes this struct.
+
 ## 3. Contracts
 
 ### Request and response fields
 
-- `get_capabilities` returns `kind: "capabilities"`, the five command names,
+- `get_capabilities` returns `kind: "capabilities"`, the six command names,
   the two event names, and a policy DTO.
 - `get_runtime_state` returns `kind: "runtime_state"` projected from the
-  managed `Supervisor` snapshot:
+  managed `Supervisor` snapshot plus T10 `RouteState`:
   - `status`: `not_started` / `starting` / `connected` / `stopping` /
     `stopped` / `failed`
-  - `project`: always `null` until a later routing task
+  - `project`: `null` until `select_project` accepts `bmdock-fixture`, then
+    `"bmdock-fixture"`. This projection is not an implicit write target.
   - `profile`: `release` / `main-preview` from `EngineProfile::id()`, or
     `null`
   - `failure`: `FailureKind` as snake_case (`policy`, `transport`,
@@ -70,7 +88,19 @@ them with `bmdock://` before calling Tauri `listen`.
   - `shutdown`: `ShutdownReceipt` or `null`
   - `child_pid` is not part of the DTO
 - `select_project` returns `kind: "project_selected"` only for the exact
-  project `bmdock-fixture`.
+  project `bmdock-fixture`. It updates `RouteState` to workspace
+  `bmdock-workspace` and project `bmdock-fixture`. It does not write files
+  or start Supervisor.
+- `list_projects` returns `kind: "project_catalog"` with BMDock-owned
+  records only: workspace `bmdock-workspace` and project `bmdock-fixture`.
+  Default listing is this generated catalog. It does not scan or open a
+  user Obsidian vault or global Basic Memory home. Flags:
+  `scanned_user_obsidian_vault=false`,
+  `scanned_user_basic_memory_home=false`,
+  `cross_project_search_allowed=false`,
+  `implicit_current_project_writes=false`,
+  `cloud_or_credential_required=false`, `local_offline=true`,
+  `files_written=false`.
 - `run_preflight` returns `kind: "preflight"` with two isolated profile
   records and host checks. It does not spawn an engine, start or stop
   Supervisor, or write files. `engine_spawned` is projected from the
@@ -101,10 +131,12 @@ The capability policy must report:
 }
 ```
 
-`SelectProjectArgs` and `EmptyArgs` use `#[serde(deny_unknown_fields)]`.
-There is no path field on `run_preflight` / `discover_config` and no raw
-`callTool` DTO or handler. The renderer must not send arbitrary project
-paths or forward a tool name and arguments through this boundary.
+`SelectProjectArgs`, `ExplicitRouteArgs`, and `EmptyArgs` use
+`#[serde(deny_unknown_fields)]`. There is no path field on
+`list_projects` / `run_preflight` / `discover_config` and no raw
+`callTool`, search, or note CRUD DTO or handler. The renderer must not
+send arbitrary project paths or forward a tool name and arguments through
+this boundary.
 
 Inspecting an arbitrary user path or real vault is `policy` and must not
 open the path. Extra path/root fields on empty-args commands fail closed as
@@ -118,33 +150,43 @@ constant before invoking, while Rust remains authoritative and returns a
 remains the future data owner; this command surface does not read or write
 user data. T07 may expose Supervisor snapshot fields, but it still does not
 start the engine from the renderer. T09 reports readiness from that snapshot
-without taking lifecycle ownership.
+without taking lifecycle ownership. T10 `RouteState` records the explicit
+fixture selection for projection only; later writes must still send
+`ExplicitRouteArgs` and must not use the stored route as an implicit target.
 
 ## 4. Validation & Error Matrix
 
 | Input or condition | Boundary behavior | Category |
 | --- | --- | --- |
 | Known command with its exact DTO | Dispatch the typed response | — |
-| Unknown `command`, including `call_tool` | Serde deserialization fails closed | `schema` at the boundary |
+| Unknown `command`, including `call_tool`, `search_notes`, `read_note`, `write_note` | Serde deserialization fails closed | `schema` at the boundary |
 | Extra field in `args` | `deny_unknown_fields` rejects the DTO | `schema` |
-| Extra `path` / `root` on `run_preflight` or `discover_config` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Extra `path` / `root` on `list_projects`, `run_preflight`, or `discover_config` | `deny_unknown_fields` rejects the DTO | `schema` |
 | Extra top-level field such as `path` beside `command`/`args` | `deny_unknown_fields` on `IpcCommand` | `schema` |
 | `select_project` for any value other than `bmdock-fixture` | Dispatcher rejects without filesystem access | `policy` |
+| `ExplicitRouteArgs` missing `project` or carrying an extra `path` | `deny_unknown_fields` rejects the DTO | `schema` |
+| `ExplicitRouteArgs` with a non-fixture project or non-owned workspace | Helper rejects without filesystem access | `policy` |
 | Inspect an arbitrary user path or real vault | Reject without opening the path | `policy` |
 | Arbitrary path or raw `callTool` payload | No DTO/handler exists; never forward it | `schema` |
+| Cross-project search or implicit current-project write | Keep it absent; catalog flags stay false | `unsupported` |
 | Capability outside the current allowlist | Keep it absent and do not infer support | `unsupported` |
 | Supervisor mutex is poisoned | Return an error response; do not panic | `unsupported` |
 
 ## 5. Good / Base / Bad Cases
 
 - Good: invoke `select_project` with `{ project: "bmdock-fixture" }` and receive
-  `project_selected`.
-- Base: invoke `get_runtime_state` before start and receive `not_started`
-  with `project: null`, `profile: null`, `failure: null`, and
+  `project_selected`. Subsequent `get_runtime_state` projects
+  `project: "bmdock-fixture"`.
+- Base: invoke `get_runtime_state` before start and before select and receive
+  `not_started` with `project: null`, `profile: null`, `failure: null`, and
   `shutdown: null`.
+- Good: invoke `list_projects` with empty args and receive workspace
+  `bmdock-workspace` plus project `bmdock-fixture`, with
+  `cross_project_search_allowed=false` and
+  `implicit_current_project_writes=false`.
 - Good: after Supervisor is connected on the `release` profile, the same
   command returns `status: "connected"` and `profile: "release"` without a
-  `child_pid` field.
+  `child_pid` field. `project` stays null until an explicit fixture select.
 - Good: invoke `run_preflight` with empty args against a `not_started`
   snapshot and receive two isolated profile records plus
   `engine_spawned: false` / `files_written: false`.
@@ -155,23 +197,34 @@ without taking lifecycle ownership.
   and an empty candidate list. That empty listing is not a user-vault
   success.
 - Bad: send `{"command":"select_project","args":{"project":"bmdock-fixture","path":"C:\\vault"}}`; deserialization fails because the extra path is denied.
+- Bad: send `{"command":"list_projects","args":{"path":"C:\\vault"}}` or
+  `{"command":"list_projects","args":{"root":"/home/user/.basic-memory"}}`;
+  extra fields fail closed.
 - Bad: send `{"command":"run_preflight","args":{"path":"C:\\vault"}}` or
   `{"command":"discover_config","args":{"root":"/home/user/.basic-memory"}}`;
   extra fields fail closed.
-- Bad: send `{"command":"call_tool","args":{"name":"read_note"}}`; no
-  raw tool route is accepted or advertised.
+- Bad: send `{"command":"call_tool","args":{"name":"read_note"}}` or
+  `{"command":"search_notes","args":{"query":"..."}}`; no raw tool or
+  cross-project search route is accepted or advertised.
 
 ## 6. Tests Required
 
-- Rust unit test: capability response lists exactly five commands and two
+- Rust unit test: capability response lists exactly six commands and two
   events, and both arbitrary-path and raw-callTool policy flags are false.
 - Rust unit test: a non-fixture project returns `ErrorCategory::Policy`.
 - Rust unit test: unknown command, extra project path, extra runtime-state
-  path, extra preflight path, and extra discovery path/root all fail
-  `serde_json::from_str::<IpcCommand>`.
+  path, extra `list_projects` path/root, extra preflight path, and extra
+  discovery path/root all fail `serde_json::from_str::<IpcCommand>`.
 - Rust unit test: a connected snapshot projects `status`/`profile` and keeps
-  `project` null; a stopped snapshot serializes `failure: "timeout_unknown"`,
-  `profile: "main-preview"`, nested shutdown fields, and omits `child_pid`.
+  `project` null until fixture select; after select, `project` is
+  `bmdock-fixture` without writing files or starting Supervisor. A stopped
+  snapshot serializes `failure: "timeout_unknown"`, `profile: "main-preview"`,
+  nested shutdown fields, and omits `child_pid`.
+- Rust unit test: `list_projects` returns only BMDock-owned records, does not
+  scan user vaults, and keeps `cross_project_search_allowed` and
+  `implicit_current_project_writes` false. `ExplicitRouteArgs` requires both
+  fields, rejects extra paths as schema, and rejects non-fixture routes as
+  policy.
 - Rust unit test: `run_preflight` does not spawn, does not write, and leaves
   a `not_started` snapshot unchanged. A connected or stopped snapshot reports
   `engine_spawned` from lifecycle and `files_written: false` without
@@ -179,8 +232,8 @@ without taking lifecycle ownership.
   distinct commits). A non-owned path is `policy` and is not opened. Default
   discovery is empty, not success-with-user-vault.
 - TypeScript `RuntimeStateDto` / `FailureKind` / `ShutdownReceipt` /
-  `PreflightDto` / `ConfigDiscoveryDto` stay aligned with that JSON shape
-  through `npm run build`.
+  `PreflightDto` / `ConfigDiscoveryDto` / `ProjectCatalogDto` stay aligned
+  with that JSON shape through `npm run build`.
 - Validation checks: `task.py validate`, `cargo fmt --all -- --check`,
   `cargo test --workspace --locked --offline`,
   `cargo check --workspace --locked --offline`, and `git diff --check`.
@@ -192,15 +245,19 @@ without taking lifecycle ownership.
 ```ts
 invoke("callTool", { name: "read_note", arguments: { path } });
 invoke("select_project", { project: userSuppliedPath });
-invoke("discover_config", { root: userHomeBasicMemory });
+invoke("list_projects", { root: userHomeBasicMemory });
+invoke("search_notes", { query: "all projects" });
+invoke("write_note", { title: "x" }); // implicit current project
 ```
 
-This bypasses the command union, exposes a raw MCP route, and permits a path
-outside the generated fixture.
+This bypasses the command union, exposes a raw MCP route, permits a path
+outside the generated fixture, or invents cross-project search / implicit
+writes.
 
 ### Correct
 
 ```ts
+await listProjects();
 await selectFixtureProject();
 await getRuntimeState();
 await runPreflight();
@@ -209,9 +266,12 @@ await listenTyped("runtime_state", (state) => renderState(state));
 ```
 
 These calls use the shared DTOs and the explicit fixture/event allowlist.
-`run_preflight` and `discover_config` take empty args. Preflight reports
-`supervisor_status` and `engine_spawned` from the snapshot without taking
-start/stop ownership; `files_written` stays false.
+`list_projects`, `run_preflight`, and `discover_config` take empty args.
+`select_project` remains fixture-only. Later read/write commands must
+include `ExplicitRouteArgs` and must not treat `runtime.project` as an
+implicit write target. Preflight reports `supervisor_status` and
+`engine_spawned` from the snapshot without taking start/stop ownership;
+`files_written` stays false.
 
 ### Wrong
 
@@ -231,7 +291,7 @@ type FailureKind = "policy" | "transport" | "timeout_unknown" | "process" | "unv
 
 type RuntimeStateDto = {
   status: RuntimeStatus;
-  project: null;
+  project: typeof FIXTURE_PROJECT | null;
   profile: EngineProfile | null;
   failure: FailureKind | null;
   shutdown: ShutdownReceipt | null;
@@ -239,7 +299,8 @@ type RuntimeStateDto = {
 ```
 
 Keep IPC command errors and runtime failure/shutdown receipts on separate
-fields. `getRuntimeState()` is how the renderer reads the latter. Preflight
+fields. `getRuntimeState()` is how the renderer reads the latter. Selected
+`project` is a routing projection, not an implicit write target. Preflight
 reports `supervisor_status` and `engine_spawned` from the snapshot without
 taking start/stop ownership. `files_written` stays false because T09
 writes nothing.

@@ -7,6 +7,7 @@ export type IpcCommand =
   | { command: "get_capabilities"; args: Record<string, never> }
   | { command: "get_runtime_state"; args: Record<string, never> }
   | { command: "select_project"; args: { project: typeof FIXTURE_PROJECT } }
+  | { command: "list_projects"; args: Record<string, never> }
   | { command: "run_preflight"; args: Record<string, never> }
   | { command: "discover_config"; args: Record<string, never> };
 
@@ -33,7 +34,7 @@ export interface CapabilitiesDto {
 
 export interface RuntimeStateDto {
   status: RuntimeStatus;
-  project: null;
+  project: typeof FIXTURE_PROJECT | null;
   profile: EngineProfile | null;
   failure: FailureKind | null;
   shutdown: ShutdownReceipt | null;
@@ -85,10 +86,37 @@ export interface ConfigDiscoveryDto {
   copied_or_rewrote_production_config: boolean;
 }
 
+export const OWNED_WORKSPACE = "bmdock-workspace" as const;
+export const OWNED_KIND = "bmdock_owned" as const;
+
+export interface WorkspaceRecordDto {
+  id: typeof OWNED_WORKSPACE;
+  kind: typeof OWNED_KIND;
+}
+
+export interface ProjectRecordDto {
+  id: typeof FIXTURE_PROJECT;
+  workspace: typeof OWNED_WORKSPACE;
+  kind: typeof OWNED_KIND;
+}
+
+export interface ProjectCatalogDto {
+  workspaces: WorkspaceRecordDto[];
+  projects: ProjectRecordDto[];
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  cross_project_search_allowed: false;
+  implicit_current_project_writes: false;
+  cloud_or_credential_required: false;
+  local_offline: true;
+  files_written: false;
+}
+
 export type IpcResponse =
   | { kind: "capabilities"; commands: IpcCommandName[]; events: IpcEventName[]; policy: PolicyDto }
   | { kind: "runtime_state" } & RuntimeStateDto
   | { kind: "project_selected"; project: typeof FIXTURE_PROJECT }
+  | { kind: "project_catalog" } & ProjectCatalogDto
   | { kind: "preflight" } & PreflightDto
   | { kind: "config_discovery" } & ConfigDiscoveryDto
   | { kind: "error"; category: ErrorCategory; message: string };
@@ -139,6 +167,12 @@ export const selectFixtureProject = () =>
   invokeTyped<{ kind: "project_selected"; project: typeof FIXTURE_PROJECT }>({
     command: "select_project",
     args: { project: FIXTURE_PROJECT },
+  });
+
+export const listProjects = () =>
+  invokeTyped<{ kind: "project_catalog" } & ProjectCatalogDto>({
+    command: "list_projects",
+    args: {},
   });
 
 export const runPreflight = () =>

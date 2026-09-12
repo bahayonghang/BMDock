@@ -37,6 +37,7 @@ These guides help you **ask the right questions before coding**.
 - [ ] You are adding an event kind, JSONL record, RPC payload, or config field
 - [ ] UI / command code starts casting raw payload fields directly
 - [ ] You are changing `get_runtime_state` / `RuntimeStateDto` fields across Rust and TypeScript
+- [ ] You are changing `list_projects` / `select_project` / `ExplicitRouteArgs` routing fields
 - [ ] You are tempted to put `timeout_unknown`, `transport`, or `process` on the IPC error union
 
 → Read [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md). For the

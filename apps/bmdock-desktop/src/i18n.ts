@@ -7,6 +7,7 @@ export const messages = {
   navLabel: "工作台分区",
   navWorkbench: "工作台",
   navRuntime: "运行状态",
+  navProjects: "项目",
   navPreflight: "预检",
   navAbout: "说明",
   g0Notice: "G0 尚未通过。本界面是布局壳，不表示生产写入安全。",
@@ -15,12 +16,13 @@ export const messages = {
   statusBadge: "状态",
   workbenchEmptyTitle: "还没有可显示的笔记",
   workbenchEmptyBody:
-    "当前只提供分区导航与中文界面壳。项目路由、分页目录、草稿和笔记读写属于后续任务；本页不会连接真实资料库，也不会写入磁盘。",
+    "当前只提供分区导航与中文界面壳。显式项目路由在「项目」分区；分页目录、草稿和笔记读写属于后续任务；本页不会连接真实资料库，也不会写入磁盘。",
   workbenchErrorTitle: "无法读取工作台状态",
   workbenchErrorBody:
     "只读快照失败。下面是分类后的错误，不会启动 Supervisor，也不会写入资料库。",
   unexpectedCapabilities: "能力响应格式不符合预期",
   unexpectedRuntime: "运行状态响应格式不符合预期",
+  unexpectedCatalog: "项目目录响应格式不符合预期",
   unexpectedPreflight: "预检响应格式不符合预期",
   unexpectedDiscovery: "配置发现响应格式不符合预期",
   runtimeTitle: "运行状态",
@@ -41,6 +43,27 @@ export const messages = {
   policyFixture: "仅 bmdock-fixture",
   policyNoPaths: "禁止任意路径",
   policyNoCallTool: "禁止 raw callTool",
+  projectsTitle: "项目与工作区",
+  projectsLoading: "正在读取项目与工作区…",
+  projectsEmptyNoneSelectedTitle: "尚未选择项目",
+  projectsEmptyNoneSelectedBody:
+    "已列出 BMDock 自有 fixture，但还没有显式选择。后续读写必须携带所选项目，不会使用隐式 current-project，也不会写入磁盘。",
+  projectsEmptyNoneFoundTitle: "未找到可路由项目",
+  projectsEmptyNoneFoundBody:
+    "目录为空表示未找到 BMDock 自有项目，而不是已打开用户 Obsidian vault 或全局 Basic Memory 主目录。",
+  projectsErrorTitle: "无法完成项目路由",
+  projectsReadyTitle: "已选择 fixture 项目",
+  projectsReadyBody:
+    "当前路由仅指向 bmdock-fixture。不会启动 Supervisor、不会 raw callTool、不会跨项目检索，也不会写入笔记。",
+  projectsSelectFixture: "选择 fixture 项目",
+  projectsRefresh: "重新读取项目",
+  projectsWorkspaceLabel: "工作区",
+  projectsProjectLabel: "项目",
+  projectsCatalogTitle: "BMDock 自有目录",
+  projectsNoSearch: "不提供跨项目检索",
+  projectsNoImplicitWrite: "禁止隐式当前项目写入",
+  projectsLocalOffline: "本地离线，不走云端",
+  projectsNoVault: "未扫描用户 vault 或 Basic Memory 主目录",
   preflightTitle: "预检与配置发现",
   preflightLoading: "正在读取预检与配置发现…",
   preflightErrorTitle: "无法完成预检",
@@ -73,9 +96,9 @@ export const messages = {
   discoveryNone: "无",
   aboutTitle: "说明",
   aboutIntro:
-    "这是桌面布局壳加只读预检。默认界面语言为简体中文。完整编辑器属于后续任务，帮助与无障碍完备性也不在本任务关闭。",
+    "这是桌面布局壳加只读预检与显式项目路由。默认界面语言为简体中文。完整编辑器属于后续任务，帮助与无障碍完备性也不在本任务关闭。",
   aboutSafety:
-    "只读调用 get_capabilities、get_runtime_state、run_preflight 与 discover_config。默认运行状态为未启动。不会启动引擎、选择真实项目或写入 vault。",
+    "只读调用 get_capabilities、get_runtime_state、list_projects、run_preflight 与 discover_config。选择项目仅允许 bmdock-fixture。默认运行状态为未启动。不会启动引擎、打开真实资料库或写入 vault。",
   aboutProfiles:
     "release（c0bd87c6，21 个工具）与 main-preview（3452c821，27 个工具）保持隔离。本界面不把工具清单或 just contract 当作功能验收。",
   aboutCommands:
