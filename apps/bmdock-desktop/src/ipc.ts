@@ -78,6 +78,10 @@ export type ImportNotesArgs = ExplicitRouteArgs & {
   source_id: string;
 };
 
+export type InspectApiAuditArgs = ExplicitRouteArgs & {
+  profile_id: EngineProfile;
+};
+
 export type PreviewContextArgs = ExplicitRouteArgs & {
   identifier: string;
   query?: string;
@@ -141,6 +145,7 @@ export type IpcCommand =
   | { command: "inspect_tools"; args: InspectToolsArgs }
   | { command: "list_cli_inventory"; args: ListCliInventoryArgs }
   | { command: "import_notes"; args: ImportNotesArgs }
+  | { command: "inspect_api_audit"; args: InspectApiAuditArgs }
   | { command: "preview_context"; args: PreviewContextArgs }
   | { command: "list_activity"; args: ListActivityArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
@@ -590,6 +595,57 @@ export interface ImportResultDto {
   scanned_user_basic_memory_home: false;
 }
 
+export type AuditCoverage = "present" | "missing" | "unverified";
+export type CapabilityStatus = "unavailable" | "unverified";
+
+export interface AuditedApiLeafDto {
+  name: string;
+  identity: string;
+  coverage: AuditCoverage;
+  admission: ToolAdmission;
+  live_execution: false;
+}
+
+export interface AuditedCliLeafDto {
+  path: string[];
+  coverage: AuditCoverage;
+  executed: false;
+}
+
+export interface AuditedIpcCommandDto {
+  name: string;
+  coverage: AuditCoverage;
+}
+
+export interface UnavailableCapabilityDto {
+  name: string;
+  status: CapabilityStatus;
+}
+
+export interface ApiAuditDto {
+  profile_id: EngineProfile;
+  expected_tool_count: number;
+  api_leaves: AuditedApiLeafDto[];
+  cli_leaves: AuditedCliLeafDto[];
+  ipc_commands: AuditedIpcCommandDto[];
+  uncovered: string[];
+  unavailable: UnavailableCapabilityDto[];
+  mixed_profiles: false;
+  full_api_coverage: false;
+  semantic_enabled: false;
+  model_loaded: false;
+  observation: NoteCrudObservationDto;
+  engine_tools: false;
+  engine_cli: false;
+  engine_schema: false;
+  live_mcp: false;
+  live_cli: false;
+  call_tool_allowed: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  files_written: false;
+}
+
 export type DraftClass = "empty" | "disk_verified" | "accepted_unverified" | "unclassified";
 
 export interface DraftObservationDto {
@@ -696,6 +752,7 @@ export type IpcResponse =
   | { kind: "tool_inspection" } & ToolInspectionDto
   | { kind: "cli_inventory" } & CliInventoryDto
   | { kind: "notes_imported" } & ImportResultDto
+  | { kind: "api_audit" } & ApiAuditDto
   | { kind: "context_preview" } & ContextPreviewDto
   | { kind: "activity_page" } & ActivityPageDto
   | { kind: "backup_catalog" } & BackupCatalogDto
@@ -750,6 +807,7 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "inspect_tools":
     case "list_cli_inventory":
     case "import_notes":
+    case "inspect_api_audit":
     case "preview_context":
     case "list_activity":
     case "list_backups":
@@ -1032,6 +1090,18 @@ export const importNotes = (source_id: string) => {
       workspace: route.workspace,
       project: route.project,
       source_id,
+    },
+  });
+};
+
+export const inspectApiAudit = (profile_id: EngineProfile) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "api_audit" } & ApiAuditDto>({
+    command: "inspect_api_audit",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      profile_id,
     },
   });
 };

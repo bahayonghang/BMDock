@@ -482,3 +482,25 @@ zh-CN 工作台「导入」+ 既有「维护」区分空态 / 错误 / 就绪。
 本机 Windows 本轮命令（2026-09-13）：`python ./.trellis/scripts/task.py validate 09-12-t28-import-maintenance-ui` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 168 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 22 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方 extras / 现场 CLI import / hosted CI 证据；这些仍为 `UNVERIFIED`。
 
 T28 证据与验收映射见 [t28-import-maintenance-ui.json](../execution/evidence/t28-import-maintenance-ui.json)。`execution/status.json` 仅将 T28 标为 `completed`；未改 T05–T27/G0。
+
+## T29：公开 API 与 CLI 遗漏审计
+
+T29 在现有 `ipc_invoke` 上增加 typed `inspect_api_audit`（`ExplicitRouteArgs` + 必填 `profile_id`，`release` | `main-preview`，`deny_unknown_fields`）。额外 `path`/`root` 为 schema。缺 `profile_id` 或 mixed 为 schema。非 fixture 路由为 policy，且不打开库。每次只审计一个 profile。把 21 与 27 混合/平均为 unsupported。capabilities 精确允许列为 32 个命令。typed `inspect_api_audit` 允许。
+
+审计列出已提交目录中的命名 CLI/API 叶子（`compatibility/cli-leaves.json` + typed IPC 允许列对照所选 profile MCP 基线）。会隐藏遗漏的粗分组为 unsupported。缺口列为 missing/unverified，不会静默当成已覆盖。生产 `EmptyLibrary` 返回空审计 / `classified_as: empty`，不是用户 vault 成功，也不是完整 API 覆盖。测试注入 `FixtureLibrary`（`{temp}/bmdock-t29-*`）。不 spawn `engine_worker`，不把 `just contract` 当作 T29 证明，不现场执行官方 CLI。
+
+AC36：审计列出命名叶子，不是会隐藏遗漏的粗分组。生产空审计是 empty，不是用户 vault / 完整 API 成功。现场官方 CLI 与完整 T01 83/104 树仍为 UNVERIFIED。
+
+AC41：缺失/不可用能力（semantic、extras ingest、cloud、live MCP、official schema MCP、live CLI）显式标为 `unavailable`/`unverified`，从不静默当成已启用。`semantic_enabled=false`，`model_loaded=false`。
+
+AC58：未知工具/命令失败关闭；漂移可见为 denied vs allowlisted。不自动接纳新工具。
+
+AC59：审计记录哪些允许列 IPC 命令已存在，以及哪些官方 CLI/API 叶子仍未覆盖。渲染器把 missing 与 present 分开显示。不宣称完整 API 覆盖（`full_api_coverage=false`）。
+
+zh-CN 工作台「API/CLI 审计」区分空态 / 错误 / 就绪。无 `dangerouslySetInnerHTML`。不启动 Supervisor。无新 npm 依赖。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T29 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令见 [t29-api-cli-audit.json](../execution/evidence/t29-api-cli-audit.json)。`python -m scripts.tasks unit` 以 G0 未 passed 且 T05+ 已 completed 失败（未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 现场官方 CLI / live MCP / hosted CI 证据；这些仍为 `UNVERIFIED`。
+
+T29 证据与验收映射见 [t29-api-cli-audit.json](../execution/evidence/t29-api-cli-audit.json)。`execution/status.json` 仅将 T29 标为 `completed`；未改 T05–T28/G0。

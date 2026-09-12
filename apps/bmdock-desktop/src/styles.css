@@ -458,7 +458,8 @@ main {
 .prompt-list,
 .tool-list,
 .cli-list,
-.import-list {
+.import-list,
+.audit-list {
   margin: 0.75rem 0 0;
   padding: 0;
   display: grid;
@@ -470,7 +471,8 @@ main {
 .prompt-list li,
 .tool-list li,
 .cli-list li,
-.import-list li {
+.import-list li,
+.audit-list li {
   display: flex;
   justify-content: space-between;
   align-items: center;

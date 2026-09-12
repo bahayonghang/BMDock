@@ -233,6 +233,28 @@ export const messages = {
   cliEngineLabel: "官方 CLI 执行",
   cliEngineFalse: "未验证（engine_cli=false）",
   unexpectedCli: "CLI 叶子目录响应格式不符合预期",
+  auditEmptyTitle: "还没有 API/CLI 审计",
+  auditEmptyBody:
+    "空审计表示当前没有可对照的已提交叶子目录，也不是已打开用户 vault 或完整 API 覆盖。生产空库是空态，不是用户 vault 成功，也不是完整 API 覆盖。",
+  auditReadyTitle: "API/CLI 审计",
+  auditReadyBody:
+    "下列名称来自已提交的 CLI 叶子目录，以及 typed IPC 允许列对照所选 profile 的 MCP 基线。已列入允许列的 IPC 命令与仍未覆盖的官方叶子分开显示。不会把 21 与 27 混合，也不会宣称完整 API 覆盖。",
+  auditErrorTitle: "无法读取 API/CLI 审计",
+  auditPresentTitle: "已列入允许列（present）",
+  auditMissingTitle: "缺失 / 未验证（missing / unverified）",
+  auditUnavailableTitle: "不可用能力",
+  auditCoveragePresent: "已存在（present）",
+  auditCoverageMissing: "缺失（missing）",
+  auditCoverageUnverified: "未验证（unverified）",
+  auditCapabilityUnavailable: "不可用（unavailable）",
+  auditCapabilityUnverified: "未验证（unverified）",
+  auditNotFullCoverage: "未宣称完整 API 覆盖（full_api_coverage=false）",
+  auditSemanticDisabled: "语义能力关闭（semantic_enabled=false，model_loaded=false）",
+  auditNotLive:
+    "这不是现场官方 CLI、live MCP、官方 schema MCP、cloud 或 extras 摄取。未加入 rmcp，也未把 just contract 当作本任务证明。",
+  auditEngineLabel: "官方 API/CLI 覆盖",
+  auditEngineFalse: "未验证（engine_tools=false，engine_cli=false，live_mcp=false，live_cli=false）",
+  unexpectedAudit: "API/CLI 审计响应格式不符合预期",
   previewEmptyTitle: "还没有上下文预览",
   previewEmptyBody:
     "空预览表示当前没有可显示的夹具 Markdown 片段，也不是已打开用户 vault。生产空库是空态，不是用户 vault 成功。检索命中预览复用 preview_context，不是第二套索引。",

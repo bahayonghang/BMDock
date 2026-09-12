@@ -1,0 +1,230 @@
+{
+  "task": "T29",
+  "title": "公开API与CLI遗漏审计",
+  "status": "accepted_with_limits",
+  "date": "2026-09-13",
+  "host_boundary": "T29 adds typed inspect_api_audit with ExplicitRouteArgs plus required profile_id (release | main-preview). deny_unknown_fields. Extra path/root is schema. Missing/mixed profile_id is schema. Non-fixture routes are policy and do not open the library. Each audit is one profile only. Mixing or averaging 21 and 27 is unsupported. The audit lists named CLI/API leaves from committed catalogs (compatibility/cli-leaves.json plus the typed IPC allowlist versus one selected profile MCP baseline). Coarse buckets that hide missing leaves are unsupported. Gaps are missing/unverified, not silently covered. Unknown tools stay denied and are not auto-admitted. Unavailable capabilities (semantic, extras ingest, cloud, live MCP, official schema MCP, live CLI) are explicit unavailable/unverified. semantic_enabled=false. model_loaded=false. full_api_coverage=false. Production EmptyLibrary is empty, classified_as empty, not user-vault or full-API success. Tests inject FixtureLibrary over {temp}/bmdock-t29-*. T29 does not spawn engine_worker, run just contract, start Supervisor, add rmcp, or execute live CLI. just build stays the G0 probe. Dual profiles stay isolated (21 vs 27).",
+  "acceptance": {
+    "AC36": {
+      "status": "committed_named_leaf_gap_audit",
+      "evidence": [
+        "compatibility/cli-leaves.json",
+        "compatibility/profiles.json",
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "inspect_api_audit lists named CLI leaves from committed cli-leaves.json and named MCP/API leaves from the selected profile baseline versus the typed IPC allowlist. Coarse prefix buckets that hide child commands are unsupported. Gaps are listed as missing/unverified, not silently covered. Production EmptyLibrary is empty, not user-vault or full-API success. Live official CLI and the full T01 83/104 named trees remain UNVERIFIED.",
+      "unverified": [
+        "live official CLI execution",
+        "full T01 83/104 named CLI trees",
+        "engine_worker.py inventory at runtime",
+        "native GUI session",
+        "real user vault"
+      ]
+    },
+    "AC41": {
+      "status": "explicit_unavailable_unverified",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Missing/unavailable capabilities are explicit. semantic, extras ingest, and cloud are unavailable. live MCP, official schema MCP, and live CLI are unverified. semantic_enabled=false. model_loaded=false. They are never silently treated as enabled success. Official extras ingest, cloud, live MCP, official schema MCP, and live CLI remain UNVERIFIED.",
+      "unverified": [
+        "official extras/document ingestion",
+        "cloud/remote auth",
+        "live MCP",
+        "official schema MCP",
+        "live official CLI",
+        "native GUI session"
+      ]
+    },
+    "AC58": {
+      "status": "fail_closed_drift_visible",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "tests/test_desktop_shell.py"
+      ],
+      "claim": "Unknown tool names fail closed as denied/missing and are not auto-admitted. Extra path/root and mixed profile_id fail closed as schema. Non-fixture is policy. Drift is visible as denied vs allowlisted. Mixing 21 and 27 is unsupported. Capabilities do not include call_tool, search, fetch, or tools/call.",
+      "unverified": [
+        "hosted CI fixture-registry mutation",
+        "live upstream engine drift against a running desktop"
+      ]
+    },
+    "AC59": {
+      "status": "allowlist_vs_uncovered_leaves",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "The audit records which allowlisted IPC commands exist (present) versus which official CLI/API leaves remain uncovered (missing/unverified). The renderer shows present and missing distinctly. full_api_coverage=false. The audit does not claim full API coverage.",
+      "unverified": [
+        "full official API/OpenAPI coverage",
+        "native GUI session",
+        "live official CLI/API execution"
+      ]
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t29-api-cli-audit",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 171 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 23 passed"
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T29 API/CLI audit proof. Probe entries remain independent. Official MCP, live official CLI, extras ingest, and cloud remain UNVERIFIED."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window was launched. AC36/AC41/AC58/AC59 proof is typed catalog gap audit, not a native GUI session."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_176_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_desktop_shell": "23_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "typed_command_count": 32,
+    "typed_inspect_api_audit": "allowed",
+    "extra_path_root_is_schema": true,
+    "missing_or_mixed_profile_id_is_schema": true,
+    "non_fixture_is_policy": true,
+    "empty_library_audit_is_empty_state": true,
+    "full_api_coverage": false,
+    "semantic_enabled": false,
+    "model_loaded": false,
+    "unknown_tools_stay_denied": true,
+    "coarse_cli_prefix_buckets_unsupported": true,
+    "dangerouslySetInnerHTML": "absent",
+    "supervisor_started_by_t29": false,
+    "rmcp_live_client": "not_added_in_t29",
+    "engine_worker_spawned_by_t29": false,
+    "official_mcp_tool_execution": "UNVERIFIED",
+    "live_official_cli_execution": "UNVERIFIED",
+    "official_schema_mcp": "UNVERIFIED",
+    "official_extras_document_ingestion": "UNVERIFIED",
+    "cloud_remote_auth": "UNVERIFIED",
+    "full_t01_cli_trees_83_104": "UNVERIFIED",
+    "native_gui_session": "UNVERIFIED",
+    "webview2_session": "UNVERIFIED",
+    "installer": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "t30_extras_document_ingestion": "not_implemented"
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed_unchanged",
+    "T10": "completed_unchanged",
+    "T11": "completed_unchanged",
+    "T12": "completed_unchanged",
+    "T13": "completed_unchanged",
+    "T14": "completed_unchanged",
+    "T15": "completed_unchanged",
+    "T16": "completed_unchanged",
+    "T17": "completed_unchanged",
+    "T18": "completed_unchanged",
+    "T19": "completed_unchanged",
+    "T20": "completed_unchanged",
+    "T21": "completed_unchanged",
+    "T22": "completed_unchanged",
+    "T23": "completed_unchanged",
+    "T24": "completed_unchanged",
+    "T25": "completed_unchanged",
+    "T26": "completed_unchanged",
+    "T27": "completed_unchanged",
+    "T28": "completed_unchanged",
+    "T29": "completed"
+  },
+  "scope_limits": [
+    "inspect_api_audit is a BMDock-owned named-leaf gap audit of committed catalogs versus the typed IPC allowlist, not live MCP, not live CLI, and not full API coverage.",
+    "Envelope text is not disk proof. Production EmptyLibrary empty audit is empty state, not user-vault or full-API success.",
+    "semantic_enabled=false. model_loaded=false. full_api_coverage=false.",
+    "Official MCP, live official CLI, extras/document ingestion, and cloud remain UNVERIFIED. Native GUI, WebView2, installer, hosted CI, and real user vaults remain UNVERIFIED.",
+    "IPC error union stays policy/schema/unsupported. Dual profiles stay isolated (21 vs 27).",
+    "just build stays scripts.tasks build. just contract* stay probe. just tauri-dev/tauri-build stay desktop.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "T30-T40 were not implemented."
+  ],
+  "rollback": "Remove inspect_api_audit from the ipc_invoke union, drop ApiAuditPanel, restore the 31-command allowlist, and leave T27 inspect_tools/list_cli_inventory plus T28 import_notes in place. Do not revert T05-T28 status to make unit green."
+}

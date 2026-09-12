@@ -112,6 +112,18 @@ pub const ENGINE_IMPORT_NOT_OWNED: &str =
 #[cfg(test)]
 pub const OFFICIAL_IMPORT_UNVERIFIED: &str =
     "official extras/document ingestion and live CLI import remain UNVERIFIED";
+#[cfg(test)]
+pub const ENGINE_AUDIT_NOT_OWNED: &str =
+    "inspect_api_audit is a BMDock-owned named-leaf gap audit of committed catalogs versus the typed IPC allowlist, not live MCP, not live CLI, and not full API coverage";
+#[cfg(test)]
+pub const OFFICIAL_API_COVERAGE_UNVERIFIED: &str =
+    "official CLI/API leaves remain uncovered; the audit does not claim full API coverage";
+pub const CAPABILITY_SEMANTIC: &str = "semantic";
+pub const CAPABILITY_EXTRAS_INGEST: &str = "extras_ingest";
+pub const CAPABILITY_CLOUD: &str = "cloud";
+pub const CAPABILITY_LIVE_MCP: &str = "live_mcp";
+pub const CAPABILITY_OFFICIAL_SCHEMA_MCP: &str = "official_schema_mcp";
+pub const CAPABILITY_LIVE_CLI: &str = "live_cli";
 pub const SCHEMA_PROFILE_ID: &str = "profile_id must be release or main-preview";
 pub const POLICY_FILESYSTEM_PROFILE: &str =
     "profile_id is release or main-preview, not a user vault filesystem path";
@@ -133,6 +145,41 @@ pub const TYPED_OFFICIAL_TOOL_ALLOWLIST: &[&str] = &[
     "schema_validate",
     "search_notes",
     "write_note",
+];
+#[cfg(test)]
+pub const ALLOWLISTED_IPC_COMMANDS: &[&str] = &[
+    "get_capabilities",
+    "get_runtime_state",
+    "select_project",
+    "list_projects",
+    "run_preflight",
+    "discover_config",
+    "list_tree",
+    "read_note",
+    "list_relations",
+    "expand_graph",
+    "search_notes",
+    "inspect_search",
+    "run_recall_benchmark",
+    "schema_validate",
+    "list_resources",
+    "list_prompts",
+    "inspect_tools",
+    "list_cli_inventory",
+    "import_notes",
+    "inspect_api_audit",
+    "preview_context",
+    "list_activity",
+    "list_backups",
+    "restore_fixture",
+    "inspect_windows_runtime",
+    "save_draft",
+    "load_draft",
+    "write_note",
+    "edit_note",
+    "move_note",
+    "delete_note",
+    "begin_shutdown",
 ];
 #[cfg(test)]
 pub const MAIN_PREVIEW_ONLY_TOOLS: &[&str] = &["cat", "find", "grep", "ls", "man", "tail"];
@@ -856,6 +903,134 @@ pub fn empty_cli_inventory(profile_id: &str) -> CliInventoryDto {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum AuditCoverage {
+    Present,
+    Missing,
+    Unverified,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum CapabilityStatus {
+    Unavailable,
+    Unverified,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AuditedApiLeafDto {
+    pub name: String,
+    pub identity: String,
+    pub coverage: AuditCoverage,
+    pub admission: ToolAdmission,
+    pub live_execution: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AuditedCliLeafDto {
+    pub path: Vec<String>,
+    pub coverage: AuditCoverage,
+    pub executed: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AuditedIpcCommandDto {
+    pub name: String,
+    pub coverage: AuditCoverage,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct UnavailableCapabilityDto {
+    pub name: String,
+    pub status: CapabilityStatus,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ApiAuditDto {
+    pub profile_id: String,
+    pub expected_tool_count: u32,
+    pub api_leaves: Vec<AuditedApiLeafDto>,
+    pub cli_leaves: Vec<AuditedCliLeafDto>,
+    pub ipc_commands: Vec<AuditedIpcCommandDto>,
+    pub uncovered: Vec<String>,
+    pub unavailable: Vec<UnavailableCapabilityDto>,
+    pub mixed_profiles: bool,
+    pub full_api_coverage: bool,
+    pub semantic_enabled: bool,
+    pub model_loaded: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_tools: bool,
+    pub engine_cli: bool,
+    pub engine_schema: bool,
+    pub live_mcp: bool,
+    pub live_cli: bool,
+    pub call_tool_allowed: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub files_written: bool,
+}
+
+pub fn empty_api_audit(profile_id: &str) -> ApiAuditDto {
+    ApiAuditDto {
+        profile_id: profile_id.to_owned(),
+        expected_tool_count: 0,
+        api_leaves: Vec::new(),
+        cli_leaves: Vec::new(),
+        ipc_commands: Vec::new(),
+        uncovered: Vec::new(),
+        unavailable: Vec::new(),
+        mixed_profiles: false,
+        full_api_coverage: false,
+        semantic_enabled: false,
+        model_loaded: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_tools: false,
+        engine_cli: false,
+        engine_schema: false,
+        live_mcp: false,
+        live_cli: false,
+        call_tool_allowed: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        files_written: false,
+    }
+}
+
+#[cfg(test)]
+pub fn explicit_unavailable_capabilities() -> Vec<UnavailableCapabilityDto> {
+    vec![
+        UnavailableCapabilityDto {
+            name: CAPABILITY_SEMANTIC.to_owned(),
+            status: CapabilityStatus::Unavailable,
+        },
+        UnavailableCapabilityDto {
+            name: CAPABILITY_EXTRAS_INGEST.to_owned(),
+            status: CapabilityStatus::Unavailable,
+        },
+        UnavailableCapabilityDto {
+            name: CAPABILITY_CLOUD.to_owned(),
+            status: CapabilityStatus::Unavailable,
+        },
+        UnavailableCapabilityDto {
+            name: CAPABILITY_LIVE_MCP.to_owned(),
+            status: CapabilityStatus::Unverified,
+        },
+        UnavailableCapabilityDto {
+            name: CAPABILITY_OFFICIAL_SCHEMA_MCP.to_owned(),
+            status: CapabilityStatus::Unverified,
+        },
+        UnavailableCapabilityDto {
+            name: CAPABILITY_LIVE_CLI.to_owned(),
+            status: CapabilityStatus::Unverified,
+        },
+    ]
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ImportedFileDto {
     pub identifier: String,
@@ -1104,6 +1279,86 @@ pub fn cli_inventory_from_leaves(
 }
 
 #[cfg(test)]
+pub fn api_audit_from_catalogs(
+    profile_id: &str,
+    expected_tools: &[String],
+    leaves: Vec<Vec<String>>,
+    classified: NoteCrudClass,
+    disk_verified: bool,
+) -> Result<ApiAuditDto, LibraryError> {
+    let inspection =
+        inspect_tools_from_names(profile_id, expected_tools, classified, disk_verified)?;
+    reject_coarse_cli_leaves(&leaves)?;
+    let api_leaves = inspection
+        .tools
+        .iter()
+        .map(|tool| AuditedApiLeafDto {
+            name: tool.name.clone(),
+            identity: tool.identity.clone(),
+            coverage: match tool.admission {
+                ToolAdmission::Allowlisted => AuditCoverage::Present,
+                ToolAdmission::Denied => AuditCoverage::Missing,
+            },
+            admission: tool.admission,
+            live_execution: false,
+        })
+        .collect::<Vec<_>>();
+    let cli_leaves = leaves
+        .iter()
+        .map(|path| AuditedCliLeafDto {
+            path: path.clone(),
+            coverage: AuditCoverage::Unverified,
+            executed: false,
+        })
+        .collect::<Vec<_>>();
+    let ipc_commands = ALLOWLISTED_IPC_COMMANDS
+        .iter()
+        .map(|name| AuditedIpcCommandDto {
+            name: (*name).to_owned(),
+            coverage: AuditCoverage::Present,
+        })
+        .collect::<Vec<_>>();
+    let mut uncovered = Vec::new();
+    for leaf in &api_leaves {
+        if leaf.coverage != AuditCoverage::Present {
+            uncovered.push(leaf.name.clone());
+        }
+    }
+    for leaf in &cli_leaves {
+        uncovered.push(leaf.path.join(" "));
+    }
+    uncovered.sort();
+    uncovered.dedup();
+    Ok(ApiAuditDto {
+        profile_id: inspection.profile_id,
+        expected_tool_count: inspection.expected_tool_count,
+        api_leaves,
+        cli_leaves,
+        ipc_commands,
+        uncovered,
+        unavailable: explicit_unavailable_capabilities(),
+        mixed_profiles: false,
+        full_api_coverage: false,
+        semantic_enabled: false,
+        model_loaded: false,
+        observation: NoteCrudObservationDto {
+            classified_as: classified,
+            disk_verified,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_tools: false,
+        engine_cli: false,
+        engine_schema: false,
+        live_mcp: false,
+        live_cli: false,
+        call_tool_allowed: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        files_written: false,
+    })
+}
+
+#[cfg(test)]
 pub fn is_prompt_sidecar_name(name: &str) -> bool {
     name.ends_with(PROMPT_SIDECAR_SUFFIX)
 }
@@ -1312,6 +1567,11 @@ pub trait NoteLibrary: Send + Sync {
     fn import_notes(&self, source_id: &str) -> Result<ImportResultDto, LibraryError> {
         reject_source_id(source_id)?;
         Ok(empty_import_result(source_id))
+    }
+
+    fn inspect_api_audit(&self, profile_id: &str) -> Result<ApiAuditDto, LibraryError> {
+        let profile_id = parse_profile_id(profile_id)?;
+        Ok(empty_api_audit(profile_id))
     }
 
     fn write_note(
@@ -2453,6 +2713,29 @@ impl NoteLibrary for FixtureLibrary {
         }
     }
 
+    fn inspect_api_audit(&self, profile_id: &str) -> Result<ApiAuditDto, LibraryError> {
+        let profile_id = parse_profile_id(profile_id)?;
+        let tools = self.read_tool_baseline(profile_id)?;
+        let leaves = self.read_cli_leaves(profile_id)?;
+        match (tools, leaves) {
+            (None, None) => Ok(empty_api_audit(profile_id)),
+            (tools, leaves) => {
+                let names = tools.map(|(_, names)| names).unwrap_or_default();
+                let leaves = leaves.unwrap_or_default();
+                if names.is_empty() && leaves.is_empty() {
+                    return Ok(empty_api_audit(profile_id));
+                }
+                api_audit_from_catalogs(
+                    profile_id,
+                    &names,
+                    leaves,
+                    NoteCrudClass::DiskVerified,
+                    true,
+                )
+            }
+        }
+    }
+
     fn import_notes(&self, source_id: &str) -> Result<ImportResultDto, LibraryError> {
         reject_source_id(source_id)?;
         self.require_import_root()?;
@@ -3004,6 +3287,132 @@ pub fn accept_cli_inventory(
         }
     }
     Ok(page)
+}
+
+pub fn accept_api_audit(report: ApiAuditDto) -> Result<ApiAuditDto, LibraryError> {
+    parse_profile_id(&report.profile_id)?;
+    if report.engine_tools
+        || report.engine_cli
+        || report.engine_schema
+        || report.mixed_profiles
+        || report.files_written
+        || report.call_tool_allowed
+        || report.live_mcp
+        || report.live_cli
+        || report.semantic_enabled
+        || report.model_loaded
+        || report.full_api_coverage
+        || report.api_leaves.iter().any(|leaf| leaf.live_execution)
+        || report.cli_leaves.iter().any(|leaf| leaf.executed)
+        || report
+            .cli_leaves
+            .iter()
+            .any(|leaf| leaf.coverage == AuditCoverage::Present)
+        || report
+            .ipc_commands
+            .iter()
+            .any(|command| command.coverage != AuditCoverage::Present)
+    {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if report.api_leaves.len() >= 48 {
+        return Err(LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES));
+    }
+    if report.expected_tool_count as usize != report.api_leaves.len() {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if report.api_leaves.iter().any(|leaf| {
+        looks_like_filesystem_path(&leaf.name) || looks_like_filesystem_path(&leaf.identity)
+    }) {
+        return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+    }
+    if report.ipc_commands.iter().any(|command| {
+        command.name == CALL_TOOL_IDENTITY
+            || command.name == SEARCH_IDENTITY
+            || command.name == FETCH_IDENTITY
+            || command.name == "tools/call"
+    }) {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if report
+        .api_leaves
+        .iter()
+        .any(|leaf| leaf.name == CALL_TOOL_IDENTITY && leaf.admission != ToolAdmission::Denied)
+    {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if report.api_leaves.iter().any(|leaf| {
+        (leaf.coverage == AuditCoverage::Present && leaf.admission != ToolAdmission::Allowlisted)
+            || (leaf.coverage != AuditCoverage::Present
+                && leaf.admission == ToolAdmission::Allowlisted)
+    }) {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    let search = report
+        .api_leaves
+        .iter()
+        .find(|leaf| leaf.name == SEARCH_IDENTITY);
+    let fetch = report
+        .api_leaves
+        .iter()
+        .find(|leaf| leaf.name == FETCH_IDENTITY);
+    if let (Some(search), Some(fetch)) = (search, fetch) {
+        if search.identity == fetch.identity {
+            return Err(LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES));
+        }
+        if search.admission != ToolAdmission::Denied
+            || fetch.admission != ToolAdmission::Denied
+            || search.coverage == AuditCoverage::Present
+            || fetch.coverage == AuditCoverage::Present
+        {
+            return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+        }
+    }
+    let cli_paths = report
+        .cli_leaves
+        .iter()
+        .map(|leaf| leaf.path.clone())
+        .collect::<Vec<_>>();
+    reject_coarse_cli_leaves(&cli_paths)?;
+    let empty = report.api_leaves.is_empty()
+        && report.cli_leaves.is_empty()
+        && report.ipc_commands.is_empty();
+    if empty {
+        if !report.unavailable.is_empty() || !report.uncovered.is_empty() {
+            return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+        }
+        if report.observation.classified_as != NoteCrudClass::Empty {
+            return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+        }
+    } else {
+        require_explicit_unavailable(&report.unavailable)?;
+        if report.uncovered.is_empty() {
+            return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+        }
+    }
+    Ok(report)
+}
+
+fn require_explicit_unavailable(
+    unavailable: &[UnavailableCapabilityDto],
+) -> Result<(), LibraryError> {
+    let required = [
+        (CAPABILITY_SEMANTIC, CapabilityStatus::Unavailable),
+        (CAPABILITY_EXTRAS_INGEST, CapabilityStatus::Unavailable),
+        (CAPABILITY_CLOUD, CapabilityStatus::Unavailable),
+        (CAPABILITY_LIVE_MCP, CapabilityStatus::Unverified),
+        (CAPABILITY_OFFICIAL_SCHEMA_MCP, CapabilityStatus::Unverified),
+        (CAPABILITY_LIVE_CLI, CapabilityStatus::Unverified),
+    ];
+    for (name, status) in required {
+        if !unavailable
+            .iter()
+            .any(|capability| capability.name == name && capability.status == status)
+        {
+            return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+        }
+    }
+    Ok(())
 }
 
 pub fn accept_search_inspector(
@@ -3996,6 +4405,38 @@ mod tests {
             library.import_notes("").unwrap_err(),
             LibraryError::schema(SCHEMA_SOURCE_ID)
         );
+        let audit = library.inspect_api_audit("release").unwrap();
+        assert!(audit.api_leaves.is_empty());
+        assert!(audit.cli_leaves.is_empty());
+        assert!(audit.ipc_commands.is_empty());
+        assert!(audit.uncovered.is_empty());
+        assert!(audit.unavailable.is_empty());
+        assert_eq!(audit.expected_tool_count, 0);
+        assert_eq!(audit.profile_id, "release");
+        assert!(!audit.full_api_coverage);
+        assert!(!audit.semantic_enabled);
+        assert!(!audit.model_loaded);
+        assert!(!audit.engine_tools);
+        assert!(!audit.engine_cli);
+        assert!(!audit.live_mcp);
+        assert!(!audit.live_cli);
+        assert!(!audit.mixed_profiles);
+        assert!(!audit.files_written);
+        assert_eq!(audit.observation.classified_as, NoteCrudClass::Empty);
+        let preview_audit = library.inspect_api_audit("main-preview").unwrap();
+        assert!(preview_audit.api_leaves.is_empty());
+        assert_eq!(preview_audit.profile_id, "main-preview");
+        assert!(!preview_audit.full_api_coverage);
+        assert_eq!(
+            library.inspect_api_audit("mixed").unwrap_err(),
+            LibraryError::schema(SCHEMA_PROFILE_ID)
+        );
+        assert_eq!(
+            library
+                .inspect_api_audit(r"C:\Users\someone\vault")
+                .unwrap_err(),
+            LibraryError::policy(POLICY_FILESYSTEM_PROFILE)
+        );
         let _ = (
             ENGINE_GRAPH_NOT_OWNED,
             ENGINE_SEARCH_NOT_OWNED,
@@ -4017,6 +4458,8 @@ mod tests {
             OFFICIAL_CLI_UNVERIFIED,
             ENGINE_IMPORT_NOT_OWNED,
             OFFICIAL_IMPORT_UNVERIFIED,
+            ENGINE_AUDIT_NOT_OWNED,
+            OFFICIAL_API_COVERAGE_UNVERIFIED,
             ENGINE_CONTEXT_NOT_OWNED,
             ENGINE_ACTIVITY_NOT_OWNED,
             SEMANTIC_SEARCH_UNVERIFIED,

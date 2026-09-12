@@ -40,6 +40,13 @@ import {
   type RestoreResultDto,
   type ImportResultDto,
   type ImportClass,
+  type ApiAuditDto,
+  type AuditedApiLeafDto,
+  type AuditedCliLeafDto,
+  type AuditedIpcCommandDto,
+  type UnavailableCapabilityDto,
+  type AuditCoverage,
+  type CapabilityStatus,
   type RuntimeStateDto,
   type TreeEntryDto,
   type WindowsRuntimeDto,
@@ -282,6 +289,8 @@ function WorkbenchLibrary({
   const [toolsError, setToolsError] = useState<WorkbenchError | null>(null);
   const [cli, setCli] = useState<CliInventoryDto | null>(null);
   const [cliError, setCliError] = useState<WorkbenchError | null>(null);
+  const [audit, setAudit] = useState<ApiAuditDto | null>(null);
+  const [auditError, setAuditError] = useState<WorkbenchError | null>(null);
   const [preview, setPreview] = useState<ContextPreviewDto | null>(null);
   const [previewError, setPreviewError] = useState<WorkbenchError | null>(null);
   const [activity, setActivity] = useState<ActivityPageDto | null>(null);
@@ -357,6 +366,7 @@ function WorkbenchLibrary({
             void loadPrompts(setPrompts, setPromptsError);
             void loadTools(toolProfile, setTools, setToolsError);
             void loadCli(toolProfile, setCli, setCliError);
+            void loadApiAudit(toolProfile, setAudit, setAuditError);
             return;
           case "capabilities":
           case "runtime_state":
@@ -387,6 +397,7 @@ function WorkbenchLibrary({
       case "tool_inspection":
       case "cli_inventory":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
@@ -593,6 +604,7 @@ function WorkbenchLibrary({
           setToolProfile(profile);
           void loadTools(profile, setTools, setToolsError);
           void loadCli(profile, setCli, setCliError);
+          void loadApiAudit(profile, setAudit, setAuditError);
         }}
       />
       <CliInventoryPanel
@@ -605,6 +617,7 @@ function WorkbenchLibrary({
           }
         }}
       />
+      <ApiAuditPanel profile={toolProfile} audit={audit} error={auditError} />
       <ContextPreviewPanel preview={preview} error={previewError} />
       <ActivityPanel
         activity={activity}
@@ -699,6 +712,7 @@ async function openNote(
       case "tool_inspection":
       case "cli_inventory":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
@@ -778,6 +792,7 @@ async function loadRelations(
       case "tool_inspection":
       case "cli_inventory":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setRelations(null);
         setRelationsError({ category: "schema", message: t("unexpectedRelations") });
@@ -890,6 +905,7 @@ async function loadGraph(
       case "tool_inspection":
       case "cli_inventory":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setGraph(null);
         setGraphError(unexpectedGraphResponse());
@@ -969,6 +985,7 @@ async function loadMoreGraph(
       case "tool_inspection":
       case "cli_inventory":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setGraphError(unexpectedGraphResponse());
         return;
@@ -1048,6 +1065,7 @@ async function loadMoreTree(
       case "tool_inspection":
       case "cli_inventory":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
@@ -1520,6 +1538,7 @@ async function runSearch(
       case "tool_inspection":
       case "cli_inventory":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setSearch(null);
         setSearchError(unexpectedSearchResponse());
@@ -1599,6 +1618,7 @@ async function loadMoreSearch(
       case "tool_inspection":
       case "cli_inventory":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setSearchError(unexpectedSearchResponse());
         return;
@@ -1802,6 +1822,7 @@ async function runInspectSearch(
       case "tool_inspection":
       case "cli_inventory":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setInspector(null);
         setInspectorError(unexpectedInspectorResponse());
@@ -2034,6 +2055,7 @@ async function runRecallBenchmark(
       case "tool_inspection":
       case "cli_inventory":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setRecall(null);
         setRecallError(unexpectedRecallResponse());
@@ -2256,6 +2278,7 @@ async function runSchemaValidate(
       case "note_moved":
       case "note_deleted":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setSchema(null);
         setSchemaError(unexpectedSchemaResponse());
@@ -2488,6 +2511,7 @@ async function loadContextPreview(
       case "tool_inspection":
       case "cli_inventory":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setPreview(null);
         setPreviewError(unexpectedPreviewResponse());
@@ -2659,6 +2683,7 @@ async function loadActivity(
       case "tool_inspection":
       case "cli_inventory":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setActivity(null);
         setActivityError(unexpectedActivityResponse());
@@ -2737,6 +2762,7 @@ async function loadMoreActivity(
       case "tool_inspection":
       case "cli_inventory":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setActivityError(unexpectedActivityResponse());
         return;
@@ -2899,6 +2925,7 @@ async function loadResources(
       case "recall_benchmark":
       case "schema_validated":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setResources(null);
         setResourcesError(unexpectedResourceResponse());
@@ -2977,6 +3004,7 @@ async function loadMoreResources(
       case "recall_benchmark":
       case "schema_validated":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setResourcesError(unexpectedResourceResponse());
         return;
@@ -3140,6 +3168,7 @@ async function loadPrompts(
       case "recall_benchmark":
       case "schema_validated":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setPrompts(null);
         setPromptsError(unexpectedPromptResponse());
@@ -3218,6 +3247,7 @@ async function loadMorePrompts(
       case "recall_benchmark":
       case "schema_validated":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setPromptsError(unexpectedPromptResponse());
         return;
@@ -3383,6 +3413,7 @@ async function loadTools(
       case "recall_benchmark":
       case "schema_validated":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setTools(null);
         setToolsError(unexpectedToolsResponse());
@@ -3568,6 +3599,7 @@ async function loadCli(
       case "recall_benchmark":
       case "schema_validated":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setCli(null);
         setCliError(unexpectedCliResponse());
@@ -3648,6 +3680,7 @@ async function loadMoreCli(
       case "recall_benchmark":
       case "schema_validated":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setCliError(unexpectedCliResponse());
         return;
@@ -3723,6 +3756,281 @@ function CliInventoryPanel({
       ) : null}
     </section>
   );
+}
+
+function unexpectedAuditResponse(): WorkbenchError {
+  return { category: "schema", message: t("unexpectedAudit") };
+}
+
+function asApiAudit(response: Extract<IpcResponse, { kind: "api_audit" }>): ApiAuditDto {
+  return {
+    profile_id: response.profile_id,
+    expected_tool_count: response.expected_tool_count,
+    api_leaves: response.api_leaves,
+    cli_leaves: response.cli_leaves,
+    ipc_commands: response.ipc_commands,
+    uncovered: response.uncovered,
+    unavailable: response.unavailable,
+    mixed_profiles: false,
+    full_api_coverage: false,
+    semantic_enabled: false,
+    model_loaded: false,
+    observation: response.observation,
+    engine_tools: false,
+    engine_cli: false,
+    engine_schema: false,
+    live_mcp: false,
+    live_cli: false,
+    call_tool_allowed: false,
+    scanned_user_obsidian_vault: false,
+    scanned_user_basic_memory_home: false,
+    files_written: false,
+  };
+}
+
+function auditCoverageLabel(coverage: AuditCoverage): string {
+  switch (coverage) {
+    case "present":
+      return t("auditCoveragePresent");
+    case "missing":
+      return t("auditCoverageMissing");
+    case "unverified":
+      return t("auditCoverageUnverified");
+    default: {
+      const exhaustive: never = coverage;
+      return exhaustive;
+    }
+  }
+}
+
+function capabilityStatusLabel(status: CapabilityStatus): string {
+  switch (status) {
+    case "unavailable":
+      return t("auditCapabilityUnavailable");
+    case "unverified":
+      return t("auditCapabilityUnverified");
+    default: {
+      const exhaustive: never = status;
+      return exhaustive;
+    }
+  }
+}
+
+async function loadApiAudit(
+  profile: EngineProfile,
+  setAudit: (audit: ApiAuditDto | null) => void,
+  setAuditError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "inspect_api_audit",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        profile_id: profile,
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setAudit(null);
+        setAuditError({ category: response.category, message: response.message });
+        return;
+      case "api_audit":
+        if (
+          response.mixed_profiles ||
+          response.engine_tools ||
+          response.engine_cli ||
+          response.live_mcp ||
+          response.live_cli ||
+          response.full_api_coverage ||
+          response.semantic_enabled ||
+          response.model_loaded ||
+          response.call_tool_allowed
+        ) {
+          setAudit(null);
+          setAuditError(unexpectedAuditResponse());
+          return;
+        }
+        setAuditError(null);
+        setAudit(asApiAudit(response));
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "relation_list":
+      case "graph_page":
+      case "search_page":
+      case "context_preview":
+      case "activity_page":
+      case "resource_page":
+      case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
+      case "search_inspector":
+      case "recall_benchmark":
+      case "schema_validated":
+      case "notes_imported":
+      case "shutdown_begun":
+        setAudit(null);
+        setAuditError(unexpectedAuditResponse());
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setAudit(null);
+    setAuditError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+function ApiAuditPanel({
+  profile,
+  audit,
+  error,
+}: {
+  profile: EngineProfile;
+  audit: ApiAuditDto | null;
+  error: WorkbenchError | null;
+}) {
+  const empty =
+    audit === null ||
+    (audit.api_leaves.length === 0 &&
+      audit.cli_leaves.length === 0 &&
+      audit.ipc_commands.length === 0);
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error
+    ? t("auditErrorTitle")
+    : empty
+      ? t("auditEmptyTitle")
+      : t("auditReadyTitle");
+  const presentApi = (audit?.api_leaves ?? []).filter(
+    (leaf: AuditedApiLeafDto) => leaf.coverage === "present",
+  );
+  const missingApi = (audit?.api_leaves ?? []).filter(
+    (leaf: AuditedApiLeafDto) => leaf.coverage === "missing",
+  );
+  const unverifiedCli = (audit?.cli_leaves ?? []).filter(
+    (leaf: AuditedCliLeafDto) => leaf.coverage === "unverified" || leaf.coverage === "missing",
+  );
+  const presentIpc = (audit?.ipc_commands ?? []).filter(
+    (command: AuditedIpcCommandDto) => leafIsPresent(command.coverage),
+  );
+  return (
+    <section
+      className="subpanel"
+      data-state={state}
+      aria-labelledby="audit-title"
+      role={error ? "alert" : undefined}
+    >
+      <p className="state-badge">{badge}</p>
+      <h3 id="audit-title">{heading}</h3>
+      <p>
+        {error
+          ? `${errorCategoryLabel(error.category)}：${error.message}`
+          : empty
+            ? t("auditEmptyBody")
+            : t("auditReadyBody")}
+      </p>
+      <p>
+        {t("toolsProfileLabel")}: {profile}
+      </p>
+      <p>
+        {t("toolsCountLabel")}: {audit?.expected_tool_count ?? 0}
+      </p>
+      <p>{t("auditNotFullCoverage")}</p>
+      <p>{t("auditSemanticDisabled")}</p>
+      <p>{t("auditNotLive")}</p>
+      <p>
+        {t("auditEngineLabel")}: {t("auditEngineFalse")}
+      </p>
+      {presentIpc.length > 0 ? (
+        <div>
+          <h4>{t("auditPresentTitle")}</h4>
+          <ul className="audit-list">
+            {presentIpc.map((command: AuditedIpcCommandDto) => (
+              <li key={`ipc-${command.name}`}>
+                <span>{command.name}</span>
+                <span>{auditCoverageLabel(command.coverage)}</span>
+              </li>
+            ))}
+            {presentApi.map((leaf: AuditedApiLeafDto) => (
+              <li key={`api-present-${leaf.name}`}>
+                <span>{leaf.name}</span>
+                <span>{auditCoverageLabel(leaf.coverage)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {missingApi.length > 0 || unverifiedCli.length > 0 || (audit?.uncovered.length ?? 0) > 0 ? (
+        <div>
+          <h4>{t("auditMissingTitle")}</h4>
+          <ul className="audit-list">
+            {missingApi.map((leaf: AuditedApiLeafDto) => (
+              <li key={`api-missing-${leaf.name}`}>
+                <span>{leaf.name}</span>
+                <span>{auditCoverageLabel(leaf.coverage)}</span>
+              </li>
+            ))}
+            {unverifiedCli.map((leaf: AuditedCliLeafDto) => (
+              <li key={`cli-${leaf.path.join("/")}`}>
+                <span>{leaf.path.join(" ")}</span>
+                <span>{auditCoverageLabel(leaf.coverage)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {(audit?.unavailable.length ?? 0) > 0 ? (
+        <div>
+          <h4>{t("auditUnavailableTitle")}</h4>
+          <ul className="audit-list">
+            {audit?.unavailable.map((capability: UnavailableCapabilityDto) => (
+              <li key={capability.name}>
+                <span>{capability.name}</span>
+                <span>{capabilityStatusLabel(capability.status)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function leafIsPresent(coverage: AuditCoverage): boolean {
+  switch (coverage) {
+    case "present":
+      return true;
+    case "missing":
+    case "unverified":
+      return false;
+    default: {
+      const exhaustive: never = coverage;
+      return exhaustive;
+    }
+  }
 }
 
 function isFixtureNoteIdentifier(value: string): boolean {
@@ -4079,6 +4387,7 @@ async function applyCrudResponse(
       case "tool_inspection":
       case "cli_inventory":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
       setError(unexpectedCrudResponse());
       return;
@@ -4413,6 +4722,7 @@ async function persistDraft(
       case "tool_inspection":
       case "cli_inventory":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -4497,6 +4807,7 @@ async function reloadDraft(
       case "tool_inspection":
       case "cli_inventory":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -4842,6 +5153,7 @@ function ProjectPanel({
       case "tool_inspection":
       case "cli_inventory":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
                   setSelectError({
                     category: "schema",
@@ -5199,6 +5511,7 @@ function ImportPanel() {
         case "prompt_page":
         case "tool_inspection":
         case "cli_inventory":
+        case "api_audit":
         case "shutdown_begun":
           setError(unexpectedImportResponse());
           setResult(null);
@@ -5384,6 +5697,7 @@ function BackupPanel() {
       case "tool_inspection":
       case "cli_inventory":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
             setError(unexpectedBackupResponse());
             setPhase("error");
@@ -5573,6 +5887,7 @@ async function restoreNamedFixture(
       case "tool_inspection":
       case "cli_inventory":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
@@ -5737,6 +6052,7 @@ function WindowsRuntimeCard() {
       case "tool_inspection":
       case "cli_inventory":
       case "notes_imported":
+      case "api_audit":
       case "shutdown_begun":
             setError(unexpectedWindowsResponse());
             setPhase("error");

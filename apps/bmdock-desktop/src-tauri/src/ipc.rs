@@ -5,10 +5,10 @@ use crate::conflict::{self, ConflictCoordinator};
 use crate::drafts::{self, DraftResultDto, DraftStore};
 use crate::drain::{self, DrainPhase, DrainResultDto, HostDrain};
 use crate::library::{
-    self, ActivityPageDto, CliInventoryDto, ContextPreviewDto, GraphPageDto, ImportResultDto,
-    NoteDeleteDto, NoteEditDto, NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto, PromptPageDto,
-    RecallBenchmarkDto, RelationListDto, ResourcePageDto, SchemaValidateDto, SearchInspectorDto,
-    SearchPageDto, ToolInspectionDto, TreePageDto,
+    self, ActivityPageDto, ApiAuditDto, CliInventoryDto, ContextPreviewDto, GraphPageDto,
+    ImportResultDto, NoteDeleteDto, NoteEditDto, NoteLibrary, NoteMoveDto, NoteReadDto,
+    NoteWriteDto, PromptPageDto, RecallBenchmarkDto, RelationListDto, ResourcePageDto,
+    SchemaValidateDto, SearchInspectorDto, SearchPageDto, ToolInspectionDto, TreePageDto,
 };
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
@@ -39,6 +39,7 @@ pub enum IpcCommandName {
     InspectTools,
     ListCliInventory,
     ImportNotes,
+    InspectApiAudit,
     PreviewContext,
     ListActivity,
     ListBackups,
@@ -74,6 +75,7 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::InspectTools,
         IpcCommandName::ListCliInventory,
         IpcCommandName::ImportNotes,
+        IpcCommandName::InspectApiAudit,
         IpcCommandName::PreviewContext,
         IpcCommandName::ListActivity,
         IpcCommandName::ListBackups,
@@ -355,6 +357,23 @@ impl ImportNotesArgs {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
+pub struct InspectApiAuditArgs {
+    pub workspace: String,
+    pub project: String,
+    pub profile_id: EngineProfile,
+}
+
+impl InspectApiAuditArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct PreviewContextArgs {
     pub workspace: String,
     pub project: String,
@@ -543,6 +562,7 @@ pub enum IpcCommand {
     InspectTools(InspectToolsArgs),
     ListCliInventory(ListCliInventoryArgs),
     ImportNotes(ImportNotesArgs),
+    InspectApiAudit(InspectApiAuditArgs),
     PreviewContext(PreviewContextArgs),
     ListActivity(ListActivityArgs),
     ListBackups(ExplicitRouteArgs),
@@ -618,6 +638,7 @@ pub enum IpcResponse {
     ToolInspection(ToolInspectionDto),
     CliInventory(CliInventoryDto),
     NotesImported(ImportResultDto),
+    ApiAudit(ApiAuditDto),
     ContextPreview(ContextPreviewDto),
     ActivityPage(ActivityPageDto),
     BackupCatalog(BackupCatalogDto),
@@ -882,6 +903,11 @@ pub fn dispatch_with_drain(
                 library.import_notes(&args.source_id)?,
             )?))
         }
+        IpcCommand::InspectApiAudit(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            let report = library.inspect_api_audit(args.profile_id.id())?;
+            Ok(IpcResponse::ApiAudit(library::accept_api_audit(report)?))
+        }
         IpcCommand::PreviewContext(args) => {
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
@@ -1078,6 +1104,7 @@ mod tests {
                 IpcCommandName::InspectTools,
                 IpcCommandName::ListCliInventory,
                 IpcCommandName::ImportNotes,
+                IpcCommandName::InspectApiAudit,
                 IpcCommandName::PreviewContext,
                 IpcCommandName::ListActivity,
                 IpcCommandName::ListBackups,
@@ -1092,14 +1119,14 @@ mod tests {
                 IpcCommandName::BeginShutdown,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 31);
+        assert_eq!(capabilities.commands.len(), 32);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 31);
+        assert_eq!(commands.len(), 32);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
@@ -1119,6 +1146,9 @@ mod tests {
             .iter()
             .any(|command| command == "list_cli_inventory"));
         assert!(commands.iter().any(|command| command == "import_notes"));
+        assert!(commands
+            .iter()
+            .any(|command| command == "inspect_api_audit"));
         assert!(commands.iter().any(|command| command == "preview_context"));
         assert!(commands.iter().any(|command| command == "list_activity"));
         assert!(commands.iter().any(|command| command == "list_backups"));
@@ -1518,6 +1548,30 @@ mod tests {
             r#"{"command":"import_notes","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","source_id":"fixture-welcome"}}"#,
         );
         assert!(well_formed_import.is_ok());
+        let extra_path_on_audit = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_api_audit","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","profile_id":"release","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_audit.is_err());
+        let extra_root_on_audit = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_api_audit","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","profile_id":"release","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_audit.is_err());
+        let missing_profile_audit = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_api_audit","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(missing_profile_audit.is_err());
+        let mixed_profile_audit = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_api_audit","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","profile_id":"mixed"}}"#,
+        );
+        assert!(mixed_profile_audit.is_err());
+        let audit_without_route = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_api_audit","args":{"profile_id":"release"}}"#,
+        );
+        assert!(audit_without_route.is_err());
+        let well_formed_audit = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_api_audit","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","profile_id":"release"}}"#,
+        );
+        assert!(well_formed_audit.is_ok());
         let mcp_tools_call = serde_json::from_str::<IpcCommand>(
             r#"{"command":"tools/call","args":{"name":"search"}}"#,
         );
@@ -2089,6 +2143,13 @@ mod tests {
             panic!("policy rejection must not open the library")
         }
 
+        fn inspect_api_audit(
+            &self,
+            _profile_id: &str,
+        ) -> Result<library::ApiAuditDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
         fn write_note(
             &self,
             _identifier: &str,
@@ -2443,6 +2504,14 @@ mod tests {
             workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
             project: FIXTURE_PROJECT.to_owned(),
             source_id: source_id.to_owned(),
+        }
+    }
+
+    fn fixture_audit_args(profile: EngineProfile) -> InspectApiAuditArgs {
+        InspectApiAuditArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            profile_id: profile,
         }
     }
 
@@ -2837,6 +2906,19 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(filesystem_source.category, ErrorCategory::Policy);
+        let audit_route = dispatch_with_library(
+            IpcCommand::InspectApiAudit(InspectApiAuditArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+                profile_id: EngineProfile::Release,
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(audit_route.category, ErrorCategory::Policy);
         let prompts_route = dispatch_with_library(
             IpcCommand::ListPrompts(ListPromptsArgs {
                 workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
@@ -7685,5 +7767,407 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(empty_source.category, ErrorCategory::Schema);
+    }
+
+    #[test]
+    fn inspect_api_audit_empty_library_is_empty_not_user_vault() {
+        let mut route = RouteState::default();
+        let IpcResponse::ApiAudit(audit) = dispatch_with_library(
+            IpcCommand::InspectApiAudit(fixture_audit_args(EngineProfile::Release)),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(audit.profile_id, "release");
+        assert!(audit.api_leaves.is_empty());
+        assert!(audit.cli_leaves.is_empty());
+        assert!(audit.ipc_commands.is_empty());
+        assert!(audit.uncovered.is_empty());
+        assert!(audit.unavailable.is_empty());
+        assert_eq!(audit.expected_tool_count, 0);
+        assert!(!audit.full_api_coverage);
+        assert!(!audit.semantic_enabled);
+        assert!(!audit.model_loaded);
+        assert!(!audit.engine_tools);
+        assert!(!audit.engine_cli);
+        assert!(!audit.engine_schema);
+        assert!(!audit.live_mcp);
+        assert!(!audit.live_cli);
+        assert!(!audit.call_tool_allowed);
+        assert!(!audit.files_written);
+        assert_eq!(
+            audit.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        assert!(!audit.observation.disk_verified);
+        assert!(audit.observation.envelope_is_not_disk_proof);
+        let json = serde_json::to_value(&IpcResponse::ApiAudit(audit)).unwrap();
+        assert_eq!(json["kind"], "api_audit");
+        assert_eq!(json["full_api_coverage"], false);
+        assert_eq!(json["semantic_enabled"], false);
+        assert_eq!(json["model_loaded"], false);
+        let _ = (
+            library::ENGINE_AUDIT_NOT_OWNED,
+            library::OFFICIAL_API_COVERAGE_UNVERIFIED,
+            library::ENGINE_TOOLS_NOT_OWNED,
+            library::ENGINE_CLI_NOT_OWNED,
+            library::OFFICIAL_TOOLS_MCP_UNVERIFIED,
+            library::OFFICIAL_CLI_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn inspect_api_audit_fixture_lists_named_gaps_without_mixing_profiles() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t29-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        write_tool_baseline(&dir, "release", RELEASE_TOOLS);
+        write_tool_baseline(&dir, "main-preview", MAIN_PREVIEW_TOOLS);
+        write_cli_leaves(
+            &dir,
+            "release",
+            &[
+                vec!["bm", "cloud", "login"],
+                vec!["bm", "mcp"],
+                vec!["bm", "project", "info"],
+                vec!["bm", "status"],
+            ],
+        );
+        write_cli_leaves(
+            &dir,
+            "main-preview",
+            &[
+                vec!["bm", "cloud", "bisync"],
+                vec!["bm", "cloud", "login"],
+                vec!["bm", "mcp"],
+                vec!["bm", "project", "info"],
+                vec!["bm", "status"],
+            ],
+        );
+        let library = library::FixtureLibrary::new(dir.clone());
+        let mut route = RouteState::default();
+        let IpcResponse::ApiAudit(release) = dispatch_with_library(
+            IpcCommand::InspectApiAudit(fixture_audit_args(EngineProfile::Release)),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(release.profile_id, "release");
+        assert_eq!(release.expected_tool_count, 21);
+        assert_eq!(release.api_leaves.len(), 21);
+        assert_eq!(release.cli_leaves.len(), 4);
+        assert_eq!(
+            release.ipc_commands.len(),
+            library::ALLOWLISTED_IPC_COMMANDS.len()
+        );
+        assert_eq!(release.ipc_commands.len(), 32);
+        assert!(release.ipc_commands.iter().any(|command| {
+            command.name == "inspect_api_audit"
+                && command.coverage == library::AuditCoverage::Present
+        }));
+        assert!(!release.ipc_commands.iter().any(|command| {
+            command.name == library::CALL_TOOL_IDENTITY
+                || command.name == library::SEARCH_IDENTITY
+                || command.name == library::FETCH_IDENTITY
+                || command.name == "tools/call"
+        }));
+        assert!(!release.full_api_coverage);
+        assert!(!release.semantic_enabled);
+        assert!(!release.model_loaded);
+        assert!(!release.engine_tools);
+        assert!(!release.engine_cli);
+        assert!(!release.live_mcp);
+        assert!(!release.live_cli);
+        assert!(!release.mixed_profiles);
+        assert!(!release.files_written);
+        assert!(release.observation.disk_verified);
+        assert_eq!(
+            release.observation.classified_as,
+            library::NoteCrudClass::DiskVerified
+        );
+        let search = release
+            .api_leaves
+            .iter()
+            .find(|leaf| leaf.name == library::SEARCH_IDENTITY)
+            .unwrap();
+        let fetch = release
+            .api_leaves
+            .iter()
+            .find(|leaf| leaf.name == library::FETCH_IDENTITY)
+            .unwrap();
+        assert_ne!(search.identity, fetch.identity);
+        assert_eq!(search.admission, library::ToolAdmission::Denied);
+        assert_eq!(fetch.admission, library::ToolAdmission::Denied);
+        assert_eq!(search.coverage, library::AuditCoverage::Missing);
+        assert_eq!(fetch.coverage, library::AuditCoverage::Missing);
+        assert!(release.api_leaves.iter().any(|leaf| {
+            leaf.name == "read_note"
+                && leaf.admission == library::ToolAdmission::Allowlisted
+                && leaf.coverage == library::AuditCoverage::Present
+        }));
+        assert!(release.api_leaves.iter().any(|leaf| {
+            leaf.name == "schema_infer"
+                && leaf.admission == library::ToolAdmission::Denied
+                && leaf.coverage == library::AuditCoverage::Missing
+        }));
+        assert!(!release.api_leaves.iter().any(|leaf| leaf.name == "cat"));
+        assert!(release.uncovered.iter().any(|name| name == "schema_infer"));
+        assert!(release
+            .uncovered
+            .iter()
+            .any(|name| name == "bm cloud login"));
+        assert!(release
+            .cli_leaves
+            .iter()
+            .all(|leaf| { leaf.coverage == library::AuditCoverage::Unverified && !leaf.executed }));
+        assert!(release.unavailable.iter().any(|capability| {
+            capability.name == library::CAPABILITY_SEMANTIC
+                && capability.status == library::CapabilityStatus::Unavailable
+        }));
+        assert!(release.unavailable.iter().any(|capability| {
+            capability.name == library::CAPABILITY_EXTRAS_INGEST
+                && capability.status == library::CapabilityStatus::Unavailable
+        }));
+        assert!(release.unavailable.iter().any(|capability| {
+            capability.name == library::CAPABILITY_CLOUD
+                && capability.status == library::CapabilityStatus::Unavailable
+        }));
+        assert!(release.unavailable.iter().any(|capability| {
+            capability.name == library::CAPABILITY_LIVE_MCP
+                && capability.status == library::CapabilityStatus::Unverified
+        }));
+        assert!(release.unavailable.iter().any(|capability| {
+            capability.name == library::CAPABILITY_OFFICIAL_SCHEMA_MCP
+                && capability.status == library::CapabilityStatus::Unverified
+        }));
+        assert!(release.unavailable.iter().any(|capability| {
+            capability.name == library::CAPABILITY_LIVE_CLI
+                && capability.status == library::CapabilityStatus::Unverified
+        }));
+        let IpcResponse::ApiAudit(preview) = dispatch_with_library(
+            IpcCommand::InspectApiAudit(fixture_audit_args(EngineProfile::MainPreview)),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(preview.profile_id, "main-preview");
+        assert_eq!(preview.expected_tool_count, 27);
+        assert_eq!(preview.api_leaves.len(), 27);
+        assert_eq!(preview.cli_leaves.len(), 5);
+        assert_ne!(release.expected_tool_count, preview.expected_tool_count);
+        assert!(preview.api_leaves.iter().any(|leaf| {
+            leaf.name == "cat"
+                && leaf.admission == library::ToolAdmission::Denied
+                && leaf.coverage == library::AuditCoverage::Missing
+        }));
+        assert!(preview
+            .cli_leaves
+            .iter()
+            .any(|leaf| leaf.path == vec!["bm", "cloud", "bisync"]));
+        assert!(!release
+            .cli_leaves
+            .iter()
+            .any(|leaf| leaf.path == vec!["bm", "cloud", "bisync"]));
+        assert!(!preview.full_api_coverage);
+        write_tool_baseline(
+            &dir,
+            "release",
+            &[
+                "read_note",
+                "evil_tool",
+                library::SEARCH_IDENTITY,
+                library::FETCH_IDENTITY,
+            ],
+        );
+        let IpcResponse::ApiAudit(unknown) = dispatch_with_library(
+            IpcCommand::InspectApiAudit(fixture_audit_args(EngineProfile::Release)),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let evil = unknown
+            .api_leaves
+            .iter()
+            .find(|leaf| leaf.name == "evil_tool")
+            .unwrap();
+        assert_eq!(evil.admission, library::ToolAdmission::Denied);
+        assert_eq!(evil.coverage, library::AuditCoverage::Missing);
+        assert!(unknown.uncovered.iter().any(|name| name == "evil_tool"));
+        write_cli_leaves(
+            &dir,
+            "release",
+            &[vec!["bm", "cloud"], vec!["bm", "cloud", "login"]],
+        );
+        let bucket = dispatch_with_library(
+            IpcCommand::InspectApiAudit(fixture_audit_args(EngineProfile::Release)),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(bucket.category, ErrorCategory::Unsupported);
+        let mixed = library::api_audit_from_catalogs(
+            "release",
+            &MAIN_PREVIEW_TOOLS
+                .iter()
+                .map(|name| (*name).to_owned())
+                .collect::<Vec<_>>(),
+            Vec::new(),
+            library::NoteCrudClass::DiskVerified,
+            true,
+        )
+        .unwrap_err();
+        assert_eq!(
+            mixed,
+            library::LibraryError::unsupported(library::UNSUPPORTED_MIXED_PROFILES)
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+        let release_profile = EngineProfile::Release;
+        let preview_profile = EngineProfile::MainPreview;
+        assert_eq!(release_profile.expected_tools(), 21);
+        assert_eq!(preview_profile.expected_tools(), 27);
+        assert_ne!(
+            release_profile.expected_tools(),
+            preview_profile.expected_tools()
+        );
+        let _ = (
+            library::ENGINE_AUDIT_NOT_OWNED,
+            library::OFFICIAL_API_COVERAGE_UNVERIFIED,
+            library::ENGINE_TOOLS_NOT_OWNED,
+            library::ENGINE_CLI_NOT_OWNED,
+            library::OFFICIAL_TOOLS_MCP_UNVERIFIED,
+            library::OFFICIAL_CLI_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn inspect_api_audit_does_not_claim_full_coverage_or_enable_unavailable() {
+        let mut claimed = library::empty_api_audit("release");
+        claimed.full_api_coverage = true;
+        claimed.api_leaves.push(library::AuditedApiLeafDto {
+            name: "read_note".to_owned(),
+            identity: "read_note".to_owned(),
+            coverage: library::AuditCoverage::Present,
+            admission: library::ToolAdmission::Allowlisted,
+            live_execution: false,
+        });
+        claimed.expected_tool_count = 1;
+        claimed.ipc_commands.push(library::AuditedIpcCommandDto {
+            name: "read_note".to_owned(),
+            coverage: library::AuditCoverage::Present,
+        });
+        claimed.uncovered.push("write_note".to_owned());
+        claimed.unavailable = library::explicit_unavailable_capabilities();
+        assert_eq!(
+            library::accept_api_audit(claimed).unwrap_err(),
+            library::LibraryError::unsupported(library::UNSUPPORTED_TRUNCATED)
+        );
+        let mut enabled = library::empty_api_audit("release");
+        enabled.semantic_enabled = true;
+        claimed_nonempty_flags(&mut enabled);
+        assert_eq!(
+            library::accept_api_audit(enabled).unwrap_err(),
+            library::LibraryError::unsupported(library::UNSUPPORTED_TRUNCATED)
+        );
+        let mut loaded = library::empty_api_audit("release");
+        loaded.model_loaded = true;
+        claimed_nonempty_flags(&mut loaded);
+        assert_eq!(
+            library::accept_api_audit(loaded).unwrap_err(),
+            library::LibraryError::unsupported(library::UNSUPPORTED_TRUNCATED)
+        );
+        let mut silent = library::empty_api_audit("release");
+        silent.api_leaves.push(library::AuditedApiLeafDto {
+            name: "read_note".to_owned(),
+            identity: "read_note".to_owned(),
+            coverage: library::AuditCoverage::Present,
+            admission: library::ToolAdmission::Allowlisted,
+            live_execution: false,
+        });
+        silent.expected_tool_count = 1;
+        silent.ipc_commands.push(library::AuditedIpcCommandDto {
+            name: "read_note".to_owned(),
+            coverage: library::AuditCoverage::Present,
+        });
+        silent.uncovered.push("schema_infer".to_owned());
+        assert_eq!(
+            library::accept_api_audit(silent).unwrap_err(),
+            library::LibraryError::unsupported(library::UNSUPPORTED_TRUNCATED)
+        );
+        let mut covered_cli = library::empty_api_audit("release");
+        claimed_nonempty_flags(&mut covered_cli);
+        covered_cli.cli_leaves.push(library::AuditedCliLeafDto {
+            path: vec!["bm".to_owned(), "status".to_owned()],
+            coverage: library::AuditCoverage::Present,
+            executed: false,
+        });
+        assert_eq!(
+            library::accept_api_audit(covered_cli).unwrap_err(),
+            library::LibraryError::unsupported(library::UNSUPPORTED_TRUNCATED)
+        );
+        let mut route = RouteState::default();
+        let IpcResponse::ApiAudit(audit) = dispatch_with_library(
+            IpcCommand::InspectApiAudit(fixture_audit_args(EngineProfile::Release)),
+            RuntimeSnapshot {
+                state: ConnectionState::Connected,
+                profile: Some(EngineProfile::MainPreview),
+                child_pid: Some(11),
+                failure: None,
+                shutdown: None,
+            },
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let json = serde_json::to_value(&IpcResponse::ApiAudit(audit)).unwrap();
+        assert_eq!(json["kind"], "api_audit");
+        assert_eq!(json["engine_tools"], false);
+        assert_eq!(json["engine_cli"], false);
+        assert_eq!(json["full_api_coverage"], false);
+        assert!(json.get("expected_tools").is_none());
+        let _ = (
+            library::ENGINE_AUDIT_NOT_OWNED,
+            library::OFFICIAL_API_COVERAGE_UNVERIFIED,
+        );
+    }
+
+    fn claimed_nonempty_flags(report: &mut library::ApiAuditDto) {
+        report.api_leaves.push(library::AuditedApiLeafDto {
+            name: "read_note".to_owned(),
+            identity: "read_note".to_owned(),
+            coverage: library::AuditCoverage::Present,
+            admission: library::ToolAdmission::Allowlisted,
+            live_execution: false,
+        });
+        report.expected_tool_count = 1;
+        report.ipc_commands.push(library::AuditedIpcCommandDto {
+            name: "read_note".to_owned(),
+            coverage: library::AuditCoverage::Present,
+        });
+        report.uncovered.push("schema_infer".to_owned());
+        report.unavailable = library::explicit_unavailable_capabilities();
     }
 }
