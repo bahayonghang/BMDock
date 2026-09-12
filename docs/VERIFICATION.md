@@ -729,3 +729,31 @@ zh-CN 工作台「帮助 / 无障碍」区分空态 / 错误 / 就绪。
 本机 Windows 本轮命令见 [t39-help-accessibility-docs.json](../execution/evidence/t39-help-accessibility-docs.json)。`python -m scripts.tasks unit` 以 G0 未 passed 且 T05+ 已 completed 失败（未回退）。未把 UI 文案、工具清单、cargo test 或 `just contract` 当作 native GUI / 读屏 / IME / Job Object / 真实 vault 证据；这些仍为 `UNVERIFIED`。
 
 T39 证据与验收映射见 [t39-help-accessibility-docs.json](../execution/evidence/t39-help-accessibility-docs.json)。`execution/status.json` 仅将 T39 标为 `completed`；未改 T05–T38/G0。未改 T40。
+
+## T40：全能力Release Gate与发布决策
+
+T40 在现有 `ipc_invoke` 上增加 typed `inspect_release`（`ExplicitRouteArgs`，`deny_unknown_fields`）。额外 `path`/`root`/`token`/`host` 为 schema。缺路由为 schema。非 fixture 路由为 policy，且不打开库。capabilities 精确允许列为 45 个命令。typed `inspect_release` 允许。`call_tool` / `restore_sync` / `enable_provider` / raw `callTool` 不在允许列。
+
+生产 `EmptyLibrary`：`release_allowed=false`、`g0_passed=false`、`g7_passed=false`、`classified_as: empty`、`files_written=false`。决策为不得发布。双 profile 保持隔离：release commit `c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048`（21 tools）与 main-preview `3452c821d76c083823d020984d71e06904a1ff1e`（27 tools）。search 与 fetch 保持不同被拒身份。未知工具不会自动放行。`full_api_coverage=false`。T29 命名缺口保持具名；前缀桶隐藏叶子为 unsupported。`just build` 仍是 G0 探针；`just tauri-dev` / `tauri-build` 仍是桌面；`just contract*` 仍是探针。能力漂移保持 fail-closed。typed 允许列是已存在命令的来源（45），不会从允许列推断官方 MCP。测试注入 `{temp}/bmdock-t40-*`。夹具 `release-claimed` / `gate-passed` 为 unsupported，不是已通过的发布。宣称 G0/G7 已通过为 unsupported。conflict / `timeout_unknown` / `disk_verified` / `accepted_unverified` 保持区分。IPC 错误联合仍为 `policy` / `schema` / `unsupported`。无 `dangerouslySetInnerHTML`。不启动 Supervisor。无 rmcp。无新 npm 依赖。未改 justfile。
+
+AC01：双 profile 保持隔离。release（21）与 main-preview（27）不得在 DTO 中混合或平均。
+
+AC35：search 与 fetch 保持不同被拒身份。未知工具不会自动放行。不得把 21+27 合并。
+
+AC36：CLI/API 覆盖仍不完整。`full_api_coverage=false`。命名缺口经 T29 具名。前缀桶隐藏叶子不受支持。
+
+AC55：`just build` 仍是 G0 探针。`just tauri-dev` / `tauri-build` 仍是桌面。`just contract*` 仍是探针。未改 justfile。
+
+AC58：能力漂移保持 fail-closed。未知危险命令缺席（`call_tool`、`restore_sync`、`enable_provider`）。
+
+AC59：typed 允许列是已存在命令的来源（44 → 45，含 `inspect_release`）。不得从允许列推断官方 MCP。
+
+AC60：`docs/HELP.md` 与 `VERIFICATION.md` 保持一致。T40 不宣称 G0/G7 已通过。
+
+zh-CN 工作台「发布决策」区分空态 / 错误 / 就绪，均显示不得发布 / G0 未通过 / G7 未通过。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just tauri-build` 不是安装器；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T40 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令见 [t40-release-gate-decision.json](../execution/evidence/t40-release-gate-decision.json)。`python -m scripts.tasks unit` 以 G0 未 passed 且 T05+ 已 completed 失败（未回退）。`python -m scripts.tasks gate` / `just gate` 因 G0–G7 未通过而退出 2（未伪造门禁）。未把 UI 文案、工具清单、编译 exe、LICENSE、lockfile SBOM、cargo test 或 `just contract` 当作 G0 / G7 / native GUI / 安装器 / 现场官方引擎证明；这些仍为 `UNVERIFIED`。
+
+T40 证据与验收映射见 [t40-release-gate-decision.json](../execution/evidence/t40-release-gate-decision.json)。`execution/status.json` 仅将 T40 标为 `completed`；G0 仍为 `in_progress`；G1–G7 仍为 `not_started`。未把任何门禁标为 passed。未改 T05–T39。未改父任务目录。未改 justfile。

@@ -9,9 +9,9 @@ use crate::library::{
     ContextPreviewDto, ExtrasCatalogDto, GraphPageDto, HelpInspectionDto, HookInspectionDto,
     ImportResultDto, IngestResultDto, InstallInspectionDto, NoteDeleteDto, NoteEditDto,
     NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto, PrivacyInspectionDto, PromptPageDto,
-    ProviderInspectionDto, RecallBenchmarkDto, RelationListDto, ResourcePageDto,
-    RouteInspectionDto, SchemaValidateDto, SearchInspectorDto, SearchPageDto, ShareCatalogDto,
-    SyncInspectionDto, ToolInspectionDto, TreePageDto,
+    ProviderInspectionDto, RecallBenchmarkDto, RelationListDto, ReleaseInspectionDto,
+    ResourcePageDto, RouteInspectionDto, SchemaValidateDto, SearchInspectorDto, SearchPageDto,
+    ShareCatalogDto, SyncInspectionDto, ToolInspectionDto, TreePageDto,
 };
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
@@ -55,6 +55,7 @@ pub enum IpcCommandName {
     InspectInstall,
     InspectBundle,
     InspectHelp,
+    InspectRelease,
     PreviewContext,
     ListActivity,
     ListBackups,
@@ -103,6 +104,7 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::InspectInstall,
         IpcCommandName::InspectBundle,
         IpcCommandName::InspectHelp,
+        IpcCommandName::InspectRelease,
         IpcCommandName::PreviewContext,
         IpcCommandName::ListActivity,
         IpcCommandName::ListBackups,
@@ -637,6 +639,7 @@ pub enum IpcCommand {
     InspectInstall(ExplicitRouteArgs),
     InspectBundle(ExplicitRouteArgs),
     InspectHelp(ExplicitRouteArgs),
+    InspectRelease(ExplicitRouteArgs),
     PreviewContext(PreviewContextArgs),
     ListActivity(ListActivityArgs),
     ListBackups(ExplicitRouteArgs),
@@ -727,6 +730,7 @@ pub enum IpcResponse {
     InstallInspection(InstallInspectionDto),
     BundleInspection(BundleInspectionDto),
     HelpInspection(HelpInspectionDto),
+    ReleaseInspection(ReleaseInspectionDto),
     ContextPreview(ContextPreviewDto),
     ActivityPage(ActivityPageDto),
     BackupCatalog(BackupCatalogDto),
@@ -1072,6 +1076,12 @@ pub fn dispatch_with_drain(
                 library::accept_help_inspection(library.inspect_help()?)?,
             ))
         }
+        IpcCommand::InspectRelease(route_args) => {
+            require_explicit_fixture_route(&route_args)?;
+            Ok(IpcResponse::ReleaseInspection(
+                library::accept_release_inspection(library.inspect_release()?)?,
+            ))
+        }
         IpcCommand::PreviewContext(args) => {
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
@@ -1302,6 +1312,7 @@ mod tests {
                 IpcCommandName::InspectInstall,
                 IpcCommandName::InspectBundle,
                 IpcCommandName::InspectHelp,
+                IpcCommandName::InspectRelease,
                 IpcCommandName::PreviewContext,
                 IpcCommandName::ListActivity,
                 IpcCommandName::ListBackups,
@@ -1316,14 +1327,14 @@ mod tests {
                 IpcCommandName::BeginShutdown,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 44);
+        assert_eq!(capabilities.commands.len(), 45);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 44);
+        assert_eq!(commands.len(), 45);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
@@ -1360,6 +1371,7 @@ mod tests {
         assert!(commands.iter().any(|command| command == "inspect_install"));
         assert!(commands.iter().any(|command| command == "inspect_bundle"));
         assert!(commands.iter().any(|command| command == "inspect_help"));
+        assert!(commands.iter().any(|command| command == "inspect_release"));
         assert!(commands.iter().any(|command| command == "preview_context"));
         assert!(commands.iter().any(|command| command == "list_activity"));
         assert!(commands.iter().any(|command| command == "list_backups"));
@@ -2083,6 +2095,33 @@ mod tests {
             r#"{"command":"inspect_help","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
         );
         assert!(well_formed_help.is_ok());
+        let extra_path_on_release = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_release","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_release.is_err());
+        let extra_root_on_release = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_release","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_release.is_err());
+        let extra_token_on_release = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_release","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","token":"env-token"}}"#,
+        );
+        assert!(extra_token_on_release.is_err());
+        let extra_host_on_release = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_release","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","host":"https://example.invalid"}}"#,
+        );
+        assert!(extra_host_on_release.is_err());
+        let extra_api_key_on_release = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_release","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","api_key":"sk-test"}}"#,
+        );
+        assert!(extra_api_key_on_release.is_err());
+        let release_without_route =
+            serde_json::from_str::<IpcCommand>(r#"{"command":"inspect_release","args":{}}"#);
+        assert!(release_without_route.is_err());
+        let well_formed_release = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_release","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(well_formed_release.is_ok());
         let enable_provider = serde_json::from_str::<IpcCommand>(
             r#"{"command":"enable_provider","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
         );
@@ -2738,6 +2777,10 @@ mod tests {
         }
 
         fn inspect_help(&self) -> Result<library::HelpInspectionDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
+        fn inspect_release(&self) -> Result<library::ReleaseInspectionDto, library::LibraryError> {
             panic!("policy rejection must not open the library")
         }
 
@@ -8609,7 +8652,7 @@ mod tests {
             release.ipc_commands.len(),
             library::ALLOWLISTED_IPC_COMMANDS.len()
         );
-        assert_eq!(release.ipc_commands.len(), 44);
+        assert_eq!(release.ipc_commands.len(), 45);
         assert!(release.ipc_commands.iter().any(|command| {
             command.name == "inspect_api_audit"
                 && command.coverage == library::AuditCoverage::Present
@@ -8632,6 +8675,9 @@ mod tests {
         }));
         assert!(release.ipc_commands.iter().any(|command| {
             command.name == "inspect_help" && command.coverage == library::AuditCoverage::Present
+        }));
+        assert!(release.ipc_commands.iter().any(|command| {
+            command.name == "inspect_release" && command.coverage == library::AuditCoverage::Present
         }));
         assert!(!release.ipc_commands.iter().any(|command| {
             command.name == library::CALL_TOOL_IDENTITY
@@ -10570,6 +10616,14 @@ mod tests {
                 }),
             ),
             (
+                "inspect_release",
+                "",
+                IpcCommand::InspectRelease(ExplicitRouteArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                }),
+            ),
+            (
                 "preview_context",
                 r#","identifier":"welcome""#,
                 IpcCommand::PreviewContext(PreviewContextArgs {
@@ -10677,6 +10731,7 @@ mod tests {
             "inspect_install",
             "inspect_bundle",
             "inspect_help",
+            "inspect_release",
             "inspect_cloud",
             "inspect_sync",
             "inspect_hooks",
@@ -10751,7 +10806,7 @@ mod tests {
             panic!("wrong response variant")
         };
         assert!(report.routes.is_empty());
-        assert_eq!(report.present_commands.len(), 44);
+        assert_eq!(report.present_commands.len(), 45);
         assert!(report
             .present_commands
             .iter()
@@ -10772,6 +10827,10 @@ mod tests {
             .present_commands
             .iter()
             .any(|command| command == "inspect_help"));
+        assert!(report
+            .present_commands
+            .iter()
+            .any(|command| command == "inspect_release"));
         assert!(report
             .present_commands
             .iter()
@@ -11079,7 +11138,7 @@ mod tests {
         let IpcResponse::Capabilities(capabilities) = capabilities else {
             panic!("wrong response variant")
         };
-        assert_eq!(capabilities.commands.len(), 44);
+        assert_eq!(capabilities.commands.len(), 45);
         assert!(capabilities
             .commands
             .iter()
@@ -11364,7 +11423,7 @@ mod tests {
         let IpcResponse::Capabilities(capabilities) = capabilities else {
             panic!("wrong response variant")
         };
-        assert_eq!(capabilities.commands.len(), 44);
+        assert_eq!(capabilities.commands.len(), 45);
         assert!(capabilities
             .commands
             .iter()
@@ -11377,6 +11436,10 @@ mod tests {
             .commands
             .iter()
             .any(|command| *command == IpcCommandName::InspectHelp));
+        assert!(capabilities
+            .commands
+            .iter()
+            .any(|command| *command == IpcCommandName::InspectRelease));
         assert!(!capabilities
             .commands
             .iter()
@@ -11669,7 +11732,7 @@ mod tests {
         let IpcResponse::Capabilities(capabilities) = capabilities else {
             panic!("wrong response variant")
         };
-        assert_eq!(capabilities.commands.len(), 44);
+        assert_eq!(capabilities.commands.len(), 45);
         assert!(capabilities
             .commands
             .iter()
@@ -11678,6 +11741,10 @@ mod tests {
             .commands
             .iter()
             .any(|command| *command == IpcCommandName::InspectHelp));
+        assert!(capabilities
+            .commands
+            .iter()
+            .any(|command| *command == IpcCommandName::InspectRelease));
         assert!(!capabilities
             .commands
             .iter()
@@ -11995,11 +12062,15 @@ mod tests {
         let IpcResponse::Capabilities(capabilities) = capabilities else {
             panic!("wrong response variant")
         };
-        assert_eq!(capabilities.commands.len(), 44);
+        assert_eq!(capabilities.commands.len(), 45);
         assert!(capabilities
             .commands
             .iter()
             .any(|command| *command == IpcCommandName::InspectHelp));
+        assert!(capabilities
+            .commands
+            .iter()
+            .any(|command| *command == IpcCommandName::InspectRelease));
         assert!(capabilities
             .commands
             .iter()
@@ -12219,6 +12290,299 @@ mod tests {
         let _ = (
             library::ENGINE_HELP_NOT_OWNED,
             library::OFFICIAL_HELP_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn inspect_release_empty_library_is_denied_not_passed() {
+        let mut route = RouteState::default();
+        let IpcResponse::ReleaseInspection(report) = dispatch_with_library(
+            IpcCommand::InspectRelease(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(report.catalog.is_empty());
+        assert!(!report.files_written);
+        assert!(!report.release_claimed);
+        assert!(!report.gate_passed);
+        assert!(!report.release_allowed);
+        assert!(!report.g0_passed);
+        assert!(!report.g7_passed);
+        assert_eq!(report.g0_status, library::G0_STATUS_IN_PROGRESS);
+        assert_eq!(report.g7_status, library::G7_STATUS_NOT_STARTED);
+        assert_eq!(report.decision, library::RELEASE_DECISION_DO_NOT_RELEASE);
+        assert!(!report.mixed_profiles);
+        assert_eq!(report.release_commit, library::RELEASE_PROFILE_COMMIT);
+        assert_eq!(report.release_tool_count, 21);
+        assert_eq!(
+            report.main_preview_commit,
+            library::MAIN_PREVIEW_PROFILE_COMMIT
+        );
+        assert_eq!(report.main_preview_tool_count, 27);
+        assert_ne!(report.release_tool_count, report.main_preview_tool_count);
+        assert_eq!(report.search_identity, library::SEARCH_IDENTITY);
+        assert_eq!(report.fetch_identity, library::FETCH_IDENTITY);
+        assert!(report.search_fetch_distinct);
+        assert!(!report.unknown_tools_auto_admitted);
+        assert!(!report.full_api_coverage);
+        assert!(!report.named_gaps.is_empty());
+        assert!(report.named_gaps.iter().any(|gap| gap == "search"));
+        assert!(report.named_gaps.iter().any(|gap| gap == "fetch"));
+        assert!(report.named_gaps.iter().any(|gap| gap == "call_tool"));
+        assert!(!report.prefix_buckets_hide_leaves);
+        assert!(report.just_build_is_g0_probe);
+        assert!(report.just_tauri_dev_is_desktop);
+        assert!(report.just_tauri_build_is_desktop);
+        assert!(report.just_contract_is_probe);
+        assert!(!report.call_tool_present);
+        assert!(!report.restore_sync_present);
+        assert!(!report.enable_provider_present);
+        assert_eq!(report.typed_command_count, 45);
+        assert!(report.inspect_release_present);
+        assert!(!report.official_mcp_inferred_from_allowlist);
+        assert!(report.license_present);
+        assert!(report.notice_present);
+        assert!(report.sbom_present);
+        assert!(report.help_doc_consistent);
+        assert!(report.verification_doc_consistent);
+        assert!(!report.secrets_stored);
+        assert!(!report.env_tokens_read);
+        assert!(!report.remote_hosts_contacted);
+        assert!(report.local_offline);
+        assert!(!report.engine_release);
+        assert_eq!(
+            report.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        assert_ne!(
+            report.observation.classified_as,
+            library::NoteCrudClass::Conflict
+        );
+        assert_ne!(
+            report.observation.classified_as,
+            library::NoteCrudClass::AcceptedUnverified
+        );
+        assert!(!report.observation.disk_verified);
+        assert!(report.observation.envelope_is_not_disk_proof);
+        let json = serde_json::to_value(&IpcResponse::ReleaseInspection(report)).unwrap();
+        assert_eq!(json["kind"], "release_inspection");
+        assert_eq!(json["files_written"], false);
+        assert_eq!(json["release_allowed"], false);
+        assert_eq!(json["g0_passed"], false);
+        assert_eq!(json["g7_passed"], false);
+        assert_eq!(json["decision"], "do_not_release");
+        assert_eq!(json["full_api_coverage"], false);
+        assert_eq!(json["search_fetch_distinct"], true);
+        assert_eq!(json["call_tool_present"], false);
+        assert_eq!(json["restore_sync_present"], false);
+        assert_eq!(json["enable_provider_present"], false);
+        assert_eq!(json["typed_command_count"], 45);
+        assert_eq!(json["inspect_release_present"], true);
+        assert_eq!(json["official_mcp_inferred_from_allowlist"], false);
+        assert!(json["catalog"].as_array().unwrap().is_empty());
+        let capabilities = dispatch(IpcCommand::GetCapabilities(EmptyArgs {})).unwrap();
+        let IpcResponse::Capabilities(capabilities) = capabilities else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(capabilities.commands.len(), 45);
+        assert!(capabilities
+            .commands
+            .iter()
+            .any(|command| *command == IpcCommandName::InspectRelease));
+        assert!(capabilities
+            .commands
+            .iter()
+            .any(|command| *command == IpcCommandName::InspectHelp));
+        assert!(capabilities
+            .commands
+            .iter()
+            .any(|command| *command == IpcCommandName::InspectApiAudit));
+        assert!(!capabilities
+            .commands
+            .iter()
+            .any(|name| { command_name_string(name.clone()) == "restore_sync" }));
+        assert!(!capabilities
+            .commands
+            .iter()
+            .any(|name| { command_name_string(name.clone()) == "call_tool" }));
+        assert!(!capabilities
+            .commands
+            .iter()
+            .any(|name| { command_name_string(name.clone()) == "enable_provider" }));
+        let _ = (
+            library::ENGINE_RELEASE_NOT_OWNED,
+            library::OFFICIAL_RELEASE_UNVERIFIED,
+            library::UNSUPPORTED_RELEASE_GATE_CLAIM,
+        );
+    }
+
+    #[test]
+    fn inspect_release_fixture_stays_denied_and_claimed_flag_is_unsupported() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t40-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let library = library::FixtureLibrary::new(dir.clone());
+        let mut route = RouteState::default();
+        let IpcResponse::ReleaseInspection(report) = dispatch_with_library(
+            IpcCommand::InspectRelease(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(!report.release_allowed);
+        assert!(!report.g0_passed);
+        assert!(!report.g7_passed);
+        assert_eq!(report.decision, library::RELEASE_DECISION_DO_NOT_RELEASE);
+        let flag = library.seed_release_claimed_flag().unwrap();
+        assert!(flag.is_file());
+        let claimed = dispatch_with_library(
+            IpcCommand::InspectRelease(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(claimed.category, ErrorCategory::Unsupported);
+        assert_eq!(
+            claimed.message,
+            library::UNSUPPORTED_RELEASE_CLAIMED_NOT_PASSED
+        );
+        let _ = std::fs::remove_file(&flag);
+        let gate_flag = library.seed_gate_passed_flag().unwrap();
+        assert!(gate_flag.is_file());
+        let gate_claimed = dispatch_with_library(
+            IpcCommand::InspectRelease(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(gate_claimed.category, ErrorCategory::Unsupported);
+        assert_eq!(
+            gate_claimed.message,
+            library::UNSUPPORTED_RELEASE_CLAIMED_NOT_PASSED
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    struct ClaimedReleaseLibrary;
+
+    impl NoteLibrary for ClaimedReleaseLibrary {
+        fn list_tree(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            Ok(library::TreePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: false,
+            })
+        }
+
+        fn read_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            Err(library::LibraryError::unsupported(
+                library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
+            ))
+        }
+
+        fn inspect_release(&self) -> Result<library::ReleaseInspectionDto, library::LibraryError> {
+            Ok(library::ReleaseInspectionDto {
+                release_allowed: true,
+                g0_passed: true,
+                g7_passed: true,
+                ..library::empty_release_inspection()
+            })
+        }
+    }
+
+    struct CredentialReleaseLibrary;
+
+    impl NoteLibrary for CredentialReleaseLibrary {
+        fn list_tree(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            Ok(library::TreePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: false,
+            })
+        }
+
+        fn read_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            Err(library::LibraryError::unsupported(
+                library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
+            ))
+        }
+
+        fn inspect_release(&self) -> Result<library::ReleaseInspectionDto, library::LibraryError> {
+            Ok(library::ReleaseInspectionDto {
+                env_tokens_read: true,
+                secrets_stored: true,
+                remote_hosts_contacted: true,
+                ..library::empty_release_inspection()
+            })
+        }
+    }
+
+    #[test]
+    fn inspect_release_gate_claim_or_env_tokens_are_not_success() {
+        let mut route = RouteState::default();
+        let claimed = dispatch_with_library(
+            IpcCommand::InspectRelease(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &ClaimedReleaseLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(claimed.category, ErrorCategory::Unsupported);
+        assert_eq!(claimed.message, library::UNSUPPORTED_RELEASE_GATE_CLAIM);
+        let credentials = dispatch_with_library(
+            IpcCommand::InspectRelease(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &CredentialReleaseLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(credentials.category, ErrorCategory::Policy);
+        assert_eq!(
+            credentials.message,
+            library::POLICY_RELEASE_CREDENTIAL_ROUTE
+        );
+        let release = EngineProfile::Release;
+        let preview = EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(preview.commit(), "3452c821d76c083823d020984d71e06904a1ff1e");
+        assert_ne!(release.expected_tools(), preview.expected_tools());
+        let _ = (
+            library::ENGINE_RELEASE_NOT_OWNED,
+            library::OFFICIAL_RELEASE_UNVERIFIED,
         );
     }
 }

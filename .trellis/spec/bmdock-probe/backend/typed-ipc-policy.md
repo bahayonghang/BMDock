@@ -102,7 +102,14 @@ FAIL-CLOSED local-only help/accessibility catalog (`files_written=false`,
 `list_backups` + `restore_fixture`; skip-link / nav / main landmarks
 and `:focus-visible` are renderer-owned; native screen reader / IME /
 native GUI stay `UNVERIFIED`; claiming G0/G7 or a native a11y audit is
-unsupported).
+unsupported), and T40 typed `inspect_release` FAIL-CLOSED local-only
+release-gate decision (`release_allowed=false`, `g0_passed=false`,
+`g7_passed=false`, `classified_as: empty`, `files_written=false`;
+decision `do_not_release`; dual profiles stay isolated 21 vs 27;
+`search` / `fetch` stay distinct denied identities; `full_api_coverage=false`;
+named T29 gaps stay named; typed allowlist is the source of present
+commands (45) and must not infer official MCP; claiming G0/G7 passed
+or a production release is unsupported).
 It applies to
 `apps/bmdock-desktop/src-tauri/src/ipc.rs`,
 `apps/bmdock-desktop/src-tauri/src/library.rs`,
@@ -590,6 +597,29 @@ interfaces remain separate. Lifecycle ownership lives in
   add rmcp. Do not treat `just contract`, UI copy, cargo test, or a
   compiled exe as native GUI / screen-reader / IME / Job Object / real
   vault proof.
+- T40 `inspect_release` is FAIL-CLOSED local-only. Args are
+  `ExplicitRouteArgs`. `deny_unknown_fields`. Extra `path` / `root` /
+  `token` / `host` fail closed as `schema`. Missing route is `schema`.
+  Non-fixture routes are `policy` and do not open the library.
+  Production default: `release_allowed=false`, `g0_passed=false`,
+  `g7_passed=false`, `classified_as: empty`, `files_written=false`,
+  decision `do_not_release`. Dual profiles stay isolated (21 vs 27).
+  `search` and `fetch` stay distinct denied identities. Unknown tools are
+  not auto-admitted. `full_api_coverage=false`. Named gaps stay named via
+  T29. Prefix buckets hiding leaves are `unsupported`. `just build` stays
+  the G0 probe. `just tauri-dev` / `tauri-build` stay desktop.
+  `just contract*` stay probe. Capability drift stays fail-closed.
+  Unknown dangerous commands stay absent (`call_tool`, `restore_sync`,
+  `enable_provider`). The typed allowlist is the source of present
+  commands (45) and includes `inspect_release`. Do not infer official MCP
+  from the allowlist. Claiming G0/G7 passed or a production release is
+  `unsupported`. Unauthorized remote / env token / stored secret is
+  `policy`. Tests inject `FixtureLibrary` over `{temp}/bmdock-t40-*`.
+  A BMDock-owned fixture `release-claimed` / `gate-passed` flag is
+  `unsupported`, not a passed release. T40 does not start Supervisor or
+  add rmcp. Do not treat `just contract`, UI copy, tool lists, compiled
+  exe, LICENSE, or lockfile SBOM as G0 / G7 / native GUI / installer /
+  live official-engine proof.
 - The boundary does not start or stop the Supervisor, call the official
   engine over rmcp, access a user vault, or expose raw `callTool`. T14
   drafts are BMDock-owned session artifacts, not a second note index and
@@ -728,6 +758,7 @@ inspect_privacy: { workspace, project }
 inspect_install: { workspace, project }
 inspect_bundle: { workspace, project }
 inspect_help: { workspace, project }
+inspect_release: { workspace, project }
 preview_context: { workspace, project, identifier, query? }
 list_activity: { workspace, project, cursor?, page_size? }
 list_backups: { workspace, project }
@@ -1154,6 +1185,17 @@ fail closed as `schema`.
   reader / IME / native GUI stay `UNVERIFIED`. LICENSE / NOTICE / SBOM
   are present; G0 / G7 are not passed. Claiming a native a11y audit is
   `unsupported`.
+- `inspect_release` returns `kind: "release_inspection"` with a FAIL-CLOSED
+  release-gate DTO. Args are `ExplicitRouteArgs`. Extra `path` /
+  `root` / `token` / `host` fail closed as `schema`. Missing route is
+  `schema`. Non-fixture is `policy` and does not open the library.
+  Production `EmptyLibrary` is `release_allowed=false`, `g0_passed=false`,
+  `g7_passed=false`, `classified_as: empty`, `files_written=false`,
+  decision `do_not_release`. Dual profiles stay isolated (21 vs 27).
+  `search` / `fetch` stay distinct. `full_api_coverage=false`. Named T29
+  gaps stay named. The typed allowlist (45) is the source of present
+  commands and must not infer official MCP. Claiming G0/G7 passed is
+  `unsupported`.
 - `save_draft` returns `kind: "draft_saved"` with `identifier`, `body`,
   `files_written`, `engine_persisted=false`, vault-scan flags false, and an
   observation DTO. Args are `ExplicitRouteArgs` plus `identifier` and
@@ -1261,7 +1303,7 @@ The capability policy must report:
 `EditNoteArgs`, `MoveNoteArgs`, `DeleteNoteArgs`, and `EmptyArgs`
 use `#[serde(deny_unknown_fields)]`.
 There is no path field on `list_projects` / `run_preflight` /
-`discover_config` / `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `inspect_cloud` / `inspect_sync` / `list_shares` / `inspect_hooks` / `inspect_providers` / `inspect_routes` / `inspect_privacy` / `inspect_install` / `inspect_bundle` / `inspect_help` / `preview_context` / `list_activity` / `list_backups` /
+`discover_config` / `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `inspect_cloud` / `inspect_sync` / `list_shares` / `inspect_hooks` / `inspect_providers` / `inspect_routes` / `inspect_privacy` / `inspect_install` / `inspect_bundle` / `inspect_help` / `inspect_release` / `preview_context` / `list_activity` / `list_backups` /
 `restore_fixture` / `inspect_windows_runtime` / `save_draft` /
 `load_draft` / `write_note` / `edit_note` / `move_note` /
 `delete_note` / `begin_shutdown` and no raw `callTool` handler. Typed
@@ -1521,7 +1563,7 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 | Unknown `command`, including `call_tool` and MCP identity `search` / `fetch` / `recent_activity` / `build_context` / `schema_infer` / `schema_diff` / `resources/list` / `resources/read` / `prompts/list` / `prompts/get` / `tools/call` | Serde deserialization fails closed | `schema` at the boundary |
 | Incomplete `write_note` args (for example only `project`) | `deny_unknown_fields` / missing fields | `schema` |
 | Extra field in `args` | `deny_unknown_fields` rejects the DTO | `schema` |
-| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `inspect_providers`, `inspect_routes`, `inspect_privacy`, `inspect_install`, `inspect_bundle`, `inspect_help`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `inspect_providers`, `inspect_routes`, `inspect_privacy`, `inspect_install`, `inspect_bundle`, `inspect_help`, `inspect_release`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
 | Extra top-level field such as `path` beside `command`/`args` | `deny_unknown_fields` on `IpcCommand` | `schema` |
 | `select_project` for any value other than `bmdock-fixture` | Dispatcher rejects without filesystem access | `policy` |
 | `ExplicitRouteArgs` missing `project`/`workspace` or carrying an extra `path` | `deny_unknown_fields` rejects the DTO | `schema` |
@@ -1704,6 +1746,13 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 | Empty library `inspect_help` | Empty extra `catalog[]`, `files_written=false`, `classified_as: empty`; fixture-owned `preview_context` / `list_activity`; official `recent_activity` / `build_context` stay `UNVERIFIED`; recovery inventory is `list_backups` + `restore_fixture`; skip-link / nav / main landmarks / `:focus-visible` are renderer-owned; native screen reader / IME / native GUI stay `UNVERIFIED`; G0 / G7 not passed | empty state |
 | Claiming a native screen reader / IME / native GUI / G0 / G7 / official `recent_activity` / `build_context` MCP / cloud restore / installer rollback from `inspect_help` | Reject; not a native a11y audit and not a passed gate | `unsupported` |
 | Fixture `help-claimed` / `a11y-cleared` flag on `{temp}/bmdock-t39-*` | Classify `unsupported`, not a native a11y audit | `unsupported` |
+| Extra `path` / `root` / `token` / `host` on `inspect_release` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Missing `inspect_release` route | Reject without opening the library | `schema` |
+| Non-fixture `inspect_release` | Reject without opening the library | `policy` |
+| Unauthorized remote / env token / stored secret / remote host / real vault on `inspect_release` | Reject; do not open a credential route | `policy` |
+| Empty library `inspect_release` | `release_allowed=false`, `g0_passed=false`, `g7_passed=false`, `classified_as: empty`, `files_written=false`, decision `do_not_release`; dual profiles isolated 21 vs 27; `search` / `fetch` distinct; `full_api_coverage=false`; named T29 gaps stay named; typed allowlist 45; G0 / G7 not passed | empty state |
+| Claiming `release_allowed` / G0 / G7 / mixed profiles / auto-admitted unknown tools / full API coverage from `inspect_release` | Reject; not a passed release | `unsupported` |
+| Fixture `release-claimed` / `gate-passed` flag on `{temp}/bmdock-t40-*` | Classify `unsupported`, not a passed release | `unsupported` |
 | Cloud/sync restore / `restore_sync` | Unknown command is `schema`; if a restore-sync path were added it stays `unsupported` / `policy`, not disk-verified user-vault/cloud restore. Recovery remains T12 `restore_fixture`. Envelope `"synced"` / `"restored"` is not disk proof. | `schema` / `unsupported` / `policy` |
 | Unknown official tool name in the selected profile baseline | List as `denied` / `missing`; do not auto-admit | — |
 | Missing `preview_context` identifier | Reject without opening the library | `schema` |
@@ -1915,16 +1964,16 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 
 ## 6. Tests Required
 
-- Rust unit test: capability response lists exactly forty-four commands and two
+- Rust unit test: capability response lists exactly forty-five commands and two
   events, and both arbitrary-path and raw-callTool policy flags are false.
-  `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `inspect_providers`, `inspect_routes`, `inspect_privacy`, `inspect_install`, `inspect_bundle`, `inspect_help`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`,
+  `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `inspect_providers`, `inspect_routes`, `inspect_privacy`, `inspect_install`, `inspect_bundle`, `inspect_help`, `inspect_release`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`,
   `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`,
   `edit_note`, `move_note`, `delete_note`, and `begin_shutdown` are present; `call_tool`,
   MCP identity `search`, `fetch`, `recent_activity`, `build_context`, `schema_infer`, `schema_diff`, `resources/list`, `resources/read`, `prompts/list`, `prompts/get`, and `tools/call` are absent. Incomplete `write_note` args remain schema.
 - Rust unit test: a non-fixture project returns `ErrorCategory::Policy`.
 - Rust unit test: unknown command including `call_tool`, extra project path,
   extra runtime-state path, extra `list_projects` path/root, extra preflight
-  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `expand_graph` path/root,   extra `search_notes` path/root/`id`, extra `inspect_search` path/root/`id`, extra `run_recall_benchmark` path/root, extra `schema_validate` path/root, extra `list_resources` path/root, extra `list_prompts` path/root, extra `inspect_tools` path/root, extra `list_cli_inventory` path/root, extra `import_notes` path/root, extra `inspect_api_audit` path/root, extra `inspect_extras` path/root, extra `ingest_document` path/root, extra `inspect_cloud` path/root, extra `inspect_sync` path/root/token/host, extra `list_shares` path/root/token/host, extra `inspect_hooks` path/root/token/host, extra `inspect_providers` path/root/token/host/api_key, extra `inspect_routes` path/root/token/host/api_key, extra `inspect_privacy` path/root/token/host/api_key, extra `inspect_install` path/root/token/host, extra `inspect_bundle` path/root/token/host, extra `inspect_help` path/root/token/host, extra `preview_context` path/root, extra `list_activity` path/root, extra `list_backups`
+  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `expand_graph` path/root,   extra `search_notes` path/root/`id`, extra `inspect_search` path/root/`id`, extra `run_recall_benchmark` path/root, extra `schema_validate` path/root, extra `list_resources` path/root, extra `list_prompts` path/root, extra `inspect_tools` path/root, extra `list_cli_inventory` path/root, extra `import_notes` path/root, extra `inspect_api_audit` path/root, extra `inspect_extras` path/root, extra `ingest_document` path/root, extra `inspect_cloud` path/root, extra `inspect_sync` path/root/token/host, extra `list_shares` path/root/token/host, extra `inspect_hooks` path/root/token/host, extra `inspect_providers` path/root/token/host/api_key, extra `inspect_routes` path/root/token/host/api_key, extra `inspect_privacy` path/root/token/host/api_key, extra `inspect_install` path/root/token/host, extra `inspect_bundle` path/root/token/host, extra `inspect_help` path/root/token/host, extra `inspect_release` path/root/token/host, extra `preview_context` path/root, extra `list_activity` path/root, extra `list_backups`
   path/root, extra `restore_fixture` path, extra
   `inspect_windows_runtime` path/root, extra `save_draft` path/root, extra
   `load_draft` path/root, and extra `begin_shutdown` path/root all fail
@@ -1944,7 +1993,7 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
   scan user vaults, and keeps `cross_project_search_allowed` and
   `implicit_current_project_writes` false.   `ExplicitRouteArgs` requires both
   fields, rejects extra paths as schema, and rejects non-fixture routes as
-  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `inspect_cloud` / `inspect_sync` / `list_shares` / `inspect_hooks` / `inspect_providers` / `inspect_routes` / `inspect_privacy` / `inspect_install` / `inspect_bundle` / `inspect_help` / `preview_context` / `list_activity` / `list_backups` /
+  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `inspect_cloud` / `inspect_sync` / `list_shares` / `inspect_hooks` / `inspect_providers` / `inspect_routes` / `inspect_privacy` / `inspect_install` / `inspect_bundle` / `inspect_help` / `inspect_release` / `preview_context` / `list_activity` / `list_backups` /
   `restore_fixture` / `save_draft` / `load_draft` / `write_note` /
   `edit_note` / `move_note` / `delete_note` must not open the library,
   backup store, or draft store.
@@ -2311,6 +2360,23 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
   isolated (21 vs 27). T39 does not start Supervisor or add rmcp. Do
   not treat `just contract`, UI copy, cargo test, or a compiled exe as
   native GUI / screen-reader / IME / Job Object / real vault proof.
+- Rust unit test: `inspect_release` requires `ExplicitRouteArgs`. Extra
+  `path` / `root` / `token` / `host` fail closed as `schema`. Missing
+  route is `schema`. Non-fixture is `policy` and does not open the
+  library. Production `EmptyLibrary` is `release_allowed=false`,
+  `g0_passed=false`, `g7_passed=false`, `classified_as: empty`,
+  `files_written=false`, decision `do_not_release`. Dual profiles stay
+  isolated (21 vs 27). `search` / `fetch` stay distinct. Unknown tools
+  are not auto-admitted. `full_api_coverage=false`. Named T29 gaps stay
+  named. The typed allowlist (45) is the source of present commands and
+  must not infer official MCP. Tests inject `{temp}/bmdock-t40-*`. A
+  BMDock-owned fixture `release-claimed` / `gate-passed` flag is
+  `unsupported`, not a passed release. Claiming G0/G7 passed is
+  `unsupported`. Unauthorized remote / env tokens / stored secrets are
+  `policy`. T40 does not start Supervisor or add rmcp. Do not treat
+  `just contract`, UI copy, tool lists, compiled exe, LICENSE, or
+  lockfile SBOM as G0 / G7 / native GUI / installer / live official-engine
+  proof.
 - Rust unit test: `preview_context` requires `ExplicitRouteArgs` plus
   `identifier` plus optional `query`. Extra `path` / `root` fail
   closed as `schema`. Missing identifier is `schema`. Non-fixture
@@ -2573,6 +2639,10 @@ await invokeTyped({
   args: { workspace: route.workspace, project: route.project },
 });
 await invokeTyped({
+  command: "inspect_release",
+  args: { workspace: route.workspace, project: route.project },
+});
+await invokeTyped({
   command: "preview_context",
   args: { workspace: route.workspace, project: route.project, identifier, query },
 });
@@ -2643,7 +2713,7 @@ await listenTyped("runtime_state", (state) => renderState(state));
 These calls use the shared DTOs and the explicit fixture/event allowlist.
 `list_projects`, `run_preflight`, and `discover_config` take empty args.
 `select_project` remains fixture-only. `list_tree`, `read_note`,
-`list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `inspect_providers`, `inspect_routes`, `inspect_privacy`, `inspect_install`, `inspect_bundle`, `inspect_help`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
+`list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `inspect_providers`, `inspect_routes`, `inspect_privacy`, `inspect_install`, `inspect_bundle`, `inspect_help`, `inspect_release`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
 `write_note`, `edit_note`, `move_note`, and `delete_note` copy
 `ExplicitRouteArgs` on every call and must not treat `runtime.project` as
 an implicit target.
@@ -2700,6 +2770,12 @@ empty extra catalog, `classified_as: empty`). Help names fixture-owned
 `build_context` stay UNVERIFIED. Recovery inventory is `list_backups`
 + `restore_fixture`. Native screen reader / IME / native GUI stay
 UNVERIFIED. Claiming G0/G7 or a native a11y audit is unsupported.
+`inspect_release` is FAIL-CLOSED local-only (`release_allowed=false`,
+`g0_passed=false`, `g7_passed=false`, `classified_as: empty`,
+`files_written=false`, decision `do_not_release`). Dual profiles stay
+isolated (21 vs 27). `search` / `fetch` stay distinct. Named T29 gaps
+stay named. The typed allowlist (45) is the source of present commands
+and must not infer official MCP. Claiming G0/G7 passed is unsupported.
 `save_draft` / `load_draft`
 persist BMDock-owned session drafts, not official engine notes. Typed
 `write_note` is a host command on `NoteLibrary`, not raw `callTool`.

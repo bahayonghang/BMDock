@@ -273,6 +273,50 @@ pub const RECOVERY_INVENTORY_LIST_BACKUPS: &str = "list_backups";
 pub const HELP_CLAIMED_FLAG: &str = "help-claimed";
 #[cfg(test)]
 pub const A11Y_CLEARED_FLAG: &str = "a11y-cleared";
+pub const ENGINE_RELEASE_NOT_OWNED: &str =
+    "inspect_release is a BMDock-owned local-only release-gate decision; it is not a G0/G7 pass, live official-engine proof, native GUI session, installer, or production release";
+#[cfg(test)]
+pub const OFFICIAL_RELEASE_UNVERIFIED: &str =
+    "G0 product gate, G7 release gate, native GUI/WebView2 session, live official engine, hosted CI for this revision, and a production installer remain UNVERIFIED";
+pub const UNSUPPORTED_RELEASE_CLAIMED_NOT_PASSED: &str =
+    "fixture release-claimed / gate-passed flag is unsupported, not a passed release; claiming G0/G7 passed without a passed gate is unsupported";
+pub const POLICY_RELEASE_CREDENTIAL_ROUTE: &str =
+    "unauthorized remote, credential, env-token, stored-secret, api-key, or real-vault release-gate routes are policy and are not opened";
+pub const UNSUPPORTED_RELEASE_GATE_CLAIM: &str =
+    "inspect_release must not claim release_allowed, G0 passed, G7 passed, mixed profiles, auto-admitted unknown tools, full API coverage, official MCP inferred from the allowlist, or a live official-engine / native GUI / installer proof";
+pub const RELEASE_DECISION_DO_NOT_RELEASE: &str = "do_not_release";
+pub const G0_STATUS_IN_PROGRESS: &str = "in_progress";
+pub const G7_STATUS_NOT_STARTED: &str = "not_started";
+pub const RELEASE_PROFILE_COMMIT: &str = "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048";
+pub const MAIN_PREVIEW_PROFILE_COMMIT: &str = "3452c821d76c083823d020984d71e06904a1ff1e";
+pub const RELEASE_TOOL_COUNT: u32 = 21;
+pub const MAIN_PREVIEW_TOOL_COUNT: u32 = 27;
+pub const TYPED_IPC_COMMAND_COUNT: u32 = 45;
+pub const NAMED_API_CLI_GAPS: &[&str] = &[
+    "search",
+    "fetch",
+    "call_tool",
+    "schema_infer",
+    "schema_diff",
+    "resources/list",
+    "resources/read",
+    "prompts/list",
+    "prompts/get",
+    "tools/call",
+    "enable_provider",
+    "restore_sync",
+    "list_hooks",
+    "connect_provider",
+    "bm cloud bisync",
+    "bm cloud login",
+    "bm mcp",
+    "bm project info",
+    "bm status",
+];
+#[cfg(test)]
+pub const RELEASE_CLAIMED_FLAG: &str = "release-claimed";
+#[cfg(test)]
+pub const GATE_PASSED_FLAG: &str = "gate-passed";
 pub const ABSENT_ALLOWLIST_COMMANDS: &[&str] = &[
     "enable_provider",
     "restore_sync",
@@ -348,6 +392,7 @@ pub const ALLOWLISTED_IPC_COMMANDS: &[&str] = &[
     "inspect_install",
     "inspect_bundle",
     "inspect_help",
+    "inspect_release",
     "preview_context",
     "list_activity",
     "list_backups",
@@ -2424,6 +2469,129 @@ pub fn empty_help_inspection() -> HelpInspectionDto {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ReleaseRecordDto {
+    pub identifier: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ReleaseInspectionDto {
+    pub catalog: Vec<ReleaseRecordDto>,
+    pub files_written: bool,
+    pub release_claimed: bool,
+    pub gate_passed: bool,
+    pub release_allowed: bool,
+    pub g0_passed: bool,
+    pub g7_passed: bool,
+    pub g0_status: String,
+    pub g7_status: String,
+    pub decision: String,
+    pub mixed_profiles: bool,
+    pub release_commit: String,
+    pub release_tool_count: u32,
+    pub main_preview_commit: String,
+    pub main_preview_tool_count: u32,
+    pub search_identity: String,
+    pub fetch_identity: String,
+    pub search_fetch_distinct: bool,
+    pub unknown_tools_auto_admitted: bool,
+    pub full_api_coverage: bool,
+    pub named_gaps: Vec<String>,
+    pub prefix_buckets_hide_leaves: bool,
+    pub just_build_is_g0_probe: bool,
+    pub just_tauri_dev_is_desktop: bool,
+    pub just_tauri_build_is_desktop: bool,
+    pub just_contract_is_probe: bool,
+    pub call_tool_present: bool,
+    pub restore_sync_present: bool,
+    pub enable_provider_present: bool,
+    pub typed_command_count: u32,
+    pub inspect_release_present: bool,
+    pub official_mcp_inferred_from_allowlist: bool,
+    pub license_present: bool,
+    pub notice_present: bool,
+    pub sbom_present: bool,
+    pub help_doc_consistent: bool,
+    pub verification_doc_consistent: bool,
+    pub secrets_stored: bool,
+    pub env_tokens_read: bool,
+    pub remote_hosts_contacted: bool,
+    pub local_offline: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_release: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+}
+
+fn canonical_named_gaps() -> Vec<String> {
+    NAMED_API_CLI_GAPS
+        .iter()
+        .map(|name| (*name).to_owned())
+        .collect()
+}
+
+fn named_gaps_are_canonical(items: &[String]) -> bool {
+    items.len() == NAMED_API_CLI_GAPS.len()
+        && items
+            .iter()
+            .zip(NAMED_API_CLI_GAPS.iter())
+            .all(|(item, expected)| item == expected)
+}
+
+pub fn empty_release_inspection() -> ReleaseInspectionDto {
+    ReleaseInspectionDto {
+        catalog: Vec::new(),
+        files_written: false,
+        release_claimed: false,
+        gate_passed: false,
+        release_allowed: false,
+        g0_passed: false,
+        g7_passed: false,
+        g0_status: G0_STATUS_IN_PROGRESS.to_owned(),
+        g7_status: G7_STATUS_NOT_STARTED.to_owned(),
+        decision: RELEASE_DECISION_DO_NOT_RELEASE.to_owned(),
+        mixed_profiles: false,
+        release_commit: RELEASE_PROFILE_COMMIT.to_owned(),
+        release_tool_count: RELEASE_TOOL_COUNT,
+        main_preview_commit: MAIN_PREVIEW_PROFILE_COMMIT.to_owned(),
+        main_preview_tool_count: MAIN_PREVIEW_TOOL_COUNT,
+        search_identity: SEARCH_IDENTITY.to_owned(),
+        fetch_identity: FETCH_IDENTITY.to_owned(),
+        search_fetch_distinct: true,
+        unknown_tools_auto_admitted: false,
+        full_api_coverage: false,
+        named_gaps: canonical_named_gaps(),
+        prefix_buckets_hide_leaves: false,
+        just_build_is_g0_probe: true,
+        just_tauri_dev_is_desktop: true,
+        just_tauri_build_is_desktop: true,
+        just_contract_is_probe: true,
+        call_tool_present: false,
+        restore_sync_present: false,
+        enable_provider_present: false,
+        typed_command_count: TYPED_IPC_COMMAND_COUNT,
+        inspect_release_present: true,
+        official_mcp_inferred_from_allowlist: false,
+        license_present: true,
+        notice_present: true,
+        sbom_present: true,
+        help_doc_consistent: true,
+        verification_doc_consistent: true,
+        secrets_stored: false,
+        env_tokens_read: false,
+        remote_hosts_contacted: false,
+        local_offline: true,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_release: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+    }
+}
+
 fn absent_command_is_allowlisted(name: &str) -> bool {
     ABSENT_ALLOWLIST_COMMANDS.contains(&name)
         || name == SEARCH_IDENTITY
@@ -2716,6 +2884,77 @@ pub fn accept_help_inspection(
         return Err(LibraryError::unsupported(UNSUPPORTED_HELP_CLAIMED_NOT_A11Y));
     }
     Ok(empty_help_inspection())
+}
+
+pub fn accept_release_inspection(
+    report: ReleaseInspectionDto,
+) -> Result<ReleaseInspectionDto, LibraryError> {
+    if report.scanned_user_obsidian_vault
+        || report.scanned_user_basic_memory_home
+        || report.remote_hosts_contacted
+        || report.secrets_stored
+        || report.env_tokens_read
+    {
+        return Err(LibraryError::policy(POLICY_RELEASE_CREDENTIAL_ROUTE));
+    }
+    if report.engine_release {
+        return Err(LibraryError::unsupported(ENGINE_RELEASE_NOT_OWNED));
+    }
+    if report.mixed_profiles
+        || report.release_commit != RELEASE_PROFILE_COMMIT
+        || report.main_preview_commit != MAIN_PREVIEW_PROFILE_COMMIT
+        || report.release_tool_count != RELEASE_TOOL_COUNT
+        || report.main_preview_tool_count != MAIN_PREVIEW_TOOL_COUNT
+        || report.release_tool_count == report.main_preview_tool_count
+    {
+        return Err(LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES));
+    }
+    if report.prefix_buckets_hide_leaves || !named_gaps_are_canonical(&report.named_gaps) {
+        return Err(LibraryError::unsupported(UNSUPPORTED_CLI_BUCKET));
+    }
+    if report.release_allowed
+        || report.g0_passed
+        || report.g7_passed
+        || report.unknown_tools_auto_admitted
+        || report.full_api_coverage
+        || report.official_mcp_inferred_from_allowlist
+        || report.call_tool_present
+        || report.restore_sync_present
+        || report.enable_provider_present
+        || !report.search_fetch_distinct
+        || report.search_identity != SEARCH_IDENTITY
+        || report.fetch_identity != FETCH_IDENTITY
+        || report.decision != RELEASE_DECISION_DO_NOT_RELEASE
+        || report.g0_status != G0_STATUS_IN_PROGRESS
+        || report.g7_status != G7_STATUS_NOT_STARTED
+        || report.typed_command_count != TYPED_IPC_COMMAND_COUNT
+        || !report.inspect_release_present
+        || !report.just_build_is_g0_probe
+        || !report.just_tauri_dev_is_desktop
+        || !report.just_tauri_build_is_desktop
+        || !report.just_contract_is_probe
+        || !report.license_present
+        || !report.notice_present
+        || !report.sbom_present
+        || !report.help_doc_consistent
+        || !report.verification_doc_consistent
+    {
+        return Err(LibraryError::unsupported(UNSUPPORTED_RELEASE_GATE_CLAIM));
+    }
+    if report.files_written
+        || report.release_claimed
+        || report.gate_passed
+        || !report.catalog.is_empty()
+        || report.observation.disk_verified
+        || report.observation.classified_as == NoteCrudClass::DiskVerified
+        || report.observation.classified_as == NoteCrudClass::Conflict
+        || report.observation.classified_as == NoteCrudClass::AcceptedUnverified
+    {
+        return Err(LibraryError::unsupported(
+            UNSUPPORTED_RELEASE_CLAIMED_NOT_PASSED,
+        ));
+    }
+    Ok(empty_release_inspection())
 }
 
 pub fn accept_import_result(report: ImportResultDto) -> Result<ImportResultDto, LibraryError> {
@@ -3250,6 +3489,10 @@ pub trait NoteLibrary: Send + Sync {
 
     fn inspect_help(&self) -> Result<HelpInspectionDto, LibraryError> {
         Ok(empty_help_inspection())
+    }
+
+    fn inspect_release(&self) -> Result<ReleaseInspectionDto, LibraryError> {
+        Ok(empty_release_inspection())
     }
 
     fn write_note(
@@ -4160,6 +4403,46 @@ impl FixtureLibrary {
         crate::content_safety::persist_exact_utf8(
             &path,
             "fixture-a11y-cleared-not-native-a11y-audit\n",
+        )
+        .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        Ok(path)
+    }
+
+    fn require_release_root(&self) -> Result<(), LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        if !self.root.to_string_lossy().contains("bmdock-t40") {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        Ok(())
+    }
+
+    pub fn seed_release_claimed_flag(&self) -> Result<PathBuf, LibraryError> {
+        self.require_release_root()?;
+        fs::create_dir_all(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let path = self.root.join(RELEASE_CLAIMED_FLAG);
+        if library_root_is_forbidden(&path) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        crate::content_safety::persist_exact_utf8(
+            &path,
+            "fixture-release-claimed-not-passed-release\n",
+        )
+        .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        Ok(path)
+    }
+
+    pub fn seed_gate_passed_flag(&self) -> Result<PathBuf, LibraryError> {
+        self.require_release_root()?;
+        fs::create_dir_all(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let path = self.root.join(GATE_PASSED_FLAG);
+        if library_root_is_forbidden(&path) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        crate::content_safety::persist_exact_utf8(
+            &path,
+            "fixture-gate-passed-not-passed-release\n",
         )
         .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
         Ok(path)
@@ -5181,6 +5464,31 @@ impl NoteLibrary for FixtureLibrary {
             return Err(LibraryError::unsupported(UNSUPPORTED_HELP_CLAIMED_NOT_A11Y));
         }
         Ok(empty_help_inspection())
+    }
+
+    fn inspect_release(&self) -> Result<ReleaseInspectionDto, LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        let release_flag = self.root.join(RELEASE_CLAIMED_FLAG);
+        let gate_flag = self.root.join(GATE_PASSED_FLAG);
+        if release_flag.is_symlink() || gate_flag.is_symlink() {
+            return Err(LibraryError::policy(POLICY_RELEASE_CREDENTIAL_ROUTE));
+        }
+        if release_flag.is_file() || gate_flag.is_file() {
+            let flag = if release_flag.is_file() {
+                &release_flag
+            } else {
+                &gate_flag
+            };
+            if library_root_is_forbidden(flag)
+                || !self.root.to_string_lossy().contains("bmdock-t40")
+            {
+                return Err(LibraryError::policy(POLICY_RELEASE_CREDENTIAL_ROUTE));
+            }
+            return Err(LibraryError::unsupported(
+                UNSUPPORTED_RELEASE_CLAIMED_NOT_PASSED,
+            ));
+        }
+        Ok(empty_release_inspection())
     }
 
     fn write_note(
@@ -7103,6 +7411,57 @@ mod tests {
             NoteCrudClass::AcceptedUnverified
         );
         assert!(!help.observation.disk_verified);
+        let release = library.inspect_release().unwrap();
+        assert!(release.catalog.is_empty());
+        assert!(!release.files_written);
+        assert!(!release.release_claimed);
+        assert!(!release.gate_passed);
+        assert!(!release.release_allowed);
+        assert!(!release.g0_passed);
+        assert!(!release.g7_passed);
+        assert_eq!(release.g0_status, G0_STATUS_IN_PROGRESS);
+        assert_eq!(release.g7_status, G7_STATUS_NOT_STARTED);
+        assert_eq!(release.decision, RELEASE_DECISION_DO_NOT_RELEASE);
+        assert!(!release.mixed_profiles);
+        assert_eq!(release.release_commit, RELEASE_PROFILE_COMMIT);
+        assert_eq!(release.release_tool_count, RELEASE_TOOL_COUNT);
+        assert_eq!(release.main_preview_commit, MAIN_PREVIEW_PROFILE_COMMIT);
+        assert_eq!(release.main_preview_tool_count, MAIN_PREVIEW_TOOL_COUNT);
+        assert_ne!(release.release_tool_count, release.main_preview_tool_count);
+        assert_eq!(release.search_identity, SEARCH_IDENTITY);
+        assert_eq!(release.fetch_identity, FETCH_IDENTITY);
+        assert!(release.search_fetch_distinct);
+        assert!(!release.unknown_tools_auto_admitted);
+        assert!(!release.full_api_coverage);
+        assert_eq!(release.named_gaps, canonical_named_gaps());
+        assert!(!release.prefix_buckets_hide_leaves);
+        assert!(release.just_build_is_g0_probe);
+        assert!(release.just_tauri_dev_is_desktop);
+        assert!(release.just_tauri_build_is_desktop);
+        assert!(release.just_contract_is_probe);
+        assert!(!release.call_tool_present);
+        assert!(!release.restore_sync_present);
+        assert!(!release.enable_provider_present);
+        assert_eq!(release.typed_command_count, TYPED_IPC_COMMAND_COUNT);
+        assert!(release.inspect_release_present);
+        assert!(!release.official_mcp_inferred_from_allowlist);
+        assert!(release.license_present);
+        assert!(release.notice_present);
+        assert!(release.sbom_present);
+        assert!(release.help_doc_consistent);
+        assert!(release.verification_doc_consistent);
+        assert!(!release.secrets_stored);
+        assert!(!release.env_tokens_read);
+        assert!(!release.remote_hosts_contacted);
+        assert!(release.local_offline);
+        assert!(!release.engine_release);
+        assert_eq!(release.observation.classified_as, NoteCrudClass::Empty);
+        assert_ne!(release.observation.classified_as, NoteCrudClass::Conflict);
+        assert_ne!(
+            release.observation.classified_as,
+            NoteCrudClass::AcceptedUnverified
+        );
+        assert!(!release.observation.disk_verified);
         let _ = (
             ENGINE_GRAPH_NOT_OWNED,
             ENGINE_SEARCH_NOT_OWNED,
@@ -9731,6 +10090,196 @@ mod tests {
             OFFICIAL_HELP_UNVERIFIED,
             UNSUPPORTED_HELP_CLAIMED_NOT_A11Y,
             UNSUPPORTED_HELP_A11Y_CLAIM,
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn fixture_release_inspection_is_denied_and_claimed_flag_is_unsupported() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t40-{nanos}"));
+        fs::create_dir_all(&dir).unwrap();
+        let library = FixtureLibrary::new(dir.clone());
+        let report = library.inspect_release().unwrap();
+        assert!(report.catalog.is_empty());
+        assert!(!report.files_written);
+        assert!(!report.release_claimed);
+        assert!(!report.gate_passed);
+        assert!(!report.release_allowed);
+        assert!(!report.g0_passed);
+        assert!(!report.g7_passed);
+        assert_eq!(report.g0_status, G0_STATUS_IN_PROGRESS);
+        assert_eq!(report.g7_status, G7_STATUS_NOT_STARTED);
+        assert_eq!(report.decision, RELEASE_DECISION_DO_NOT_RELEASE);
+        assert!(!report.mixed_profiles);
+        assert_eq!(report.release_commit, RELEASE_PROFILE_COMMIT);
+        assert_eq!(report.release_tool_count, 21);
+        assert_eq!(report.main_preview_commit, MAIN_PREVIEW_PROFILE_COMMIT);
+        assert_eq!(report.main_preview_tool_count, 27);
+        assert_ne!(report.release_tool_count, report.main_preview_tool_count);
+        assert_eq!(report.search_identity, SEARCH_IDENTITY);
+        assert_eq!(report.fetch_identity, FETCH_IDENTITY);
+        assert!(report.search_fetch_distinct);
+        assert!(!report.unknown_tools_auto_admitted);
+        assert!(!report.full_api_coverage);
+        assert_eq!(report.named_gaps, canonical_named_gaps());
+        assert!(!report.prefix_buckets_hide_leaves);
+        assert!(report.just_build_is_g0_probe);
+        assert!(report.just_tauri_dev_is_desktop);
+        assert!(report.just_contract_is_probe);
+        assert!(!report.call_tool_present);
+        assert!(!report.restore_sync_present);
+        assert!(!report.enable_provider_present);
+        assert_eq!(report.typed_command_count, TYPED_IPC_COMMAND_COUNT);
+        assert_eq!(ALLOWLISTED_IPC_COMMANDS.len(), 45);
+        assert!(ALLOWLISTED_IPC_COMMANDS.contains(&"inspect_release"));
+        assert!(report.inspect_release_present);
+        assert!(!report.official_mcp_inferred_from_allowlist);
+        assert!(report.license_present);
+        assert!(report.notice_present);
+        assert!(report.sbom_present);
+        assert!(!report.engine_release);
+        assert_eq!(report.observation.classified_as, NoteCrudClass::Empty);
+        assert!(!report.observation.disk_verified);
+        let flag = library.seed_release_claimed_flag().unwrap();
+        assert!(flag.is_file());
+        let disk = fs::read_to_string(&flag).unwrap();
+        assert!(disk.contains("fixture-release-claimed-not-passed-release"));
+        assert_eq!(
+            library.inspect_release().unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_RELEASE_CLAIMED_NOT_PASSED)
+        );
+        let _ = fs::remove_file(&flag);
+        let gate_flag = library.seed_gate_passed_flag().unwrap();
+        assert!(gate_flag.is_file());
+        let gate_disk = fs::read_to_string(&gate_flag).unwrap();
+        assert!(gate_disk.contains("fixture-gate-passed-not-passed-release"));
+        assert_eq!(
+            library.inspect_release().unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_RELEASE_CLAIMED_NOT_PASSED)
+        );
+        let claimed = ReleaseInspectionDto {
+            release_claimed: true,
+            gate_passed: true,
+            ..empty_release_inspection()
+        };
+        assert_eq!(
+            accept_release_inspection(claimed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_RELEASE_CLAIMED_NOT_PASSED)
+        );
+        let catalog = ReleaseInspectionDto {
+            catalog: vec![ReleaseRecordDto {
+                identifier: "release-claimed".to_owned(),
+            }],
+            ..empty_release_inspection()
+        };
+        assert_eq!(
+            accept_release_inspection(catalog).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_RELEASE_CLAIMED_NOT_PASSED)
+        );
+        let allowed = ReleaseInspectionDto {
+            release_allowed: true,
+            g0_passed: true,
+            g7_passed: true,
+            ..empty_release_inspection()
+        };
+        assert_eq!(
+            accept_release_inspection(allowed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_RELEASE_GATE_CLAIM)
+        );
+        let coverage = ReleaseInspectionDto {
+            full_api_coverage: true,
+            unknown_tools_auto_admitted: true,
+            official_mcp_inferred_from_allowlist: true,
+            ..empty_release_inspection()
+        };
+        assert_eq!(
+            accept_release_inspection(coverage).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_RELEASE_GATE_CLAIM)
+        );
+        let identities = ReleaseInspectionDto {
+            search_fetch_distinct: false,
+            search_identity: FETCH_IDENTITY.to_owned(),
+            fetch_identity: SEARCH_IDENTITY.to_owned(),
+            ..empty_release_inspection()
+        };
+        assert_eq!(
+            accept_release_inspection(identities).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_RELEASE_GATE_CLAIM)
+        );
+        let dangerous = ReleaseInspectionDto {
+            call_tool_present: true,
+            restore_sync_present: true,
+            enable_provider_present: true,
+            ..empty_release_inspection()
+        };
+        assert_eq!(
+            accept_release_inspection(dangerous).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_RELEASE_GATE_CLAIM)
+        );
+        let buckets = ReleaseInspectionDto {
+            named_gaps: vec!["cloud".to_owned()],
+            prefix_buckets_hide_leaves: true,
+            ..empty_release_inspection()
+        };
+        assert_eq!(
+            accept_release_inspection(buckets).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_CLI_BUCKET)
+        );
+        let hidden = ReleaseInspectionDto {
+            named_gaps: Vec::new(),
+            ..empty_release_inspection()
+        };
+        assert_eq!(
+            accept_release_inspection(hidden).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_CLI_BUCKET)
+        );
+        let collapsed = ReleaseInspectionDto {
+            observation: NoteCrudObservationDto {
+                classified_as: NoteCrudClass::Conflict,
+                disk_verified: true,
+                envelope_is_not_disk_proof: true,
+            },
+            ..empty_release_inspection()
+        };
+        assert_eq!(
+            accept_release_inspection(collapsed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_RELEASE_CLAIMED_NOT_PASSED)
+        );
+        let credentials = ReleaseInspectionDto {
+            env_tokens_read: true,
+            secrets_stored: true,
+            remote_hosts_contacted: true,
+            ..empty_release_inspection()
+        };
+        assert_eq!(
+            accept_release_inspection(credentials).unwrap_err(),
+            LibraryError::policy(POLICY_RELEASE_CREDENTIAL_ROUTE)
+        );
+        let mixed = ReleaseInspectionDto {
+            mixed_profiles: true,
+            ..empty_release_inspection()
+        };
+        assert_eq!(
+            accept_release_inspection(mixed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES)
+        );
+        let engine = ReleaseInspectionDto {
+            engine_release: true,
+            ..empty_release_inspection()
+        };
+        assert_eq!(
+            accept_release_inspection(engine).unwrap_err(),
+            LibraryError::unsupported(ENGINE_RELEASE_NOT_OWNED)
+        );
+        let _ = (
+            ENGINE_RELEASE_NOT_OWNED,
+            OFFICIAL_RELEASE_UNVERIFIED,
+            UNSUPPORTED_RELEASE_CLAIMED_NOT_PASSED,
+            UNSUPPORTED_RELEASE_GATE_CLAIM,
         );
         let _ = fs::remove_dir_all(&dir);
     }

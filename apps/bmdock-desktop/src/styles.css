@@ -477,7 +477,8 @@ main {
 .privacy-list,
 .install-list,
 .bundle-list,
-.help-list {
+.help-list,
+.release-list {
   margin: 0.75rem 0 0;
   padding: 0;
   display: grid;
@@ -501,7 +502,8 @@ main {
 .privacy-list li,
 .install-list li,
 .bundle-list li,
-.help-list li {
+.help-list li,
+.release-list li {
   display: flex;
   justify-content: space-between;
   align-items: center;

@@ -100,6 +100,7 @@ export type InspectPrivacyArgs = ExplicitRouteArgs;
 export type InspectInstallArgs = ExplicitRouteArgs;
 export type InspectBundleArgs = ExplicitRouteArgs;
 export type InspectHelpArgs = ExplicitRouteArgs;
+export type InspectReleaseArgs = ExplicitRouteArgs;
 
 export type PreviewContextArgs = ExplicitRouteArgs & {
   identifier: string;
@@ -177,6 +178,7 @@ export type IpcCommand =
   | { command: "inspect_install"; args: InspectInstallArgs }
   | { command: "inspect_bundle"; args: InspectBundleArgs }
   | { command: "inspect_help"; args: InspectHelpArgs }
+  | { command: "inspect_release"; args: InspectReleaseArgs }
   | { command: "preview_context"; args: PreviewContextArgs }
   | { command: "list_activity"; args: ListActivityArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
@@ -1020,6 +1022,58 @@ export interface HelpInspectionDto {
   scanned_user_basic_memory_home: false;
 }
 
+export interface ReleaseRecordDto {
+  identifier: string;
+}
+
+export interface ReleaseInspectionDto {
+  catalog: ReleaseRecordDto[];
+  files_written: false;
+  release_claimed: false;
+  gate_passed: false;
+  release_allowed: false;
+  g0_passed: false;
+  g7_passed: false;
+  g0_status: "in_progress";
+  g7_status: "not_started";
+  decision: "do_not_release";
+  mixed_profiles: false;
+  release_commit: "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048";
+  release_tool_count: 21;
+  main_preview_commit: "3452c821d76c083823d020984d71e06904a1ff1e";
+  main_preview_tool_count: 27;
+  search_identity: "search";
+  fetch_identity: "fetch";
+  search_fetch_distinct: true;
+  unknown_tools_auto_admitted: false;
+  full_api_coverage: false;
+  named_gaps: string[];
+  prefix_buckets_hide_leaves: false;
+  just_build_is_g0_probe: true;
+  just_tauri_dev_is_desktop: true;
+  just_tauri_build_is_desktop: true;
+  just_contract_is_probe: true;
+  call_tool_present: false;
+  restore_sync_present: false;
+  enable_provider_present: false;
+  typed_command_count: 45;
+  inspect_release_present: true;
+  official_mcp_inferred_from_allowlist: false;
+  license_present: true;
+  notice_present: true;
+  sbom_present: true;
+  help_doc_consistent: true;
+  verification_doc_consistent: true;
+  secrets_stored: false;
+  env_tokens_read: false;
+  remote_hosts_contacted: false;
+  local_offline: true;
+  observation: NoteCrudObservationDto;
+  engine_release: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+}
+
 export type DraftClass = "empty" | "disk_verified" | "accepted_unverified" | "unclassified";
 
 export interface DraftObservationDto {
@@ -1139,6 +1193,7 @@ export type IpcResponse =
   | { kind: "install_inspection" } & InstallInspectionDto
   | { kind: "bundle_inspection" } & BundleInspectionDto
   | { kind: "help_inspection" } & HelpInspectionDto
+  | { kind: "release_inspection" } & ReleaseInspectionDto
   | { kind: "context_preview" } & ContextPreviewDto
   | { kind: "activity_page" } & ActivityPageDto
   | { kind: "backup_catalog" } & BackupCatalogDto
@@ -1206,6 +1261,7 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "inspect_install":
     case "inspect_bundle":
     case "inspect_help":
+    case "inspect_release":
     case "preview_context":
     case "list_activity":
     case "list_backups":
@@ -1631,6 +1687,17 @@ export const inspectHelp = () => {
   const route = copyFixtureRoute();
   return invokeTyped<{ kind: "help_inspection" } & HelpInspectionDto>({
     command: "inspect_help",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+    },
+  });
+};
+
+export const inspectRelease = () => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "release_inspection" } & ReleaseInspectionDto>({
+    command: "inspect_release",
     args: {
       workspace: route.workspace,
       project: route.project,

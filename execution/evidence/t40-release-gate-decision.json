@@ -1,0 +1,249 @@
+{
+  "task": "T40",
+  "title": "全能力Release Gate与发布决策",
+  "status": "accepted_with_limits",
+  "date": "2026-09-13",
+  "decision": "do_not_release",
+  "host_boundary": "T40 adds typed inspect_release with ExplicitRouteArgs. deny_unknown_fields. Extra path/root/token/host is schema. Missing route is schema. Non-fixture is policy and does not open the library. Production EmptyLibrary: release_allowed=false, g0_passed=false, g7_passed=false, classified_as empty, files_written=false. Decision do_not_release. Dual profiles stay isolated: release commit c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048 (21 tools) vs main-preview 3452c821d76c083823d020984d71e06904a1ff1e (27 tools). Mixing them in the DTO is unsupported. search vs fetch stay distinct denied identities. Unknown tools are not auto-admitted. Do not merge 21+27. CLI/API coverage remains incomplete. full_api_coverage=false. Named T29 gaps stay named. Prefix buckets hiding leaves stay unsupported. just build stays G0 probe. just tauri-dev/tauri-build stay desktop. just contract* stay probe. justfile unchanged. Capability drift stays fail-closed. Unknown dangerous commands stay absent (call_tool, restore_sync, enable_provider). Typed allowlist is the source of present commands (44 → 45 with inspect_release). Do not infer official MCP from the allowlist. docs/HELP.md and VERIFICATION.md stay consistent. T40 does not claim G0/G7 passed. Tests inject FixtureLibrary {temp}/bmdock-t40-*. Fixture release-claimed / gate-passed is unsupported, not a passed release. Renderer zh-CN 发布决策 panel: empty/error/ready all show 不得发布 / G0 未通过 / G7 未通过. No dangerouslySetInnerHTML. No new npm deps. No rmcp. Do not start Supervisor. T40 does not treat just contract, UI copy, tool lists, compiled exe, LICENSE, or lockfile SBOM as G0/G7 / native GUI / installer / live official-engine proof. Unauthorized remote / env token / stored secret is policy. execution/status.json: T40 planned → completed only. G0 stays in_progress. G1–G7 stay not_started. NEVER mark any gate passed.",
+  "acceptance": {
+    "AC01": {
+      "status": "dual_profiles_isolated_not_mixed",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "docs/HELP.md"
+      ],
+      "claim": "release commit c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048 (21 tools) stays isolated from main-preview 3452c821d76c083823d020984d71e06904a1ff1e (27 tools). Mixing them in the DTO is unsupported.",
+      "unverified": [
+        "live official engine for either profile in this T40 session"
+      ]
+    },
+    "AC35": {
+      "status": "search_fetch_distinct_unknown_tools_not_auto_admitted",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts"
+      ],
+      "claim": "search vs fetch stay distinct denied identities. Unknown tools are not auto-admitted. Do not merge 21+27.",
+      "unverified": [
+        "official search MCP",
+        "official fetch MCP"
+      ]
+    },
+    "AC36": {
+      "status": "full_api_coverage_false_named_t29_gaps",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "docs/HELP.md",
+        "execution/evidence/t29-api-cli-audit.json"
+      ],
+      "claim": "CLI/API coverage remains incomplete. full_api_coverage=false. Named gaps stay named via T29. Prefix buckets hiding leaves stay unsupported.",
+      "unverified": [
+        "complete official CLI/API coverage"
+      ]
+    },
+    "AC55": {
+      "status": "justfile_unchanged_build_is_g0_probe",
+      "evidence": [
+        "justfile",
+        "docs/HELP.md",
+        "tests/test_desktop_shell.py"
+      ],
+      "claim": "just build stays G0 probe. just tauri-dev/tauri-build stay desktop. just contract* stay probe. T40 did not change justfile.",
+      "unverified": [
+        "just contract live official-engine smoke in this T40 session"
+      ]
+    },
+    "AC58": {
+      "status": "capability_drift_fail_closed_dangerous_commands_absent",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src/ipc.ts"
+      ],
+      "claim": "Capability drift stays fail-closed. Unknown dangerous commands stay absent (call_tool, restore_sync, enable_provider).",
+      "unverified": [
+        "live official engine tool surface beyond the static allowlist"
+      ]
+    },
+    "AC59": {
+      "status": "typed_allowlist_is_source_of_present_commands_45",
+      "evidence": [
+        ".trellis/spec/bmdock-probe/backend/typed-ipc-policy.md",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts"
+      ],
+      "claim": "Typed allowlist is the source of present commands (44 → 45 with inspect_release). Do not infer official MCP from the allowlist.",
+      "unverified": [
+        "official MCP inferred from desktop allowlist"
+      ]
+    },
+    "AC60": {
+      "status": "help_and_verification_consistent_do_not_release",
+      "evidence": [
+        "docs/HELP.md",
+        "docs/VERIFICATION.md",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "execution/status.json"
+      ],
+      "claim": "docs/HELP.md and VERIFICATION.md stay consistent. T40 does not claim G0/G7 passed. Decision: do not release. G0 remains in_progress. G1–G7 stay not_started.",
+      "unverified": [
+        "G0 product gate",
+        "G7 release gate"
+      ]
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t40-release-gate-decision",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "bmdock_app": 216,
+      "bmdock_probe": 5
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "note": "existing T07 supervisor dead_code warnings remain; T40 did not start Supervisor"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "tsc -b && vite build; npm ci not run this session"
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "ran": 34
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "error": "A later task was completed before G0",
+      "note": "G0 is not passed and T05+ are completed; T40 did not revert T05-T39"
+    },
+    {
+      "cmd": "python -m scripts.tasks gate",
+      "exit": 2,
+      "unpassed_gates": ["G0", "G1", "G2", "G3", "G4", "G5", "G6", "G7"],
+      "note": "expected; T40 did not forge gate status"
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive / installer / live official engine",
+      "exit": "not_run",
+      "result": "No native window, installer, or live official engine was launched. AC01/AC35/AC55/AC60 proof is typed inspect_release plus docs/tests, not a G0/G7 pass."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_221_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_desktop_shell": "34_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "python_scripts_tasks_gate": "exit_2_g0_through_g7_unpassed_expected",
+    "git_diff_check": "passed",
+    "justfile": "unchanged",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop_tauri_build_is_not_installer",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "typed_command_count": 45,
+    "typed_inspect_release": "allowed",
+    "restore_sync": "not_allowlisted",
+    "raw_call_tool": "not_allowlisted",
+    "enable_provider": "not_allowlisted",
+    "extra_path_root_token_host_is_schema": true,
+    "missing_route_is_schema": true,
+    "non_fixture_is_policy": true,
+    "files_written_default": false,
+    "release_allowed": false,
+    "g0_passed": false,
+    "g7_passed": false,
+    "g0_status": "in_progress",
+    "g7_status": "not_started",
+    "decision": "do_not_release",
+    "classified_as": "empty",
+    "mixed_profiles": false,
+    "release_tool_count": 21,
+    "main_preview_tool_count": 27,
+    "search_fetch_distinct": true,
+    "unknown_tools_auto_admitted": false,
+    "full_api_coverage": false,
+    "prefix_buckets_hide_leaves": false,
+    "official_mcp_inferred_from_allowlist": false,
+    "release_claimed_fixture_flag_is_unsupported_not_passed_release": true,
+    "gate_passed_fixture_flag_is_unsupported_not_passed_release": true,
+    "table_driven_explicit_route_regression_includes_inspect_release": true,
+    "dangerouslySetInnerHTML": "absent",
+    "supervisor_started_by_t40": false,
+    "rmcp_live_client": "not_added_in_t40",
+    "new_npm_deps": false,
+    "native_gui_session": "UNVERIFIED",
+    "installer": "UNVERIFIED",
+    "live_official_engine": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "g0": "in_progress",
+    "g1_through_g7": "not_started",
+    "any_gate_marked_passed": false
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false,
+    "official_engine_redistributed_as_bmdock": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "G1": "not_started",
+    "G2": "not_started",
+    "G3": "not_started",
+    "G4": "not_started",
+    "G5": "not_started",
+    "G6": "not_started",
+    "G7": "not_started",
+    "T05": "completed_unchanged",
+    "T39": "completed_unchanged",
+    "T40": "completed"
+  },
+  "unverified": [
+    "G0 product gate",
+    "G1–G6 product gates",
+    "G7 release gate",
+    "hosted CI for this T40 revision",
+    "native GUI / WebView2 session",
+    "native installer / signed bundle",
+    "Job Object assignment",
+    "live official engine / just contract this session",
+    "official search / fetch MCP",
+    "complete official CLI/API coverage",
+    "real user vault"
+  ],
+  "rollback": "Remove inspect_release from the ipc_invoke union, drop ReleasePanel, restore the 44-command allowlist and T39 HELP/VERIFICATION wording, and leave T39 inspect_help in place. Do not revert T05-T39 status to make unit green. Do not mark G0–G7 passed."
+}
