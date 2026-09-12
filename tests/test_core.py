@@ -10,9 +10,11 @@ from unittest.mock import patch
 from scripts.core import (PROJECT, classify_tool_result, create_sandbox, fingerprint,
                           inventory_delta, isolated_env, paginate, profile, read_json,
                           run, verify_sandbox, write_json)
-from scripts.probe import (redact, recovery_boundaries, require_control_error,
-                          require_distinct_search_and_fetch, require_failed_tool_call,
-                          require_protocol_version, tool_arguments, tool_schema_fingerprints)
+from scripts.probe import (redact, recovery_boundaries, require_concurrent_outcomes,
+                          require_control_error, require_distinct_search_and_fetch,
+                          require_failed_tool_call, require_markdown_fidelity,
+                          require_protocol_version, tool_arguments, tool_schema_fingerprints,
+                          wait_note)
 from scripts import tasks
 
 
@@ -273,6 +275,90 @@ class InteropTests(unittest.TestCase):
             {"lost_response", "cancellation_after_acceptance", "rpc_timeout", "forced_kill", "disk_failure"},
         )
         self.assertTrue(all(item["status"] == "UNVERIFIED" for item in boundaries.values()))
+        self.assertIn("cannot be inferred", boundaries["lost_response"]["reason"])
+
+
+class ObservationTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.vault = Path(self.temp.name)
+
+    def test_wait_note_returns_unique_markdown(self):
+        path = self.vault / "roundtrip.md"
+        path.write_text("# 往返\n\nBMDock-G0-中文往返-74c5231e\n", encoding="utf-8")
+        found = wait_note(self.vault, "BMDock-G0-中文往返-74c5231e", seconds=1)
+        self.assertEqual(found, path)
+
+    def test_wait_note_rejects_duplicate_sentinels(self):
+        (self.vault / "a.md").write_text("BMDock-CONCURRENT-0-7f3c1d", encoding="utf-8")
+        (self.vault / "b.md").write_text("BMDock-CONCURRENT-0-7f3c1d", encoding="utf-8")
+        with self.assertRaisesRegex(AssertionError, "multiple notes"):
+            wait_note(self.vault, "BMDock-CONCURRENT-0-7f3c1d", seconds=1)
+
+    def test_wait_note_timeout_does_not_retry(self):
+        (self.vault / "other.md").write_text("Saved successfully\n", encoding="utf-8")
+        with self.assertRaisesRegex(TimeoutError, "no retry was performed"):
+            wait_note(self.vault, "BMDock-G0-中文往返-74c5231e", seconds=0)
+
+    def test_markdown_fidelity_requires_frontmatter_links_and_chinese(self):
+        text = "---\nbmdock_custom:\n  nested:\n  - keep-me\n---\n保留中文与关系\n- [[Missing Target]]\n"
+        require_markdown_fidelity(text, [
+            ("bmdock_custom", "unknown frontmatter"),
+            ("keep-me", "nested frontmatter value"),
+            ("[[Missing Target]]", "wiki-link"),
+            ("保留中文与关系", "Chinese body"),
+        ])
+
+    def test_markdown_fidelity_fails_when_wiki_link_dropped(self):
+        with self.assertRaisesRegex(AssertionError, "wiki-link"):
+            require_markdown_fidelity("# 保留中文与关系\nbmdock_custom keep-me\n", [
+                ("bmdock_custom", "unknown frontmatter"),
+                ("keep-me", "nested frontmatter value"),
+                ("[[Missing Target]]", "wiki-link"),
+                ("保留中文与关系", "Chinese body"),
+            ])
+
+    def test_concurrent_outcomes_require_distinct_notes(self):
+        workers = [
+            {"classification": "accepted_unverified", "sentinel": "BMDock-CONCURRENT-0-7f3c1d",
+             "path": "concurrency/BMDock Concurrent 0.md", "frontmatter_preserved": True,
+             "wiki_link_preserved": True},
+            {"classification": "accepted_unverified", "sentinel": "BMDock-CONCURRENT-1-7f3c1d",
+             "path": "concurrency/BMDock Concurrent 1.md", "frontmatter_preserved": True,
+             "wiki_link_preserved": True},
+        ]
+        require_concurrent_outcomes(workers)
+        collided = [dict(workers[0]), dict(workers[0])]
+        with self.assertRaisesRegex(AssertionError, "distinct notes"):
+            require_concurrent_outcomes(collided)
+
+    def test_concurrent_success_is_not_disk_verified_by_envelope(self):
+        with self.assertRaisesRegex(AssertionError, "classification drifted"):
+            require_concurrent_outcomes([
+                {"classification": "accepted_unverified", "sentinel": "a", "path": "a.md",
+                 "frontmatter_preserved": True, "wiki_link_preserved": True},
+                {"classification": "created", "sentinel": "b", "path": "b.md",
+                 "frontmatter_preserved": True, "wiki_link_preserved": True},
+            ])
+
+    def test_concurrent_outcomes_reject_lost_frontmatter(self):
+        with self.assertRaisesRegex(AssertionError, "lost content"):
+            require_concurrent_outcomes([
+                {"classification": "accepted_unverified", "sentinel": "a", "path": "a.md",
+                 "frontmatter_preserved": False, "wiki_link_preserved": True},
+                {"classification": "accepted_unverified", "sentinel": "b", "path": "b.md",
+                 "frontmatter_preserved": True, "wiki_link_preserved": True},
+            ])
+
+    def test_concurrent_outcomes_require_observed_paths(self):
+        with self.assertRaisesRegex(AssertionError, "observed paths"):
+            require_concurrent_outcomes([
+                {"classification": "accepted_unverified", "sentinel": "a", "path": None,
+                 "frontmatter_preserved": True, "wiki_link_preserved": True},
+                {"classification": "accepted_unverified", "sentinel": "b", "path": "b.md",
+                 "frontmatter_preserved": True, "wiki_link_preserved": True},
+            ])
 
 
 class CommandTests(unittest.TestCase):

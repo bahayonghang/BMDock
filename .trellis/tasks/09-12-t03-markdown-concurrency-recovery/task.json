@@ -1,0 +1,32 @@
+{
+  "id": "t03-markdown-concurrency-recovery",
+  "name": "t03-markdown-concurrency-recovery",
+  "title": "Markdown往返与并发写入验证",
+  "description": "T03 P0: Markdown往返与并发写入验证",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": "bmdock-probe",
+  "priority": "P1",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-09-12",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "09-12-bmdock-product-completion",
+  "relatedFiles": [
+    "scripts/probe.py",
+    "tests/test_core.py",
+    "execution/evidence/t03-markdown-concurrency-recovery.json",
+    "docs/VERIFICATION.md",
+    "execution/status.json"
+  ],
+  "notes": "T03 P0 Markdown roundtrip, distinct-target concurrent fixture writes, and recovery UNVERIFIED recording closed on 2026-09-12. Dual-profile artifact SHA256 match T02 captures; live contract was not re-run. Lost-response, cancel-after-accept, timeout_unknown injection, forced-kill, disk-failure, and same-target conflict remain UNVERIFIED. G0 stays in_progress.",
+  "meta": {}
+}

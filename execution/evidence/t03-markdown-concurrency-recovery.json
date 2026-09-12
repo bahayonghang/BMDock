@@ -1,0 +1,259 @@
+{
+  "kind": "t03_markdown_concurrency_recovery",
+  "task": "T03",
+  "title": "Markdown往返与并发写入验证",
+  "status": "verified_with_unverified_boundaries",
+  "date": "2026-09-12",
+  "product_gate": "G0 remains in_progress",
+  "harness": {
+    "command": "python -m scripts.tasks contract <profile>",
+    "note": "Existing gitignored dual-profile fixture contracts already contain T03 Markdown, concurrency, shutdown, and recovery fields. T03 did not re-run just contract / python -m scripts.tasks contract. Fixture contract is not native GUI, Job Object, or real-user-vault evidence.",
+    "profiles_run_separately": true,
+    "contract_rerun": false,
+    "just_setup": "not_run"
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "version": "0.23.2",
+      "report": "artifacts/release.contract.json",
+      "report_sha256": "520832e513d3b9142a05cbdee58f2b15ad91a0a6086f256e7f26089a3bc97a6d",
+      "suite_status": "passed",
+      "gate_status": "not_passed",
+      "write_result_classification": "accepted_unverified",
+      "checks": {
+        "create_read_materialize": "passed",
+        "append_once": "passed",
+        "shutdown_file_observation": "passed",
+        "concurrent_fixture_writes": "passed",
+        "recovery_boundaries_recorded": "passed"
+      },
+      "concurrency": {
+        "status": "passed",
+        "workers": 2,
+        "paths": [
+          "concurrency/BMDock Concurrent 0.md",
+          "concurrency/BMDock Concurrent 1.md"
+        ],
+        "classifications": ["accepted_unverified", "accepted_unverified"],
+        "frontmatter_preserved": true,
+        "wiki_link_preserved": true
+      },
+      "fixture_after_shutdown": {
+        "chinese_sentinel": true,
+        "chinese_body": true,
+        "unknown_frontmatter_bmdock_custom": true,
+        "wiki_link_missing_target": true,
+        "append_once": true
+      },
+      "shutdown": {
+        "event": "shutdown",
+        "sdkClosed": true,
+        "forced": false,
+        "exitCode": 0,
+        "materialization": "not_proven_by_process_exit"
+      }
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "version": null,
+      "report": "artifacts/main-preview.contract.json",
+      "report_sha256": "2e2ab0489fa1123edca545f842cf67b5659a91a0cd76d39e68d7beedb1fca645",
+      "suite_status": "passed",
+      "gate_status": "not_passed",
+      "write_result_classification": "accepted_unverified",
+      "checks": {
+        "create_read_materialize": "passed",
+        "append_once": "passed",
+        "shutdown_file_observation": "passed",
+        "concurrent_fixture_writes": "passed",
+        "recovery_boundaries_recorded": "passed"
+      },
+      "concurrency": {
+        "status": "passed",
+        "workers": 2,
+        "paths": [
+          "concurrency/BMDock Concurrent 0.md",
+          "concurrency/BMDock Concurrent 1.md"
+        ],
+        "classifications": ["accepted_unverified", "accepted_unverified"],
+        "frontmatter_preserved": true,
+        "wiki_link_preserved": true
+      },
+      "fixture_after_shutdown": {
+        "chinese_sentinel": true,
+        "chinese_body": true,
+        "unknown_frontmatter_bmdock_custom": true,
+        "wiki_link_missing_target": true,
+        "append_once": true
+      },
+      "shutdown": {
+        "event": "shutdown",
+        "sdkClosed": true,
+        "forced": false,
+        "exitCode": 0,
+        "materialization": "not_proven_by_process_exit"
+      }
+    }
+  },
+  "acceptance": {
+    "AC08": {
+      "status": "verified_in_fixture",
+      "claim": "Write MCP envelopes stay accepted_unverified until wait_note observes a unique sentinel in sandbox/vault Markdown. Policy, schema, rpc_or_transport, tool isError, rejected, and unclassified remain distinct. UI copy and process exit are not persistence proof.",
+      "evidence": [
+        "scripts/core.py:classify_tool_result",
+        "scripts/probe.py:wait_note",
+        "scripts/probe.py:run_contract",
+        "tests/test_core.py:ResultTests",
+        "tests/test_core.py:ObservationTests",
+        "artifacts/release.contract.json",
+        "artifacts/main-preview.contract.json"
+      ],
+      "unverified": [
+        "desktop UI delayed materialization",
+        "production vault or Cloud disk state",
+        "search index freshness as a success signal"
+      ]
+    },
+    "AC10": {
+      "status": "verified_in_fixture",
+      "claim": "Unknown custom frontmatter (bmdock_custom/keep-me and concurrent unknown_frontmatter), Chinese body (保留中文与关系), and wiki-links ([[Missing Target]] / [[Concurrent Target]]) survived create, append, and post-shutdown file reads on both isolated profiles.",
+      "evidence": [
+        "scripts/probe.py:require_markdown_fidelity",
+        "scripts/probe.py:require_concurrent_outcomes",
+        "artifacts/release.contract.json:fixture_after_shutdown",
+        "artifacts/main-preview.contract.json:fixture_after_shutdown",
+        "artifacts/release.contract.json:concurrency.workers",
+        "artifacts/main-preview.contract.json:concurrency.workers"
+      ],
+      "unverified": [
+        "official-normalization diff presented as a separate approved UI surface",
+        "golden comparison against a user vault rather than generated fixture notes"
+      ]
+    },
+    "AC15": {
+      "status": "verified_distinct_targets_only",
+      "claim": "Two independently owned bmdock-probe processes wrote distinct fixture notes in one generated sandbox. Both files were observed; both envelopes stayed accepted_unverified; frontmatter and wiki-links were preserved. This is not co-authoring and does not prove silent-overwrite protection.",
+      "evidence": [
+        "scripts/probe.py:concurrent_fixture_writes",
+        "scripts/probe.py:require_concurrent_outcomes",
+        "tests/test_core.py:ObservationTests.test_concurrent_outcomes_require_distinct_notes",
+        "artifacts/release.contract.json:checks.concurrent_fixture_writes",
+        "artifacts/main-preview.contract.json:checks.concurrent_fixture_writes"
+      ],
+      "unverified": [
+        "same-target conflict atomicity",
+        "base/local/remote three-way merge",
+        "check-write window fault injection",
+        "production concurrent write mode"
+      ]
+    },
+    "AC16": {
+      "status": "no_retry_verified_injection_unverified",
+      "claim": "The probe never retries after TimeoutError, wait_note timeout, policy, schema, rpc_or_transport, or tool errors. Rust timeout_unknown emits 'Result unknown. No retry was performed.' and stops the session. Live lost-response, cancel-after-accept, and timeout_unknown injection were not executed.",
+      "evidence": [
+        "scripts/probe.py:Probe.receive",
+        "scripts/probe.py:wait_note",
+        "scripts/probe.py:recovery_boundaries",
+        "crates/bmdock-probe/src/main.rs",
+        "tests/test_core.py:InteropTests.test_recovery_boundaries_stay_unverified",
+        "tests/test_core.py:ObservationTests.test_wait_note_timeout_does_not_retry"
+      ],
+      "unverified": [
+        "lost_response live injection",
+        "cancellation_after_acceptance live injection",
+        "timeout_unknown live injection"
+      ]
+    },
+    "AC17": {
+      "status": "verified_in_fixture",
+      "claim": "Normal close observed event=shutdown, sdkClosed=true, process.forced=false, exitCode=0. Markdown including Chinese, frontmatter, wiki-link, and a single append remained on disk after shutdown. Process exit is labeled not_proven_by_process_exit.",
+      "evidence": [
+        "scripts/probe.py:Probe.close",
+        "artifacts/release.contract.json:shutdown",
+        "artifacts/main-preview.contract.json:shutdown",
+        "artifacts/release.contract.json:fixture_after_shutdown",
+        "artifacts/main-preview.contract.json:fixture_after_shutdown"
+      ],
+      "unverified": [
+        "Windows desktop / UI exit events",
+        "in-flight request drain under a product Supervisor",
+        "official lifespan cleanup outside the G0 probe receipt"
+      ]
+    },
+    "AC18": {
+      "status": "unverified_fault_injection",
+      "claim": "Recovery fault injection is recorded as UNVERIFIED. Clean shutdown, accepted_unverified envelopes, and distinct-target concurrent success were not treated as forced-kill, sleep-resume, or disk-failure proof. Generated bmdock-fixture sandboxes only.",
+      "evidence": [
+        "scripts/probe.py:recovery_boundaries",
+        "artifacts/release.contract.json:recovery",
+        "artifacts/main-preview.contract.json:recovery",
+        "tests/test_core.py:InteropTests.test_recovery_boundaries_stay_unverified"
+      ],
+      "unverified": [
+        "forced_kill recovery",
+        "disk_failure injection",
+        "sleep/resume recovery",
+        "Windows Job Object / process-tree evidence",
+        "native GUI crash recovery"
+      ]
+    }
+  },
+  "recovery": {
+    "lost_response": "UNVERIFIED",
+    "cancellation_after_acceptance": "UNVERIFIED",
+    "rpc_timeout": "UNVERIFIED",
+    "forced_kill": "UNVERIFIED",
+    "disk_failure": "UNVERIFIED",
+    "same_target_conflict": "UNVERIFIED"
+  },
+  "validation": {
+    "task_validate": {"exit": 0, "result": "passed"},
+    "t03_relevant_unittests": {
+      "command": "python -m unittest tests.test_core.ObservationTests tests.test_core.ResultTests tests.test_core.InteropTests tests.test_core.ProfileTests -v",
+      "exit": 0,
+      "ran": 31,
+      "result": "ok"
+    },
+    "unittest_discover": {
+      "exit": 1,
+      "ran": 60,
+      "passed": 59,
+      "errors": 1,
+      "error": "test_repository_phase_order: RuntimeError: A later task was completed before G0"
+    },
+    "scripts_tasks_unit": {
+      "exit": 1,
+      "error": "ERROR: A later task was completed before G0"
+    },
+    "cargo_fmt": {"exit": 0},
+    "cargo_test_workspace_locked_offline": {
+      "exit": 0,
+      "bmdock_probe": 5,
+      "bmdock_app": 14
+    },
+    "cargo_check_workspace_locked_offline": {"exit": 0},
+    "git_diff_check": {"exit": 0},
+    "contract_release": {
+      "rerun": false,
+      "suite_status": "passed",
+      "report_sha256": "520832e513d3b9142a05cbdee58f2b15ad91a0a6086f256e7f26089a3bc97a6d"
+    },
+    "contract_main_preview": {
+      "rerun": false,
+      "suite_status": "passed",
+      "report_sha256": "2e2ab0489fa1123edca545f842cf67b5659a91a0cd76d39e68d7beedb1fca645"
+    },
+    "just_setup": "not_run",
+    "npm_build": "skipped_apps_untouched"
+  },
+  "limitations": [
+    "Fixture contract is not native GUI, Job Object, installer, or real-user-vault evidence.",
+    "Lost-response, cancel-after-accept, timeout_unknown live injection, forced-kill, and disk-failure remain UNVERIFIED.",
+    "Concurrent success on distinct titles does not prove atomic conflict resolution for identical targets.",
+    "Clean shutdown is not lost-response, cancel-after-accept, timeout_unknown, forced-kill, or disk-failure evidence.",
+    "Existing gitignored contract reports still include an unredacted generated concurrent sandbox path; later harness runs omit that absolute path. T03 did not re-run contract because SHA256 already matched.",
+    "python -m scripts.tasks unit is blocked by check_source because T06/T07 are completed while G0 is not passed; T03 did not revert those statuses.",
+    "G0 remains unpassed. Dual-profile reports were not merged."
+  ]
+}

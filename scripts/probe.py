@@ -239,6 +239,34 @@ def require_control_error(response: dict[str, Any], kind: str, label: str) -> No
         raise AssertionError(f"{label}: expected {kind} error envelope, got {response}")
 
 
+def require_markdown_fidelity(text: str, required: list[tuple[str, str]]) -> None:
+    """Fail closed when unknown frontmatter, Chinese body, or wiki-links disappear."""
+    missing = [label for needle, label in required if needle not in text]
+    if missing:
+        raise AssertionError(f"Markdown fidelity lost: {missing}")
+
+
+def require_concurrent_outcomes(outcomes: list[dict[str, Any]]) -> None:
+    """Distinct-target concurrent writes stay accepted_unverified until disk observation.
+
+    Same-target conflict atomicity is not proven by this check.
+    """
+    if any("error" in outcome for outcome in outcomes):
+        raise AssertionError(f"Concurrent fixture write failed: {outcomes}")
+    if any(outcome.get("classification") != "accepted_unverified" for outcome in outcomes):
+        raise AssertionError(f"Concurrent write result classification drifted: {outcomes}")
+    if any(not outcome.get("frontmatter_preserved") or not outcome.get("wiki_link_preserved") for outcome in outcomes):
+        raise AssertionError(f"Concurrent Markdown materialization lost content: {outcomes}")
+    paths = [outcome.get("path") for outcome in outcomes]
+    sentinels = [outcome.get("sentinel") for outcome in outcomes]
+    if any(not isinstance(path, str) or not path.strip() for path in paths):
+        raise AssertionError(f"Concurrent writes missing observed paths: {outcomes}")
+    if any(not isinstance(sentinel, str) or not sentinel.strip() for sentinel in sentinels):
+        raise AssertionError(f"Concurrent writes missing observed sentinels: {outcomes}")
+    if len(outcomes) != 2 or len(set(paths)) != 2 or len(set(sentinels)) != 2:
+        raise AssertionError(f"Concurrent writes did not land on distinct notes: {outcomes}")
+
+
 def concurrent_fixture_writes(binary: Path, python: Path, profile_id: str, env: dict[str, str], tools: dict[str, Any]) -> dict[str, Any]:
     """Exercise two independently owned probes writing distinct notes together.
 
@@ -249,7 +277,7 @@ def concurrent_fixture_writes(binary: Path, python: Path, profile_id: str, env: 
     """
     sandbox = create_sandbox(ROOT / ".work/g0", profile_id)
     local_env = isolated_env(sandbox, env)
-    probes = [Probe(binary, python, sandbox, local_env), Probe(binary, python, sandbox, local_env)]
+    probes: list[Probe] = []
     barrier = threading.Barrier(2)
     outcomes: list[dict[str, Any]] = [{}, {}]
 
@@ -273,20 +301,25 @@ def concurrent_fixture_writes(binary: Path, python: Path, profile_id: str, env: 
         except BaseException as error:
             outcomes[index] = {"error": f"{type(error).__name__}: {error}"}
 
-    threads = [threading.Thread(target=worker, args=(index,)) for index in range(2)]
-    for thread in threads:
-        thread.start()
-    for thread in threads:
-        thread.join(timeout=45)
-    for probe in probes:
-        probe.close()
-    if any("error" in outcome for outcome in outcomes):
-        raise AssertionError(f"Concurrent fixture write failed: {outcomes}")
-    if any(outcome.get("classification") != "accepted_unverified" for outcome in outcomes):
-        raise AssertionError(f"Concurrent write result classification drifted: {outcomes}")
-    if any(not outcome.get("frontmatter_preserved") or not outcome.get("wiki_link_preserved") for outcome in outcomes):
-        raise AssertionError(f"Concurrent Markdown materialization lost content: {outcomes}")
-    return {"sandbox": str(sandbox), "workers": outcomes, "status": "passed"}
+    try:
+        probes.append(Probe(binary, python, sandbox, local_env))
+        probes.append(Probe(binary, python, sandbox, local_env))
+        threads = [threading.Thread(target=worker, args=(index,)) for index in range(2)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=45)
+        if any(thread.is_alive() for thread in threads):
+            raise AssertionError("Concurrent fixture workers did not finish; no retry was performed")
+        for probe in probes:
+            probe.close()
+        require_concurrent_outcomes(outcomes)
+        # Worker paths are vault-relative; do not persist the generated sandbox path.
+        return {"workers": outcomes, "status": "passed"}
+    finally:
+        for probe in probes:
+            if not probe._closed:
+                probe.abort()
 
 
 def recovery_boundaries() -> dict[str, Any]:
@@ -434,8 +467,12 @@ def run_contract(profile_id: str) -> Path:
             raise AssertionError("Write MCP envelope was not classified as accepted_unverified")
         note = wait_note(sandbox / "vault", sentinel)
         first = note.read_text(encoding="utf-8")
-        if "bmdock_custom" not in first or "keep-me" not in first or "[[Missing Target]]" not in first:
-            raise AssertionError("Custom metadata or wiki-link did not survive create/materialize")
+        require_markdown_fidelity(first, [
+            ("bmdock_custom", "unknown frontmatter"),
+            ("keep-me", "nested frontmatter value"),
+            ("[[Missing Target]]", "wiki-link"),
+            ("保留中文与关系", "Chinese body"),
+        ])
         note_path = note.relative_to(sandbox / "vault").as_posix()
         read = call("read_note", {"identifier": note_path, "project": PROJECT, "output_format": "json"})
         if sentinel not in json.dumps(read, ensure_ascii=False):
@@ -453,8 +490,15 @@ def run_contract(profile_id: str) -> Path:
         report["shutdown"] = process.close()
         process = None
         after_close = note.read_text(encoding="utf-8")
-        if sentinel not in after_close or after_close.count(append) != 1:
-            raise AssertionError("Materialized fixture did not survive a normal shutdown")
+        if after_close.count(append) != 1:
+            raise AssertionError("Append was duplicated across shutdown")
+        require_markdown_fidelity(after_close, [
+            (sentinel, "create sentinel"),
+            ("bmdock_custom", "unknown frontmatter"),
+            ("keep-me", "nested frontmatter value"),
+            ("[[Missing Target]]", "wiki-link"),
+            ("保留中文与关系", "Chinese body"),
+        ])
         report["checks"]["shutdown_file_observation"] = "passed"
         report["fixture_after_shutdown"] = after_close
         report["concurrency"] = concurrent_fixture_writes(binary, python, profile_id, env, tools)

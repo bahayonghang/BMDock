@@ -62,6 +62,12 @@ T02 在 2026-09-12 使用真实官方引擎、分两次调用 `python -m scripts
 
 本任务不是 native GUI、Job Object 或真实用户 vault 证据。丢响应、取消后接受、`timeout_unknown` 现场注入、强杀恢复和磁盘故障仍属 T03 `UNVERIFIED`；没有把这些缺失证据推断为通过。
 
+## T03：Markdown 往返与并发写入
+
+T03 在 2026-09-12 沿用既有双 profile 隔离合约报告，未重跑 `just contract`。release 与 main-preview 各有一份未合并的 gitignored 报告：`artifacts/release.contract.json` SHA256 `520832e513d3b9142a05cbdee58f2b15ad91a0a6086f256e7f26089a3bc97a6d`，`artifacts/main-preview.contract.json` SHA256 `2e2ab0489fa1123edca545f842cf67b5659a91a0cd76d39e68d7beedb1fca645`。每个 profile 在各自新的 `bmdock-fixture` sandbox 中先完成单篇 Markdown 往返（未知 frontmatter、中文正文、wiki-link），再启动两个独立 `bmdock-probe` 进程并发写入不同标题与 sentinel 的笔记。每个结果先保持 `accepted_unverified`，再由 `wait_note` 观察真实 Markdown；正常关闭后文件仍可读取。汇总证据见 [t03-markdown-concurrency-recovery.json](../execution/evidence/t03-markdown-concurrency-recovery.json)。
+
+丢响应、取消后接受、`timeout_unknown` 现场注入、强杀恢复和磁盘故障没有安全的跨平台注入器，全部明确记录为 `UNVERIFIED`。不同目标并发成功不等于相同目标冲突原子性；干净关闭也不等于丢响应、取消后接受或强杀恢复。本任务不是 native GUI、Job Object 或真实用户 vault 证据。后续 T12、T16、T17 负责产品级冲突协调和恢复链。
+
 **完整 G0 仍未通过。** MCP resources/prompts/API/CLI 注册清单不是全部功能验收。完整原文往返、真正并发编辑、取消/丢响应、磁盘故障、强杀与恢复、Windows junction/睡眠恢复仍待验证；没有 Tauri GUI 或原生桌面安装器。具体交接要求见 [G0_HANDOFF.md](G0_HANDOFF.md)。
 
 本批全部操作使用自动生成的 fixture，没有连接用户真实 Obsidian vault、全局 Basic Memory 配置或 Agent 配置。环境过滤不等于 OS 网络沙箱；正常退出后的文件观察也不构成跨 Agent 原子写入保证。`just gate` 返回非零是当前完整产品门禁的真实状态，不能通过跳过测试来消除。

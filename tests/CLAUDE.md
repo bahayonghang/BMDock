@@ -5,7 +5,7 @@
 
 宿主 Python 单测，无第三方包、无真实引擎、无 Rust 编译。入口：`python -m unittest discover -s tests -v`（`just ci-unit` / `scripts.tasks.unit`）。
 
-当前约 51 项。本目录 **不能** 证明 MCP 互操作或 G0。`test_repository_phase_order` 在 T06/T07 已 `completed` 且 G0 未 `passed` 时会失败；不要为了让 `python -m scripts.tasks unit` 变绿而回退那些任务状态。
+当前约 60 项。本目录 **不能** 证明 MCP 互操作或 G0。`test_repository_phase_order` 在 T06/T07 已 `completed` 且 G0 未 `passed` 时会失败；不要为了让 `python -m scripts.tasks unit` 变绿而回退那些任务状态。
 
 ## 文件
 
@@ -21,6 +21,7 @@
 - **PaginationTests**：跨页、空末页、重复 cursor、非字符串 cursor、超页截断、错误 shape、RPC 异常不得当成空页。
 - **ResultTests**：文本成功 ≠ 已保存；`isError` 优先；`created`/`updated` → `accepted_unverified`；FastMCP `structuredContent.result.action` 同样不是磁盘核实；拒绝 kind；未知 discriminator；只转发 schema 已声明参数；新 required 字段失败关闭。
 - **InteropTests**：握手必须协商 `2025-11-25`；inputSchema 指纹按工具隔离；`search`/`fetch` 身份与 required 字段不可别名；控制面 `policy`/`schema`/`rpc_or_transport` 不得互相折叠；互换身份必须是 MCP `isError` 而不是本地拒绝；恢复边界保持 `UNVERIFIED`。
+- **ObservationTests**：`wait_note` 只接受唯一 Markdown 命中；重复 sentinel 失败；超时文案声明不重试；未知 frontmatter/中文/wiki-link 保真；并发 worker 必须落到不同笔记、分类保持 `accepted_unverified`，且不得用缺失 path 或 envelope 冒充落盘。
 - **CommandTests**：缺 cargo 失败；`run()` 不传 `shell` 且 `check=True`；`tasks.main(["gate"])` 返回 2；`check_source()` 在 T05+ 于 G0 前 completed 时失败。
 
 ## `test_cli_inventory.py`
