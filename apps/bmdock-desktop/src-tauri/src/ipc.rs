@@ -9,7 +9,7 @@ use crate::library::{
     ExtrasCatalogDto, GraphPageDto, ImportResultDto, IngestResultDto, NoteDeleteDto, NoteEditDto,
     NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto, PromptPageDto, RecallBenchmarkDto,
     RelationListDto, ResourcePageDto, SchemaValidateDto, SearchInspectorDto, SearchPageDto,
-    ToolInspectionDto, TreePageDto,
+    ShareCatalogDto, SyncInspectionDto, ToolInspectionDto, TreePageDto,
 };
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
@@ -44,6 +44,8 @@ pub enum IpcCommandName {
     InspectExtras,
     IngestDocument,
     InspectCloud,
+    InspectSync,
+    ListShares,
     PreviewContext,
     ListActivity,
     ListBackups,
@@ -83,6 +85,8 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::InspectExtras,
         IpcCommandName::IngestDocument,
         IpcCommandName::InspectCloud,
+        IpcCommandName::InspectSync,
+        IpcCommandName::ListShares,
         IpcCommandName::PreviewContext,
         IpcCommandName::ListActivity,
         IpcCommandName::ListBackups,
@@ -608,6 +612,8 @@ pub enum IpcCommand {
     InspectExtras(InspectExtrasArgs),
     IngestDocument(IngestDocumentArgs),
     InspectCloud(ExplicitRouteArgs),
+    InspectSync(ExplicitRouteArgs),
+    ListShares(ExplicitRouteArgs),
     PreviewContext(PreviewContextArgs),
     ListActivity(ListActivityArgs),
     ListBackups(ExplicitRouteArgs),
@@ -688,6 +694,8 @@ pub enum IpcResponse {
     ExtrasCatalog(ExtrasCatalogDto),
     DocumentIngested(IngestResultDto),
     CloudInspection(CloudInspectionDto),
+    SyncInspection(SyncInspectionDto),
+    ShareCatalog(ShareCatalogDto),
     ContextPreview(ContextPreviewDto),
     ActivityPage(ActivityPageDto),
     BackupCatalog(BackupCatalogDto),
@@ -978,6 +986,18 @@ pub fn dispatch_with_drain(
                 library::accept_cloud_inspection(library.inspect_cloud()?)?,
             ))
         }
+        IpcCommand::InspectSync(route_args) => {
+            require_explicit_fixture_route(&route_args)?;
+            Ok(IpcResponse::SyncInspection(
+                library::accept_sync_inspection(library.inspect_sync()?)?,
+            ))
+        }
+        IpcCommand::ListShares(route_args) => {
+            require_explicit_fixture_route(&route_args)?;
+            Ok(IpcResponse::ShareCatalog(library::accept_share_catalog(
+                library.list_shares()?,
+            )?))
+        }
         IpcCommand::PreviewContext(args) => {
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
@@ -1179,6 +1199,8 @@ mod tests {
                 IpcCommandName::InspectExtras,
                 IpcCommandName::IngestDocument,
                 IpcCommandName::InspectCloud,
+                IpcCommandName::InspectSync,
+                IpcCommandName::ListShares,
                 IpcCommandName::PreviewContext,
                 IpcCommandName::ListActivity,
                 IpcCommandName::ListBackups,
@@ -1193,14 +1215,14 @@ mod tests {
                 IpcCommandName::BeginShutdown,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 35);
+        assert_eq!(capabilities.commands.len(), 37);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 35);
+        assert_eq!(commands.len(), 37);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
@@ -1226,6 +1248,8 @@ mod tests {
         assert!(commands.iter().any(|command| command == "inspect_extras"));
         assert!(commands.iter().any(|command| command == "ingest_document"));
         assert!(commands.iter().any(|command| command == "inspect_cloud"));
+        assert!(commands.iter().any(|command| command == "inspect_sync"));
+        assert!(commands.iter().any(|command| command == "list_shares"));
         assert!(commands.iter().any(|command| command == "preview_context"));
         assert!(commands.iter().any(|command| command == "list_activity"));
         assert!(commands.iter().any(|command| command == "list_backups"));
@@ -1712,6 +1736,56 @@ mod tests {
             r#"{"command":"inspect_cloud","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
         );
         assert!(well_formed_cloud.is_ok());
+        let extra_path_on_sync = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_sync","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_sync.is_err());
+        let extra_root_on_sync = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_sync","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_sync.is_err());
+        let extra_token_on_sync = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_sync","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","token":"env-token"}}"#,
+        );
+        assert!(extra_token_on_sync.is_err());
+        let extra_host_on_sync = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_sync","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","host":"https://example.invalid"}}"#,
+        );
+        assert!(extra_host_on_sync.is_err());
+        let sync_without_route =
+            serde_json::from_str::<IpcCommand>(r#"{"command":"inspect_sync","args":{}}"#);
+        assert!(sync_without_route.is_err());
+        let well_formed_sync = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_sync","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(well_formed_sync.is_ok());
+        let extra_path_on_shares = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_shares","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_shares.is_err());
+        let extra_root_on_shares = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_shares","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_shares.is_err());
+        let extra_token_on_shares = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_shares","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","token":"env-token"}}"#,
+        );
+        assert!(extra_token_on_shares.is_err());
+        let extra_host_on_shares = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_shares","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","host":"https://example.invalid"}}"#,
+        );
+        assert!(extra_host_on_shares.is_err());
+        let shares_without_route =
+            serde_json::from_str::<IpcCommand>(r#"{"command":"list_shares","args":{}}"#);
+        assert!(shares_without_route.is_err());
+        let well_formed_shares = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_shares","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(well_formed_shares.is_ok());
+        let restore_sync = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"restore_sync","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(restore_sync.is_err());
         let mcp_tools_call = serde_json::from_str::<IpcCommand>(
             r#"{"command":"tools/call","args":{"name":"search"}}"#,
         );
@@ -2305,6 +2379,14 @@ mod tests {
         }
 
         fn inspect_cloud(&self) -> Result<library::CloudInspectionDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
+        fn inspect_sync(&self) -> Result<library::SyncInspectionDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
+        fn list_shares(&self) -> Result<library::ShareCatalogDto, library::LibraryError> {
             panic!("policy rejection must not open the library")
         }
 
@@ -3164,6 +3246,30 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(cloud_route.category, ErrorCategory::Policy);
+        let sync_route = dispatch_with_library(
+            IpcCommand::InspectSync(ExplicitRouteArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(sync_route.category, ErrorCategory::Policy);
+        let shares_route = dispatch_with_library(
+            IpcCommand::ListShares(ExplicitRouteArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(shares_route.category, ErrorCategory::Policy);
         let prompts_route = dispatch_with_library(
             IpcCommand::ListPrompts(ListPromptsArgs {
                 workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
@@ -8116,7 +8222,7 @@ mod tests {
             release.ipc_commands.len(),
             library::ALLOWLISTED_IPC_COMMANDS.len()
         );
-        assert_eq!(release.ipc_commands.len(), 35);
+        assert_eq!(release.ipc_commands.len(), 37);
         assert!(release.ipc_commands.iter().any(|command| {
             command.name == "inspect_api_audit"
                 && command.coverage == library::AuditCoverage::Present
@@ -8909,6 +9015,407 @@ mod tests {
         let _ = (
             library::ENGINE_CLOUD_NOT_OWNED,
             library::OFFICIAL_CLOUD_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn inspect_sync_empty_library_is_local_offline_not_synced() {
+        let mut route = RouteState::default();
+        let IpcResponse::SyncInspection(report) = dispatch_with_library(
+            IpcCommand::InspectSync(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(!report.sync_enabled);
+        assert!(!report.sharing_enabled);
+        assert!(!report.remote_restore);
+        assert_eq!(report.last_sync, library::LAST_SYNC_NONE);
+        assert!(!report.synced);
+        assert!(!report.shared);
+        assert!(!report.sync_claimed);
+        assert!(report.local_offline);
+        assert!(!report.live_official_cloud_session);
+        assert!(!report.remote_hosts_contacted);
+        assert!(!report.secrets_stored);
+        assert!(!report.env_tokens_read);
+        assert!(!report.mixed_profiles);
+        assert!(!report.engine_sync);
+        assert!(!report.files_written);
+        assert!(!report.scanned_user_obsidian_vault);
+        assert!(!report.scanned_user_basic_memory_home);
+        assert_eq!(
+            report.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        assert!(!report.observation.disk_verified);
+        assert!(report.observation.envelope_is_not_disk_proof);
+        let json = serde_json::to_value(&IpcResponse::SyncInspection(report)).unwrap();
+        assert_eq!(json["kind"], "sync_inspection");
+        assert_eq!(json["sync_enabled"], false);
+        assert_eq!(json["sharing_enabled"], false);
+        assert_eq!(json["remote_restore"], false);
+        assert_eq!(json["last_sync"], "none");
+        assert_eq!(json["synced"], false);
+        assert!(json.get("expected_tools").is_none());
+        let IpcResponse::ShareCatalog(shares) = dispatch_with_library(
+            IpcCommand::ListShares(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(shares.shares.is_empty());
+        assert!(!shares.sharing_enabled);
+        assert!(!shares.live_shared_remote);
+        assert!(!shares.remote_restore);
+        assert!(shares.local_offline);
+        assert_eq!(
+            shares.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        let share_json = serde_json::to_value(&IpcResponse::ShareCatalog(shares)).unwrap();
+        assert_eq!(share_json["kind"], "share_catalog");
+        assert_eq!(share_json["sharing_enabled"], false);
+        assert!(share_json["shares"].as_array().unwrap().is_empty());
+        assert!(share_json.get("expected_tools").is_none());
+        let _ = (
+            library::ENGINE_SYNC_NOT_OWNED,
+            library::OFFICIAL_SYNC_UNVERIFIED,
+            library::ENGINE_SHARE_NOT_OWNED,
+        );
+    }
+
+    #[test]
+    fn inspect_sync_fixture_stays_disabled_and_claimed_flag_is_unsupported() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t32-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let library = library::FixtureLibrary::new(dir.clone());
+        let mut route = RouteState::default();
+        let IpcResponse::SyncInspection(report) = dispatch_with_library(
+            IpcCommand::InspectSync(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(!report.sync_enabled);
+        assert!(!report.sharing_enabled);
+        assert!(!report.remote_restore);
+        assert_eq!(report.last_sync, library::LAST_SYNC_NONE);
+        assert!(!report.synced);
+        assert!(!report.shared);
+        assert!(report.local_offline);
+        assert_eq!(
+            report.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        let flag = library.seed_sync_claimed_flag().unwrap();
+        assert!(flag.is_file());
+        let disk = std::fs::read_to_string(&flag).unwrap();
+        assert!(disk.contains("fixture-sync-claimed-not-live"));
+        let claimed = dispatch_with_library(
+            IpcCommand::InspectSync(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(claimed.category, ErrorCategory::Unsupported);
+        assert_eq!(claimed.message, library::UNSUPPORTED_SYNC_CLAIMED_NOT_LIVE);
+        let share_flag = library.seed_share_claimed_flag().unwrap();
+        assert!(share_flag.is_file());
+        let share_claimed = dispatch_with_library(
+            IpcCommand::ListShares(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(share_claimed.category, ErrorCategory::Unsupported);
+        assert_eq!(
+            share_claimed.message,
+            library::UNSUPPORTED_SHARE_CLAIMED_NOT_LIVE
+        );
+        let snapshots = dir.join("snapshots");
+        let target = dir.join("target");
+        let store = backups::FixtureBackupStore::new(snapshots, target.clone()).unwrap();
+        let body =
+            "# 中文夹具备份\n\nT32 仍走 T12 restore_fixture，不是 cloud restore。参见 [[欢迎]]。\n";
+        store
+            .seed_backup("fixture-welcome", &[("welcome", body)])
+            .unwrap();
+        let IpcResponse::FixtureRestored(restored) = dispatch_with_library(
+            IpcCommand::RestoreFixture(fixture_restore_args("fixture-welcome")),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &store,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let dest = target.join("welcome.md");
+        assert!(dest.is_file());
+        let restored_disk = std::fs::read_to_string(&dest).unwrap();
+        assert_eq!(restored_disk, body);
+        assert!(restored.files_written);
+        assert!(restored.observation.disk_verified);
+        assert!(restored.observation.envelope_is_not_disk_proof);
+        let release = EngineProfile::Release;
+        let preview = EngineProfile::MainPreview;
+        assert_eq!(release.expected_tools(), 21);
+        assert_eq!(preview.expected_tools(), 27);
+        assert_ne!(release.expected_tools(), preview.expected_tools());
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = (
+            library::ENGINE_SYNC_NOT_OWNED,
+            library::OFFICIAL_SYNC_UNVERIFIED,
+            library::UNSUPPORTED_SYNC_RESTORE_NOT_T12,
+        );
+    }
+
+    struct ClaimedSyncLibrary;
+
+    impl NoteLibrary for ClaimedSyncLibrary {
+        fn list_tree(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            Ok(library::TreePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: false,
+            })
+        }
+
+        fn read_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            Err(library::LibraryError::unsupported(
+                library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
+            ))
+        }
+
+        fn inspect_sync(&self) -> Result<library::SyncInspectionDto, library::LibraryError> {
+            Ok(library::SyncInspectionDto {
+                sync_enabled: true,
+                sharing_enabled: true,
+                remote_restore: false,
+                last_sync: "envelope-synced".to_owned(),
+                synced: true,
+                shared: true,
+                sync_claimed: true,
+                local_offline: false,
+                live_official_cloud_session: true,
+                remote_hosts_contacted: false,
+                secrets_stored: false,
+                env_tokens_read: false,
+                mixed_profiles: false,
+                observation: library::NoteCrudObservationDto {
+                    classified_as: library::NoteCrudClass::DiskVerified,
+                    disk_verified: true,
+                    envelope_is_not_disk_proof: false,
+                },
+                engine_sync: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+            })
+        }
+
+        fn list_shares(&self) -> Result<library::ShareCatalogDto, library::LibraryError> {
+            Ok(library::ShareCatalogDto {
+                shares: vec![library::ShareRecordDto {
+                    identifier: "live-share".to_owned(),
+                }],
+                sharing_enabled: true,
+                share_claimed: true,
+                live_shared_remote: true,
+                remote_restore: false,
+                local_offline: false,
+                live_official_cloud_session: true,
+                remote_hosts_contacted: false,
+                secrets_stored: false,
+                env_tokens_read: false,
+                mixed_profiles: false,
+                observation: library::NoteCrudObservationDto {
+                    classified_as: library::NoteCrudClass::DiskVerified,
+                    disk_verified: true,
+                    envelope_is_not_disk_proof: false,
+                },
+                engine_share: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+            })
+        }
+    }
+
+    struct CredentialSyncLibrary;
+
+    impl NoteLibrary for CredentialSyncLibrary {
+        fn list_tree(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            Ok(library::TreePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: false,
+            })
+        }
+
+        fn read_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            Err(library::LibraryError::unsupported(
+                library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
+            ))
+        }
+
+        fn inspect_sync(&self) -> Result<library::SyncInspectionDto, library::LibraryError> {
+            Ok(library::SyncInspectionDto {
+                env_tokens_read: true,
+                secrets_stored: true,
+                remote_hosts_contacted: true,
+                ..library::empty_sync_inspection()
+            })
+        }
+
+        fn list_shares(&self) -> Result<library::ShareCatalogDto, library::LibraryError> {
+            Ok(library::ShareCatalogDto {
+                env_tokens_read: true,
+                secrets_stored: true,
+                remote_hosts_contacted: true,
+                ..library::empty_share_catalog()
+            })
+        }
+    }
+
+    struct RemoteRestoreLibrary;
+
+    impl NoteLibrary for RemoteRestoreLibrary {
+        fn list_tree(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            Ok(library::TreePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: false,
+            })
+        }
+
+        fn read_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            Err(library::LibraryError::unsupported(
+                library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
+            ))
+        }
+
+        fn inspect_sync(&self) -> Result<library::SyncInspectionDto, library::LibraryError> {
+            Ok(library::SyncInspectionDto {
+                remote_restore: true,
+                ..library::empty_sync_inspection()
+            })
+        }
+    }
+
+    #[test]
+    fn inspect_sync_claimed_synced_or_env_tokens_are_not_success() {
+        let mut route = RouteState::default();
+        let claimed = dispatch_with_library(
+            IpcCommand::InspectSync(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &ClaimedSyncLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(claimed.category, ErrorCategory::Unsupported);
+        assert_eq!(claimed.message, library::UNSUPPORTED_SYNC_CLAIMED_NOT_LIVE);
+        let shares = dispatch_with_library(
+            IpcCommand::ListShares(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &ClaimedSyncLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(shares.category, ErrorCategory::Unsupported);
+        assert_eq!(shares.message, library::UNSUPPORTED_SHARE_CLAIMED_NOT_LIVE);
+        let credentials = dispatch_with_library(
+            IpcCommand::InspectSync(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &CredentialSyncLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(credentials.category, ErrorCategory::Policy);
+        assert_eq!(credentials.message, library::POLICY_SYNC_CREDENTIAL_ROUTE);
+        let share_credentials = dispatch_with_library(
+            IpcCommand::ListShares(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &CredentialSyncLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(share_credentials.category, ErrorCategory::Policy);
+        assert_eq!(
+            share_credentials.message,
+            library::POLICY_SYNC_CREDENTIAL_ROUTE
+        );
+        let remote_restore = dispatch_with_library(
+            IpcCommand::InspectSync(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &RemoteRestoreLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(remote_restore.category, ErrorCategory::Unsupported);
+        assert_eq!(
+            remote_restore.message,
+            library::UNSUPPORTED_SYNC_RESTORE_NOT_T12
+        );
+        let release = EngineProfile::Release;
+        let preview = EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(preview.commit(), "3452c821d76c083823d020984d71e06904a1ff1e");
+        assert_ne!(release.expected_tools(), preview.expected_tools());
+        let _ = (
+            library::ENGINE_SYNC_NOT_OWNED,
+            library::OFFICIAL_SYNC_UNVERIFIED,
+            library::ENGINE_SHARE_NOT_OWNED,
         );
     }
 }

@@ -51,7 +51,12 @@ on disk; official PDF/Office extras remain UNVERIFIED), and T31 typed
 (`cloud_enabled=false`, `remote_auth=false`,
 `credentials_present=false`, `cloud_allowed=false`; claiming
 connected/authenticated without a live official cloud session is
-unsupported). It applies to
+unsupported), and T32 typed `inspect_sync` / `list_shares`
+FAIL-CLOSED local-only cloud sync/share status
+(`sync_enabled=false`, `sharing_enabled=false`,
+`remote_restore=false`, `last_sync=none`; claiming synced/shared
+without a live official cloud session is unsupported; recovery
+remains T12 `restore_fixture`, not cloud restore). It applies to
 `apps/bmdock-desktop/src-tauri/src/ipc.rs`,
 `apps/bmdock-desktop/src-tauri/src/library.rs`,
 `apps/bmdock-desktop/src-tauri/src/conflict.rs`,
@@ -331,6 +336,29 @@ interfaces remain separate. Lifecycle ownership lives in
   cloud DTO. Official cloud / remote auth remain UNVERIFIED. Do not
   add rmcp. Do not start Supervisor. Do not treat `just contract` as
   T31 proof.
+- T32 `inspect_sync` is FAIL-CLOSED local-only. Args are
+  `ExplicitRouteArgs`. `deny_unknown_fields`. Extra `path` / `root` /
+  `token` / `host` fail closed as `schema`. Missing route is `schema`.
+  Non-fixture routes are `policy` and do not open the library.
+  Production default: `sync_enabled=false`, `sharing_enabled=false`,
+  `remote_restore=false`, `last_sync=none`. Claiming `synced` /
+  `shared` without a live official cloud session is `unsupported`.
+  T32 `list_shares` uses the same `ExplicitRouteArgs` fail-closed
+  rules. Production shares catalog is empty. Claiming a live shared
+  remote is `unsupported`. Recovery remains T12 `restore_fixture`,
+  not cloud restore. A `restore_sync` command is not in the allowlist
+  (unknown command is `schema`); do not invent disk-verified
+  user-vault/cloud restore. Envelope `"synced"` / `"restored"` is
+  not disk proof. Tests inject `FixtureLibrary` over
+  `{temp}/bmdock-t32-*` that still reports `sync_enabled=false`. A
+  BMDock-owned fixture `sync-claimed` flag is classified
+  `unsupported`, not `synced`. A fixture `share-claimed` flag is
+  `unsupported`, not shared. Unauthorized remote / env token /
+  stored secret / remote host / real vault is `policy`. Dual
+  profiles stay isolated (21 vs 27). Do not mix profiles into the
+  sync DTO. Official cloud sync / share remain UNVERIFIED. Do not
+  add rmcp. Do not start Supervisor. Do not treat `just contract`
+  as T32 proof.
 - The boundary does not start or stop the Supervisor, call the official
   engine over rmcp, access a user vault, or expose raw `callTool`. T14
   drafts are BMDock-owned session artifacts, not a second note index and
@@ -384,9 +412,10 @@ interfaces remain separate. Lifecycle ownership lives in
   `ExplicitRouteArgs` plus required `source_id`. T29
   `inspect_api_audit` carries `ExplicitRouteArgs` plus required
   `profile_id`. T30 `inspect_extras` carries `ExplicitRouteArgs`
-  plus optional `extra_id`. T30 `ingest_document` carries
+  plus optional `extra_id`.   T30 `ingest_document` carries
   `ExplicitRouteArgs` plus required `source_id`. T31 `inspect_cloud`
-  carries `ExplicitRouteArgs`. T22 `preview_context`
+  carries `ExplicitRouteArgs`. T32 `inspect_sync` and `list_shares`
+  carry `ExplicitRouteArgs`. T22 `preview_context`
   carries `ExplicitRouteArgs` plus `identifier` and optional `query`.
   T22 `list_activity` carries `ExplicitRouteArgs` plus optional
   `cursor` / `page_size`. T16 coordinates overlapping
@@ -453,6 +482,8 @@ inspect_api_audit: { workspace, project, profile_id }
 inspect_extras: { workspace, project, extra_id? }
 ingest_document: { workspace, project, source_id }
 inspect_cloud: { workspace, project }
+inspect_sync: { workspace, project }
+list_shares: { workspace, project }
 preview_context: { workspace, project, identifier, query? }
 list_activity: { workspace, project, cursor?, page_size? }
 list_backups: { workspace, project }
@@ -939,7 +970,7 @@ The capability policy must report:
 `EditNoteArgs`, `MoveNoteArgs`, `DeleteNoteArgs`, and `EmptyArgs`
 use `#[serde(deny_unknown_fields)]`.
 There is no path field on `list_projects` / `run_preflight` /
-`discover_config` / `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `inspect_cloud` / `preview_context` / `list_activity` / `list_backups` /
+`discover_config` / `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `inspect_cloud` / `inspect_sync` / `list_shares` / `preview_context` / `list_activity` / `list_backups` /
 `restore_fixture` / `inspect_windows_runtime` / `save_draft` /
 `load_draft` / `write_note` / `edit_note` / `move_note` /
 `delete_note` / `begin_shutdown` and no raw `callTool` handler. Typed
@@ -1122,6 +1153,19 @@ Capabilities advertise `cloud_allowed=false`. Do not store
 secrets, read env tokens, or contact remote hosts. Dual profiles
 stay isolated (21 vs 27). Official cloud remains UNVERIFIED.
 T31 does not start Supervisor or add rmcp.
+T32 adds `inspect_sync` and `list_shares` on the same `ipc_invoke`
+union. Cloud sync/share is FAIL-CLOSED local-only. Production
+`EmptyLibrary` is `sync_enabled=false`, `sharing_enabled=false`,
+`remote_restore=false`, `last_sync=none`, `classified_as: empty`.
+Claiming synced/shared without a live official cloud session is
+`unsupported`. A fixture `sync-claimed` flag over `{temp}/bmdock-t32-*`
+is `unsupported`, not synced. Shares catalog is empty in production.
+Claiming a live shared remote is `unsupported`. Recovery remains
+T12 `restore_fixture`, not cloud restore. Extra `path` / `root` /
+`token` / `host` fail closed as `schema`. Non-fixture is `policy`.
+Do not store secrets, read env tokens, or contact remote hosts.
+Dual profiles stay isolated (21 vs 27). Official cloud sync /
+share remain UNVERIFIED. T32 does not start Supervisor or add rmcp.
 T22 adds `preview_context` and `list_activity` on the same
 `ipc_invoke` union. Preview is a BMDock-owned fixture markdown
 snippet (`executed=false`). Activity is fixture markdown mtime
@@ -1143,7 +1187,7 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 | Unknown `command`, including `call_tool` and MCP identity `search` / `fetch` / `recent_activity` / `build_context` / `schema_infer` / `schema_diff` / `resources/list` / `resources/read` / `prompts/list` / `prompts/get` / `tools/call` | Serde deserialization fails closed | `schema` at the boundary |
 | Incomplete `write_note` args (for example only `project`) | `deny_unknown_fields` / missing fields | `schema` |
 | Extra field in `args` | `deny_unknown_fields` rejects the DTO | `schema` |
-| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
 | Extra top-level field such as `path` beside `command`/`args` | `deny_unknown_fields` on `IpcCommand` | `schema` |
 | `select_project` for any value other than `bmdock-fixture` | Dispatcher rejects without filesystem access | `policy` |
 | `ExplicitRouteArgs` missing `project`/`workspace` or carrying an extra `path` | `deny_unknown_fields` rejects the DTO | `schema` |
@@ -1264,6 +1308,20 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 | Empty library `inspect_cloud` | `cloud_enabled=false`, `remote_auth=false`, `credentials_present=false`, `cloud_allowed=false`, `connected=false`, `classified_as: empty`, `local_offline=true` | empty state |
 | Claiming `connected` / `authenticated` / `cloud_enabled=true` without a live official cloud session | Reject; not connected | `unsupported` |
 | Fixture `cloud-claimed` flag on `{temp}/bmdock-t31-*` | Classify `unsupported`, not connected; still not live cloud | `unsupported` |
+| Extra `path` / `root` / `token` / `host` on `inspect_sync` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Missing `inspect_sync` route | Reject without opening the library | `schema` |
+| Non-fixture `inspect_sync` | Reject without opening the library | `policy` |
+| Unauthorized remote / env token / stored secret / remote host / real vault on `inspect_sync` | Reject; do not open a sync/credential route | `policy` |
+| Empty library `inspect_sync` | `sync_enabled=false`, `sharing_enabled=false`, `remote_restore=false`, `last_sync=none`, `synced=false`, `classified_as: empty`, `local_offline=true` | empty state |
+| Claiming `synced` / `shared` / `sync_enabled=true` without a live official cloud session | Reject; not synced | `unsupported` |
+| Fixture `sync-claimed` flag on `{temp}/bmdock-t32-*` | Classify `unsupported`, not synced; still not live sync | `unsupported` |
+| Extra `path` / `root` / `token` / `host` on `list_shares` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Missing `list_shares` route | Reject without opening the library | `schema` |
+| Non-fixture `list_shares` | Reject without opening the library | `policy` |
+| Empty library `list_shares` | Empty `shares[]`, `sharing_enabled=false`, `classified_as: empty`, `local_offline=true` | empty state |
+| Claiming a live shared remote / non-empty shares without a live official cloud session | Reject; not shared | `unsupported` |
+| Fixture `share-claimed` flag on `{temp}/bmdock-t32-*` | Classify `unsupported`, not shared; still not live share | `unsupported` |
+| Cloud/sync restore / `restore_sync` | Unknown command is `schema`; if a restore-sync path were added it stays `unsupported` / `policy`, not disk-verified user-vault/cloud restore. Recovery remains T12 `restore_fixture`. Envelope `"synced"` / `"restored"` is not disk proof. | `schema` / `unsupported` / `policy` |
 | Unknown official tool name in the selected profile baseline | List as `denied` / `missing`; do not auto-admit | — |
 | Missing `preview_context` identifier | Reject without opening the library | `schema` |
 | `preview_context` identifier that looks like a user vault filesystem path | Reject without opening the library | `policy` |
@@ -1474,16 +1532,16 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 
 ## 6. Tests Required
 
-- Rust unit test: capability response lists exactly thirty-five commands and two
+- Rust unit test: capability response lists exactly thirty-seven commands and two
   events, and both arbitrary-path and raw-callTool policy flags are false.
-  `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`,
+  `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`,
   `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`,
   `edit_note`, `move_note`, `delete_note`, and `begin_shutdown` are present; `call_tool`,
   MCP identity `search`, `fetch`, `recent_activity`, `build_context`, `schema_infer`, `schema_diff`, `resources/list`, `resources/read`, `prompts/list`, `prompts/get`, and `tools/call` are absent. Incomplete `write_note` args remain schema.
 - Rust unit test: a non-fixture project returns `ErrorCategory::Policy`.
 - Rust unit test: unknown command including `call_tool`, extra project path,
   extra runtime-state path, extra `list_projects` path/root, extra preflight
-  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `expand_graph` path/root,   extra `search_notes` path/root/`id`, extra `inspect_search` path/root/`id`, extra `run_recall_benchmark` path/root, extra `schema_validate` path/root, extra `list_resources` path/root, extra `list_prompts` path/root, extra `inspect_tools` path/root, extra `list_cli_inventory` path/root, extra `import_notes` path/root, extra `inspect_api_audit` path/root, extra `inspect_extras` path/root, extra `ingest_document` path/root, extra `inspect_cloud` path/root, extra `preview_context` path/root, extra `list_activity` path/root, extra `list_backups`
+  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `expand_graph` path/root,   extra `search_notes` path/root/`id`, extra `inspect_search` path/root/`id`, extra `run_recall_benchmark` path/root, extra `schema_validate` path/root, extra `list_resources` path/root, extra `list_prompts` path/root, extra `inspect_tools` path/root, extra `list_cli_inventory` path/root, extra `import_notes` path/root, extra `inspect_api_audit` path/root, extra `inspect_extras` path/root, extra `ingest_document` path/root, extra `inspect_cloud` path/root, extra `inspect_sync` path/root/token/host, extra `list_shares` path/root/token/host, extra `preview_context` path/root, extra `list_activity` path/root, extra `list_backups`
   path/root, extra `restore_fixture` path, extra
   `inspect_windows_runtime` path/root, extra `save_draft` path/root, extra
   `load_draft` path/root, and extra `begin_shutdown` path/root all fail
@@ -1503,7 +1561,7 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
   scan user vaults, and keeps `cross_project_search_allowed` and
   `implicit_current_project_writes` false.   `ExplicitRouteArgs` requires both
   fields, rejects extra paths as schema, and rejects non-fixture routes as
-  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `inspect_cloud` / `preview_context` / `list_activity` / `list_backups` /
+  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `inspect_cloud` / `inspect_sync` / `list_shares` / `preview_context` / `list_activity` / `list_backups` /
   `restore_fixture` / `save_draft` / `load_draft` / `write_note` /
   `edit_note` / `move_note` / `delete_note` must not open the library,
   backup store, or draft store.
@@ -1719,6 +1777,31 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
   tokens / stored secrets / remote hosts / real vaults are `policy`.
   Dual profiles stay isolated (21 vs 27). Official cloud / remote
   auth remain UNVERIFIED. T31 does not start Supervisor or add rmcp.
+- Rust unit test: `inspect_sync` requires `ExplicitRouteArgs`. Extra
+  `path` / `root` / `token` / `host` fail closed as `schema`. Missing
+  route is `schema`. Non-fixture is `policy` and does not open the
+  library. Production `EmptyLibrary` is `sync_enabled=false`,
+  `sharing_enabled=false`, `remote_restore=false`, `last_sync=none`,
+  `classified_as: empty`. Tests inject `{temp}/bmdock-t32-*` that
+  still reports `sync_enabled=false`. A BMDock-owned fixture
+  `sync-claimed` flag is `unsupported`, not synced, and is not live
+  sync. Claiming synced/shared without a live official cloud session
+  is `unsupported`. Unauthorized remote / env tokens / stored
+  secrets / remote hosts / real vaults are `policy`. Dual profiles
+  stay isolated (21 vs 27). Do not mix profiles into the sync DTO.
+  Official cloud sync remains UNVERIFIED. T32 does not start
+  Supervisor or add rmcp.
+- Rust unit test: `list_shares` requires `ExplicitRouteArgs`. Extra
+  `path` / `root` / `token` / `host` fail closed as `schema`. Missing
+  route is `schema`. Non-fixture is `policy`. Production
+  `EmptyLibrary` is an empty shares catalog, `sharing_enabled=false`,
+  `classified_as: empty`. Claiming a live shared remote is
+  `unsupported`. A fixture `share-claimed` flag is `unsupported`,
+  not shared. Recovery remains T12 `restore_fixture`; fixture-only
+  local recovery tests may observe T12 still works. Envelope
+  `"synced"` / `"restored"` is not disk proof. `restore_sync` is
+  not an allowlisted command. T32 does not start Supervisor or add
+  rmcp.
 - Rust unit test: `preview_context` requires `ExplicitRouteArgs` plus
   `identifier` plus optional `query`. Extra `path` / `root` fail
   closed as `schema`. Missing identifier is `schema`. Non-fixture
@@ -1945,6 +2028,14 @@ await invokeTyped({
   args: { workspace: route.workspace, project: route.project },
 });
 await invokeTyped({
+  command: "inspect_sync",
+  args: { workspace: route.workspace, project: route.project },
+});
+await invokeTyped({
+  command: "list_shares",
+  args: { workspace: route.workspace, project: route.project },
+});
+await invokeTyped({
   command: "preview_context",
   args: { workspace: route.workspace, project: route.project, identifier, query },
 });
@@ -2015,7 +2106,7 @@ await listenTyped("runtime_state", (state) => renderState(state));
 These calls use the shared DTOs and the explicit fixture/event allowlist.
 `list_projects`, `run_preflight`, and `discover_config` take empty args.
 `select_project` remains fixture-only. `list_tree`, `read_note`,
-`list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
+`list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
 `write_note`, `edit_note`, `move_note`, and `delete_note` copy
 `ExplicitRouteArgs` on every call and must not treat `runtime.project` as
 an implicit target.
@@ -2029,7 +2120,11 @@ notes and is distinct from `import_notes`. Official extras / PDF/Office
 ingest remain UNVERIFIED. `inspect_cloud` is FAIL-CLOSED local-only
 (`cloud_enabled=false`, `remote_auth=false`,
 `credentials_present=false`, `cloud_allowed=false`). Official cloud /
-remote auth remain UNVERIFIED. `save_draft` / `load_draft`
+remote auth remain UNVERIFIED. `inspect_sync` / `list_shares` are
+FAIL-CLOSED local-only (`sync_enabled=false`, `sharing_enabled=false`,
+`remote_restore=false`, `last_sync=none`). Official cloud sync / share
+remain UNVERIFIED. Recovery remains T12 `restore_fixture`.
+`save_draft` / `load_draft`
 persist BMDock-owned session drafts, not official engine notes. Typed
 `write_note` is a host command on `NoteLibrary`, not raw `callTool`.
 Preflight reports

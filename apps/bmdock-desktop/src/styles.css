@@ -469,6 +469,15 @@ main {
   list-style: none;
 }
 
+.sync-list,
+.share-list {
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+  list-style: none;
+}
+
 .resource-list li,
 .prompt-list li,
 .tool-list li,
@@ -476,7 +485,9 @@ main {
 .import-list li,
 .audit-list li,
 .extras-list li,
-.cloud-list li {
+.cloud-list li,
+.sync-list li,
+.share-list li {
   display: flex;
   justify-content: space-between;
   align-items: center;

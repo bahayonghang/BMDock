@@ -45,6 +45,8 @@ import {
   type ExtraEntryDto,
   type IngestResultDto,
   type CloudInspectionDto,
+  type SyncInspectionDto,
+  type ShareCatalogDto,
   type AuditedApiLeafDto,
   type AuditedCliLeafDto,
   type AuditedIpcCommandDto,
@@ -78,7 +80,7 @@ import {
   type ShellLoadState,
 } from "./shell";
 
-const SECTIONS = ["workbench", "runtime", "projects", "preflight", "backups", "import", "extras", "cloud", "about"] as const;
+const SECTIONS = ["workbench", "runtime", "projects", "preflight", "backups", "import", "extras", "cloud", "sync", "about"] as const;
 type SectionId = (typeof SECTIONS)[number];
 
 function sectionLabel(id: SectionId): string {
@@ -99,6 +101,8 @@ function sectionLabel(id: SectionId): string {
       return t("navExtras");
     case "cloud":
       return t("navCloud");
+    case "sync":
+      return t("navSync");
     case "about":
       return t("navAbout");
     default: {
@@ -211,6 +215,8 @@ function SectionBody({
       return <ExtrasPanel />;
     case "cloud":
       return <CloudPanel />;
+    case "sync":
+      return <SyncPanel />;
     case "about":
       return <AboutPanel />;
     default: {
@@ -413,6 +419,8 @@ function WorkbenchLibrary({
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
@@ -731,6 +739,8 @@ async function openNote(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
@@ -814,6 +824,8 @@ async function loadRelations(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setRelations(null);
         setRelationsError({ category: "schema", message: t("unexpectedRelations") });
@@ -930,6 +942,8 @@ async function loadGraph(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setGraph(null);
         setGraphError(unexpectedGraphResponse());
@@ -1013,6 +1027,8 @@ async function loadMoreGraph(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setGraphError(unexpectedGraphResponse());
         return;
@@ -1096,6 +1112,8 @@ async function loadMoreTree(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
@@ -1572,6 +1590,8 @@ async function runSearch(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setSearch(null);
         setSearchError(unexpectedSearchResponse());
@@ -1655,6 +1675,8 @@ async function loadMoreSearch(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setSearchError(unexpectedSearchResponse());
         return;
@@ -1862,6 +1884,8 @@ async function runInspectSearch(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setInspector(null);
         setInspectorError(unexpectedInspectorResponse());
@@ -2098,6 +2122,8 @@ async function runRecallBenchmark(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setRecall(null);
         setRecallError(unexpectedRecallResponse());
@@ -2324,6 +2350,8 @@ async function runSchemaValidate(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setSchema(null);
         setSchemaError(unexpectedSchemaResponse());
@@ -2560,6 +2588,8 @@ async function loadContextPreview(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setPreview(null);
         setPreviewError(unexpectedPreviewResponse());
@@ -2735,6 +2765,8 @@ async function loadActivity(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setActivity(null);
         setActivityError(unexpectedActivityResponse());
@@ -2817,6 +2849,8 @@ async function loadMoreActivity(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setActivityError(unexpectedActivityResponse());
         return;
@@ -2983,6 +3017,8 @@ async function loadResources(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setResources(null);
         setResourcesError(unexpectedResourceResponse());
@@ -3065,6 +3101,8 @@ async function loadMoreResources(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setResourcesError(unexpectedResourceResponse());
         return;
@@ -3232,6 +3270,8 @@ async function loadPrompts(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setPrompts(null);
         setPromptsError(unexpectedPromptResponse());
@@ -3314,6 +3354,8 @@ async function loadMorePrompts(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setPromptsError(unexpectedPromptResponse());
         return;
@@ -3483,6 +3525,8 @@ async function loadTools(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setTools(null);
         setToolsError(unexpectedToolsResponse());
@@ -3672,6 +3716,8 @@ async function loadCli(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setCli(null);
         setCliError(unexpectedCliResponse());
@@ -3756,6 +3802,8 @@ async function loadMoreCli(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setCliError(unexpectedCliResponse());
         return;
@@ -3963,6 +4011,8 @@ async function loadApiAudit(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setAudit(null);
         setAuditError(unexpectedAuditResponse());
@@ -4469,6 +4519,8 @@ async function applyCrudResponse(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
       setError(unexpectedCrudResponse());
       return;
@@ -4807,6 +4859,8 @@ async function persistDraft(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -4895,6 +4949,8 @@ async function reloadDraft(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -5245,6 +5301,8 @@ function ProjectPanel({
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
                   setSelectError({
                     category: "schema",
@@ -5606,6 +5664,8 @@ function ImportPanel() {
         case "extras_catalog":
         case "document_ingested":
         case "cloud_inspection":
+        case "sync_inspection":
+        case "share_catalog":
         case "shutdown_begun":
           setError(unexpectedImportResponse());
           setResult(null);
@@ -5812,6 +5872,8 @@ function ExtrasPanel() {
         case "api_audit":
         case "document_ingested":
         case "cloud_inspection":
+        case "sync_inspection":
+        case "share_catalog":
         case "shutdown_begun":
           setError(unexpectedExtrasResponse());
           setCatalog(null);
@@ -5915,6 +5977,8 @@ function ExtrasPanel() {
         case "api_audit":
         case "extras_catalog":
         case "cloud_inspection":
+        case "sync_inspection":
+        case "share_catalog":
         case "shutdown_begun":
           setError(unexpectedExtrasResponse());
           setIngested(null);
@@ -6138,6 +6202,8 @@ function CloudPanel() {
         case "extras_catalog":
         case "document_ingested":
         case "shutdown_begun":
+        case "sync_inspection":
+        case "share_catalog":
           setError(unexpectedCloudResponse());
           setReport(null);
           setPhase("error");
@@ -6231,6 +6297,329 @@ function CloudPanel() {
                 ? t("cloudObservationEmpty")
                 : t("cloudObservationUnverified")}
             </span>
+          </li>
+        </ul>
+      ) : null}
+    </section>
+  );
+}
+
+type SyncError = {
+  category: "policy" | "schema" | "unsupported" | "invoke";
+  message: string;
+};
+
+function unexpectedSyncResponse(): SyncError {
+  return { category: "schema", message: t("unexpectedSync") };
+}
+
+function SyncPanel() {
+  const [phase, setPhase] = useState<"empty" | "ready" | "error">("empty");
+  const [report, setReport] = useState<SyncInspectionDto | null>(null);
+  const [shares, setShares] = useState<ShareCatalogDto | null>(null);
+  const [error, setError] = useState<SyncError | null>(null);
+
+  const loadSync = async () => {
+    const route = copyFixtureRoute();
+    try {
+      const syncResponse = await invokeTyped<IpcResponse>({
+        command: "inspect_sync",
+        args: {
+          workspace: route.workspace,
+          project: route.project,
+        },
+      });
+      switch (syncResponse.kind) {
+        case "error":
+          setError({ category: syncResponse.category, message: syncResponse.message });
+          setReport(null);
+          setShares(null);
+          setPhase("error");
+          return;
+        case "sync_inspection":
+          if (
+            syncResponse.sync_enabled ||
+            syncResponse.sharing_enabled ||
+            syncResponse.remote_restore ||
+            syncResponse.last_sync !== "none" ||
+            syncResponse.synced ||
+            syncResponse.shared ||
+            syncResponse.sync_claimed ||
+            syncResponse.live_official_cloud_session ||
+            syncResponse.remote_hosts_contacted ||
+            syncResponse.secrets_stored ||
+            syncResponse.env_tokens_read ||
+            syncResponse.mixed_profiles ||
+            syncResponse.engine_sync ||
+            syncResponse.scanned_user_obsidian_vault ||
+            syncResponse.files_written ||
+            !syncResponse.local_offline
+          ) {
+            setError(unexpectedSyncResponse());
+            setReport(null);
+            setShares(null);
+            setPhase("error");
+            return;
+          }
+          break;
+        case "capabilities":
+        case "runtime_state":
+        case "project_selected":
+        case "project_catalog":
+        case "preflight":
+        case "config_discovery":
+        case "tree_page":
+        case "note_read":
+        case "backup_catalog":
+        case "fixture_restored":
+        case "windows_runtime":
+        case "draft_saved":
+        case "draft_loaded":
+        case "note_written":
+        case "note_edited":
+        case "note_moved":
+        case "note_deleted":
+        case "relation_list":
+        case "graph_page":
+        case "search_page":
+        case "context_preview":
+        case "activity_page":
+        case "search_inspector":
+        case "recall_benchmark":
+        case "schema_validated":
+        case "resource_page":
+        case "prompt_page":
+        case "tool_inspection":
+        case "cli_inventory":
+        case "notes_imported":
+        case "api_audit":
+        case "extras_catalog":
+        case "document_ingested":
+        case "cloud_inspection":
+        case "share_catalog":
+        case "shutdown_begun":
+          setError(unexpectedSyncResponse());
+          setReport(null);
+          setShares(null);
+          setPhase("error");
+          return;
+        default: {
+          const exhaustive: never = syncResponse;
+          return exhaustive;
+        }
+      }
+
+      const shareResponse = await invokeTyped<IpcResponse>({
+        command: "list_shares",
+        args: {
+          workspace: route.workspace,
+          project: route.project,
+        },
+      });
+      switch (shareResponse.kind) {
+        case "error":
+          setError({ category: shareResponse.category, message: shareResponse.message });
+          setReport(null);
+          setShares(null);
+          setPhase("error");
+          return;
+        case "share_catalog":
+          if (
+            shareResponse.sharing_enabled ||
+            shareResponse.share_claimed ||
+            shareResponse.live_shared_remote ||
+            shareResponse.remote_restore ||
+            shareResponse.live_official_cloud_session ||
+            shareResponse.remote_hosts_contacted ||
+            shareResponse.secrets_stored ||
+            shareResponse.env_tokens_read ||
+            shareResponse.mixed_profiles ||
+            shareResponse.engine_share ||
+            shareResponse.scanned_user_obsidian_vault ||
+            shareResponse.files_written ||
+            shareResponse.shares.length > 0 ||
+            !shareResponse.local_offline
+          ) {
+            setError(unexpectedSyncResponse());
+            setReport(null);
+            setShares(null);
+            setPhase("error");
+            return;
+          }
+          setError(null);
+          setReport({
+            sync_enabled: false,
+            sharing_enabled: false,
+            remote_restore: false,
+            last_sync: "none",
+            synced: false,
+            shared: false,
+            sync_claimed: false,
+            local_offline: true,
+            live_official_cloud_session: false,
+            remote_hosts_contacted: false,
+            secrets_stored: false,
+            env_tokens_read: false,
+            mixed_profiles: false,
+            observation: syncResponse.observation,
+            engine_sync: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            files_written: false,
+          });
+          setShares({
+            shares: [],
+            sharing_enabled: false,
+            share_claimed: false,
+            live_shared_remote: false,
+            remote_restore: false,
+            local_offline: true,
+            live_official_cloud_session: false,
+            remote_hosts_contacted: false,
+            secrets_stored: false,
+            env_tokens_read: false,
+            mixed_profiles: false,
+            observation: shareResponse.observation,
+            engine_share: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            files_written: false,
+          });
+          setPhase("ready");
+          return;
+        case "capabilities":
+        case "runtime_state":
+        case "project_selected":
+        case "project_catalog":
+        case "preflight":
+        case "config_discovery":
+        case "tree_page":
+        case "note_read":
+        case "backup_catalog":
+        case "fixture_restored":
+        case "windows_runtime":
+        case "draft_saved":
+        case "draft_loaded":
+        case "note_written":
+        case "note_edited":
+        case "note_moved":
+        case "note_deleted":
+        case "relation_list":
+        case "graph_page":
+        case "search_page":
+        case "context_preview":
+        case "activity_page":
+        case "search_inspector":
+        case "recall_benchmark":
+        case "schema_validated":
+        case "resource_page":
+        case "prompt_page":
+        case "tool_inspection":
+        case "cli_inventory":
+        case "notes_imported":
+        case "api_audit":
+        case "extras_catalog":
+        case "document_ingested":
+        case "cloud_inspection":
+        case "sync_inspection":
+        case "shutdown_begun":
+          setError(unexpectedSyncResponse());
+          setReport(null);
+          setShares(null);
+          setPhase("error");
+          return;
+        default: {
+          const exhaustive: never = shareResponse;
+          return exhaustive;
+        }
+      }
+    } catch (cause) {
+      setError({
+        category: "invoke",
+        message: cause instanceof Error ? cause.message : String(cause),
+      });
+      setReport(null);
+      setShares(null);
+      setPhase("error");
+    }
+  };
+
+  const empty = phase === "empty" && !error;
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error
+    ? t("syncErrorTitle")
+    : empty
+      ? t("syncEmptyTitle")
+      : t("syncReadyTitle");
+
+  return (
+    <section
+      className="panel"
+      data-state={state}
+      aria-labelledby="sync-title"
+      role={error ? "alert" : undefined}
+    >
+      <p className="state-badge">{badge}</p>
+      <h2 id="sync-title">{heading}</h2>
+      <p>
+        {error
+          ? `${errorCategoryLabel(error.category)}：${error.message}`
+          : empty
+            ? t("syncEmptyBody")
+            : t("syncReadyBody")}
+      </p>
+      <p>{t("syncNotSynced")}</p>
+      <p>{t("syncNotShared")}</p>
+      <ul className="policy-list">
+        <li>
+          {t("syncEnabledLabel")}：{t("syncEnabledFalse")}
+        </li>
+        <li>
+          {t("sharingEnabledLabel")}：{t("sharingEnabledFalse")}
+        </li>
+        <li>
+          {t("remoteRestoreLabel")}：{t("remoteRestoreFalse")}
+        </li>
+        <li>
+          {t("lastSyncLabel")}：{t("lastSyncNone")}
+        </li>
+      </ul>
+      <button type="button" className="action" onClick={() => void loadSync()}>
+        {t("syncInspect")}
+      </button>
+      <ul className="policy-list">
+        <li>{t("syncNotMaintenance")}</li>
+        <li>{t("syncNoVault")}</li>
+        <li>{t("syncNoSecrets")}</li>
+        <li>{t("syncNoRemote")}</li>
+        <li>{t("syncNotOfficial")}</li>
+        <li>
+          {t("syncFilesWrittenLabel")}：
+          {report?.files_written || shares?.files_written ? t("syncWroteFiles") : t("syncNoWrite")}
+        </li>
+      </ul>
+      {report ? (
+        <ul className="sync-list">
+          <li>
+            <span>{t("syncLocalOfflineLabel")}</span>
+            <span>{report.local_offline ? t("syncYes") : t("syncNo")}</span>
+          </li>
+          <li>
+            <span>{t("syncObservationLabel")}</span>
+            <span>
+              {report.observation.classified_as === "empty"
+                ? t("syncObservationEmpty")
+                : t("syncObservationUnverified")}
+            </span>
+          </li>
+        </ul>
+      ) : null}
+      {shares ? (
+        <ul className="share-list">
+          <li>
+            <span>{t("shareCatalogLabel")}</span>
+            <span>{t("syncNotShared")}</span>
           </li>
         </ul>
       ) : null}
@@ -6337,6 +6726,8 @@ function BackupPanel() {
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
             setError(unexpectedBackupResponse());
             setPhase("error");
@@ -6530,6 +6921,8 @@ async function restoreNamedFixture(
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
@@ -6698,6 +7091,8 @@ function WindowsRuntimeCard() {
       case "extras_catalog":
       case "document_ingested":
       case "cloud_inspection":
+      case "sync_inspection":
+      case "share_catalog":
       case "shutdown_begun":
             setError(unexpectedWindowsResponse());
             setPhase("error");

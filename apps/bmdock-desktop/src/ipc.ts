@@ -91,6 +91,8 @@ export type IngestDocumentArgs = ExplicitRouteArgs & {
 };
 
 export type InspectCloudArgs = ExplicitRouteArgs;
+export type InspectSyncArgs = ExplicitRouteArgs;
+export type ListSharesArgs = ExplicitRouteArgs;
 
 export type PreviewContextArgs = ExplicitRouteArgs & {
   identifier: string;
@@ -159,6 +161,8 @@ export type IpcCommand =
   | { command: "inspect_extras"; args: InspectExtrasArgs }
   | { command: "ingest_document"; args: IngestDocumentArgs }
   | { command: "inspect_cloud"; args: InspectCloudArgs }
+  | { command: "inspect_sync"; args: InspectSyncArgs }
+  | { command: "list_shares"; args: ListSharesArgs }
   | { command: "preview_context"; args: PreviewContextArgs }
   | { command: "list_activity"; args: ListActivityArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
@@ -714,6 +718,50 @@ export interface CloudInspectionDto {
   files_written: false;
 }
 
+export interface SyncInspectionDto {
+  sync_enabled: false;
+  sharing_enabled: false;
+  remote_restore: false;
+  last_sync: "none";
+  synced: false;
+  shared: false;
+  sync_claimed: false;
+  local_offline: true;
+  live_official_cloud_session: false;
+  remote_hosts_contacted: false;
+  secrets_stored: false;
+  env_tokens_read: false;
+  mixed_profiles: false;
+  observation: NoteCrudObservationDto;
+  engine_sync: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  files_written: false;
+}
+
+export interface ShareRecordDto {
+  identifier: string;
+}
+
+export interface ShareCatalogDto {
+  shares: ShareRecordDto[];
+  sharing_enabled: false;
+  share_claimed: false;
+  live_shared_remote: false;
+  remote_restore: false;
+  local_offline: true;
+  live_official_cloud_session: false;
+  remote_hosts_contacted: false;
+  secrets_stored: false;
+  env_tokens_read: false;
+  mixed_profiles: false;
+  observation: NoteCrudObservationDto;
+  engine_share: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  files_written: false;
+}
+
 export type DraftClass = "empty" | "disk_verified" | "accepted_unverified" | "unclassified";
 
 export interface DraftObservationDto {
@@ -824,6 +872,8 @@ export type IpcResponse =
   | { kind: "extras_catalog" } & ExtrasCatalogDto
   | { kind: "document_ingested" } & IngestResultDto
   | { kind: "cloud_inspection" } & CloudInspectionDto
+  | { kind: "sync_inspection" } & SyncInspectionDto
+  | { kind: "share_catalog" } & ShareCatalogDto
   | { kind: "context_preview" } & ContextPreviewDto
   | { kind: "activity_page" } & ActivityPageDto
   | { kind: "backup_catalog" } & BackupCatalogDto
@@ -882,6 +932,8 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "inspect_extras":
     case "ingest_document":
     case "inspect_cloud":
+    case "inspect_sync":
+    case "list_shares":
     case "preview_context":
     case "list_activity":
     case "list_backups":
@@ -1208,6 +1260,28 @@ export const inspectCloud = () => {
   const route = copyFixtureRoute();
   return invokeTyped<{ kind: "cloud_inspection" } & CloudInspectionDto>({
     command: "inspect_cloud",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+    },
+  });
+};
+
+export const inspectSync = () => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "sync_inspection" } & SyncInspectionDto>({
+    command: "inspect_sync",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+    },
+  });
+};
+
+export const listShares = () => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "share_catalog" } & ShareCatalogDto>({
+    command: "list_shares",
     args: {
       workspace: route.workspace,
       project: route.project,

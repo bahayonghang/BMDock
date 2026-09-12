@@ -139,6 +139,26 @@ pub const POLICY_CLOUD_CREDENTIAL_ROUTE: &str =
     "unauthorized remote, credential, env-token, or real-vault cloud routes are policy and are not opened";
 #[cfg(test)]
 pub const CLOUD_CLAIMED_FLAG: &str = "cloud-claimed";
+pub const ENGINE_SYNC_NOT_OWNED: &str =
+    "inspect_sync is a BMDock-owned local-only status; it is not a live official cloud sync session or remote restore";
+#[cfg(test)]
+pub const OFFICIAL_SYNC_UNVERIFIED: &str =
+    "official Basic Memory cloud sync / share / remote restore remain UNVERIFIED";
+pub const UNSUPPORTED_SYNC_CLAIMED_NOT_LIVE: &str =
+    "fixture sync-claimed flag is unsupported, not synced; claiming synced/shared without a live official cloud session is unsupported";
+pub const POLICY_SYNC_CREDENTIAL_ROUTE: &str =
+    "unauthorized remote, credential, env-token, or real-vault sync/share/restore routes are policy and are not opened";
+pub const ENGINE_SHARE_NOT_OWNED: &str =
+    "list_shares is a BMDock-owned empty catalog; claiming a live shared remote is unsupported";
+pub const UNSUPPORTED_SHARE_CLAIMED_NOT_LIVE: &str =
+    "fixture share-claimed flag is unsupported, not shared; claiming a live shared remote is unsupported";
+pub const UNSUPPORTED_SYNC_RESTORE_NOT_T12: &str =
+    "cloud/sync restore is unsupported; recovery remains T12 restore_fixture, not disk-verified user-vault or cloud restore";
+pub const LAST_SYNC_NONE: &str = "none";
+#[cfg(test)]
+pub const SYNC_CLAIMED_FLAG: &str = "sync-claimed";
+#[cfg(test)]
+pub const SHARE_CLAIMED_FLAG: &str = "share-claimed";
 pub const CAPABILITY_SEMANTIC: &str = "semantic";
 pub const CAPABILITY_EXTRAS_INGEST: &str = "extras_ingest";
 pub const CAPABILITY_CLOUD: &str = "cloud";
@@ -192,6 +212,8 @@ pub const ALLOWLISTED_IPC_COMMANDS: &[&str] = &[
     "inspect_extras",
     "ingest_document",
     "inspect_cloud",
+    "inspect_sync",
+    "list_shares",
     "preview_context",
     "list_activity",
     "list_backups",
@@ -1387,6 +1409,211 @@ pub fn accept_cloud_inspection(
     Ok(report)
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SyncInspectionDto {
+    pub sync_enabled: bool,
+    pub sharing_enabled: bool,
+    pub remote_restore: bool,
+    pub last_sync: String,
+    pub synced: bool,
+    pub shared: bool,
+    pub sync_claimed: bool,
+    pub local_offline: bool,
+    pub live_official_cloud_session: bool,
+    pub remote_hosts_contacted: bool,
+    pub secrets_stored: bool,
+    pub env_tokens_read: bool,
+    pub mixed_profiles: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_sync: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub files_written: bool,
+}
+
+pub fn empty_sync_inspection() -> SyncInspectionDto {
+    SyncInspectionDto {
+        sync_enabled: false,
+        sharing_enabled: false,
+        remote_restore: false,
+        last_sync: LAST_SYNC_NONE.to_owned(),
+        synced: false,
+        shared: false,
+        sync_claimed: false,
+        local_offline: true,
+        live_official_cloud_session: false,
+        remote_hosts_contacted: false,
+        secrets_stored: false,
+        env_tokens_read: false,
+        mixed_profiles: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_sync: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        files_written: false,
+    }
+}
+
+pub fn accept_sync_inspection(
+    report: SyncInspectionDto,
+) -> Result<SyncInspectionDto, LibraryError> {
+    if report.scanned_user_obsidian_vault
+        || report.scanned_user_basic_memory_home
+        || report.remote_hosts_contacted
+        || report.secrets_stored
+        || report.env_tokens_read
+    {
+        return Err(LibraryError::policy(POLICY_SYNC_CREDENTIAL_ROUTE));
+    }
+    if report.engine_sync {
+        return Err(LibraryError::unsupported(ENGINE_SYNC_NOT_OWNED));
+    }
+    if report.mixed_profiles {
+        return Err(LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES));
+    }
+    if report.remote_restore {
+        return Err(LibraryError::unsupported(UNSUPPORTED_SYNC_RESTORE_NOT_T12));
+    }
+    if report.files_written
+        || report.sync_enabled
+        || report.sharing_enabled
+        || report.synced
+        || report.shared
+        || report.live_official_cloud_session
+        || report.sync_claimed
+        || report.last_sync != LAST_SYNC_NONE
+        || report.observation.disk_verified
+        || report.observation.classified_as == NoteCrudClass::DiskVerified
+    {
+        return Err(LibraryError::unsupported(UNSUPPORTED_SYNC_CLAIMED_NOT_LIVE));
+    }
+    let mut report = report;
+    report.sync_enabled = false;
+    report.sharing_enabled = false;
+    report.remote_restore = false;
+    report.last_sync = LAST_SYNC_NONE.to_owned();
+    report.synced = false;
+    report.shared = false;
+    report.sync_claimed = false;
+    report.local_offline = true;
+    report.live_official_cloud_session = false;
+    report.remote_hosts_contacted = false;
+    report.secrets_stored = false;
+    report.env_tokens_read = false;
+    report.mixed_profiles = false;
+    report.engine_sync = false;
+    report.files_written = false;
+    report.observation.envelope_is_not_disk_proof = true;
+    report.observation.disk_verified = false;
+    report.observation.classified_as = NoteCrudClass::Empty;
+    Ok(report)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ShareRecordDto {
+    pub identifier: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ShareCatalogDto {
+    pub shares: Vec<ShareRecordDto>,
+    pub sharing_enabled: bool,
+    pub share_claimed: bool,
+    pub live_shared_remote: bool,
+    pub remote_restore: bool,
+    pub local_offline: bool,
+    pub live_official_cloud_session: bool,
+    pub remote_hosts_contacted: bool,
+    pub secrets_stored: bool,
+    pub env_tokens_read: bool,
+    pub mixed_profiles: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_share: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub files_written: bool,
+}
+
+pub fn empty_share_catalog() -> ShareCatalogDto {
+    ShareCatalogDto {
+        shares: Vec::new(),
+        sharing_enabled: false,
+        share_claimed: false,
+        live_shared_remote: false,
+        remote_restore: false,
+        local_offline: true,
+        live_official_cloud_session: false,
+        remote_hosts_contacted: false,
+        secrets_stored: false,
+        env_tokens_read: false,
+        mixed_profiles: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_share: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        files_written: false,
+    }
+}
+
+pub fn accept_share_catalog(report: ShareCatalogDto) -> Result<ShareCatalogDto, LibraryError> {
+    if report.scanned_user_obsidian_vault
+        || report.scanned_user_basic_memory_home
+        || report.remote_hosts_contacted
+        || report.secrets_stored
+        || report.env_tokens_read
+    {
+        return Err(LibraryError::policy(POLICY_SYNC_CREDENTIAL_ROUTE));
+    }
+    if report.engine_share {
+        return Err(LibraryError::unsupported(ENGINE_SHARE_NOT_OWNED));
+    }
+    if report.mixed_profiles {
+        return Err(LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES));
+    }
+    if report.remote_restore {
+        return Err(LibraryError::unsupported(UNSUPPORTED_SYNC_RESTORE_NOT_T12));
+    }
+    if report.files_written
+        || report.sharing_enabled
+        || report.share_claimed
+        || report.live_shared_remote
+        || report.live_official_cloud_session
+        || !report.shares.is_empty()
+        || report.observation.disk_verified
+        || report.observation.classified_as == NoteCrudClass::DiskVerified
+    {
+        return Err(LibraryError::unsupported(
+            UNSUPPORTED_SHARE_CLAIMED_NOT_LIVE,
+        ));
+    }
+    let mut report = report;
+    report.shares.clear();
+    report.sharing_enabled = false;
+    report.share_claimed = false;
+    report.live_shared_remote = false;
+    report.remote_restore = false;
+    report.local_offline = true;
+    report.live_official_cloud_session = false;
+    report.remote_hosts_contacted = false;
+    report.secrets_stored = false;
+    report.env_tokens_read = false;
+    report.mixed_profiles = false;
+    report.engine_share = false;
+    report.files_written = false;
+    report.observation.envelope_is_not_disk_proof = true;
+    report.observation.disk_verified = false;
+    report.observation.classified_as = NoteCrudClass::Empty;
+    Ok(report)
+}
+
 pub fn accept_import_result(report: ImportResultDto) -> Result<ImportResultDto, LibraryError> {
     if report.engine_import {
         return Err(LibraryError::unsupported(ENGINE_IMPORT_NOT_OWNED));
@@ -1883,6 +2110,14 @@ pub trait NoteLibrary: Send + Sync {
 
     fn inspect_cloud(&self) -> Result<CloudInspectionDto, LibraryError> {
         Ok(empty_cloud_inspection())
+    }
+
+    fn inspect_sync(&self) -> Result<SyncInspectionDto, LibraryError> {
+        Ok(empty_sync_inspection())
+    }
+
+    fn list_shares(&self) -> Result<ShareCatalogDto, LibraryError> {
+        Ok(empty_share_catalog())
     }
 
     fn write_note(
@@ -2521,6 +2756,46 @@ impl FixtureLibrary {
         crate::content_safety::persist_exact_utf8(
             &path,
             "fixture-cloud-claimed-not-live-official-session\n",
+        )
+        .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        Ok(path)
+    }
+
+    fn require_sync_root(&self) -> Result<(), LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        if !self.root.to_string_lossy().contains("bmdock-t32") {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        Ok(())
+    }
+
+    pub fn seed_sync_claimed_flag(&self) -> Result<PathBuf, LibraryError> {
+        self.require_sync_root()?;
+        fs::create_dir_all(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let path = self.root.join(SYNC_CLAIMED_FLAG);
+        if library_root_is_forbidden(&path) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        crate::content_safety::persist_exact_utf8(
+            &path,
+            "fixture-sync-claimed-not-live-official-session\n",
+        )
+        .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        Ok(path)
+    }
+
+    pub fn seed_share_claimed_flag(&self) -> Result<PathBuf, LibraryError> {
+        self.require_sync_root()?;
+        fs::create_dir_all(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let path = self.root.join(SHARE_CLAIMED_FLAG);
+        if library_root_is_forbidden(&path) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        crate::content_safety::persist_exact_utf8(
+            &path,
+            "fixture-share-claimed-not-live-shared-remote\n",
         )
         .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
         Ok(path)
@@ -3353,6 +3628,42 @@ impl NoteLibrary for FixtureLibrary {
             ));
         }
         Ok(empty_cloud_inspection())
+    }
+
+    fn inspect_sync(&self) -> Result<SyncInspectionDto, LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        let flag = self.root.join(SYNC_CLAIMED_FLAG);
+        if flag.is_symlink() {
+            return Err(LibraryError::policy(POLICY_SYNC_CREDENTIAL_ROUTE));
+        }
+        if flag.is_file() {
+            if library_root_is_forbidden(&flag)
+                || !self.root.to_string_lossy().contains("bmdock-t32")
+            {
+                return Err(LibraryError::policy(POLICY_SYNC_CREDENTIAL_ROUTE));
+            }
+            return Err(LibraryError::unsupported(UNSUPPORTED_SYNC_CLAIMED_NOT_LIVE));
+        }
+        Ok(empty_sync_inspection())
+    }
+
+    fn list_shares(&self) -> Result<ShareCatalogDto, LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        let flag = self.root.join(SHARE_CLAIMED_FLAG);
+        if flag.is_symlink() {
+            return Err(LibraryError::policy(POLICY_SYNC_CREDENTIAL_ROUTE));
+        }
+        if flag.is_file() {
+            if library_root_is_forbidden(&flag)
+                || !self.root.to_string_lossy().contains("bmdock-t32")
+            {
+                return Err(LibraryError::policy(POLICY_SYNC_CREDENTIAL_ROUTE));
+            }
+            return Err(LibraryError::unsupported(
+                UNSUPPORTED_SHARE_CLAIMED_NOT_LIVE,
+            ));
+        }
+        Ok(empty_share_catalog())
     }
 
     fn write_note(
@@ -5045,6 +5356,24 @@ mod tests {
         assert!(cloud.local_offline);
         assert!(!cloud.engine_cloud);
         assert_eq!(cloud.observation.classified_as, NoteCrudClass::Empty);
+        let sync = library.inspect_sync().unwrap();
+        assert!(!sync.sync_enabled);
+        assert!(!sync.sharing_enabled);
+        assert!(!sync.remote_restore);
+        assert_eq!(sync.last_sync, LAST_SYNC_NONE);
+        assert!(!sync.synced);
+        assert!(!sync.shared);
+        assert!(sync.local_offline);
+        assert!(!sync.engine_sync);
+        assert_eq!(sync.observation.classified_as, NoteCrudClass::Empty);
+        let shares = library.list_shares().unwrap();
+        assert!(shares.shares.is_empty());
+        assert!(!shares.sharing_enabled);
+        assert!(!shares.live_shared_remote);
+        assert!(!shares.remote_restore);
+        assert!(shares.local_offline);
+        assert!(!shares.engine_share);
+        assert_eq!(shares.observation.classified_as, NoteCrudClass::Empty);
         let _ = (
             ENGINE_GRAPH_NOT_OWNED,
             ENGINE_SEARCH_NOT_OWNED,
@@ -6629,6 +6958,114 @@ mod tests {
             ENGINE_CLOUD_NOT_OWNED,
             OFFICIAL_CLOUD_UNVERIFIED,
             UNSUPPORTED_CLOUD_CLAIMED_NOT_LIVE,
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn fixture_sync_inspection_is_local_offline_and_claimed_flag_is_unsupported() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t32-{nanos}"));
+        fs::create_dir_all(&dir).unwrap();
+        let library = FixtureLibrary::new(dir.clone());
+        let report = library.inspect_sync().unwrap();
+        assert!(!report.sync_enabled);
+        assert!(!report.sharing_enabled);
+        assert!(!report.remote_restore);
+        assert_eq!(report.last_sync, LAST_SYNC_NONE);
+        assert!(!report.synced);
+        assert!(!report.shared);
+        assert!(!report.sync_claimed);
+        assert!(report.local_offline);
+        assert!(!report.live_official_cloud_session);
+        assert!(!report.remote_hosts_contacted);
+        assert!(!report.secrets_stored);
+        assert!(!report.env_tokens_read);
+        assert!(!report.mixed_profiles);
+        assert!(!report.engine_sync);
+        assert!(!report.files_written);
+        assert_eq!(report.observation.classified_as, NoteCrudClass::Empty);
+        let shares = library.list_shares().unwrap();
+        assert!(shares.shares.is_empty());
+        assert!(!shares.sharing_enabled);
+        assert!(!shares.share_claimed);
+        assert!(!shares.live_shared_remote);
+        assert!(!shares.remote_restore);
+        assert!(shares.local_offline);
+        assert_eq!(shares.observation.classified_as, NoteCrudClass::Empty);
+        let flag = library.seed_sync_claimed_flag().unwrap();
+        assert!(flag.is_file());
+        let disk = fs::read_to_string(&flag).unwrap();
+        assert!(disk.contains("fixture-sync-claimed-not-live"));
+        assert_eq!(
+            library.inspect_sync().unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_SYNC_CLAIMED_NOT_LIVE)
+        );
+        let share_flag = library.seed_share_claimed_flag().unwrap();
+        assert!(share_flag.is_file());
+        let share_disk = fs::read_to_string(&share_flag).unwrap();
+        assert!(share_disk.contains("fixture-share-claimed-not-live"));
+        assert_eq!(
+            library.list_shares().unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_SHARE_CLAIMED_NOT_LIVE)
+        );
+        let claimed = SyncInspectionDto {
+            synced: true,
+            shared: true,
+            sync_enabled: true,
+            last_sync: "envelope-synced".to_owned(),
+            ..empty_sync_inspection()
+        };
+        assert_eq!(
+            accept_sync_inspection(claimed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_SYNC_CLAIMED_NOT_LIVE)
+        );
+        let restored = SyncInspectionDto {
+            remote_restore: true,
+            ..empty_sync_inspection()
+        };
+        assert_eq!(
+            accept_sync_inspection(restored).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_SYNC_RESTORE_NOT_T12)
+        );
+        let credentials = SyncInspectionDto {
+            env_tokens_read: true,
+            ..empty_sync_inspection()
+        };
+        assert_eq!(
+            accept_sync_inspection(credentials).unwrap_err(),
+            LibraryError::policy(POLICY_SYNC_CREDENTIAL_ROUTE)
+        );
+        let live_share = ShareCatalogDto {
+            shares: vec![ShareRecordDto {
+                identifier: "live-share".to_owned(),
+            }],
+            sharing_enabled: true,
+            live_shared_remote: true,
+            ..empty_share_catalog()
+        };
+        assert_eq!(
+            accept_share_catalog(live_share).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_SHARE_CLAIMED_NOT_LIVE)
+        );
+        let share_restore = ShareCatalogDto {
+            remote_restore: true,
+            ..empty_share_catalog()
+        };
+        assert_eq!(
+            accept_share_catalog(share_restore).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_SYNC_RESTORE_NOT_T12)
+        );
+        let _ = (
+            ENGINE_SYNC_NOT_OWNED,
+            OFFICIAL_SYNC_UNVERIFIED,
+            ENGINE_SHARE_NOT_OWNED,
+            UNSUPPORTED_SYNC_CLAIMED_NOT_LIVE,
+            UNSUPPORTED_SHARE_CLAIMED_NOT_LIVE,
+            UNSUPPORTED_SYNC_RESTORE_NOT_T12,
         );
         let _ = fs::remove_dir_all(&dir);
     }

@@ -542,3 +542,25 @@ zh-CN 工作台「Cloud / 远程授权」区分空态 / 错误 / 就绪，显示
 本机 Windows 本轮命令见 [t31-cloud-remote-auth.json](../execution/evidence/t31-cloud-remote-auth.json)。`python -m scripts.tasks unit` 以 G0 未 passed 且 T05+ 已 completed 失败（未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方 cloud / hosted CI 证据；这些仍为 `UNVERIFIED`。
 
 T31 证据与验收映射见 [t31-cloud-remote-auth.json](../execution/evidence/t31-cloud-remote-auth.json)。`execution/status.json` 仅将 T31 标为 `completed`；未改 T05–T30/G0。
+
+## T32：Cloud 同步共享与恢复管理
+
+T32 在现有 `ipc_invoke` 上增加 typed `inspect_sync`（`ExplicitRouteArgs`，`deny_unknown_fields`）与 typed `list_shares`（同样的 `ExplicitRouteArgs` fail-closed 规则）。额外 `path`/`root`/`token`/`host` 为 schema。缺路由为 schema。非 fixture 路由为 policy，且不打开库。capabilities 精确允许列为 37 个命令。typed `inspect_sync` / `list_shares` 允许。`restore_sync` 不在允许列。
+
+Cloud 同步 / 共享保持 FAIL-CLOSED。生产默认 `sync_enabled=false`、`sharing_enabled=false`、`remote_restore=false`、`last_sync=none`。宣称 synced/shared 而没有 live official cloud session 为 unsupported。生产共享目录为空。宣称 live shared remote 为 unsupported。测试注入 `{temp}/bmdock-t32-*`，默认仍报告 `sync_enabled=false`。BMDock 自有夹具 `sync-claimed` 标记仍不是已同步，分类为 unsupported。`share-claimed` 不是已共享。未存储密钥，未读取用户环境 token，未联系远程主机。未把 `just contract` 当作 T32 证明。不启动 Supervisor。无 rmcp。
+
+AC14：`inspect_sync` / `list_shares` 每次携带 `ExplicitRouteArgs`。非 fixture 为 policy。额外 path/root/token/host 为 schema。缺路由为 schema。
+
+AC42：无隐式 cloud/sync 路由。本地离线。release（21）与 main-preview（27）保持隔离，不把 profile 混进 sync DTO。
+
+AC43：Cloud 同步 / 共享 FAIL-CLOSED。生产 `sync_enabled=false`、`sharing_enabled=false`、`remote_restore=false`、`last_sync=none`。宣称 synced/shared 而没有 live official cloud session 为 unsupported。不联系远程主机、不存储密钥、不读取环境 token。
+
+AC52：恢复仍走 T12 `restore_fixture`，不是 cloud restore。信封 `"synced"` / `"restored"` 不是磁盘证明。夹具本地恢复测试仍可观察 T12 `restore_fixture` 把生成 Markdown 写到自有目标。未发明 cloud restore 磁盘成功。
+
+zh-CN 工作台「同步 / 共享」区分空态 / 错误 / 就绪，显示未同步 / 未共享，与维护分区的 restore_fixture 分开。无 `dangerouslySetInnerHTML`。不启动 Supervisor。无新 npm 依赖。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T32 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令见 [t32-cloud-sync-recovery.json](../execution/evidence/t32-cloud-sync-recovery.json)。`python -m scripts.tasks unit` 以 G0 未 passed 且 T05+ 已 completed 失败（未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方 cloud sync / hosted CI 证据；这些仍为 `UNVERIFIED`。
+
+T32 证据与验收映射见 [t32-cloud-sync-recovery.json](../execution/evidence/t32-cloud-sync-recovery.json)。`execution/status.json` 仅将 T32 标为 `completed`；未改 T05–T31/G0。
