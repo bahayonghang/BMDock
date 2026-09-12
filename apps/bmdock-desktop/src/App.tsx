@@ -13,6 +13,8 @@ import {
   type EngineProfile,
   type IpcResponse,
   type NoteReadDto,
+  type RelationListDto,
+  type RelationDto,
   type PreflightDto,
   type ProjectCatalogDto,
   type RestoreResultDto,
@@ -233,6 +235,12 @@ function WorkbenchLibrary({
   const [entries, setEntries] = useState<TreeEntryDto[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [note, setNote] = useState<NoteReadDto | null>(null);
+  const [relations, setRelations] = useState<RelationListDto | null>(null);
+  const [relationsError, setRelationsError] = useState<WorkbenchError | null>(null);
+  const [crudObservation, setCrudObservation] = useState<{
+    identifier: string;
+    classified_as: NoteCrudClass;
+  } | null>(null);
   const [error, setError] = useState<WorkbenchError | null>(null);
 
   useEffect(() => {
@@ -241,6 +249,9 @@ function WorkbenchLibrary({
     setEntries([]);
     setNextCursor(null);
     setNote(null);
+    setRelations(null);
+    setRelationsError(null);
+    setCrudObservation(null);
     setError(null);
     void (async () => {
       try {
@@ -287,7 +298,8 @@ function WorkbenchLibrary({
           case "note_edited":
           case "note_moved":
           case "note_deleted":
-          case "shutdown_begun":
+          case "relation_list":
+      case "shutdown_begun":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
             return;
@@ -368,7 +380,14 @@ function WorkbenchLibrary({
                 className="tree-item"
                 onClick={() => {
                   if (entry.kind === "note") {
-                    void openNote(entry.identifier, setNote, setError, setPhase);
+                    void openNote(
+                      entry.identifier,
+                      setNote,
+                      setRelations,
+                      setRelationsError,
+                      setError,
+                      setPhase,
+                    );
                   }
                 }}
               >
@@ -390,12 +409,22 @@ function WorkbenchLibrary({
         </button>
       ) : null}
       <NotePreview note={note} />
+      <ObservationPanel
+        note={note}
+        relations={relations}
+        relationsError={relationsError}
+        crudObservation={crudObservation}
+      />
+      <RelationPanel relations={relations} error={relationsError} />
       <NoteCrudPanel
         seedIdentifier={note?.identifier ?? null}
         seedTitle={note?.title ?? null}
         seedBody={note?.body ?? null}
         runtimeFailure={runtimeFailure}
         onMutated={() => setReloadToken((token) => token + 1)}
+        onObservation={(identifier, classified_as) => {
+          setCrudObservation({ identifier, classified_as });
+        }}
       />
       <DraftEditor seedIdentifier={note?.identifier ?? null} seedBody={note?.body ?? null} />
       {refresh}
@@ -406,6 +435,8 @@ function WorkbenchLibrary({
 async function openNote(
   identifier: string,
   setNote: (note: NoteReadDto | null) => void,
+  setRelations: (relations: RelationListDto | null) => void,
+  setRelationsError: (error: WorkbenchError | null) => void,
   setError: (error: WorkbenchError | null) => void,
   setPhase: (phase: "loading" | "ready" | "empty" | "error") => void,
 ): Promise<void> {
@@ -432,6 +463,7 @@ async function openNote(
           body: response.body,
           observation: response.observation,
         });
+        await loadRelations(identifier, setRelations, setRelationsError);
         return;
       case "capabilities":
       case "runtime_state":
@@ -440,6 +472,7 @@ async function openNote(
       case "preflight":
       case "config_discovery":
       case "tree_page":
+      case "relation_list":
       case "backup_catalog":
       case "fixture_restored":
       case "windows_runtime":
@@ -464,6 +497,73 @@ async function openNote(
       message: cause instanceof Error ? cause.message : String(cause),
     });
     setPhase("error");
+  }
+}
+
+async function loadRelations(
+  identifier: string,
+  setRelations: (relations: RelationListDto | null) => void,
+  setRelationsError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "list_relations",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        identifier,
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setRelations(null);
+        setRelationsError({ category: response.category, message: response.message });
+        return;
+      case "relation_list":
+        setRelationsError(null);
+        setRelations({
+          identifier: response.identifier,
+          relations: response.relations,
+          observation: response.observation,
+          engine_graph: false,
+          scanned_user_obsidian_vault: false,
+          scanned_user_basic_memory_home: false,
+          files_written: response.files_written,
+        });
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
+      case "shutdown_begun":
+        setRelations(null);
+        setRelationsError({ category: "schema", message: t("unexpectedRelations") });
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setRelations(null);
+    setRelationsError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
   }
 }
 
@@ -517,6 +617,7 @@ async function loadMoreTree(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "relation_list":
       case "shutdown_begun":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
@@ -623,6 +724,164 @@ function NotePreview({ note }: { note: NoteReadDto | null }) {
   );
 }
 
+function mapReadObservation(note: NoteReadDto): NoteCrudClass {
+  switch (note.observation.classified_as) {
+    case "body_matches_disk":
+      return "disk_verified";
+    case "accepted_unverified":
+      return "accepted_unverified";
+    case "empty":
+      return "empty";
+    case "unclassified":
+      return "unclassified";
+    default: {
+      const exhaustive: never = note.observation.classified_as;
+      return exhaustive;
+    }
+  }
+}
+
+function observationClassLabel(classified: NoteCrudClass): string {
+  switch (classified) {
+    case "disk_verified":
+      return t("observationDisk");
+    case "accepted_unverified":
+      return t("observationUnverified");
+    case "conflict":
+      return t("observationConflict");
+    case "empty":
+      return t("observationEmpty");
+    case "unclassified":
+      return t("observationUnclassified");
+    default: {
+      const exhaustive: never = classified;
+      return exhaustive;
+    }
+  }
+}
+
+function ObservationPanel({
+  note,
+  relations,
+  relationsError,
+  crudObservation,
+}: {
+  note: NoteReadDto | null;
+  relations: RelationListDto | null;
+  relationsError: WorkbenchError | null;
+  crudObservation: { identifier: string; classified_as: NoteCrudClass } | null;
+}) {
+  const currentId = note?.identifier ?? relations?.identifier ?? crudObservation?.identifier ?? null;
+  let classified: NoteCrudClass = "empty";
+  if (crudObservation && (currentId === null || crudObservation.identifier === currentId)) {
+    classified = crudObservation.classified_as;
+  } else if (relations) {
+    classified = relations.observation.classified_as;
+  } else if (note) {
+    classified = mapReadObservation(note);
+  }
+  if (relationsError && !note && !relations && !crudObservation) {
+    return (
+      <section className="subpanel" data-state="error" aria-labelledby="observation-title" role="alert">
+        <p className="state-badge">{t("errorBadge")}</p>
+        <h3 id="observation-title">{t("observationErrorTitle")}</h3>
+        <p>
+          {errorCategoryLabel(relationsError.category)}：{relationsError.message}
+        </p>
+      </section>
+    );
+  }
+  const empty = classified === "empty" && !note && !relations && !crudObservation;
+  return (
+    <section
+      className="subpanel"
+      data-state={empty ? "empty" : "status"}
+      aria-labelledby="observation-title"
+    >
+      <p className="state-badge">{empty ? t("emptyBadge") : t("statusBadge")}</p>
+      <h3 id="observation-title">{empty ? t("observationEmptyTitle") : t("observationReadyTitle")}</h3>
+      <p>{empty ? t("observationEmptyBody") : t("observationReadyBody")}</p>
+      <p>{t("observationDistinctFromRelations")}</p>
+      <dl className="facts">
+        <div>
+          <dt>{t("workbenchIdentifierLabel")}</dt>
+          <dd>{currentId ?? "—"}</dd>
+        </div>
+        <div>
+          <dt>classified_as</dt>
+          <dd data-observation={classified}>{observationClassLabel(classified)}</dd>
+        </div>
+      </dl>
+      <ul className="observation-legend">
+        <li>{t("observationDisk")}</li>
+        <li>{t("observationUnverified")}</li>
+        <li>{t("observationConflict")}</li>
+        <li>{t("observationEmpty")}</li>
+      </ul>
+    </section>
+  );
+}
+
+function relationTargetLabel(classified: RelationDto["classified_as"]): string {
+  switch (classified) {
+    case "present":
+      return t("relationsPresent");
+    case "empty":
+      return t("relationsMissing");
+    case "unsupported":
+      return t("relationsUnsupported");
+    default: {
+      const exhaustive: never = classified;
+      return exhaustive;
+    }
+  }
+}
+
+function RelationPanel({
+  relations,
+  error,
+}: {
+  relations: RelationListDto | null;
+  error: WorkbenchError | null;
+}) {
+  if (error) {
+    return (
+      <section className="subpanel" data-state="error" aria-labelledby="relations-title" role="alert">
+        <p className="state-badge">{t("errorBadge")}</p>
+        <h3 id="relations-title">{t("relationsErrorTitle")}</h3>
+        <p>
+          {errorCategoryLabel(error.category)}：{error.message}
+        </p>
+      </section>
+    );
+  }
+  const empty = relations === null || relations.relations.length === 0;
+  return (
+    <section
+      className="subpanel"
+      data-state={empty ? "empty" : "status"}
+      aria-labelledby="relations-title"
+    >
+      <p className="state-badge">{empty ? t("emptyBadge") : t("statusBadge")}</p>
+      <h3 id="relations-title">{empty ? t("relationsEmptyTitle") : t("relationsReadyTitle")}</h3>
+      <p>{empty ? t("relationsEmptyBody") : t("relationsReadyBody")}</p>
+      <p>{t("relationsPermalinkNotPath")}</p>
+      <p>{t("relationsNotEngineGraph")}</p>
+      <p>{t("relationsMcpUnverified")}</p>
+      {relations && relations.relations.length > 0 ? (
+        <ul className="relation-list">
+          {relations.relations.map((item) => (
+            <li key={item.identifier} data-relation={item.classified_as}>
+              <span>{item.identifier}</span>
+              <span>{relationTargetLabel(item.classified_as)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  );
+}
+
 function isFixtureNoteIdentifier(value: string): boolean {
   const identifier = value.trim();
   if (identifier === "") {
@@ -674,12 +933,14 @@ function NoteCrudPanel({
   seedBody,
   runtimeFailure,
   onMutated,
+  onObservation,
 }: {
   seedIdentifier: string | null;
   seedTitle: string | null;
   seedBody: string | null;
   runtimeFailure: FailureKind | null;
   onMutated: () => void;
+  onObservation: (identifier: string, classified_as: NoteCrudClass) => void;
 }) {
   const [identifier, setIdentifier] = useState("");
   const [title, setTitle] = useState("");
@@ -688,6 +949,14 @@ function NoteCrudPanel({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [result, setResult] = useState<NoteCrudResult | null>(null);
   const [error, setError] = useState<WorkbenchError | null>(null);
+
+  const recordResult = (next: NoteCrudResult | null) => {
+    setResult(next);
+    if (next) {
+      const target = next.kind === "note_moved" ? next.destination : next.identifier;
+      onObservation(target, next.observation.classified_as);
+    }
+  };
 
   useEffect(() => {
     if (!seedIdentifier) {
@@ -804,7 +1073,7 @@ function NoteCrudPanel({
         className="action"
         disabled={!fixtureOk || title.trim() === ""}
         onClick={() => {
-          void runWriteNote(identifier, title, body, setResult, setError, onMutated);
+          void runWriteNote(identifier, title, body, recordResult, setError, onMutated);
         }}
       >
         {t("crudWrite")}
@@ -814,7 +1083,7 @@ function NoteCrudPanel({
         className="action"
         disabled={!fixtureOk}
         onClick={() => {
-          void runEditNote(identifier, body, setResult, setError, onMutated);
+          void runEditNote(identifier, body, recordResult, setError, onMutated);
         }}
       >
         {t("crudEdit")}
@@ -824,7 +1093,7 @@ function NoteCrudPanel({
         className="action"
         disabled={!fixtureOk || !isFixtureNoteIdentifier(destination)}
         onClick={() => {
-          void runMoveNote(identifier, destination, setResult, setIdentifier, setError, onMutated);
+          void runMoveNote(identifier, destination, recordResult, setIdentifier, setError, onMutated);
         }}
       >
         {t("crudMove")}
@@ -837,7 +1106,7 @@ function NoteCrudPanel({
             className="action"
             onClick={() => {
               setConfirmDelete(false);
-              void runDeleteNote(identifier, setResult, setError, onMutated);
+              void runDeleteNote(identifier, recordResult, setError, onMutated);
             }}
           >
             {t("crudDeleteConfirm")}
@@ -954,7 +1223,8 @@ async function applyCrudResponse(
     case "windows_runtime":
     case "draft_saved":
     case "draft_loaded":
-    case "shutdown_begun":
+    case "relation_list":
+      case "shutdown_begun":
       setError(unexpectedCrudResponse());
       return;
     default: {
@@ -1275,6 +1545,7 @@ async function persistDraft(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "relation_list":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -1346,6 +1617,7 @@ async function reloadDraft(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "relation_list":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -1674,7 +1946,8 @@ function ProjectPanel({
                 case "note_edited":
                 case "note_moved":
                 case "note_deleted":
-                case "shutdown_begun":
+                case "relation_list":
+      case "shutdown_begun":
                   setSelectError({
                     category: "schema",
                     message: t("unexpectedCatalog"),
@@ -1991,7 +2264,8 @@ function BackupPanel() {
           case "note_edited":
           case "note_moved":
           case "note_deleted":
-          case "shutdown_begun":
+          case "relation_list":
+      case "shutdown_begun":
             setError(unexpectedBackupResponse());
             setPhase("error");
             return;
@@ -2167,6 +2441,7 @@ async function restoreNamedFixture(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "relation_list":
       case "shutdown_begun":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
@@ -2318,7 +2593,8 @@ function WindowsRuntimeCard() {
           case "note_edited":
           case "note_moved":
           case "note_deleted":
-          case "shutdown_begun":
+          case "relation_list":
+      case "shutdown_begun":
             setError(unexpectedWindowsResponse());
             setPhase("error");
             return;

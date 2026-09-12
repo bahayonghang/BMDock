@@ -292,3 +292,17 @@ AC57：控件有 label、可键盘聚焦、`:focus-visible`。不主张 T39 帮�
 本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t18-editor-windows-safety` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 125 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 12 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。`python -m unittest discover -s tests -v` 跑 72 项：71 ok，1 ERROR `test_repository_phase_order`（同一 `check_source`）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / IME / 用户 vault / hosted CI 证据；这些仍为 `UNVERIFIED`。
 
 T18 证据与验收映射见 [t18-editor-windows-safety.json](../execution/evidence/t18-editor-windows-safety.json)。`execution/status.json` 仅将 T18 标为 `completed`；未改 T05–T17/G0。
+
+## T19：观察与关系语义面板
+
+T19 在现有 `ipc_invoke` 上增加 typed `list_relations`（`ExplicitRouteArgs` + `identifier`，`deny_unknown_fields`）。额外 `path`/`root` 为 schema。非 fixture 路由或文件系统标识为 policy，且不打开库。capabilities 精确允许列为 19 个命令。
+
+关系（AC28）来自 BMDock 自有夹具 Markdown 正文中的 wiki-link `[[...]]`，不是第二套笔记索引，也不是官方引擎图谱 MCP。测试注入 `FixtureLibrary`，并观察列出的目标等于物理文件中的 wiki-link。关系标识是 permalink/identifier，不是文件系统路径。缺失目标是 empty/unsupported，不是用户 vault 成功。生产 `EmptyLibrary` 返回空 `relations[]`（空态），不是用户 vault 成功。官方 `recent_activity` / `build_context` 仍为 `UNVERIFIED`。未加入 rmcp。未运行 `just contract` 作为 T19 证明。
+
+观察（AC27）面板显示当前笔记的 `classified_as`（`disk_verified` / `accepted_unverified` / `conflict` / `empty`），与关系列表分开。夹具 `list_relations` 在核对物理文件后为 `disk_verified`。空库为 empty。同目标冲突仍是 CRUD 观察分类，不是关系目标分类。zh-CN 工作台「观察 / 关系」区分空态 / 错误 / 就绪。无 `dangerouslySetInnerHTML`。正文中的 HTML 仍以文本显示（T18）。不启动 Supervisor。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t19-observation-relation-panel` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 130 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 13 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。`python -m unittest discover -s tests -v` 跑 73 项：72 ok，1 ERROR `test_repository_phase_order`（同一 `check_source`）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方图谱 / hosted CI 证据；这些仍为 `UNVERIFIED`。
+
+T19 证据与验收映射见 [t19-observation-relation-panel.json](../execution/evidence/t19-observation-relation-panel.json)。`execution/status.json` 仅将 T19 标为 `completed`；未改 T05–T18/G0。

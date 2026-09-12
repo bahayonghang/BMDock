@@ -26,6 +26,13 @@ pub const POLICY_FILESYSTEM_IDENTIFIER: &str =
 pub const POLICY_FILESYSTEM_DESTINATION: &str =
     "Move destinations are permalinks, not user vault filesystem paths";
 #[cfg(test)]
+pub const ENGINE_GRAPH_NOT_OWNED: &str =
+    "relations are derived from fixture markdown wiki-links, not a second database and not official engine graph MCP";
+#[cfg(test)]
+pub const RECENT_ACTIVITY_MCP_UNVERIFIED: &str = "official recent_activity MCP remains UNVERIFIED";
+#[cfg(test)]
+pub const BUILD_CONTEXT_MCP_UNVERIFIED: &str = "official build_context MCP remains UNVERIFIED";
+#[cfg(test)]
 pub const POLICY_FORBIDDEN_LIBRARY_ROOT: &str =
     "Note CRUD cannot target user vaults, %APPDATA% Obsidian, or global Basic Memory config";
 
@@ -158,10 +165,80 @@ pub struct NoteDeleteDto {
     pub observation: NoteCrudObservationDto,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum RelationTargetClass {
+    Present,
+    Empty,
+    Unsupported,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RelationDto {
+    pub identifier: String,
+    pub classified_as: RelationTargetClass,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RelationListDto {
+    pub identifier: String,
+    pub relations: Vec<RelationDto>,
+    pub observation: NoteCrudObservationDto,
+    pub engine_graph: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub files_written: bool,
+}
+
+pub fn empty_relation_list(identifier: &str) -> RelationListDto {
+    RelationListDto {
+        identifier: identifier.to_owned(),
+        relations: Vec::new(),
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_graph: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        files_written: false,
+    }
+}
+
+#[cfg(test)]
+pub fn extract_wiki_link_identifiers(body: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut rest = body;
+    while let Some(start) = rest.find("[[") {
+        let after = &rest[start + 2..];
+        match after.find("]]") {
+            None => break,
+            Some(end) => {
+                let inner = after[..end].trim();
+                let identifier = inner.split('|').next().unwrap_or(inner).trim();
+                if !identifier.is_empty()
+                    && !looks_like_filesystem_path(identifier)
+                    && !out.iter().any(|existing| existing == identifier)
+                {
+                    out.push(identifier.to_owned());
+                }
+                rest = &after[end + 2..];
+            }
+        }
+    }
+    out
+}
+
 pub trait NoteLibrary: Send + Sync {
     fn list_tree(&self, cursor: Option<&str>, page_size: u32) -> Result<TreePageDto, LibraryError>;
 
     fn read_note(&self, identifier: &str) -> Result<NoteReadDto, LibraryError>;
+
+    fn list_relations(&self, identifier: &str) -> Result<RelationListDto, LibraryError> {
+        reject_note_identifier(identifier)?;
+        Ok(empty_relation_list(identifier))
+    }
 
     fn write_note(
         &self,
@@ -365,6 +442,24 @@ impl FixtureLibrary {
         };
         (exists, verified, classified)
     }
+
+    fn relation_for_target(&self, target: &str) -> Option<RelationDto> {
+        if looks_like_filesystem_path(target) {
+            return None;
+        }
+        let present = self
+            .resolve_create_path(target)
+            .ok()
+            .is_some_and(|path| path.is_file());
+        Some(RelationDto {
+            identifier: target.to_owned(),
+            classified_as: if present {
+                RelationTargetClass::Present
+            } else {
+                RelationTargetClass::Empty
+            },
+        })
+    }
 }
 
 #[cfg(test)]
@@ -402,6 +497,27 @@ impl NoteLibrary for FixtureLibrary {
             identifier: identifier.to_owned(),
             body: disk.clone(),
             observation: observation_from_disk(&disk, &disk),
+        })
+    }
+
+    fn list_relations(&self, identifier: &str) -> Result<RelationListDto, LibraryError> {
+        let path = self.resolve_note_path(identifier)?;
+        let disk = crate::content_safety::read_exact_text(&path)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let mut relations = Vec::new();
+        for target in extract_wiki_link_identifiers(&disk) {
+            if let Some(relation) = self.relation_for_target(&target) {
+                relations.push(relation);
+            }
+        }
+        Ok(RelationListDto {
+            identifier: identifier.to_owned(),
+            relations,
+            observation: crud_observation(NoteCrudClass::DiskVerified, true),
+            engine_graph: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            files_written: false,
         })
     }
 
@@ -964,6 +1080,20 @@ mod tests {
             error,
             LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE)
         );
+        let relations = library.list_relations("welcome").unwrap();
+        assert!(relations.relations.is_empty());
+        assert!(!relations.engine_graph);
+        assert!(!relations.files_written);
+        assert!(!relations.scanned_user_obsidian_vault);
+        assert!(!relations.scanned_user_basic_memory_home);
+        assert_eq!(relations.observation.classified_as, NoteCrudClass::Empty);
+        assert!(!relations.observation.disk_verified);
+        assert!(relations.observation.envelope_is_not_disk_proof);
+        let _ = (
+            ENGINE_GRAPH_NOT_OWNED,
+            RECENT_ACTIVITY_MCP_UNVERIFIED,
+            BUILD_CONTEXT_MCP_UNVERIFIED,
+        );
     }
 
     #[test]
@@ -1430,6 +1560,83 @@ mod tests {
         assert_eq!(
             crate::content_safety::read_exact_bytes(&dest).unwrap(),
             body.as_bytes()
+        );
+    }
+
+    #[test]
+    fn wiki_links_are_permalinks_not_filesystem_paths() {
+        let extracted = extract_wiki_link_identifiers(
+            "# 中文夹具笔记\n\n参见 [[欢迎]] 与 [[missing-target]]。\n[[欢迎|别名]]\n[[C:\\Users\\someone\\vault\\note.md]]\n",
+        );
+        assert_eq!(
+            extracted,
+            vec!["欢迎".to_string(), "missing-target".to_owned()]
+        );
+        assert!(!extracted
+            .iter()
+            .any(|item| item.contains('\\') || item.contains(':')));
+    }
+
+    #[test]
+    fn fixture_relations_match_physical_wiki_links_and_missing_is_empty() {
+        let fixture = TempFixture::create();
+        let body =
+            "# 中文夹具笔记\n\n这是 BMDock 自有夹具正文。参见 [[欢迎]] 与 [[missing-target]]。\n";
+        fixture.write_note(
+            "welcome",
+            "中文夹具笔记",
+            "这是 BMDock 自有夹具正文。参见 [[欢迎]] 与 [[missing-target]]。",
+        );
+        fixture.write_note("欢迎", "欢迎", "目标正文");
+        let library = FixtureLibrary::new(fixture.dir.clone());
+        let listed = library.list_relations("welcome").unwrap();
+        let disk = fs::read_to_string(fixture.dir.join("welcome.md")).unwrap();
+        assert!(disk.contains("[[欢迎]]"));
+        assert!(disk.contains("[[missing-target]]"));
+        assert_eq!(
+            listed
+                .relations
+                .iter()
+                .map(|item| item.identifier.as_str())
+                .collect::<Vec<_>>(),
+            extract_wiki_link_identifiers(&disk)
+        );
+        assert_eq!(listed.relations.len(), 2);
+        assert_eq!(listed.relations[0].identifier, "欢迎");
+        assert_eq!(
+            listed.relations[0].classified_as,
+            RelationTargetClass::Present
+        );
+        assert_eq!(listed.relations[1].identifier, "missing-target");
+        assert_eq!(
+            listed.relations[1].classified_as,
+            RelationTargetClass::Empty
+        );
+        assert!(!listed.relations.iter().any(|item| {
+            item.identifier.contains('\\')
+                || item.identifier.contains(':')
+                || item.identifier.contains(".basic-memory")
+        }));
+        assert!(!listed.engine_graph);
+        assert!(!listed.files_written);
+        assert!(!listed.scanned_user_obsidian_vault);
+        assert!(!listed.scanned_user_basic_memory_home);
+        assert!(listed.observation.disk_verified);
+        assert_eq!(
+            listed.observation.classified_as,
+            NoteCrudClass::DiskVerified
+        );
+        assert_ne!(listed.observation.classified_as, NoteCrudClass::Conflict);
+        let missing_source = library.list_relations("absent").unwrap_err();
+        assert_eq!(
+            missing_source,
+            LibraryError::unsupported(UNSUPPORTED_NOTE_MISSING)
+        );
+        let _ = body;
+        let _ = (
+            ENGINE_GRAPH_NOT_OWNED,
+            RECENT_ACTIVITY_MCP_UNVERIFIED,
+            BUILD_CONTEXT_MCP_UNVERIFIED,
         );
     }
 }

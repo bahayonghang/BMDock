@@ -11,9 +11,12 @@ project/workspace route, the T11 paginated `list_tree` /
 typed `write_note` / `edit_note` / `move_note` /
 `delete_note` fixture note CRUD, the T16 in-process
 same-target conflict coordinator plus unknown-result no-retry
-gate, the T17 host drain `begin_shutdown` command, and T18
+gate, the T17 host drain `begin_shutdown` command, T18
 editor content safety (textarea/`<pre>` text, exact-byte CRLF,
-`unsafe_html_present` vs `executed=false`). It applies to
+`unsafe_html_present` vs `executed=false`), and T19
+`list_relations` observation/relation semantics (fixture
+wiki-links, not a second note index and not official engine
+graph MCP). It applies to
 `apps/bmdock-desktop/src-tauri/src/ipc.rs`,
 `apps/bmdock-desktop/src-tauri/src/library.rs`,
 `apps/bmdock-desktop/src-tauri/src/conflict.rs`,
@@ -43,8 +46,10 @@ interfaces remain separate. Lifecycle ownership lives in
   fixture-backed typed note write/edit/move/delete, T16
   in-process same-identifier inflight conflict coordination
   plus timeout_unknown no-retry, T17 host drain via
-  `begin_shutdown`, and T18 editor content safety for note/draft
-  bodies (never execute HTML; exact-byte CRLF on Fixture stores).
+  `begin_shutdown`, T18 editor content safety for note/draft
+  bodies (never execute HTML; exact-byte CRLF on Fixture stores),
+  and T19 fixture wiki-link `list_relations` plus observation
+  classified_as distinct from the relation list.
 - The boundary does not start or stop the Supervisor, call the official
   engine over rmcp, access a user vault, or expose raw `callTool`. T14
   drafts are BMDock-owned session artifacts, not a second note index and
@@ -57,12 +62,17 @@ interfaces remain separate. Lifecycle ownership lives in
   command or rmcp. T17 adds `begin_shutdown` with `EmptyArgs`. It does
   not start Supervisor, spawn engines, or kill a live child as T17
   proof. Idle/`not_started` drain is not a live engine lifespan.
+  T19 `list_relations` derives identifiers from fixture markdown
+  wiki-links. It is not a second note index and not official graph MCP.
+  Production `EmptyLibrary` relations are empty state, not user-vault
+  success. Official `recent_activity` / `build_context` remain UNVERIFIED.
 - T09 preflight and discovery inspect BMDock-owned in-repo or explicitly
   generated fixture paths only. T10 lists only generated BMDock-owned
   workspace/project records. T07 remains the owner of start/stop.
 - T11 `list_tree` and `read_note`, T12 `list_backups` /
-  `restore_fixture`, T14 `save_draft` / `load_draft`, and T15
-  `write_note` / `edit_note` / `move_note` / `delete_note` must carry an
+  `restore_fixture`, T14 `save_draft` / `load_draft`, T15
+  `write_note` / `edit_note` / `move_note` / `delete_note`, and T19
+  `list_relations` must carry an
   explicit `ExplicitRouteArgs` (`workspace` + `project`) on every call and
   must not inherit an implicit current project. T16 coordinates overlapping
   same-identifier inflight writes on those CRUD commands: the second
@@ -113,6 +123,7 @@ run_preflight: {}
 discover_config: {}
 list_tree: { workspace, project, cursor?, page_size? }
 read_note: { workspace, project, identifier }
+list_relations: { workspace, project, identifier }
 list_backups: { workspace, project }
 restore_fixture: { workspace, project, backup_id }
 inspect_windows_runtime: {}
@@ -147,7 +158,10 @@ struct ExplicitRouteArgs { workspace: String, project: String }
 
 T11 `list_tree` and `read_note` consume this struct on every call. `read_note`
 uses a note identifier/permalink/title field, not a user-vault filesystem
-`path`. T12 `list_backups` consumes this struct on every call.
+`path`. T19 `list_relations` consumes this struct plus a note `identifier`
+(permalink, not a filesystem `path`). Extra `path` / `root` fail closed as
+`schema`. Non-fixture routes and filesystem identifiers are `policy` and do
+not open the library. T12 `list_backups` consumes this struct on every call.
 `restore_fixture` adds a generated `backup_id` (not a filesystem `path` or
 `root`). T14 `save_draft` and `load_draft` consume this struct on every call
 plus a draft `identifier` (permalink, not a filesystem `path`) and, for
@@ -162,7 +176,7 @@ fail closed as `schema`.
 
 ### Request and response fields
 
-- `get_capabilities` returns `kind: "capabilities"`, the eighteen command names,
+- `get_capabilities` returns `kind: "capabilities"`, the nineteen command names,
   the two event names, and a policy DTO.
 - `get_runtime_state` returns `kind: "runtime_state"` projected from the
   managed `Supervisor` snapshot plus T10 `RouteState`:
@@ -223,6 +237,20 @@ fail closed as `schema`.
   body_matches_disk`, `disk_verified=true`). Production default without an
   installed fixture library returns `unsupported` (`engine/library
   unavailable`). Official engine `read_note` MCP remains UNVERIFIED.
+- `list_relations` returns `kind: "relation_list"` with source
+  `identifier`, `relations[]` of permalink/identifier targets (never
+  filesystem paths), an observation DTO (`classified_as`:
+  `disk_verified` / `accepted_unverified` / `conflict` / `empty` /
+  `unclassified`), `engine_graph=false`, and vault-scan flags false.
+  Args are `ExplicitRouteArgs` plus `identifier`. Relations are parsed
+  from BMDock-owned fixture markdown wiki-links `[[...]]` in the note
+  body. Tests inject `FixtureLibrary` and observe that listed targets
+  match wiki-links in the physical file. Missing targets are
+  `empty`/`unsupported`, not a user-vault success. Production
+  `EmptyLibrary` returns empty `relations[]` (empty state), not
+  user-vault. Official `recent_activity` / `build_context` MCP remain
+  UNVERIFIED. Do not add rmcp. Observation is distinct from the
+  relation list.
 - `list_backups` returns `kind: "backup_catalog"` with BMDock-owned
   generated fixture backup records only. Args are `ExplicitRouteArgs`.
   Flags: `scanned_user_obsidian_vault=false`,
@@ -374,11 +402,11 @@ The capability policy must report:
 ```
 
 `SelectProjectArgs`, `ExplicitRouteArgs`, `ListTreeArgs`, `ReadNoteArgs`,
-`RestoreFixtureArgs`, `SaveDraftArgs`, `LoadDraftArgs`, `WriteNoteArgs`,
+`ListRelationsArgs`, `RestoreFixtureArgs`, `SaveDraftArgs`, `LoadDraftArgs`, `WriteNoteArgs`,
 `EditNoteArgs`, `MoveNoteArgs`, `DeleteNoteArgs`, and `EmptyArgs`
 use `#[serde(deny_unknown_fields)]`.
 There is no path field on `list_projects` / `run_preflight` /
-`discover_config` / `list_tree` / `read_note` / `list_backups` /
+`discover_config` / `list_tree` / `read_note` / `list_relations` / `list_backups` /
 `restore_fixture` / `inspect_windows_runtime` / `save_draft` /
 `load_draft` / `write_note` / `edit_note` / `move_note` /
 `delete_note` / `begin_shutdown` and no raw `callTool` or search DTO or handler. Typed
@@ -416,6 +444,15 @@ T16 wraps those CRUD commands with `ConflictCoordinator` and refuses
 auto-retry after `timeout_unknown`. It does not add a command, start
 Supervisor, or add rmcp. T17 adds `begin_shutdown` on the same
 `ipc_invoke` union. It still does not start Supervisor or add rmcp.
+T19 adds `list_relations` on the same `ipc_invoke` union. Relations are
+derived from BMDock-owned fixture markdown wiki-links `[[...]]`, not a
+second database and not official engine graph MCP. Production
+`EmptyLibrary` returns empty relations (empty state), not a user-vault
+success. Tests inject `FixtureLibrary` and observe that listed targets
+match wiki-links in the physical file. Missing targets are
+empty/unsupported, not user-vault. Official `recent_activity` /
+`build_context` MCP remain UNVERIFIED. T19 does not start Supervisor or
+add rmcp.
 
 ## 4. Validation & Error Matrix
 
@@ -425,7 +462,7 @@ Supervisor, or add rmcp. T17 adds `begin_shutdown` on the same
 | Unknown `command`, including `call_tool` and `search_notes` | Serde deserialization fails closed | `schema` at the boundary |
 | Incomplete `write_note` args (for example only `project`) | `deny_unknown_fields` / missing fields | `schema` |
 | Extra field in `args` | `deny_unknown_fields` rejects the DTO | `schema` |
-| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
 | Extra top-level field such as `path` beside `command`/`args` | `deny_unknown_fields` on `IpcCommand` | `schema` |
 | `select_project` for any value other than `bmdock-fixture` | Dispatcher rejects without filesystem access | `policy` |
 | `ExplicitRouteArgs` missing `project`/`workspace` or carrying an extra `path` | `deny_unknown_fields` rejects the DTO | `schema` |
@@ -434,6 +471,10 @@ Supervisor, or add rmcp. T17 adds `begin_shutdown` on the same
 | `list_tree` invalid cursor, empty cursor, or next-cursor loop | Reject; do not return a partial page | `schema` |
 | Truncated or partial tree inventory | Reject; `truncated=true` is not a success | `unsupported` |
 | `read_note` identifier that looks like a user vault filesystem path | Reject without opening the path | `policy` |
+| `list_relations` identifier that looks like a user vault filesystem path | Reject without opening the library | `policy` |
+| Non-fixture `list_relations` | Reject without opening the library | `policy` |
+| Empty library `list_relations` | Empty `relations[]`, `classified_as: empty`, `engine_graph=false` | empty state |
+| Missing wiki-link target in fixture `list_relations` | Relation entry is empty/unsupported, not user-vault | empty state |
 | `save_draft` / `load_draft` identifier that looks like a user vault filesystem path | Reject without opening the draft store | `policy` |
 | `write_note` / `edit_note` / `delete_note` identifier that looks like a user vault filesystem path | Reject without opening the library | `policy` |
 | `move_note` destination that looks like a filesystem path | Reject without opening the library | `policy` |
@@ -548,6 +589,10 @@ Supervisor, or add rmcp. T17 adds `begin_shutdown` on the same
   or `read_note` with an extra `path`; extra fields fail closed.
 - Bad: send `{"command":"read_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"C:\\\\Users\\\\someone\\\\vault\\\\note.md"}}`;
   policy rejects the filesystem identifier without opening it.
+- Bad: send `{"command":"list_relations","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","path":"C:\\vault"}}`
+  or `list_relations` with an extra `root`; extra fields fail closed.
+- Bad: send `{"command":"list_relations","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"C:\\\\Users\\\\someone\\\\vault\\\\note.md"}}`;
+  policy rejects the filesystem identifier without opening the library.
 - Bad: send `{"command":"list_backups","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","path":"C:\\vault"}}`
   or `restore_fixture` with an extra `path` / `root`; extra fields fail closed.
 - Bad: send `{"command":"restore_fixture","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","backup_id":"%APPDATA%\\\\Obsidian"}}`;
@@ -576,16 +621,16 @@ Supervisor, or add rmcp. T17 adds `begin_shutdown` on the same
 
 ## 6. Tests Required
 
-- Rust unit test: capability response lists exactly eighteen commands and two
+- Rust unit test: capability response lists exactly nineteen commands and two
   events, and both arbitrary-path and raw-callTool policy flags are false.
-  `list_tree`, `read_note`, `list_backups`, `restore_fixture`,
+  `list_tree`, `read_note`, `list_relations`, `list_backups`, `restore_fixture`,
   `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`,
   `edit_note`, `move_note`, `delete_note`, and `begin_shutdown` are present; `call_tool` and
   `search_notes` are absent. Incomplete `write_note` args remain schema.
 - Rust unit test: a non-fixture project returns `ErrorCategory::Policy`.
 - Rust unit test: unknown command including `call_tool`, extra project path,
   extra runtime-state path, extra `list_projects` path/root, extra preflight
-  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_backups`
+  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `list_backups`
   path/root, extra `restore_fixture` path, extra
   `inspect_windows_runtime` path/root, extra `save_draft` path/root, extra
   `load_draft` path/root, and extra `begin_shutdown` path/root all fail
@@ -603,7 +648,7 @@ Supervisor, or add rmcp. T17 adds `begin_shutdown` on the same
   scan user vaults, and keeps `cross_project_search_allowed` and
   `implicit_current_project_writes` false.   `ExplicitRouteArgs` requires both
   fields, rejects extra paths as schema, and rejects non-fixture routes as
-  policy. Non-fixture `list_tree` / `read_note` / `list_backups` /
+  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `list_backups` /
   `restore_fixture` / `save_draft` / `load_draft` / `write_note` /
   `edit_note` / `move_note` / `delete_note` must not open the library,
   backup store, or draft store.
@@ -619,6 +664,17 @@ Supervisor, or add rmcp. T17 adds `begin_shutdown` on the same
   physical fixture file; envelope-only success is not `disk_verified`.
   Empty library listing is empty, not a user-vault success; empty-library
   `read_note` is `unsupported`.
+- Rust unit test: `list_relations` requires `ExplicitRouteArgs` plus
+  `identifier`. Extra `path` / `root` fail closed as `schema`. Non-fixture
+  routes and filesystem identifiers are `policy` and do not open the
+  library. Empty library listing is empty `relations[]` with
+  `classified_as: empty`, not a user-vault success. Fixture library
+  relations match wiki-links in the physical markdown file. Listed
+  identifiers are permalinks, not filesystem paths. Missing targets are
+  empty/unsupported. Observation `classified_as` (`disk_verified` /
+  `accepted_unverified` / `conflict` / `empty`) is distinct from the
+  relation list. `engine_graph=false`. Official `recent_activity` /
+  `build_context` remain UNVERIFIED. Dual profiles stay isolated.
 - Rust unit test: `list_backups` returns only BMDock-owned generated backup
   ids, does not scan user vaults, and keeps `files_written` false until a
   restore actually writes owned files. Empty catalog is empty state, not a
@@ -709,6 +765,7 @@ Supervisor, or add rmcp. T17 adds `begin_shutdown` on the same
   `TreePageDto` / `NoteReadDto` / `BackupCatalogDto` / `RestoreResultDto` /
   `WindowsRuntimeDto` / `DraftResultDto` / `NoteWriteDto` / `NoteEditDto` /
   `NoteMoveDto` / `NoteDeleteDto` / `NoteCrudClass` (`conflict` included) /
+  `RelationListDto` / `RelationDto` / `RelationTargetClass` /
   `DrainResultDto` / `DrainPhase` stay aligned with that JSON shape through
   `npm run build`.
 - Validation checks: `task.py validate`, `cargo fmt --all -- --check`,
@@ -750,6 +807,10 @@ await invokeTyped({
 });
 await invokeTyped({
   command: "read_note",
+  args: { workspace: route.workspace, project: route.project, identifier },
+});
+await invokeTyped({
+  command: "list_relations",
   args: { workspace: route.workspace, project: route.project, identifier },
 });
 await invokeTyped({
@@ -815,7 +876,7 @@ await listenTyped("runtime_state", (state) => renderState(state));
 These calls use the shared DTOs and the explicit fixture/event allowlist.
 `list_projects`, `run_preflight`, and `discover_config` take empty args.
 `select_project` remains fixture-only. `list_tree`, `read_note`,
-`list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
+`list_relations`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
 `write_note`, `edit_note`, `move_note`, and `delete_note` copy
 `ExplicitRouteArgs` on every call and must not treat `runtime.project` as
 an implicit target.

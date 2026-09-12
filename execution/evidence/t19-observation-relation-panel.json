@@ -1,0 +1,171 @@
+{
+  "task": "T19",
+  "title": "观察与关系语义面板",
+  "status": "accepted_with_limits",
+  "date": "2026-09-12",
+  "host_boundary": "T19 adds typed list_relations with ExplicitRouteArgs plus identifier. deny_unknown_fields. Extra path/root is schema. Non-fixture routes and filesystem identifiers are policy and do not open the library. Relations are derived from BMDock-owned fixture markdown wiki-links [[...]] via FixtureLibrary. They are not a second note index and not official engine graph MCP. Production EmptyLibrary returns empty relations, not user-vault success. Tests inject FixtureLibrary and observe that listed targets match wiki-links in the physical file. Missing targets are empty/unsupported, not user-vault. Observation classified_as (disk_verified / accepted_unverified / conflict / empty) is distinct from the relation list. Official recent_activity / build_context remain UNVERIFIED. T19 does not start Supervisor, add rmcp, or expose raw callTool. Dual profiles stay isolated. just build stays the G0 probe. just contract was not run as T19 proof.",
+  "acceptance": {
+    "AC27": {
+      "status": "observation_classified_as_distinct_from_relations",
+      "evidence": [
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "The zh-CN observation panel shows classified_as for the current note as disk_verified / accepted_unverified / conflict / empty, distinct from the relation list. Fixture list_relations observation is disk_verified when the physical file is read. EmptyLibrary is empty. Conflict remains the CRUD observation class and is not a relation target class. UI copy, cargo test, and npm build are not a native GUI session."
+    },
+    "AC28": {
+      "status": "fixture_wiki_link_permalinks_not_engine_graph",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Relation list identifiers are permalinks from fixture markdown wiki-links, not filesystem paths. Missing targets are empty/unsupported, not user-vault. engine_graph is false. Official recent_activity / build_context MCP remain UNVERIFIED. rmcp was not added. just contract was not run as T19 proof.",
+      "unverified": [
+        "official recent_activity MCP",
+        "official build_context MCP",
+        "official engine graph MCP",
+        "native GUI session",
+        "real user vault"
+      ]
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t19-observation-relation-panel",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 130 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 13 passed"
+    },
+    {
+      "cmd": "python -m unittest discover -s tests -v",
+      "exit": 1,
+      "result": "73 tests: 72 ok, 1 ERROR test_repository_phase_order via check_source because G0 is in_progress while T05+ are completed. DesktopShellTests 13 passed. T05-T18 were not reverted."
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T19 observation/relation proof. Probe entries remain independent. Official recent_activity / build_context remain UNVERIFIED."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window was launched. Observation and relation proof are source plus unit tests on FixtureLibrary."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_135_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_discover": "72_ok_1_error_phase_order",
+    "python_unittest_desktop_shell": "13_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "typed_command_count": 19,
+    "raw_call_tool": "absent",
+    "dangerouslySetInnerHTML": "absent",
+    "supervisor_started_by_t19": false,
+    "rmcp_live_client": "not_added_in_t19",
+    "engine_graph": false,
+    "official_recent_activity": "UNVERIFIED",
+    "official_build_context": "UNVERIFIED",
+    "native_gui_session": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "relations_match_physical_wiki_links": true,
+    "missing_target_is_empty_not_user_vault": true,
+    "empty_library_relations_are_empty_state": true
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed_unchanged",
+    "T10": "completed_unchanged",
+    "T11": "completed_unchanged",
+    "T12": "completed_unchanged",
+    "T13": "completed_unchanged",
+    "T14": "completed_unchanged",
+    "T15": "completed_unchanged",
+    "T16": "completed_unchanged",
+    "T17": "completed_unchanged",
+    "T18": "completed_unchanged",
+    "T19": "completed"
+  },
+  "scope_limits": [
+    "Relations are fixture markdown wiki-links, not a second database and not official engine graph MCP.",
+    "EmptyLibrary empty relations is empty state, not user-vault success.",
+    "Missing wiki-link targets are empty/unsupported, not user-vault.",
+    "Relation identifiers are permalinks, not filesystem paths.",
+    "Observation classified_as is distinct from the relation list.",
+    "Official recent_activity / build_context remain UNVERIFIED. rmcp was not added.",
+    "IPC error union stays policy/schema/unsupported. Dual profiles stay isolated (21 vs 27).",
+    "just build stays scripts.tasks build. just contract* stay probe. just tauri-dev/tauri-build stay desktop.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "UI copy, tool lists, compiled exe, cargo test, npm build, and just contract are not native GUI / user-vault / engine-graph proof."
+  ],
+  "rollback": "Remove list_relations from the ipc_invoke union, drop ObservationPanel/RelationPanel, restore the 18-command allowlist, and leave T11/T15 read/CRUD in place. Do not revert T05-T18 status to make unit green."
+}

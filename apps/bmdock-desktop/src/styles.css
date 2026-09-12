@@ -314,10 +314,29 @@ main {
 }
 
 .coordination-legend,
-.drain-legend {
+.drain-legend,
+.observation-legend {
   margin: 0.35rem 0 0.75rem;
   padding-left: 1.2rem;
   color: #c5d0e0;
+}
+
+.relation-list {
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+  list-style: none;
+}
+
+.relation-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid #3b4b66;
+  border-radius: 0.5rem;
+  background: #1c2740;
 }
 
 .content-safety {

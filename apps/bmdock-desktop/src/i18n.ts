@@ -33,11 +33,38 @@ export const messages = {
   workbenchObservationUnverified: "观察分类：仅信封成功，不能当作磁盘证据",
   workbenchObservationEmpty: "观察分类：空库",
   workbenchObservationUnclassified: "观察分类：未分类",
+  observationEmptyTitle: "还没有观察结果",
+  observationEmptyBody:
+    "选择一条笔记后，这里显示当前笔记的 classified_as：已核对磁盘、仅信封成功、同目标冲突或空态。观察分类与关系列表必须分开。",
+  observationReadyTitle: "观察",
+  observationReadyBody:
+    "当前笔记的观察分类。已核对磁盘、仅信封成功、同目标冲突与空态必须分开。这不是关系列表，也不是官方引擎图谱。",
+  observationErrorTitle: "无法读取观察分类",
+  observationDisk: "已核对磁盘（disk_verified）",
+  observationUnverified: "仅信封成功（accepted_unverified）",
+  observationConflict: "同目标冲突（conflict）",
+  observationEmpty: "空态（empty）",
+  observationUnclassified: "未分类",
+  observationDistinctFromRelations: "观察分类与关系列表分开显示",
+  relationsEmptyTitle: "还没有关系",
+  relationsEmptyBody:
+    "空关系表示当前没有可列出的 fixture wiki-link 目标，也不是已打开用户 vault。缺失目标是空/不受支持，不是用户 vault 成功。",
+  relationsReadyTitle: "关系",
+  relationsReadyBody:
+    "下列标识来自当前笔记正文中的 wiki-link [[…]]，是 permalink/identifier，不是文件系统路径。不是第二套笔记索引，也不是官方引擎图谱 MCP。",
+  relationsErrorTitle: "无法读取关系列表",
+  relationsPresent: "目标存在于夹具库",
+  relationsMissing: "缺失目标（空/不受支持，不是用户 vault）",
+  relationsUnsupported: "不受支持",
+  relationsPermalinkNotPath: "关系标识是 permalink，不是文件系统路径",
+  relationsNotEngineGraph: "不是官方引擎图谱，也不是第二套数据库",
+  relationsMcpUnverified: "官方 recent_activity / build_context 仍为未验证。未加入 rmcp，也未把 just contract 当作本任务证明。",
   workbenchErrorTitle: "无法读取工作台状态",
   workbenchErrorBody:
     "只读快照或分页读取失败。下面是分类后的错误，不会启动 Supervisor，也不会写入资料库。",
   unexpectedTree: "目录分页响应格式不符合预期",
   unexpectedNote: "笔记读取响应格式不符合预期",
+  unexpectedRelations: "关系列表响应格式不符合预期",
   unexpectedCapabilities: "能力响应格式不符合预期",
   unexpectedRuntime: "运行状态响应格式不符合预期",
   unexpectedCatalog: "项目目录响应格式不符合预期",
@@ -278,9 +305,9 @@ export const messages = {
     "native GUI / IME 会话仍为未验证。cargo test 与 npm build 不是原生窗口输入。",
   contentSafetyHelpNotT39: "帮助与无障碍完备性仍属 T39，本任务不关闭。",
   aboutIntro:
-    "这是桌面布局壳加只读预检、显式项目路由、分页目录、笔记预览、草稿编辑器会话、夹具笔记写入编辑移动删除、同目标冲突与超时未知协调、宿主正常退出排空、夹具备份恢复基线、Windows 运行时原型观察，以及编辑器内容安全与 CRLF 精确字节往返。默认界面语言为简体中文。帮助与无障碍完备性也不在本任务关闭。",
+    "这是桌面布局壳加只读预检、显式项目路由、分页目录、笔记预览、观察与关系语义面板、草稿编辑器会话、夹具笔记写入编辑移动删除、同目标冲突与超时未知协调、宿主正常退出排空、夹具备份恢复基线、Windows 运行时原型观察，以及编辑器内容安全与 CRLF 精确字节往返。默认界面语言为简体中文。帮助与无障碍完备性也不在本任务关闭。",
   aboutSafety:
-    "调用 get_capabilities、get_runtime_state、list_projects、run_preflight、discover_config、list_tree、read_note、list_backups、restore_fixture、inspect_windows_runtime、save_draft、load_draft、write_note、edit_note、move_note、delete_note 与 begin_shutdown。选择项目仅允许 bmdock-fixture。list_tree、read_note、list_backups、restore_fixture、save_draft、load_draft、write_note、edit_note、move_note 与 delete_note 每次都携带显式 workspace 与 project。Markdown 与 HTML 以 labeled textarea 和 pre 纯文本往返，不使用 dangerouslySetInnerHTML，也不执行 script 或 onerror。CRLF 按精确字节落盘；行尾丢失不得标为 disk_verified。不会 raw callTool、不会写入用户 vault、不会启动 Supervisor。save_draft 与 write_note 保持区分。超时未知留在运行状态 DTO，不进入 IPC 错误联合体。同目标冲突不是 policy-for-path。begin_shutdown 在未启动时记录空闲排空收据，不是活动引擎寿命，也不会强杀子进程。native GUI / IME 会话未验证。",
+    "调用 get_capabilities、get_runtime_state、list_projects、run_preflight、discover_config、list_tree、read_note、list_relations、list_backups、restore_fixture、inspect_windows_runtime、save_draft、load_draft、write_note、edit_note、move_note、delete_note 与 begin_shutdown。选择项目仅允许 bmdock-fixture。list_tree、read_note、list_relations、list_backups、restore_fixture、save_draft、load_draft、write_note、edit_note、move_note 与 delete_note 每次都携带显式 workspace 与 project。关系来自夹具 Markdown 的 wiki-link，不是第二套笔记索引，也不是官方引擎图谱。Markdown 与 HTML 以 labeled textarea 和 pre 纯文本往返，不使用 dangerouslySetInnerHTML，也不执行 script 或 onerror。CRLF 按精确字节落盘；行尾丢失不得标为 disk_verified。不会 raw callTool、不会写入用户 vault、不会启动 Supervisor。save_draft 与 write_note 保持区分。超时未知留在运行状态 DTO，不进入 IPC 错误联合体。同目标冲突不是 policy-for-path。begin_shutdown 在未启动时记录空闲排空收据，不是活动引擎寿命，也不会强杀子进程。native GUI / IME 会话未验证。官方 recent_activity / build_context 仍为未验证。",
   aboutProfiles:
     "release（c0bd87c6，21 个工具）与 main-preview（3452c821，27 个工具）保持隔离。本界面不把工具清单或 just contract 当作功能验收。",
   aboutCommands:

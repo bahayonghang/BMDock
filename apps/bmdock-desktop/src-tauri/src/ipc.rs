@@ -6,7 +6,7 @@ use crate::drafts::{self, DraftResultDto, DraftStore};
 use crate::drain::{self, DrainPhase, DrainResultDto, HostDrain};
 use crate::library::{
     self, NoteDeleteDto, NoteEditDto, NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto,
-    TreePageDto,
+    RelationListDto, TreePageDto,
 };
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
@@ -26,6 +26,7 @@ pub enum IpcCommandName {
     DiscoverConfig,
     ListTree,
     ReadNote,
+    ListRelations,
     ListBackups,
     RestoreFixture,
     InspectWindowsRuntime,
@@ -48,6 +49,7 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::DiscoverConfig,
         IpcCommandName::ListTree,
         IpcCommandName::ReadNote,
+        IpcCommandName::ListRelations,
         IpcCommandName::ListBackups,
         IpcCommandName::RestoreFixture,
         IpcCommandName::InspectWindowsRuntime,
@@ -107,6 +109,23 @@ pub struct ReadNoteArgs {
 }
 
 impl ReadNoteArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ListRelationsArgs {
+    pub workspace: String,
+    pub project: String,
+    pub identifier: String,
+}
+
+impl ListRelationsArgs {
     fn route(&self) -> ExplicitRouteArgs {
         ExplicitRouteArgs {
             workspace: self.workspace.clone(),
@@ -255,6 +274,7 @@ pub enum IpcCommand {
     DiscoverConfig(EmptyArgs),
     ListTree(ListTreeArgs),
     ReadNote(ReadNoteArgs),
+    ListRelations(ListRelationsArgs),
     ListBackups(ExplicitRouteArgs),
     RestoreFixture(RestoreFixtureArgs),
     InspectWindowsRuntime(EmptyArgs),
@@ -316,6 +336,7 @@ pub enum IpcResponse {
     ConfigDiscovery(ConfigDiscoveryDto),
     TreePage(TreePageDto),
     NoteRead(NoteReadDto),
+    RelationList(RelationListDto),
     BackupCatalog(BackupCatalogDto),
     FixtureRestored(RestoreResultDto),
     WindowsRuntime(WindowsRuntimeDto),
@@ -489,6 +510,13 @@ pub fn dispatch_with_drain(
             library::reject_filesystem_identifier(&args.identifier)?;
             Ok(IpcResponse::NoteRead(library.read_note(&args.identifier)?))
         }
+        IpcCommand::ListRelations(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            library::reject_filesystem_identifier(&args.identifier)?;
+            Ok(IpcResponse::RelationList(
+                library.list_relations(&args.identifier)?,
+            ))
+        }
         IpcCommand::ListBackups(route_args) => {
             require_explicit_fixture_route(&route_args)?;
             Ok(IpcResponse::BackupCatalog(backups.list_backups()?))
@@ -657,6 +685,7 @@ mod tests {
                 IpcCommandName::DiscoverConfig,
                 IpcCommandName::ListTree,
                 IpcCommandName::ReadNote,
+                IpcCommandName::ListRelations,
                 IpcCommandName::ListBackups,
                 IpcCommandName::RestoreFixture,
                 IpcCommandName::InspectWindowsRuntime,
@@ -669,18 +698,19 @@ mod tests {
                 IpcCommandName::BeginShutdown,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 18);
+        assert_eq!(capabilities.commands.len(), 19);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 18);
+        assert_eq!(commands.len(), 19);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
         assert!(commands.iter().any(|command| command == "read_note"));
+        assert!(commands.iter().any(|command| command == "list_relations"));
         assert!(commands.iter().any(|command| command == "list_backups"));
         assert!(commands.iter().any(|command| command == "restore_fixture"));
         assert!(commands
@@ -903,6 +933,18 @@ mod tests {
             r#"{"command":"read_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","path":"C:\\vault\\note.md"}}"#,
         );
         assert!(extra_path_on_read.is_err());
+        let extra_path_on_relations = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_relations","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","path":"C:\\vault\\note.md"}}"#,
+        );
+        assert!(extra_path_on_relations.is_err());
+        let extra_root_on_relations = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_relations","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_relations.is_err());
+        let incomplete_relations = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_relations","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(incomplete_relations.is_err());
         let extra_path_on_tree = serde_json::from_str::<IpcCommand>(
             r#"{"command":"list_tree","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","path":"C:\\vault"}}"#,
         );
@@ -935,6 +977,10 @@ mod tests {
             r#"{"command":"read_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome"}}"#,
         );
         assert!(well_formed_read.is_ok());
+        let well_formed_relations = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_relations","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome"}}"#,
+        );
+        assert!(well_formed_relations.is_ok());
         let well_formed_tree = serde_json::from_str::<IpcCommand>(
             r#"{"command":"list_tree","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","page_size":2}}"#,
         );
@@ -1267,6 +1313,13 @@ mod tests {
             panic!("policy rejection must not open the library")
         }
 
+        fn list_relations(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::RelationListDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
         fn write_note(
             &self,
             _identifier: &str,
@@ -1353,6 +1406,14 @@ mod tests {
         }
     }
 
+    fn fixture_relations_args(identifier: &str) -> ListRelationsArgs {
+        ListRelationsArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            identifier: identifier.to_owned(),
+        }
+    }
+
     #[test]
     fn list_tree_empty_library_is_empty_not_user_vault() {
         let mut route = RouteState::default();
@@ -1430,13 +1491,39 @@ mod tests {
                 project: FIXTURE_PROJECT.to_owned(),
                 identifier: r"C:\Users\someone\vault\note.md".to_owned(),
             }),
-            snapshot,
+            snapshot.clone(),
             &mut route,
             &PanicLibrary,
             &backups::EmptyBackupStore,
         )
         .unwrap_err();
         assert_eq!(identifier.category, ErrorCategory::Policy);
+        let relations_route = dispatch_with_library(
+            IpcCommand::ListRelations(ListRelationsArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+                identifier: "welcome".to_owned(),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(relations_route.category, ErrorCategory::Policy);
+        let relations_path = dispatch_with_library(
+            IpcCommand::ListRelations(ListRelationsArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                identifier: r"C:\Users\someone\vault\note.md".to_owned(),
+            }),
+            snapshot,
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(relations_path.category, ErrorCategory::Policy);
         assert_eq!(route.project, None);
     }
 
@@ -3415,5 +3502,152 @@ mod tests {
         .unwrap_err();
         assert_eq!(slash.category, ErrorCategory::Policy);
         let _ = std::fs::remove_dir_all(&note_dir);
+    }
+
+    #[test]
+    fn list_relations_empty_library_is_empty_not_user_vault() {
+        let mut route = RouteState::default();
+        let IpcResponse::RelationList(listed) = dispatch_with_library(
+            IpcCommand::ListRelations(fixture_relations_args("welcome")),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(listed.relations.is_empty());
+        assert_eq!(listed.identifier, "welcome");
+        assert!(!listed.engine_graph);
+        assert!(!listed.files_written);
+        assert!(!listed.scanned_user_obsidian_vault);
+        assert!(!listed.scanned_user_basic_memory_home);
+        assert_eq!(
+            listed.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        assert!(!listed.observation.disk_verified);
+        let json = serde_json::to_value(&IpcResponse::RelationList(listed)).unwrap();
+        assert_eq!(json["kind"], "relation_list");
+        assert_eq!(json["engine_graph"], false);
+        assert!(json.get("path").is_none());
+        assert!(json.get("expected_tools").is_none());
+        assert_eq!(json["observation"]["classified_as"], "empty");
+        let _ = (
+            library::ENGINE_GRAPH_NOT_OWNED,
+            library::RECENT_ACTIVITY_MCP_UNVERIFIED,
+            library::BUILD_CONTEXT_MCP_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn list_relations_fixture_matches_physical_wiki_links() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t19-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let body =
+            "# 中文夹具笔记\n\n这是 BMDock 自有夹具正文。参见 [[欢迎]] 与 [[missing-target]]。\n";
+        std::fs::write(dir.join("welcome.md"), body).unwrap();
+        std::fs::write(dir.join("欢迎.md"), "# 欢迎\n\n目标正文\n").unwrap();
+        let library = library::FixtureLibrary::new(dir.clone());
+        let mut route = RouteState::default();
+        let IpcResponse::RelationList(listed) = dispatch_with_library(
+            IpcCommand::ListRelations(fixture_relations_args("welcome")),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let disk = std::fs::read_to_string(dir.join("welcome.md")).unwrap();
+        assert_eq!(disk, body);
+        assert_eq!(
+            listed
+                .relations
+                .iter()
+                .map(|item| item.identifier.as_str())
+                .collect::<Vec<_>>(),
+            library::extract_wiki_link_identifiers(&disk)
+        );
+        assert_eq!(listed.relations[0].identifier, "欢迎");
+        assert_eq!(
+            listed.relations[0].classified_as,
+            library::RelationTargetClass::Present
+        );
+        assert_eq!(listed.relations[1].identifier, "missing-target");
+        assert_eq!(
+            listed.relations[1].classified_as,
+            library::RelationTargetClass::Empty
+        );
+        assert!(!listed.relations.iter().any(|item| {
+            item.identifier.contains('\\')
+                || item.identifier.contains(':')
+                || item.identifier.contains('/')
+        }));
+        assert_eq!(
+            listed.observation.classified_as,
+            library::NoteCrudClass::DiskVerified
+        );
+        assert_ne!(
+            listed.observation.classified_as,
+            library::NoteCrudClass::Conflict
+        );
+        assert!(listed.observation.disk_verified);
+        assert!(!listed.engine_graph);
+        let json = serde_json::to_value(&IpcResponse::RelationList(listed)).unwrap();
+        assert_eq!(json["kind"], "relation_list");
+        assert_eq!(json["relations"][0]["identifier"], "欢迎");
+        assert_eq!(
+            json["relations"][0]["identifier"]
+                .as_str()
+                .unwrap()
+                .contains('\\'),
+            false
+        );
+        assert_eq!(json["observation"]["classified_as"], "disk_verified");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn list_relations_does_not_merge_engine_profiles_or_call_graph_mcp() {
+        let release = crate::supervisor::EngineProfile::Release;
+        let preview = crate::supervisor::EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(preview.commit(), "3452c821d76c083823d020984d71e06904a1ff1e");
+        assert_eq!(release.expected_tools(), 21);
+        assert_eq!(preview.expected_tools(), 27);
+        let mut route = RouteState::default();
+        let IpcResponse::RelationList(listed) = dispatch_with_library(
+            IpcCommand::ListRelations(fixture_relations_args("welcome")),
+            RuntimeSnapshot {
+                state: ConnectionState::Connected,
+                profile: Some(release),
+                child_pid: Some(7),
+                failure: None,
+                shutdown: None,
+            },
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let json = serde_json::to_value(&IpcResponse::RelationList(listed)).unwrap();
+        assert!(json.get("expected_tools").is_none());
+        assert!(json.get("profile").is_none());
+        assert!(json.get("tools").is_none());
+        assert_eq!(json["engine_graph"], false);
+        assert_eq!(json["kind"], "relation_list");
+        let _ = (
+            library::RECENT_ACTIVITY_MCP_UNVERIFIED,
+            library::BUILD_CONTEXT_MCP_UNVERIFIED,
+        );
     }
 }

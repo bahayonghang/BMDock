@@ -24,6 +24,10 @@ export type ReadNoteArgs = ExplicitRouteArgs & {
   identifier: string;
 };
 
+export type ListRelationsArgs = ExplicitRouteArgs & {
+  identifier: string;
+};
+
 export type RestoreFixtureArgs = ExplicitRouteArgs & {
   backup_id: string;
 };
@@ -66,6 +70,7 @@ export type IpcCommand =
   | { command: "discover_config"; args: Record<string, never> }
   | { command: "list_tree"; args: ListTreeArgs }
   | { command: "read_note"; args: ReadNoteArgs }
+  | { command: "list_relations"; args: ListRelationsArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
   | { command: "restore_fixture"; args: RestoreFixtureArgs }
   | { command: "inspect_windows_runtime"; args: Record<string, never> }
@@ -222,6 +227,23 @@ export interface NoteReadDto {
   observation: NoteObservationDto;
 }
 
+export type RelationTargetClass = "present" | "empty" | "unsupported";
+
+export interface RelationDto {
+  identifier: string;
+  classified_as: RelationTargetClass;
+}
+
+export interface RelationListDto {
+  identifier: string;
+  relations: RelationDto[];
+  observation: NoteCrudObservationDto;
+  engine_graph: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  files_written: boolean;
+}
+
 export interface BackupRecordDto {
   id: string;
   kind: typeof OWNED_KIND;
@@ -351,6 +373,7 @@ export type IpcResponse =
   | { kind: "config_discovery" } & ConfigDiscoveryDto
   | { kind: "tree_page" } & TreePageDto
   | { kind: "note_read" } & NoteReadDto
+  | { kind: "relation_list" } & RelationListDto
   | { kind: "backup_catalog" } & BackupCatalogDto
   | { kind: "fixture_restored" } & RestoreResultDto
   | { kind: "windows_runtime" } & WindowsRuntimeDto
@@ -391,6 +414,7 @@ function assertFixtureCommand(command: IpcCommand): void {
       return;
     case "list_tree":
     case "read_note":
+    case "list_relations":
     case "list_backups":
     case "restore_fixture":
     case "save_draft":
@@ -474,6 +498,18 @@ export const readNote = (identifier: string) => {
   const route = copyFixtureRoute();
   return invokeTyped<{ kind: "note_read" } & NoteReadDto>({
     command: "read_note",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      identifier,
+    },
+  });
+};
+
+export const listRelations = (identifier: string) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "relation_list" } & RelationListDto>({
+    command: "list_relations",
     args: {
       workspace: route.workspace,
       project: route.project,
