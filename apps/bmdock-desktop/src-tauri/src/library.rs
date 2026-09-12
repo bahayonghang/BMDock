@@ -216,6 +216,28 @@ pub const SBOM_ARTIFACT_PATH: &str = "docs/sbom/lockfile-inventory.json";
 pub const PRIVACY_CLAIMED_FLAG: &str = "privacy-claimed";
 #[cfg(test)]
 pub const SBOM_CLEARED_FLAG: &str = "sbom-cleared";
+pub const ENGINE_INSTALL_NOT_OWNED: &str =
+    "inspect_install is a BMDock-owned local-only unsigned/unbundled status; it is not a signed installer, MSI/NSIS/AppImage, upgrade channel, native GUI session, or installer rollback of a user vault";
+#[cfg(test)]
+pub const OFFICIAL_INSTALL_UNVERIFIED: &str =
+    "signed installer, native GUI session, WebView2 session, Job Object assignment, kill/sleep-resume/disk-failure recovery, and production upgrade recovery remain UNVERIFIED";
+pub const UNSUPPORTED_INSTALL_CLAIMED_NOT_SIGNED: &str =
+    "fixture install-claimed / signed-upgrade flag is unsupported, not a signed installer; claiming a signed upgrade without a real signed bundle is unsupported";
+pub const POLICY_INSTALL_CREDENTIAL_ROUTE: &str =
+    "unauthorized remote, credential, env-token, stored-secret, api-key, or real-vault install/upgrade/recovery routes are policy and are not opened";
+pub const UNSUPPORTED_INSTALL_SIGNED_CLAIM: &str =
+    "inspect_install must not claim a signed installer, MSI, NSIS, AppImage, upgrade channel, installer rollback, or native GUI session";
+pub const SIGNING_UNVERIFIED: &str = "UNVERIFIED";
+pub const NATIVE_GUI_STATUS_UNVERIFIED: &str = "UNVERIFIED";
+pub const KILL_RECOVERY_UNVERIFIED: &str = "UNVERIFIED";
+pub const JOB_OBJECT_UNVERIFIED: &str = "UNVERIFIED";
+pub const SLEEP_RESUME_UNVERIFIED: &str = "UNVERIFIED";
+pub const DISK_FAILURE_UNVERIFIED: &str = "UNVERIFIED";
+pub const RECOVERY_COMMAND_RESTORE_FIXTURE: &str = "restore_fixture";
+#[cfg(test)]
+pub const INSTALL_CLAIMED_FLAG: &str = "install-claimed";
+#[cfg(test)]
+pub const SIGNED_UPGRADE_FLAG: &str = "signed-upgrade";
 pub const ABSENT_ALLOWLIST_COMMANDS: &[&str] = &[
     "enable_provider",
     "restore_sync",
@@ -288,6 +310,7 @@ pub const ALLOWLISTED_IPC_COMMANDS: &[&str] = &[
     "inspect_providers",
     "inspect_routes",
     "inspect_privacy",
+    "inspect_install",
     "preview_context",
     "list_activity",
     "list_backups",
@@ -2115,6 +2138,76 @@ pub fn empty_privacy_inspection() -> PrivacyInspectionDto {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct InstallRecordDto {
+    pub identifier: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct InstallInspectionDto {
+    pub catalog: Vec<InstallRecordDto>,
+    pub installer_bundle_active: bool,
+    pub signed: bool,
+    pub signing: String,
+    pub upgrade_channel: bool,
+    pub native_gui: bool,
+    pub native_gui_status: String,
+    pub installer_rollback: bool,
+    pub recovery_command: String,
+    pub restore_sync_present: bool,
+    pub files_written: bool,
+    pub install_claimed: bool,
+    pub signed_upgrade: bool,
+    pub kill_recovery: String,
+    pub job_object: String,
+    pub sleep_resume: String,
+    pub disk_failure: String,
+    pub secrets_stored: bool,
+    pub env_tokens_read: bool,
+    pub remote_hosts_contacted: bool,
+    pub local_offline: bool,
+    pub mixed_profiles: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_install: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+}
+
+pub fn empty_install_inspection() -> InstallInspectionDto {
+    InstallInspectionDto {
+        catalog: Vec::new(),
+        installer_bundle_active: false,
+        signed: false,
+        signing: SIGNING_UNVERIFIED.to_owned(),
+        upgrade_channel: false,
+        native_gui: false,
+        native_gui_status: NATIVE_GUI_STATUS_UNVERIFIED.to_owned(),
+        installer_rollback: false,
+        recovery_command: RECOVERY_COMMAND_RESTORE_FIXTURE.to_owned(),
+        restore_sync_present: false,
+        files_written: false,
+        install_claimed: false,
+        signed_upgrade: false,
+        kill_recovery: KILL_RECOVERY_UNVERIFIED.to_owned(),
+        job_object: JOB_OBJECT_UNVERIFIED.to_owned(),
+        sleep_resume: SLEEP_RESUME_UNVERIFIED.to_owned(),
+        disk_failure: DISK_FAILURE_UNVERIFIED.to_owned(),
+        secrets_stored: false,
+        env_tokens_read: false,
+        remote_hosts_contacted: false,
+        local_offline: true,
+        mixed_profiles: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_install: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+    }
+}
+
 fn absent_command_is_allowlisted(name: &str) -> bool {
     ABSENT_ALLOWLIST_COMMANDS.contains(&name)
         || name == SEARCH_IDENTITY
@@ -2258,6 +2351,55 @@ pub fn accept_privacy_inspection(
         ));
     }
     Ok(empty_privacy_inspection())
+}
+
+pub fn accept_install_inspection(
+    report: InstallInspectionDto,
+) -> Result<InstallInspectionDto, LibraryError> {
+    if report.scanned_user_obsidian_vault
+        || report.scanned_user_basic_memory_home
+        || report.remote_hosts_contacted
+        || report.secrets_stored
+        || report.env_tokens_read
+    {
+        return Err(LibraryError::policy(POLICY_INSTALL_CREDENTIAL_ROUTE));
+    }
+    if report.engine_install {
+        return Err(LibraryError::unsupported(ENGINE_INSTALL_NOT_OWNED));
+    }
+    if report.mixed_profiles {
+        return Err(LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES));
+    }
+    if report.signed
+        || report.upgrade_channel
+        || report.installer_bundle_active
+        || report.installer_rollback
+        || report.native_gui
+        || report.signing != SIGNING_UNVERIFIED
+        || report.native_gui_status != NATIVE_GUI_STATUS_UNVERIFIED
+        || report.recovery_command != RECOVERY_COMMAND_RESTORE_FIXTURE
+        || report.restore_sync_present
+        || report.kill_recovery != KILL_RECOVERY_UNVERIFIED
+        || report.job_object != JOB_OBJECT_UNVERIFIED
+        || report.sleep_resume != SLEEP_RESUME_UNVERIFIED
+        || report.disk_failure != DISK_FAILURE_UNVERIFIED
+    {
+        return Err(LibraryError::unsupported(UNSUPPORTED_INSTALL_SIGNED_CLAIM));
+    }
+    if report.files_written
+        || report.install_claimed
+        || report.signed_upgrade
+        || !report.catalog.is_empty()
+        || report.observation.disk_verified
+        || report.observation.classified_as == NoteCrudClass::DiskVerified
+        || report.observation.classified_as == NoteCrudClass::Conflict
+        || report.observation.classified_as == NoteCrudClass::AcceptedUnverified
+    {
+        return Err(LibraryError::unsupported(
+            UNSUPPORTED_INSTALL_CLAIMED_NOT_SIGNED,
+        ));
+    }
+    Ok(empty_install_inspection())
 }
 
 pub fn accept_import_result(report: ImportResultDto) -> Result<ImportResultDto, LibraryError> {
@@ -2780,6 +2922,10 @@ pub trait NoteLibrary: Send + Sync {
 
     fn inspect_privacy(&self) -> Result<PrivacyInspectionDto, LibraryError> {
         Ok(empty_privacy_inspection())
+    }
+
+    fn inspect_install(&self) -> Result<InstallInspectionDto, LibraryError> {
+        Ok(empty_install_inspection())
     }
 
     fn write_note(
@@ -3570,6 +3716,46 @@ impl FixtureLibrary {
         crate::content_safety::persist_exact_utf8(
             &path,
             "fixture-sbom-cleared-not-passed-security-review\n",
+        )
+        .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        Ok(path)
+    }
+
+    fn require_install_root(&self) -> Result<(), LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        if !self.root.to_string_lossy().contains("bmdock-t37") {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        Ok(())
+    }
+
+    pub fn seed_install_claimed_flag(&self) -> Result<PathBuf, LibraryError> {
+        self.require_install_root()?;
+        fs::create_dir_all(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let path = self.root.join(INSTALL_CLAIMED_FLAG);
+        if library_root_is_forbidden(&path) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        crate::content_safety::persist_exact_utf8(
+            &path,
+            "fixture-install-claimed-not-signed-installer\n",
+        )
+        .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        Ok(path)
+    }
+
+    pub fn seed_signed_upgrade_flag(&self) -> Result<PathBuf, LibraryError> {
+        self.require_install_root()?;
+        fs::create_dir_all(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let path = self.root.join(SIGNED_UPGRADE_FLAG);
+        if library_root_is_forbidden(&path) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        crate::content_safety::persist_exact_utf8(
+            &path,
+            "fixture-signed-upgrade-not-signed-installer\n",
         )
         .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
         Ok(path)
@@ -4518,6 +4704,31 @@ impl NoteLibrary for FixtureLibrary {
             ));
         }
         Ok(empty_privacy_inspection())
+    }
+
+    fn inspect_install(&self) -> Result<InstallInspectionDto, LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        let install_flag = self.root.join(INSTALL_CLAIMED_FLAG);
+        let signed_flag = self.root.join(SIGNED_UPGRADE_FLAG);
+        if install_flag.is_symlink() || signed_flag.is_symlink() {
+            return Err(LibraryError::policy(POLICY_INSTALL_CREDENTIAL_ROUTE));
+        }
+        if install_flag.is_file() || signed_flag.is_file() {
+            let flag = if install_flag.is_file() {
+                &install_flag
+            } else {
+                &signed_flag
+            };
+            if library_root_is_forbidden(flag)
+                || !self.root.to_string_lossy().contains("bmdock-t37")
+            {
+                return Err(LibraryError::policy(POLICY_INSTALL_CREDENTIAL_ROUTE));
+            }
+            return Err(LibraryError::unsupported(
+                UNSUPPORTED_INSTALL_CLAIMED_NOT_SIGNED,
+            ));
+        }
+        Ok(empty_install_inspection())
     }
 
     fn write_note(
@@ -6331,6 +6542,36 @@ mod tests {
             NoteCrudClass::AcceptedUnverified
         );
         assert!(!privacy.observation.disk_verified);
+        let install = library.inspect_install().unwrap();
+        assert!(install.catalog.is_empty());
+        assert!(!install.installer_bundle_active);
+        assert!(!install.signed);
+        assert_eq!(install.signing, SIGNING_UNVERIFIED);
+        assert!(!install.upgrade_channel);
+        assert!(!install.native_gui);
+        assert_eq!(install.native_gui_status, NATIVE_GUI_STATUS_UNVERIFIED);
+        assert!(!install.installer_rollback);
+        assert_eq!(install.recovery_command, RECOVERY_COMMAND_RESTORE_FIXTURE);
+        assert!(!install.restore_sync_present);
+        assert!(!install.files_written);
+        assert!(!install.install_claimed);
+        assert!(!install.signed_upgrade);
+        assert_eq!(install.kill_recovery, KILL_RECOVERY_UNVERIFIED);
+        assert_eq!(install.job_object, JOB_OBJECT_UNVERIFIED);
+        assert_eq!(install.sleep_resume, SLEEP_RESUME_UNVERIFIED);
+        assert_eq!(install.disk_failure, DISK_FAILURE_UNVERIFIED);
+        assert!(!install.secrets_stored);
+        assert!(!install.env_tokens_read);
+        assert!(!install.remote_hosts_contacted);
+        assert!(install.local_offline);
+        assert!(!install.engine_install);
+        assert_eq!(install.observation.classified_as, NoteCrudClass::Empty);
+        assert_ne!(install.observation.classified_as, NoteCrudClass::Conflict);
+        assert_ne!(
+            install.observation.classified_as,
+            NoteCrudClass::AcceptedUnverified
+        );
+        assert!(!install.observation.disk_verified);
         let _ = (
             ENGINE_GRAPH_NOT_OWNED,
             ENGINE_SEARCH_NOT_OWNED,
@@ -8499,6 +8740,143 @@ mod tests {
             OFFICIAL_PRIVACY_UNVERIFIED,
             UNSUPPORTED_PRIVACY_CLAIMED_NOT_CLEARED,
             UNSUPPORTED_PRIVACY_REVIEW_CLAIM,
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn fixture_install_inspection_is_unsigned_and_claimed_flag_is_unsupported() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t37-{nanos}"));
+        fs::create_dir_all(&dir).unwrap();
+        let library = FixtureLibrary::new(dir.clone());
+        let report = library.inspect_install().unwrap();
+        assert!(report.catalog.is_empty());
+        assert!(!report.installer_bundle_active);
+        assert!(!report.signed);
+        assert_eq!(report.signing, SIGNING_UNVERIFIED);
+        assert!(!report.upgrade_channel);
+        assert!(!report.native_gui);
+        assert_eq!(report.native_gui_status, NATIVE_GUI_STATUS_UNVERIFIED);
+        assert!(!report.installer_rollback);
+        assert_eq!(report.recovery_command, RECOVERY_COMMAND_RESTORE_FIXTURE);
+        assert!(!report.restore_sync_present);
+        assert!(!report.files_written);
+        assert!(!report.install_claimed);
+        assert!(!report.signed_upgrade);
+        assert_eq!(report.kill_recovery, KILL_RECOVERY_UNVERIFIED);
+        assert_eq!(report.job_object, JOB_OBJECT_UNVERIFIED);
+        assert_eq!(report.sleep_resume, SLEEP_RESUME_UNVERIFIED);
+        assert_eq!(report.disk_failure, DISK_FAILURE_UNVERIFIED);
+        assert!(!report.secrets_stored);
+        assert!(!report.env_tokens_read);
+        assert!(!report.remote_hosts_contacted);
+        assert!(report.local_offline);
+        assert!(!report.engine_install);
+        assert_eq!(report.observation.classified_as, NoteCrudClass::Empty);
+        assert!(!report.observation.disk_verified);
+        let flag = library.seed_install_claimed_flag().unwrap();
+        assert!(flag.is_file());
+        let disk = fs::read_to_string(&flag).unwrap();
+        assert!(disk.contains("fixture-install-claimed-not-signed-installer"));
+        assert_eq!(
+            library.inspect_install().unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_INSTALL_CLAIMED_NOT_SIGNED)
+        );
+        let _ = fs::remove_file(&flag);
+        let signed_flag = library.seed_signed_upgrade_flag().unwrap();
+        assert!(signed_flag.is_file());
+        let signed_disk = fs::read_to_string(&signed_flag).unwrap();
+        assert!(signed_disk.contains("fixture-signed-upgrade-not-signed-installer"));
+        assert_eq!(
+            library.inspect_install().unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_INSTALL_CLAIMED_NOT_SIGNED)
+        );
+        let claimed = InstallInspectionDto {
+            install_claimed: true,
+            signed_upgrade: true,
+            ..empty_install_inspection()
+        };
+        assert_eq!(
+            accept_install_inspection(claimed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_INSTALL_CLAIMED_NOT_SIGNED)
+        );
+        let catalog = InstallInspectionDto {
+            catalog: vec![InstallRecordDto {
+                identifier: "signed".to_owned(),
+            }],
+            ..empty_install_inspection()
+        };
+        assert_eq!(
+            accept_install_inspection(catalog).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_INSTALL_CLAIMED_NOT_SIGNED)
+        );
+        let signed = InstallInspectionDto {
+            signed: true,
+            installer_bundle_active: true,
+            upgrade_channel: true,
+            ..empty_install_inspection()
+        };
+        assert_eq!(
+            accept_install_inspection(signed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_INSTALL_SIGNED_CLAIM)
+        );
+        let native = InstallInspectionDto {
+            native_gui: true,
+            installer_rollback: true,
+            ..empty_install_inspection()
+        };
+        assert_eq!(
+            accept_install_inspection(native).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_INSTALL_SIGNED_CLAIM)
+        );
+        let restore_sync = InstallInspectionDto {
+            restore_sync_present: true,
+            recovery_command: "restore_sync".to_owned(),
+            ..empty_install_inspection()
+        };
+        assert_eq!(
+            accept_install_inspection(restore_sync).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_INSTALL_SIGNED_CLAIM)
+        );
+        let collapsed = InstallInspectionDto {
+            observation: NoteCrudObservationDto {
+                classified_as: NoteCrudClass::Conflict,
+                disk_verified: true,
+                envelope_is_not_disk_proof: true,
+            },
+            ..empty_install_inspection()
+        };
+        assert_eq!(
+            accept_install_inspection(collapsed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_INSTALL_CLAIMED_NOT_SIGNED)
+        );
+        let credentials = InstallInspectionDto {
+            env_tokens_read: true,
+            secrets_stored: true,
+            remote_hosts_contacted: true,
+            ..empty_install_inspection()
+        };
+        assert_eq!(
+            accept_install_inspection(credentials).unwrap_err(),
+            LibraryError::policy(POLICY_INSTALL_CREDENTIAL_ROUTE)
+        );
+        let mixed = InstallInspectionDto {
+            mixed_profiles: true,
+            ..empty_install_inspection()
+        };
+        assert_eq!(
+            accept_install_inspection(mixed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES)
+        );
+        let _ = (
+            ENGINE_INSTALL_NOT_OWNED,
+            OFFICIAL_INSTALL_UNVERIFIED,
+            UNSUPPORTED_INSTALL_CLAIMED_NOT_SIGNED,
+            UNSUPPORTED_INSTALL_SIGNED_CLAIM,
         );
         let _ = fs::remove_dir_all(&dir);
     }

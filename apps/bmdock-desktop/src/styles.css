@@ -474,7 +474,8 @@ main {
 .hook-list,
 .provider-list,
 .route-list,
-.privacy-list {
+.privacy-list,
+.install-list {
   margin: 0.75rem 0 0;
   padding: 0;
   display: grid;
@@ -495,7 +496,8 @@ main {
 .hook-list li,
 .provider-list li,
 .route-list li,
-.privacy-list li {
+.privacy-list li,
+.install-list li {
   display: flex;
   justify-content: space-between;
   align-items: center;

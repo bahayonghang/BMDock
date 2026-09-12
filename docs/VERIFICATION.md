@@ -186,7 +186,7 @@ DTO 把已观察事实与未验证主张分开：`host_os`、`webview2_files_pre
 
 AC49：本机 Windows 观察到 `host_os=windows`，并返回原型 DTO。已知 EdgeWebView `Application` 目录不存在，故 `webview2_files_present=false`。native GUI 会话仍为 `UNVERIFIED`。
 
-AC51：未启用安装器打包或签名。`installer_bundle_active=false` 与 `bundle.active=false` 一致。这是未签名原型；签名仍属 T37。未制作安装器。
+AC51：未启用安装器打包或签名。`installer_bundle_active=false` 与 `bundle.active=false` 一致。这是未签名原型。T37 保持未打包、未签名，签名为 `UNVERIFIED`（未签名真实安装包）。未制作安装器。
 
 AC55：`just build` 仍为 G0 探针；`just tauri-dev` / `just tauri-build` 仍为桌面入口；`just contract*` 仍为探针。未运行 `just contract` 作为 T13 证明。
 
@@ -659,3 +659,25 @@ zh-CN 工作台「安全 / 隐私 / SBOM」区分空态 / 错误 / 就绪，均�
 本机 Windows 本轮命令见 [t36-security-sbom-privacy.json](../execution/evidence/t36-security-sbom-privacy.json)。`python -m scripts.tasks unit` 以 G0 未 passed 且 T05+ 已 completed 失败（未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / hosted CI / 漏洞扫描 / G7 证据；这些仍为 `UNVERIFIED`。
 
 T36 证据与验收映射见 [t36-security-sbom-privacy.json](../execution/evidence/t36-security-sbom-privacy.json)。`execution/status.json` 仅将 T36 标为 `completed`；未改 T05–T35/G0。
+
+## T37：安装升级签名与数据恢复链
+
+T37 在现有 `ipc_invoke` 上增加 typed `inspect_install`（`ExplicitRouteArgs`，`deny_unknown_fields`）。额外 `path`/`root`/`token`/`host` 为 schema。缺路由为 schema。非 fixture 路由为 policy，且不打开库。capabilities 精确允许列为 42 个命令。typed `inspect_install` 允许。`restore_sync` / raw `callTool` 不在允许列。
+
+生产 `EmptyLibrary`：空 catalog、`classified_as: empty`、`files_written=false`。`inspect_install` 报告 `installer_bundle_active=false`、`signed=false`、`upgrade_channel=false`、`native_gui=false`、`installer_rollback=false`、`recovery_command=restore_fixture`。`signing` / native GUI / 强杀 / Job Object / 睡眠恢复 / 磁盘故障为 `UNVERIFIED`。测试注入 `{temp}/bmdock-t37-*`。夹具 `install-claimed` / `signed-upgrade` 为 unsupported，不是签名安装包。宣称签名升级且无真实签名包为 unsupported。conflict / `timeout_unknown` / `disk_verified` / `accepted_unverified` 保持区分。IPC 错误联合仍为 `policy` / `schema` / `unsupported`。无 `dangerouslySetInnerHTML`。不启动 Supervisor。无 rmcp。无新 npm 依赖。
+
+AC49：Windows 运行时原型仍走 T13 `inspect_windows_runtime`。T37 不打开原生 GUI 会话。`native_gui` 仍为 `UNVERIFIED`。编译 exe / npm build / cargo test 不是原生窗口。
+
+AC51：保持 `bundle.active=false`。未制作签名安装包、MSI、NSIS 或 AppImage。`installer_bundle_active=false`，`signed=false`，`upgrade_channel=false`。宣称签名升级不受支持。签名仍为 `UNVERIFIED`，因为没有签名真实安装包。
+
+AC52：恢复链仍是 T12 `restore_fixture`，不是 cloud restore，也不是安装器回滚用户 vault。`restore_sync` 保持缺席。强杀 / Job Object / 睡眠恢复 / 磁盘故障仍为 `UNVERIFIED`。与 conflict 和 `timeout_unknown` 保持区分。
+
+AC53：恢复库存仍是 `list_backups` + `restore_fixture`（夹具自有）。`inspect_install` 报告 `recovery_command=restore_fixture`、`installer_rollback=false`。未发明生产升级恢复成功。
+
+zh-CN 工作台「安装 / 升级 / 恢复」区分空态 / 错误 / 就绪，均显示未签名 / 未打包 / 恢复走夹具 restore_fixture。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just tauri-build` 不是安装器；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T37 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令见 [t37-install-upgrade-recovery.json](../execution/evidence/t37-install-upgrade-recovery.json)。`python -m scripts.tasks unit` 以 G0 未 passed 且 T05+ 已 completed 失败（未回退）。未把 UI 文案、工具清单、编译 exe、`tauri-build` 或 `just contract` 当作 native GUI / WebView2 / Job Object / 真实 vault / 签名安装包证据；这些仍为 `UNVERIFIED`。
+
+T37 证据与验收映射见 [t37-install-upgrade-recovery.json](../execution/evidence/t37-install-upgrade-recovery.json)。`execution/status.json` 仅将 T37 标为 `completed`；未改 T05–T36/G0。
