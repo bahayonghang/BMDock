@@ -464,3 +464,21 @@ zh-CN 工作台「工具」/「CLI 任务中心」区分空态 / 错误 / 就绪
 本机 Windows 本轮命令（2026-09-13）：`python ./.trellis/scripts/task.py validate 09-12-t27-controlled-tools-cli-center` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 163 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 21 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方 MCP 工具执行 / 现场官方 CLI / hosted CI 证据；这些仍为 `UNVERIFIED`。
 
 T27 证据与验收映射见 [t27-controlled-tools-cli-center.json](../execution/evidence/t27-controlled-tools-cli-center.json)。`execution/status.json` 仅将 T27 标为 `completed`；未改 T05–T26/G0。
+
+## T28：导入与日常维护界面
+
+T28 在现有 `ipc_invoke` 上增加 typed `import_notes`（`ExplicitRouteArgs` + 必填 `source_id`，`deny_unknown_fields`）。`source_id` 是 BMDock 自有夹具源标识，不是文件系统路径。额外 `path`/`root` 为 schema。缺 `source_id` 为 schema。非 fixture 路由与文件系统 `source_id` 为 policy，且不打开库或备份 store。capabilities 精确允许列为 31 个命令。typed `import_notes` 允许。
+
+导入把 BMDock 自有夹具 Markdown 复制进自有夹具库。测试注入 `{temp}/bmdock-t28-*`（含 `欢迎.md`），导入后观察物理 UTF-8。信封 `"imported"` 文案不是磁盘证明。生产 `EmptyLibrary` 返回空 `files[]` / `classified_as: empty`，不是用户 vault 成功。`engine_import=false`。官方 extras / 文档摄取与现场 CLI import 仍为 `UNVERIFIED`（T30）。未把 `just contract` 当作 T28 证明。
+
+AC39：物理文件正文（含中文）才是导入证据。空库导入是 empty，不是用户 vault 成功。不扫描用户 Obsidian 或全局 Basic Memory 主目录。
+
+AC40：维护 UI 继续只列出 BMDock 生成的夹具备份（复用 T12 `list_backups` / `restore_fixture`）。`scanned_user_obsidian_vault=false`。不恢复用户 vault。导入与 `restore_fixture` 分开。
+
+zh-CN 工作台「导入」+ 既有「维护」区分空态 / 错误 / 就绪。无 `dangerouslySetInnerHTML`。不启动 Supervisor。无新 npm 依赖。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T28 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令（2026-09-13）：`python ./.trellis/scripts/task.py validate 09-12-t28-import-maintenance-ui` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 168 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 22 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方 extras / 现场 CLI import / hosted CI 证据；这些仍为 `UNVERIFIED`。
+
+T28 证据与验收映射见 [t28-import-maintenance-ui.json](../execution/evidence/t28-import-maintenance-ui.json)。`execution/status.json` 仅将 T28 标为 `completed`；未改 T05–T27/G0。

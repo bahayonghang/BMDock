@@ -5,8 +5,8 @@ use crate::conflict::{self, ConflictCoordinator};
 use crate::drafts::{self, DraftResultDto, DraftStore};
 use crate::drain::{self, DrainPhase, DrainResultDto, HostDrain};
 use crate::library::{
-    self, ActivityPageDto, CliInventoryDto, ContextPreviewDto, GraphPageDto, NoteDeleteDto,
-    NoteEditDto, NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto, PromptPageDto,
+    self, ActivityPageDto, CliInventoryDto, ContextPreviewDto, GraphPageDto, ImportResultDto,
+    NoteDeleteDto, NoteEditDto, NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto, PromptPageDto,
     RecallBenchmarkDto, RelationListDto, ResourcePageDto, SchemaValidateDto, SearchInspectorDto,
     SearchPageDto, ToolInspectionDto, TreePageDto,
 };
@@ -38,6 +38,7 @@ pub enum IpcCommandName {
     ListPrompts,
     InspectTools,
     ListCliInventory,
+    ImportNotes,
     PreviewContext,
     ListActivity,
     ListBackups,
@@ -72,6 +73,7 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::ListPrompts,
         IpcCommandName::InspectTools,
         IpcCommandName::ListCliInventory,
+        IpcCommandName::ImportNotes,
         IpcCommandName::PreviewContext,
         IpcCommandName::ListActivity,
         IpcCommandName::ListBackups,
@@ -336,6 +338,23 @@ impl ListCliInventoryArgs {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
+pub struct ImportNotesArgs {
+    pub workspace: String,
+    pub project: String,
+    pub source_id: String,
+}
+
+impl ImportNotesArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct PreviewContextArgs {
     pub workspace: String,
     pub project: String,
@@ -523,6 +542,7 @@ pub enum IpcCommand {
     ListPrompts(ListPromptsArgs),
     InspectTools(InspectToolsArgs),
     ListCliInventory(ListCliInventoryArgs),
+    ImportNotes(ImportNotesArgs),
     PreviewContext(PreviewContextArgs),
     ListActivity(ListActivityArgs),
     ListBackups(ExplicitRouteArgs),
@@ -597,6 +617,7 @@ pub enum IpcResponse {
     PromptPage(PromptPageDto),
     ToolInspection(ToolInspectionDto),
     CliInventory(CliInventoryDto),
+    NotesImported(ImportResultDto),
     ContextPreview(ContextPreviewDto),
     ActivityPage(ActivityPageDto),
     BackupCatalog(BackupCatalogDto),
@@ -854,6 +875,13 @@ pub fn dispatch_with_drain(
             let page = library::accept_cli_inventory(cursor, page)?;
             Ok(IpcResponse::CliInventory(page))
         }
+        IpcCommand::ImportNotes(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            library::reject_source_id(&args.source_id)?;
+            Ok(IpcResponse::NotesImported(library::accept_import_result(
+                library.import_notes(&args.source_id)?,
+            )?))
+        }
         IpcCommand::PreviewContext(args) => {
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
@@ -1049,6 +1077,7 @@ mod tests {
                 IpcCommandName::ListPrompts,
                 IpcCommandName::InspectTools,
                 IpcCommandName::ListCliInventory,
+                IpcCommandName::ImportNotes,
                 IpcCommandName::PreviewContext,
                 IpcCommandName::ListActivity,
                 IpcCommandName::ListBackups,
@@ -1063,14 +1092,14 @@ mod tests {
                 IpcCommandName::BeginShutdown,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 30);
+        assert_eq!(capabilities.commands.len(), 31);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 30);
+        assert_eq!(commands.len(), 31);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
@@ -1089,6 +1118,7 @@ mod tests {
         assert!(commands
             .iter()
             .any(|command| command == "list_cli_inventory"));
+        assert!(commands.iter().any(|command| command == "import_notes"));
         assert!(commands.iter().any(|command| command == "preview_context"));
         assert!(commands.iter().any(|command| command == "list_activity"));
         assert!(commands.iter().any(|command| command == "list_backups"));
@@ -1468,6 +1498,26 @@ mod tests {
             r#"{"command":"list_cli_inventory","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","profile_id":"main-preview","page_size":2}}"#,
         );
         assert!(well_formed_cli.is_ok());
+        let extra_path_on_import = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"import_notes","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","source_id":"fixture-welcome","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_import.is_err());
+        let extra_root_on_import = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"import_notes","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","source_id":"fixture-welcome","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_import.is_err());
+        let missing_source_import = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"import_notes","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(missing_source_import.is_err());
+        let import_without_route = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"import_notes","args":{"source_id":"fixture-welcome"}}"#,
+        );
+        assert!(import_without_route.is_err());
+        let well_formed_import = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"import_notes","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","source_id":"fixture-welcome"}}"#,
+        );
+        assert!(well_formed_import.is_ok());
         let mcp_tools_call = serde_json::from_str::<IpcCommand>(
             r#"{"command":"tools/call","args":{"name":"search"}}"#,
         );
@@ -2032,6 +2082,13 @@ mod tests {
             panic!("policy rejection must not open the library")
         }
 
+        fn import_notes(
+            &self,
+            _source_id: &str,
+        ) -> Result<library::ImportResultDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
         fn write_note(
             &self,
             _identifier: &str,
@@ -2378,6 +2435,14 @@ mod tests {
             profile_id: profile,
             cursor: cursor.map(ToOwned::to_owned),
             page_size,
+        }
+    }
+
+    fn fixture_import_args(source_id: &str) -> ImportNotesArgs {
+        ImportNotesArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            source_id: source_id.to_owned(),
         }
     }
 
@@ -2746,6 +2811,32 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(cli_route.category, ErrorCategory::Policy);
+        let import_route = dispatch_with_library(
+            IpcCommand::ImportNotes(ImportNotesArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+                source_id: "fixture-welcome".to_owned(),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(import_route.category, ErrorCategory::Policy);
+        let filesystem_source = dispatch_with_library(
+            IpcCommand::ImportNotes(ImportNotesArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                source_id: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(filesystem_source.category, ErrorCategory::Policy);
         let prompts_route = dispatch_with_library(
             IpcCommand::ListPrompts(ListPromptsArgs {
                 workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
@@ -7346,5 +7437,253 @@ mod tests {
             library::OFFICIAL_TOOLS_MCP_UNVERIFIED,
             library::OFFICIAL_CLI_UNVERIFIED,
         );
+    }
+
+    #[test]
+    fn import_notes_empty_library_is_empty_not_user_vault() {
+        let mut route = RouteState::default();
+        let IpcResponse::NotesImported(imported) = dispatch_with_library(
+            IpcCommand::ImportNotes(fixture_import_args("fixture-welcome")),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(imported.source_id, "fixture-welcome");
+        assert!(imported.files.is_empty());
+        assert!(!imported.files_written);
+        assert!(!imported.engine_import);
+        assert!(!imported.scanned_user_obsidian_vault);
+        assert!(!imported.scanned_user_basic_memory_home);
+        assert_eq!(
+            imported.observation.classified_as,
+            library::ImportClass::Empty
+        );
+        assert!(!imported.observation.disk_verified);
+        assert!(imported.observation.envelope_is_not_disk_proof);
+        let json = serde_json::to_value(&IpcResponse::NotesImported(imported)).unwrap();
+        assert_eq!(json["kind"], "notes_imported");
+        assert_eq!(json["engine_import"], false);
+        let backups = dispatch_with_library(
+            IpcCommand::ListBackups(ExplicitRouteArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+            }),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap();
+        let IpcResponse::BackupCatalog(catalog) = backups else {
+            panic!("wrong response variant")
+        };
+        assert!(catalog.backups.is_empty());
+        assert!(!catalog.scanned_user_obsidian_vault);
+        assert!(!catalog.scanned_user_basic_memory_home);
+        let _ = (
+            library::ENGINE_IMPORT_NOT_OWNED,
+            library::OFFICIAL_IMPORT_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn import_notes_fixture_observes_physical_utf8_including_chinese() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t28-{nanos}"));
+        let library_root = dir.join("library");
+        let sources_root = dir.join("sources");
+        std::fs::create_dir_all(&library_root).unwrap();
+        std::fs::create_dir_all(&sources_root).unwrap();
+        let library =
+            library::FixtureLibrary::with_import_sources(library_root.clone(), sources_root);
+        let body = "# 欢迎\n\n这是导入夹具正文。\n";
+        library
+            .seed_import_source("fixture-welcome", &[("欢迎", body)])
+            .unwrap();
+        let mut route = RouteState::default();
+        let IpcResponse::NotesImported(imported) = dispatch_with_library(
+            IpcCommand::ImportNotes(fixture_import_args("fixture-welcome")),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(imported.source_id, "fixture-welcome");
+        assert!(imported.files_written);
+        assert!(!imported.engine_import);
+        assert_eq!(
+            imported.observation.classified_as,
+            library::ImportClass::DiskVerified
+        );
+        assert!(imported.observation.envelope_is_not_disk_proof);
+        let dest = library_root.join("欢迎.md");
+        assert!(dest.is_file());
+        let disk = std::fs::read_to_string(&dest).unwrap();
+        assert_eq!(disk, body);
+        assert!(disk.contains("欢迎"));
+        let catalog = dispatch_with_library(
+            IpcCommand::ListBackups(ExplicitRouteArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+            }),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap();
+        let IpcResponse::BackupCatalog(catalog) = catalog else {
+            panic!("wrong response variant")
+        };
+        assert!(!catalog.scanned_user_obsidian_vault);
+        assert_ne!(
+            serde_json::to_value(&IpcCommand::ImportNotes(fixture_import_args(
+                "fixture-welcome"
+            )))
+            .unwrap()["command"],
+            "restore_fixture"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+        let release = EngineProfile::Release;
+        let preview = EngineProfile::MainPreview;
+        assert_eq!(release.expected_tools(), 21);
+        assert_eq!(preview.expected_tools(), 27);
+        assert_ne!(release.expected_tools(), preview.expected_tools());
+        let _ = (
+            library::ENGINE_IMPORT_NOT_OWNED,
+            library::OFFICIAL_IMPORT_UNVERIFIED,
+        );
+    }
+
+    struct EnvelopeImportLibrary;
+
+    impl NoteLibrary for EnvelopeImportLibrary {
+        fn list_tree(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            Ok(library::TreePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: false,
+            })
+        }
+
+        fn read_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            Err(library::LibraryError::unsupported(
+                library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
+            ))
+        }
+
+        fn import_notes(
+            &self,
+            source_id: &str,
+        ) -> Result<library::ImportResultDto, library::LibraryError> {
+            library::reject_source_id(source_id)?;
+            Ok(library::ImportResultDto {
+                source_id: source_id.to_owned(),
+                files: vec![library::ImportedFileDto {
+                    identifier: "欢迎".to_owned(),
+                    kind: crate::routing::OWNED_KIND.to_owned(),
+                }],
+                files_written: false,
+                observation: library::ImportObservationDto {
+                    classified_as: library::ImportClass::DiskVerified,
+                    disk_verified: true,
+                    envelope_is_not_disk_proof: false,
+                },
+                engine_import: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+            })
+        }
+    }
+
+    #[test]
+    fn import_notes_envelope_is_accepted_unverified_and_does_not_write() {
+        let mut route = RouteState::default();
+        let IpcResponse::NotesImported(imported) = dispatch_with_library(
+            IpcCommand::ImportNotes(fixture_import_args("fixture-welcome")),
+            idle_snapshot(),
+            &mut route,
+            &EnvelopeImportLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(imported.source_id, "fixture-welcome");
+        assert!(!imported.files_written);
+        assert!(!imported.engine_import);
+        assert!(!imported.observation.disk_verified);
+        assert!(imported.observation.envelope_is_not_disk_proof);
+        assert_eq!(
+            imported.observation.classified_as,
+            library::ImportClass::AcceptedUnverified
+        );
+        let json = serde_json::to_value(&IpcResponse::NotesImported(imported)).unwrap();
+        assert_eq!(json["kind"], "notes_imported");
+        assert_eq!(json["files_written"], false);
+        assert_eq!(json["observation"]["classified_as"], "accepted_unverified");
+        assert_ne!(json["observation"]["classified_as"], "disk_verified");
+        assert_ne!(json["observation"]["classified_as"], "imported");
+        let _ = (
+            library::ENGINE_IMPORT_NOT_OWNED,
+            library::OFFICIAL_IMPORT_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn import_notes_does_not_launch_supervisor_or_mix_profiles() {
+        let release = EngineProfile::Release;
+        let preview = EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(preview.commit(), "3452c821d76c083823d020984d71e06904a1ff1e");
+        let mut route = RouteState::default();
+        let IpcResponse::NotesImported(imported) = dispatch_with_library(
+            IpcCommand::ImportNotes(fixture_import_args("fixture-welcome")),
+            RuntimeSnapshot {
+                state: ConnectionState::Connected,
+                profile: Some(preview),
+                child_pid: Some(11),
+                failure: None,
+                shutdown: None,
+            },
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let json = serde_json::to_value(&IpcResponse::NotesImported(imported)).unwrap();
+        assert_eq!(json["kind"], "notes_imported");
+        assert_eq!(json["engine_import"], false);
+        assert_eq!(json["files_written"], false);
+        assert!(json.get("expected_tools").is_none());
+        let empty_source = dispatch_with_library(
+            IpcCommand::ImportNotes(fixture_import_args("")),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(empty_source.category, ErrorCategory::Schema);
     }
 }

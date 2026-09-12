@@ -38,6 +38,8 @@ import {
   type PreflightDto,
   type ProjectCatalogDto,
   type RestoreResultDto,
+  type ImportResultDto,
+  type ImportClass,
   type RuntimeStateDto,
   type TreeEntryDto,
   type WindowsRuntimeDto,
@@ -65,7 +67,7 @@ import {
   type ShellLoadState,
 } from "./shell";
 
-const SECTIONS = ["workbench", "runtime", "projects", "preflight", "backups", "about"] as const;
+const SECTIONS = ["workbench", "runtime", "projects", "preflight", "backups", "import", "about"] as const;
 type SectionId = (typeof SECTIONS)[number];
 
 function sectionLabel(id: SectionId): string {
@@ -80,6 +82,8 @@ function sectionLabel(id: SectionId): string {
       return t("navPreflight");
     case "backups":
       return t("navBackups");
+    case "import":
+      return t("navImport");
     case "about":
       return t("navAbout");
     default: {
@@ -186,6 +190,8 @@ function SectionBody({
       return <PreflightPanel />;
     case "backups":
       return <BackupPanel />;
+    case "import":
+      return <ImportPanel />;
     case "about":
       return <AboutPanel />;
     default: {
@@ -380,6 +386,7 @@ function WorkbenchLibrary({
       case "prompt_page":
       case "tool_inspection":
       case "cli_inventory":
+      case "notes_imported":
       case "shutdown_begun":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
@@ -691,6 +698,7 @@ async function openNote(
       case "prompt_page":
       case "tool_inspection":
       case "cli_inventory":
+      case "notes_imported":
       case "shutdown_begun":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
@@ -769,6 +777,7 @@ async function loadRelations(
       case "prompt_page":
       case "tool_inspection":
       case "cli_inventory":
+      case "notes_imported":
       case "shutdown_begun":
         setRelations(null);
         setRelationsError({ category: "schema", message: t("unexpectedRelations") });
@@ -880,6 +889,7 @@ async function loadGraph(
       case "prompt_page":
       case "tool_inspection":
       case "cli_inventory":
+      case "notes_imported":
       case "shutdown_begun":
         setGraph(null);
         setGraphError(unexpectedGraphResponse());
@@ -958,6 +968,7 @@ async function loadMoreGraph(
       case "prompt_page":
       case "tool_inspection":
       case "cli_inventory":
+      case "notes_imported":
       case "shutdown_begun":
         setGraphError(unexpectedGraphResponse());
         return;
@@ -1036,6 +1047,7 @@ async function loadMoreTree(
       case "prompt_page":
       case "tool_inspection":
       case "cli_inventory":
+      case "notes_imported":
       case "shutdown_begun":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
@@ -1507,6 +1519,7 @@ async function runSearch(
       case "prompt_page":
       case "tool_inspection":
       case "cli_inventory":
+      case "notes_imported":
       case "shutdown_begun":
         setSearch(null);
         setSearchError(unexpectedSearchResponse());
@@ -1585,6 +1598,7 @@ async function loadMoreSearch(
       case "prompt_page":
       case "tool_inspection":
       case "cli_inventory":
+      case "notes_imported":
       case "shutdown_begun":
         setSearchError(unexpectedSearchResponse());
         return;
@@ -1787,6 +1801,7 @@ async function runInspectSearch(
       case "prompt_page":
       case "tool_inspection":
       case "cli_inventory":
+      case "notes_imported":
       case "shutdown_begun":
         setInspector(null);
         setInspectorError(unexpectedInspectorResponse());
@@ -2018,6 +2033,7 @@ async function runRecallBenchmark(
       case "prompt_page":
       case "tool_inspection":
       case "cli_inventory":
+      case "notes_imported":
       case "shutdown_begun":
         setRecall(null);
         setRecallError(unexpectedRecallResponse());
@@ -2239,6 +2255,7 @@ async function runSchemaValidate(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "notes_imported":
       case "shutdown_begun":
         setSchema(null);
         setSchemaError(unexpectedSchemaResponse());
@@ -2470,6 +2487,7 @@ async function loadContextPreview(
       case "prompt_page":
       case "tool_inspection":
       case "cli_inventory":
+      case "notes_imported":
       case "shutdown_begun":
         setPreview(null);
         setPreviewError(unexpectedPreviewResponse());
@@ -2640,6 +2658,7 @@ async function loadActivity(
       case "prompt_page":
       case "tool_inspection":
       case "cli_inventory":
+      case "notes_imported":
       case "shutdown_begun":
         setActivity(null);
         setActivityError(unexpectedActivityResponse());
@@ -2717,6 +2736,7 @@ async function loadMoreActivity(
       case "prompt_page":
       case "tool_inspection":
       case "cli_inventory":
+      case "notes_imported":
       case "shutdown_begun":
         setActivityError(unexpectedActivityResponse());
         return;
@@ -2878,6 +2898,7 @@ async function loadResources(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "notes_imported":
       case "shutdown_begun":
         setResources(null);
         setResourcesError(unexpectedResourceResponse());
@@ -2955,6 +2976,7 @@ async function loadMoreResources(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "notes_imported":
       case "shutdown_begun":
         setResourcesError(unexpectedResourceResponse());
         return;
@@ -3117,6 +3139,7 @@ async function loadPrompts(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "notes_imported":
       case "shutdown_begun":
         setPrompts(null);
         setPromptsError(unexpectedPromptResponse());
@@ -3194,6 +3217,7 @@ async function loadMorePrompts(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "notes_imported":
       case "shutdown_begun":
         setPromptsError(unexpectedPromptResponse());
         return;
@@ -3358,6 +3382,7 @@ async function loadTools(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "notes_imported":
       case "shutdown_begun":
         setTools(null);
         setToolsError(unexpectedToolsResponse());
@@ -3542,6 +3567,7 @@ async function loadCli(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "notes_imported":
       case "shutdown_begun":
         setCli(null);
         setCliError(unexpectedCliResponse());
@@ -3621,6 +3647,7 @@ async function loadMoreCli(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "notes_imported":
       case "shutdown_begun":
         setCliError(unexpectedCliResponse());
         return;
@@ -4051,6 +4078,7 @@ async function applyCrudResponse(
       case "prompt_page":
       case "tool_inspection":
       case "cli_inventory":
+      case "notes_imported":
       case "shutdown_begun":
       setError(unexpectedCrudResponse());
       return;
@@ -4384,6 +4412,7 @@ async function persistDraft(
       case "prompt_page":
       case "tool_inspection":
       case "cli_inventory":
+      case "notes_imported":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -4467,6 +4496,7 @@ async function reloadDraft(
       case "prompt_page":
       case "tool_inspection":
       case "cli_inventory":
+      case "notes_imported":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -4811,6 +4841,7 @@ function ProjectPanel({
       case "prompt_page":
       case "tool_inspection":
       case "cli_inventory":
+      case "notes_imported":
       case "shutdown_begun":
                   setSelectError({
                     category: "schema",
@@ -5046,6 +5077,218 @@ function DiscoveryBlock({
   );
 }
 
+type ImportError = {
+  category: "policy" | "schema" | "unsupported" | "invoke";
+  message: string;
+};
+
+function isFixtureSourceId(id: string): boolean {
+  if (id.trim() === "" || !id.startsWith("fixture-")) {
+    return false;
+  }
+  return !(
+    id.includes("\\") ||
+    id.includes("/") ||
+    id.includes("..") ||
+    id.includes("%") ||
+    id.includes(":") ||
+    id.includes(".obsidian") ||
+    id.includes(".basic-memory")
+  );
+}
+
+function unexpectedImportResponse(): ImportError {
+  return { category: "schema", message: t("unexpectedImport") };
+}
+
+function importObservationLabel(classified: ImportClass): string {
+  switch (classified) {
+    case "disk_verified":
+      return t("importObservationDisk");
+    case "accepted_unverified":
+      return t("importObservationUnverified");
+    case "empty":
+      return t("importObservationEmpty");
+    case "unclassified":
+      return t("importObservationUnclassified");
+    default: {
+      const exhaustive: never = classified;
+      return exhaustive;
+    }
+  }
+}
+
+function ImportPanel() {
+  const [sourceId, setSourceId] = useState("");
+  const [phase, setPhase] = useState<"empty" | "ready" | "error">("empty");
+  const [result, setResult] = useState<ImportResultDto | null>(null);
+  const [error, setError] = useState<ImportError | null>(null);
+
+  const runImport = async () => {
+    if (!isFixtureSourceId(sourceId)) {
+      setError({ category: "policy", message: t("importSourceDenied") });
+      setPhase("error");
+      return;
+    }
+    const route = copyFixtureRoute();
+    try {
+      const response = await invokeTyped<IpcResponse>({
+        command: "import_notes",
+        args: {
+          workspace: route.workspace,
+          project: route.project,
+          source_id: sourceId.trim(),
+        },
+      });
+      switch (response.kind) {
+        case "error":
+          setError({ category: response.category, message: response.message });
+          setResult(null);
+          setPhase("error");
+          return;
+        case "notes_imported":
+          if (
+            response.engine_import ||
+            response.scanned_user_obsidian_vault ||
+            (response.observation.disk_verified && !response.files_written) ||
+            (response.observation.classified_as === "disk_verified" && !response.files_written)
+          ) {
+            setError(unexpectedImportResponse());
+            setResult(null);
+            setPhase("error");
+            return;
+          }
+          setError(null);
+          setResult({
+            source_id: response.source_id,
+            files: response.files,
+            files_written: response.files_written,
+            observation: response.observation,
+            engine_import: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+          });
+          setPhase(response.files.length === 0 ? "empty" : "ready");
+          return;
+        case "capabilities":
+        case "runtime_state":
+        case "project_selected":
+        case "project_catalog":
+        case "preflight":
+        case "config_discovery":
+        case "tree_page":
+        case "note_read":
+        case "backup_catalog":
+        case "fixture_restored":
+        case "windows_runtime":
+        case "draft_saved":
+        case "draft_loaded":
+        case "note_written":
+        case "note_edited":
+        case "note_moved":
+        case "note_deleted":
+        case "relation_list":
+        case "graph_page":
+        case "search_page":
+        case "context_preview":
+        case "activity_page":
+        case "search_inspector":
+        case "recall_benchmark":
+        case "schema_validated":
+        case "resource_page":
+        case "prompt_page":
+        case "tool_inspection":
+        case "cli_inventory":
+        case "shutdown_begun":
+          setError(unexpectedImportResponse());
+          setResult(null);
+          setPhase("error");
+          return;
+        default: {
+          const exhaustive: never = response;
+          return exhaustive;
+        }
+      }
+    } catch (cause) {
+      setError({
+        category: "invoke",
+        message: cause instanceof Error ? cause.message : String(cause),
+      });
+      setResult(null);
+      setPhase("error");
+    }
+  };
+
+  const empty = phase === "empty" && !error;
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error
+    ? t("importErrorTitle")
+    : empty
+      ? t("importEmptyTitle")
+      : t("importReadyTitle");
+
+  return (
+    <section
+      className="panel"
+      data-state={state}
+      aria-labelledby="import-title"
+      role={error ? "alert" : undefined}
+    >
+      <p className="state-badge">{badge}</p>
+      <h2 id="import-title">{heading}</h2>
+      <p>
+        {error
+          ? `${errorCategoryLabel(error.category)}：${error.message}`
+          : empty
+            ? t("importEmptyBody")
+            : t("importReadyBody")}
+      </p>
+      <p>{t("importNotRestore")}</p>
+      <p>{t("importNotOfficial")}</p>
+      <p>{t("importEnvelopeNote")}</p>
+      <div className="crud-editor">
+        <label htmlFor="import-source-id">{t("importSourceLabel")}</label>
+        <input
+          id="import-source-id"
+          type="text"
+          value={sourceId}
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(event) => {
+            setSourceId(event.target.value);
+            setError(null);
+          }}
+        />
+      </div>
+      <button type="button" className="action" onClick={() => void runImport()}>
+        {t("importSubmit")}
+      </button>
+      <ul className="policy-list">
+        <li>{t("importNoVault")}</li>
+        <li>
+          {t("importFilesWrittenLabel")}：
+          {result?.files_written ? t("importWroteFiles") : t("importNoWrite")}
+        </li>
+        <li>
+          {t("importEngineLabel")}：{t("importEngineFalse")}
+        </li>
+      </ul>
+      {result ? (
+        <ul className="import-list">
+          {result.files.map((file) => (
+            <li key={file.identifier}>
+              <span>{file.identifier}</span>
+              <span>{importObservationLabel(result.observation.classified_as)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {result ? <p>{importObservationLabel(result.observation.classified_as)}</p> : null}
+    </section>
+  );
+}
+
 type BackupError = {
   category: "policy" | "schema" | "unsupported" | "invoke";
   message: string;
@@ -5140,6 +5383,7 @@ function BackupPanel() {
       case "prompt_page":
       case "tool_inspection":
       case "cli_inventory":
+      case "notes_imported":
       case "shutdown_begun":
             setError(unexpectedBackupResponse());
             setPhase("error");
@@ -5328,6 +5572,7 @@ async function restoreNamedFixture(
       case "prompt_page":
       case "tool_inspection":
       case "cli_inventory":
+      case "notes_imported":
       case "shutdown_begun":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
@@ -5491,6 +5736,7 @@ function WindowsRuntimeCard() {
       case "prompt_page":
       case "tool_inspection":
       case "cli_inventory":
+      case "notes_imported":
       case "shutdown_begun":
             setError(unexpectedWindowsResponse());
             setPhase("error");

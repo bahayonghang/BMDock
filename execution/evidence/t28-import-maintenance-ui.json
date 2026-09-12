@@ -1,0 +1,190 @@
+{
+  "task": "T28",
+  "title": "导入与日常维护界面",
+  "status": "accepted_with_limits",
+  "date": "2026-09-13",
+  "host_boundary": "T28 adds typed import_notes with ExplicitRouteArgs plus required source_id (BMDock-owned fixture source identifier, not a filesystem path). deny_unknown_fields. Extra path/root is schema. Missing source_id is schema. Non-fixture routes and filesystem source_id are policy and do not open the library or backup store. Tests inject {temp}/bmdock-t28-* source markdown and observe physical UTF-8 after import, including Chinese. Envelope imported text is not disk proof. Production EmptyLibrary is empty/unsupported, not user-vault success. engine_import=false. scanned_user_obsidian_vault=false. scanned_user_basic_memory_home=false. AC40 maintenance continues to list only BMDock-generated fixture backups (reuse T12 list_backups/restore_fixture). Import is distinct from restore_fixture. Dual profiles stay isolated (21 vs 27). T28 does not start Supervisor, add rmcp, scan user Obsidian or global Basic Memory home, or run just contract as proof. just build stays the G0 probe.",
+  "acceptance": {
+    "AC39": {
+      "status": "fixture_owned_markdown_import_disk_observed",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "import_notes copies BMDock-owned fixture markdown identified by source_id into an owned fixture library. Tests inject {temp}/bmdock-t28-* files including 欢迎.md and observe exact UTF-8 on disk after import. classified_as=disk_verified, files_written=true, envelope_is_not_disk_proof=true. Envelope imported text is accepted_unverified and is not disk proof. Production EmptyLibrary is empty, not user-vault success. Official extras/document ingestion and live CLI import remain UNVERIFIED (T30).",
+      "unverified": [
+        "official extras/document ingestion",
+        "live official CLI import",
+        "native GUI session",
+        "real user vault"
+      ]
+    },
+    "AC40": {
+      "status": "fixture_backup_inventory_only_reused",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/backups.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Maintenance UI continues to list only BMDock-generated fixture backups via T12 list_backups. scanned_user_obsidian_vault=false. Restore remains restore_fixture into an owned fixture target and does not restore user vaults. import_notes is distinct from restore_fixture. T28 does not scan user Obsidian or global Basic Memory home.",
+      "unverified": [
+        "user vault restore",
+        "native GUI session",
+        "hosted CI"
+      ]
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t28-import-maintenance-ui",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 168 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 22 passed"
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T28 import/maintenance proof. Probe entries remain independent. Official extras/document ingestion and live CLI import remain UNVERIFIED."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window was launched. AC39/AC40 proof is typed fixture import plus T12 backup inventory, not a native GUI session."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_173_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_desktop_shell": "22_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "typed_command_count": 31,
+    "typed_import_notes": "allowed",
+    "source_id_is_not_filesystem_path": true,
+    "extra_path_root_is_schema": true,
+    "missing_source_id_is_schema": true,
+    "non_fixture_and_filesystem_source_are_policy": true,
+    "envelope_imported_is_not_disk_proof": true,
+    "envelope_disk_claim_without_files_written_is_accepted_unverified": true,
+    "empty_library_import_is_empty_state": true,
+    "scanned_user_obsidian_vault": false,
+    "scanned_user_basic_memory_home": false,
+    "engine_import": false,
+    "import_distinct_from_restore_fixture": true,
+    "dangerouslySetInnerHTML": "absent",
+    "supervisor_started_by_t28": false,
+    "rmcp_live_client": "not_added_in_t28",
+    "official_extras_document_ingestion": "UNVERIFIED",
+    "live_official_cli_import": "UNVERIFIED",
+    "native_gui_session": "UNVERIFIED",
+    "webview2_session": "UNVERIFIED",
+    "installer": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "t29_api_cli_audit": "not_implemented",
+    "t30_extras_document_ingestion": "not_implemented"
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed_unchanged",
+    "T10": "completed_unchanged",
+    "T11": "completed_unchanged",
+    "T12": "completed_unchanged",
+    "T13": "completed_unchanged",
+    "T14": "completed_unchanged",
+    "T15": "completed_unchanged",
+    "T16": "completed_unchanged",
+    "T17": "completed_unchanged",
+    "T18": "completed_unchanged",
+    "T19": "completed_unchanged",
+    "T20": "completed_unchanged",
+    "T21": "completed_unchanged",
+    "T22": "completed_unchanged",
+    "T23": "completed_unchanged",
+    "T24": "completed_unchanged",
+    "T25": "completed_unchanged",
+    "T26": "completed_unchanged",
+    "T27": "completed_unchanged",
+    "T28": "completed"
+  },
+  "scope_limits": [
+    "import_notes is a BMDock-owned fixture markdown copy identified by source_id, not a filesystem path and not official extras/document ingestion.",
+    "Envelope imported text is not disk proof. Production EmptyLibrary empty import is empty state, not user-vault success.",
+    "engine_import=false. scanned_user_obsidian_vault=false. scanned_user_basic_memory_home=false.",
+    "Maintenance continues to list only BMDock-generated fixture backups. Import is distinct from restore_fixture.",
+    "Official extras/document ingestion and live official CLI import remain UNVERIFIED. Native GUI, WebView2, installer, hosted CI, and real user vaults remain UNVERIFIED.",
+    "IPC error union stays policy/schema/unsupported. Dual profiles stay isolated (21 vs 27).",
+    "just build stays scripts.tasks build. just contract* stay probe. just tauri-dev/tauri-build stay desktop.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "T29-T40 were not implemented."
+  ],
+  "rollback": "Remove import_notes from the ipc_invoke union, drop ImportPanel, restore the 30-command allowlist, and leave T12 list_backups/restore_fixture in place. Do not revert T05-T27 status to make unit green."
+}

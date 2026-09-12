@@ -10,6 +10,7 @@ export const messages = {
   navProjects: "项目",
   navPreflight: "预检",
   navBackups: "维护",
+  navImport: "导入",
   navAbout: "说明",
   g0Notice: "G0 尚未通过。本界面是布局壳，不表示生产写入安全。",
   emptyBadge: "空态",
@@ -390,6 +391,33 @@ export const messages = {
   backupsObservationUnclassified: "观察分类：未分类",
   backupsUnverifiedNote:
     "强杀、Job Object、睡眠恢复和磁盘故障仍为未验证。夹具恢复成功不是 T17/T37/T38 的证据。",
+  importTitle: "导入",
+  importEmptyTitle: "还没有导入结果",
+  importEmptyBody:
+    "空态表示尚未把 BMDock 自有夹具 Markdown 复制进自有库，也不是已扫描用户 Obsidian vault。source_id 是自有夹具源标识，不是文件系统路径。文案“已导入”不能当作磁盘证据。",
+  importReadyTitle: "已观察夹具导入",
+  importReadyBody:
+    "下列标识来自 BMDock 自有夹具源复制到自有库。必须观察物理 UTF-8 文件。信封“imported”文案不是磁盘证明。官方 extras / 文档摄取与现场 CLI import 仍为未验证。",
+  importErrorTitle: "无法完成导入",
+  importErrorBody:
+    "导入失败。下面是分类后的错误。不会启动 Supervisor，也不会扫描用户 vault 或全局 Basic Memory 主目录。",
+  importSourceLabel: "夹具源标识",
+  importSubmit: "导入夹具笔记",
+  importSourceDenied: "只允许 BMDock 自有夹具源标识，不是文件系统路径",
+  importNotRestore: "导入与 restore_fixture 分开。维护清单仍只列出 BMDock 生成的夹具备份。",
+  importNotOfficial: "不是官方 extras / 文档摄取，也不是现场 CLI import。engine_import=false。",
+  importEnvelopeNote: "信封“imported”文案不是磁盘证明。必须观察物理 UTF-8，包括中文。",
+  importNoVault: "未扫描用户 vault 或 Basic Memory 主目录",
+  importFilesWrittenLabel: "是否写入自有文件",
+  importWroteFiles: "是（已观察到自有目标文件）",
+  importNoWrite: "否",
+  importEngineLabel: "官方引擎导入",
+  importEngineFalse: "否（engine_import=false）",
+  importObservationDisk: "观察分类：已核对物理文件正文",
+  importObservationUnverified: "观察分类：仅信封成功，不能当作磁盘证据",
+  importObservationEmpty: "观察分类：源中没有可导入的 Markdown",
+  importObservationUnclassified: "观察分类：未分类",
+  unexpectedImport: "导入返回了意外的响应种类",
   windowsTitle: "运行时",
   windowsLoading: "正在观察 Windows 宿主运行时原型…",
   windowsEmptyTitle: "当前宿主不是 Windows",
@@ -502,9 +530,9 @@ export const messages = {
     "native GUI / IME 会话仍为未验证。cargo test 与 npm build 不是原生窗口输入。",
   contentSafetyHelpNotT39: "帮助与无障碍完备性仍属 T39，本任务不关闭。",
   aboutIntro:
-    "这是桌面布局壳加只读预检、显式项目路由、分页目录、笔记预览、观察与关系语义面板、局部图谱渐进展开、夹具全文词法检索、检索 Inspector 与模型状态、中文召回与性能基准、Schema 工作台、MCP 资源与提示词工作台、受控高级工具与 CLI 任务中心、上下文预览与近期活动、草稿编辑器会话、夹具笔记写入编辑移动删除、同目标冲突与超时未知协调、宿主正常退出排空、夹具备份恢复基线、Windows 运行时原型观察，以及编辑器内容安全与 CRLF 精确字节往返。默认界面语言为简体中文。帮助与无障碍完备性也不在本任务关闭。",
+    "这是桌面布局壳加只读预检、显式项目路由、分页目录、笔记预览、观察与关系语义面板、局部图谱渐进展开、夹具全文词法检索、检索 Inspector 与模型状态、中文召回与性能基准、Schema 工作台、MCP 资源与提示词工作台、受控高级工具与 CLI 任务中心、夹具笔记导入与日常维护、上下文预览与近期活动、草稿编辑器会话、夹具笔记写入编辑移动删除、同目标冲突与超时未知协调、宿主正常退出排空、夹具备份恢复基线、Windows 运行时原型观察，以及编辑器内容安全与 CRLF 精确字节往返。默认界面语言为简体中文。帮助与无障碍完备性也不在本任务关闭。",
   aboutSafety:
-    "调用 get_capabilities、get_runtime_state、list_projects、run_preflight、discover_config、list_tree、read_note、list_relations、expand_graph、search_notes、inspect_search、run_recall_benchmark、schema_validate、list_resources、list_prompts、inspect_tools、list_cli_inventory、preview_context、list_activity、list_backups、restore_fixture、inspect_windows_runtime、save_draft、load_draft、write_note、edit_note、move_note、delete_note 与 begin_shutdown。选择项目仅允许 bmdock-fixture。list_tree、read_note、list_relations、expand_graph、search_notes、inspect_search、run_recall_benchmark、schema_validate、list_resources、list_prompts、inspect_tools、list_cli_inventory、preview_context、list_activity、list_backups、restore_fixture、save_draft、load_draft、write_note、edit_note、move_note 与 delete_note 每次都携带显式 workspace 与 project。关系与局部图谱来自夹具 Markdown 的 wiki-link，一次只展开一跳，不是第二套笔记索引，也不是官方引擎图谱。检索是夹具 Markdown 的词法命中，不是官方 search / fetch，也没有嵌入后端。检索 Inspector 解释词法命中与关闭的语义模型状态，不是官方语义。中文召回基准在夹具磁盘 gold 上计算 recall@k，并记录进程内 elapsed_ms；官方引擎中文召回与 native GUI 仍为未验证。Schema 工作台按 BMDock 自有夹具 Markdown/JSON-like frontmatter 校验必填 title/body，不是官方 schema_validate / schema_infer / schema_diff。资源与提示词工作台列出夹具磁盘上的 BMDock 自有标识与 sidecar 模板，不是官方 resources/list / resources/read / prompts/list / prompts/get。受控工具中心对照 typed 允许列与单个 profile 静态基线，未知工具保持拒绝/未验证，search 与 fetch 保持不同身份，桌面不暴露 call_tool。CLI 任务中心列出叶子命令名，不会执行官方 CLI。上下文预览是夹具 Markdown 的纯文本片段，近期活动是夹具文件 mtime 顺序，都不是官方 recent_activity / build_context。Markdown 与 HTML 以 labeled textarea 和 pre 纯文本往返，不使用 dangerouslySetInnerHTML，也不执行 script 或 onerror。CRLF 按精确字节落盘；行尾丢失不得标为 disk_verified。不会 raw callTool、不会写入用户 vault、不会启动 Supervisor。save_draft 与 write_note 保持区分。超时未知留在运行状态 DTO，不进入 IPC 错误联合体。同目标冲突不是 policy-for-path。begin_shutdown 在未启动时记录空闲排空收据，不是活动引擎寿命，也不会强杀子进程。native GUI / IME 会话未验证。官方 recent_activity / build_context / search / fetch / schema / resources / prompts / tools / CLI MCP 仍为未验证。",
+    "调用 get_capabilities、get_runtime_state、list_projects、run_preflight、discover_config、list_tree、read_note、list_relations、expand_graph、search_notes、inspect_search、run_recall_benchmark、schema_validate、list_resources、list_prompts、inspect_tools、list_cli_inventory、import_notes、preview_context、list_activity、list_backups、restore_fixture、inspect_windows_runtime、save_draft、load_draft、write_note、edit_note、move_note、delete_note 与 begin_shutdown。选择项目仅允许 bmdock-fixture。list_tree、read_note、list_relations、expand_graph、search_notes、inspect_search、run_recall_benchmark、schema_validate、list_resources、list_prompts、inspect_tools、list_cli_inventory、import_notes、preview_context、list_activity、list_backups、restore_fixture、save_draft、load_draft、write_note、edit_note、move_note 与 delete_note 每次都携带显式 workspace 与 project。关系与局部图谱来自夹具 Markdown 的 wiki-link，一次只展开一跳，不是第二套笔记索引，也不是官方引擎图谱。检索是夹具 Markdown 的词法命中，不是官方 search / fetch，也没有嵌入后端。检索 Inspector 解释词法命中与关闭的语义模型状态，不是官方语义。中文召回基准在夹具磁盘 gold 上计算 recall@k，并记录进程内 elapsed_ms；官方引擎中文召回与 native GUI 仍为未验证。Schema 工作台按 BMDock 自有夹具 Markdown/JSON-like frontmatter 校验必填 title/body，不是官方 schema_validate / schema_infer / schema_diff。资源与提示词工作台列出夹具磁盘上的 BMDock 自有标识与 sidecar 模板，不是官方 resources/list / resources/read / prompts/list / prompts/get。受控工具中心对照 typed 允许列与单个 profile 静态基线，未知工具保持拒绝/未验证，search 与 fetch 保持不同身份，桌面不暴露 call_tool。CLI 任务中心列出叶子命令名，不会执行官方 CLI。导入把 BMDock 自有夹具 Markdown 复制进自有库，source_id 不是文件系统路径，不是 restore_fixture，也不是官方 extras / 文档摄取。上下文预览是夹具 Markdown 的纯文本片段，近期活动是夹具文件 mtime 顺序，都不是官方 recent_activity / build_context。Markdown 与 HTML 以 labeled textarea 和 pre 纯文本往返，不使用 dangerouslySetInnerHTML，也不执行 script 或 onerror。CRLF 按精确字节落盘；行尾丢失不得标为 disk_verified。不会 raw callTool、不会写入用户 vault、不会启动 Supervisor。save_draft 与 write_note 保持区分。超时未知留在运行状态 DTO，不进入 IPC 错误联合体。同目标冲突不是 policy-for-path。begin_shutdown 在未启动时记录空闲排空收据，不是活动引擎寿命，也不会强杀子进程。native GUI / IME 会话未验证。官方 recent_activity / build_context / search / fetch / schema / resources / prompts / tools / CLI / extras MCP 仍为未验证。",
   aboutProfiles:
     "release（c0bd87c6，21 个工具）与 main-preview（3452c821，27 个工具）保持隔离。本界面不把工具清单或 just contract 当作功能验收。",
   aboutCommands:

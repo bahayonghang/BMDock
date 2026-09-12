@@ -38,7 +38,9 @@ markdown/sidecar catalogs (`engine_resources=false`,
 `engine_prompts=false`), and T27 typed `inspect_tools` /
 `list_cli_inventory` BMDock-owned controlled-tool comparison
 plus named CLI leaf catalog (`engine_tools=false`,
-`engine_cli=false`, `executed=false`). It applies to
+`engine_cli=false`, `executed=false`), and T28 typed
+`import_notes` BMDock-owned fixture markdown import
+(`engine_import=false`). It applies to
 `apps/bmdock-desktop/src-tauri/src/ipc.rs`,
 `apps/bmdock-desktop/src-tauri/src/library.rs`,
 `apps/bmdock-desktop/src-tauri/src/conflict.rs`,
@@ -239,6 +241,26 @@ interfaces remain separate. Lifecycle ownership lives in
   `{temp}/bmdock-t27-*`. `engine_cli=false`. Live official CLI
   execution remains UNVERIFIED. Dual profiles stay isolated.
   Do not add rmcp. Do not start Supervisor.
+- T28 `import_notes` copies BMDock-owned fixture markdown
+  identified by `source_id` into an owned fixture library.
+  Args are `ExplicitRouteArgs` plus required `source_id`
+  (a BMDock-owned fixture source identifier, not a filesystem
+  path). `deny_unknown_fields`. Extra `path` / `root` fail
+  closed as `schema`. Missing `source_id` is `schema`.
+  Non-fixture routes and filesystem `source_id` are `policy`
+  and do not open the library or store. Tests inject
+  `{temp}/bmdock-t28-*` source files and observe physical
+  UTF-8 after import, including Chinese. Envelope `"imported"`
+  text is not disk proof. Production `EmptyLibrary` returns
+  empty/unsupported, not user-vault success. Official extras /
+  document ingestion and live CLI import remain UNVERIFIED
+  (T30). Do not scan user Obsidian or global Basic Memory home.
+  AC40 maintenance continues to list only BMDock-generated
+  fixture backups (reuse T12 `list_backups` /
+  `restore_fixture`). `scanned_user_obsidian_vault=false`.
+  Import is distinct from `restore_fixture`. Dual profiles
+  stay isolated (21 vs 27). Do not add rmcp. Do not start
+  Supervisor. Do not treat `just contract` as T28 proof.
 - The boundary does not start or stop the Supervisor, call the official
   engine over rmcp, access a user vault, or expose raw `callTool`. T14
   drafts are BMDock-owned session artifacts, not a second note index and
@@ -288,7 +310,8 @@ interfaces remain separate. Lifecycle ownership lives in
   `page_size`. T27 `inspect_tools` carries `ExplicitRouteArgs`
   plus required `profile_id`. T27 `list_cli_inventory` carries
   `ExplicitRouteArgs` plus required `profile_id` plus optional
-  `cursor` / `page_size`. T22 `preview_context`
+  `cursor` / `page_size`. T28 `import_notes` carries
+  `ExplicitRouteArgs` plus required `source_id`. T22 `preview_context`
   carries `ExplicitRouteArgs` plus `identifier` and optional `query`.
   T22 `list_activity` carries `ExplicitRouteArgs` plus optional
   `cursor` / `page_size`. T16 coordinates overlapping
@@ -350,6 +373,7 @@ list_resources: { workspace, project, cursor?, page_size? }
 list_prompts: { workspace, project, cursor?, page_size? }
 inspect_tools: { workspace, project, profile_id }
 list_cli_inventory: { workspace, project, profile_id, cursor?, page_size? }
+import_notes: { workspace, project, source_id }
 preview_context: { workspace, project, identifier, query? }
 list_activity: { workspace, project, cursor?, page_size? }
 list_backups: { workspace, project }
@@ -433,7 +457,7 @@ fail closed as `schema`.
 
 ### Request and response fields
 
-- `get_capabilities` returns `kind: "capabilities"`, the thirty command names,
+- `get_capabilities` returns `kind: "capabilities"`, the thirty-one command names,
   the two event names, and a policy DTO.
 - `get_runtime_state` returns `kind: "runtime_state"` projected from the
   managed `Supervisor` snapshot plus T10 `RouteState`:
@@ -832,11 +856,11 @@ The capability policy must report:
 ```
 
 `SelectProjectArgs`, `ExplicitRouteArgs`, `ListTreeArgs`, `ReadNoteArgs`,
-`ListRelationsArgs`, `ExpandGraphArgs`, `SearchNotesArgs`, `InspectSearchArgs`, `RecallBenchmarkArgs`, `SchemaValidateArgs`, `ListResourcesArgs`, `ListPromptsArgs`, `InspectToolsArgs`, `ListCliInventoryArgs`, `PreviewContextArgs`, `ListActivityArgs`, `RestoreFixtureArgs`, `SaveDraftArgs`, `LoadDraftArgs`, `WriteNoteArgs`,
+`ListRelationsArgs`, `ExpandGraphArgs`, `SearchNotesArgs`, `InspectSearchArgs`, `RecallBenchmarkArgs`, `SchemaValidateArgs`, `ListResourcesArgs`, `ListPromptsArgs`, `InspectToolsArgs`, `ListCliInventoryArgs`, `ImportNotesArgs`, `PreviewContextArgs`, `ListActivityArgs`, `RestoreFixtureArgs`, `SaveDraftArgs`, `LoadDraftArgs`, `WriteNoteArgs`,
 `EditNoteArgs`, `MoveNoteArgs`, `DeleteNoteArgs`, and `EmptyArgs`
 use `#[serde(deny_unknown_fields)]`.
 There is no path field on `list_projects` / `run_preflight` /
-`discover_config` / `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `preview_context` / `list_activity` / `list_backups` /
+`discover_config` / `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `preview_context` / `list_activity` / `list_backups` /
 `restore_fixture` / `inspect_windows_runtime` / `save_draft` /
 `load_draft` / `write_note` / `edit_note` / `move_note` /
 `delete_note` / `begin_shutdown` and no raw `callTool` handler. Typed
@@ -965,6 +989,19 @@ catalogs (`classified_as: empty`), not user-vault or CLI-success.
 Tests inject `FixtureLibrary` over `{temp}/bmdock-t27-*`.
 `engine_tools=false`. `engine_cli=false`. Live official tools/CLI
 remain UNVERIFIED. T27 does not start Supervisor or add rmcp.
+T28 adds `import_notes` on the same `ipc_invoke` union. Import
+copies BMDock-owned fixture markdown (`source_id`, not a path)
+into an owned fixture library. Extra `path` / `root` fail
+closed as `schema`. Missing `source_id` is `schema`. Non-fixture
+and filesystem `source_id` are `policy` and do not open the
+library. Envelope `"imported"` is not disk proof. Production
+`EmptyLibrary` is empty/unsupported, not user-vault. Tests
+inject `{temp}/bmdock-t28-*`. `engine_import=false`. Official
+extras/document ingestion and live CLI import remain
+UNVERIFIED. Maintenance continues to list only BMDock-generated
+fixture backups (`scanned_user_obsidian_vault=false`). Import
+is distinct from `restore_fixture`. T28 does not start
+Supervisor or add rmcp.
 T22 adds `preview_context` and `list_activity` on the same
 `ipc_invoke` union. Preview is a BMDock-owned fixture markdown
 snippet (`executed=false`). Activity is fixture markdown mtime
@@ -986,7 +1023,7 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 | Unknown `command`, including `call_tool` and MCP identity `search` / `fetch` / `recent_activity` / `build_context` / `schema_infer` / `schema_diff` / `resources/list` / `resources/read` / `prompts/list` / `prompts/get` / `tools/call` | Serde deserialization fails closed | `schema` at the boundary |
 | Incomplete `write_note` args (for example only `project`) | `deny_unknown_fields` / missing fields | `schema` |
 | Extra field in `args` | `deny_unknown_fields` rejects the DTO | `schema` |
-| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
 | Extra top-level field such as `path` beside `command`/`args` | `deny_unknown_fields` on `IpcCommand` | `schema` |
 | `select_project` for any value other than `bmdock-fixture` | Dispatcher rejects without filesystem access | `policy` |
 | `ExplicitRouteArgs` missing `project`/`workspace` or carrying an extra `path` | `deny_unknown_fields` rejects the DTO | `schema` |
@@ -1075,6 +1112,12 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 | Coarse CLI bucket that hides a child leaf | Reject; leaves only | `unsupported` |
 | Empty library `list_cli_inventory` | Empty `leaves[]`, `classified_as: empty`, `engine_cli=false`, `executed=false` | empty state |
 | CLI DTO claiming `engine_cli` or `executed=true` | Reject; live official CLI remains UNVERIFIED | `unsupported` |
+| Extra `path` / `root` on `import_notes` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Missing `import_notes` `source_id` | Reject without opening the library | `schema` |
+| Non-fixture `import_notes` | Reject without opening the library | `policy` |
+| `import_notes` `source_id` that looks like a user vault / `%APPDATA%` / `.basic-memory` path | Reject without opening the library | `policy` |
+| Empty library `import_notes` | Empty `files[]`, `classified_as: empty`, `engine_import=false`, not user-vault | empty state |
+| Envelope-only `"imported"` import | Classify `accepted_unverified`; not disk proof | — |
 | Missing `preview_context` identifier | Reject without opening the library | `schema` |
 | `preview_context` identifier that looks like a user vault filesystem path | Reject without opening the library | `policy` |
 | Non-fixture `preview_context` | Reject without opening the library | `policy` |
@@ -1284,22 +1327,23 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 
 ## 6. Tests Required
 
-- Rust unit test: capability response lists exactly thirty commands and two
+- Rust unit test: capability response lists exactly thirty-one commands and two
   events, and both arbitrary-path and raw-callTool policy flags are false.
-  `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`,
+  `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`,
   `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`,
   `edit_note`, `move_note`, `delete_note`, and `begin_shutdown` are present; `call_tool`,
   MCP identity `search`, `fetch`, `recent_activity`, `build_context`, `schema_infer`, `schema_diff`, `resources/list`, `resources/read`, `prompts/list`, `prompts/get`, and `tools/call` are absent. Incomplete `write_note` args remain schema.
 - Rust unit test: a non-fixture project returns `ErrorCategory::Policy`.
 - Rust unit test: unknown command including `call_tool`, extra project path,
   extra runtime-state path, extra `list_projects` path/root, extra preflight
-  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `expand_graph` path/root,   extra `search_notes` path/root/`id`, extra `inspect_search` path/root/`id`, extra `run_recall_benchmark` path/root, extra `schema_validate` path/root, extra `list_resources` path/root, extra `list_prompts` path/root, extra `inspect_tools` path/root, extra `list_cli_inventory` path/root, extra `preview_context` path/root, extra `list_activity` path/root, extra `list_backups`
+  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `expand_graph` path/root,   extra `search_notes` path/root/`id`, extra `inspect_search` path/root/`id`, extra `run_recall_benchmark` path/root, extra `schema_validate` path/root, extra `list_resources` path/root, extra `list_prompts` path/root, extra `inspect_tools` path/root, extra `list_cli_inventory` path/root, extra `import_notes` path/root, extra `preview_context` path/root, extra `list_activity` path/root, extra `list_backups`
   path/root, extra `restore_fixture` path, extra
   `inspect_windows_runtime` path/root, extra `save_draft` path/root, extra
   `load_draft` path/root, and extra `begin_shutdown` path/root all fail
   `serde_json::from_str::<IpcCommand>`. Incomplete
   `read_note` args (missing workspace/identifier), incomplete
-  `restore_fixture` args (missing backup_id), incomplete `save_draft`
+  `restore_fixture` args (missing backup_id), incomplete `import_notes`
+  args (missing source_id), incomplete `save_draft`
   args (missing body), and incomplete `load_draft` args (missing
   identifier) also fail closed.
 - Rust unit test: a connected snapshot projects `status`/`profile` and keeps
@@ -1311,7 +1355,7 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
   scan user vaults, and keeps `cross_project_search_allowed` and
   `implicit_current_project_writes` false.   `ExplicitRouteArgs` requires both
   fields, rejects extra paths as schema, and rejects non-fixture routes as
-  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `preview_context` / `list_activity` / `list_backups` /
+  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `preview_context` / `list_activity` / `list_backups` /
   `restore_fixture` / `save_draft` / `load_draft` / `write_note` /
   `edit_note` / `move_note` / `delete_note` must not open the library,
   backup store, or draft store.
@@ -1467,6 +1511,18 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
   named path segments on disk. `executed=false`. `engine_cli=false`.
   Live official CLI remains UNVERIFIED. Dual profiles stay isolated.
   T27 does not spawn `engine_worker.py` or run `just contract`.
+- Rust unit test: `import_notes` requires `ExplicitRouteArgs` plus
+  required `source_id`. Extra `path` / `root` fail closed as `schema`.
+  Missing `source_id` is `schema`. Non-fixture routes and filesystem
+  `source_id` are `policy` and do not open the library. Production
+  `EmptyLibrary` is empty/unsupported, not user-vault. Tests inject
+  `{temp}/bmdock-t28-*` source markdown and observe physical UTF-8
+  after import, including Chinese. Envelope `"imported"` is not disk
+  proof. `engine_import=false`. Official extras/document ingestion and
+  live CLI import remain UNVERIFIED. `list_backups` still lists only
+  BMDock-generated fixture backups (`scanned_user_obsidian_vault=false`).
+  Import is distinct from `restore_fixture`. Dual profiles stay
+  isolated. T28 does not start Supervisor or add rmcp.
 - Rust unit test: `preview_context` requires `ExplicitRouteArgs` plus
   `identifier` plus optional `query`. Extra `path` / `root` fail
   closed as `schema`. Missing identifier is `schema`. Non-fixture
@@ -1673,6 +1729,10 @@ await invokeTyped({
   args: { workspace: route.workspace, project: route.project, profile_id: "release", page_size: 20 },
 });
 await invokeTyped({
+  command: "import_notes",
+  args: { workspace: route.workspace, project: route.project, source_id: "fixture-welcome" },
+});
+await invokeTyped({
   command: "preview_context",
   args: { workspace: route.workspace, project: route.project, identifier, query },
 });
@@ -1743,12 +1803,15 @@ await listenTyped("runtime_state", (state) => renderState(state));
 These calls use the shared DTOs and the explicit fixture/event allowlist.
 `list_projects`, `run_preflight`, and `discover_config` take empty args.
 `select_project` remains fixture-only. `list_tree`, `read_note`,
-`list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
+`list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
 `write_note`, `edit_note`, `move_note`, and `delete_note` copy
 `ExplicitRouteArgs` on every call and must not treat `runtime.project` as
 an implicit target.
 `restore_fixture` restores generated markdown into a generated owned
-target; it does not restore a user vault. `save_draft` / `load_draft`
+target; it does not restore a user vault. `import_notes` copies
+BMDock-owned fixture markdown identified by `source_id` into an owned
+fixture library; it is distinct from `restore_fixture` and is not
+official extras/document ingestion. `save_draft` / `load_draft`
 persist BMDock-owned session drafts, not official engine notes. Typed
 `write_note` is a host command on `NoteLibrary`, not raw `callTool`.
 Preflight reports

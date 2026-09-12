@@ -74,6 +74,10 @@ export type ListCliInventoryArgs = ExplicitRouteArgs & {
   page_size?: number;
 };
 
+export type ImportNotesArgs = ExplicitRouteArgs & {
+  source_id: string;
+};
+
 export type PreviewContextArgs = ExplicitRouteArgs & {
   identifier: string;
   query?: string;
@@ -136,6 +140,7 @@ export type IpcCommand =
   | { command: "list_prompts"; args: ListPromptsArgs }
   | { command: "inspect_tools"; args: InspectToolsArgs }
   | { command: "list_cli_inventory"; args: ListCliInventoryArgs }
+  | { command: "import_notes"; args: ImportNotesArgs }
   | { command: "preview_context"; args: PreviewContextArgs }
   | { command: "list_activity"; args: ListActivityArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
@@ -562,6 +567,29 @@ export interface RestoreResultDto {
   observation: RestoreObservationDto;
 }
 
+export type ImportClass = "empty" | "disk_verified" | "accepted_unverified" | "unclassified";
+
+export interface ImportObservationDto {
+  classified_as: ImportClass;
+  disk_verified: boolean;
+  envelope_is_not_disk_proof: true;
+}
+
+export interface ImportedFileDto {
+  identifier: string;
+  kind: typeof OWNED_KIND;
+}
+
+export interface ImportResultDto {
+  source_id: string;
+  files: ImportedFileDto[];
+  files_written: boolean;
+  observation: ImportObservationDto;
+  engine_import: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+}
+
 export type DraftClass = "empty" | "disk_verified" | "accepted_unverified" | "unclassified";
 
 export interface DraftObservationDto {
@@ -667,6 +695,7 @@ export type IpcResponse =
   | { kind: "prompt_page" } & PromptPageDto
   | { kind: "tool_inspection" } & ToolInspectionDto
   | { kind: "cli_inventory" } & CliInventoryDto
+  | { kind: "notes_imported" } & ImportResultDto
   | { kind: "context_preview" } & ContextPreviewDto
   | { kind: "activity_page" } & ActivityPageDto
   | { kind: "backup_catalog" } & BackupCatalogDto
@@ -720,6 +749,7 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "list_prompts":
     case "inspect_tools":
     case "list_cli_inventory":
+    case "import_notes":
     case "preview_context":
     case "list_activity":
     case "list_backups":
@@ -990,6 +1020,18 @@ export const restoreFixture = (backup_id: string) => {
       workspace: route.workspace,
       project: route.project,
       backup_id,
+    },
+  });
+};
+
+export const importNotes = (source_id: string) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "notes_imported" } & ImportResultDto>({
+    command: "import_notes",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      source_id,
     },
   });
 };

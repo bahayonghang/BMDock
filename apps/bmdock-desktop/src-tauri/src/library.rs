@@ -104,6 +104,14 @@ pub const OFFICIAL_TOOLS_MCP_UNVERIFIED: &str =
 #[cfg(test)]
 pub const OFFICIAL_CLI_UNVERIFIED: &str =
     "live official CLI execution remains UNVERIFIED; catalog rows are not executed";
+pub const SCHEMA_SOURCE_ID: &str = "source_id is required";
+pub const POLICY_FILESYSTEM_SOURCE: &str =
+    "Import source ids are BMDock-owned fixture identifiers, not user vault filesystem paths";
+pub const ENGINE_IMPORT_NOT_OWNED: &str =
+    "import_notes copies BMDock-owned fixture markdown into an owned fixture library, not official extras/document ingestion and not live CLI import";
+#[cfg(test)]
+pub const OFFICIAL_IMPORT_UNVERIFIED: &str =
+    "official extras/document ingestion and live CLI import remain UNVERIFIED";
 pub const SCHEMA_PROFILE_ID: &str = "profile_id must be release or main-preview";
 pub const POLICY_FILESYSTEM_PROFILE: &str =
     "profile_id is release or main-preview, not a user vault filesystem path";
@@ -848,6 +856,93 @@ pub fn empty_cli_inventory(profile_id: &str) -> CliInventoryDto {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ImportedFileDto {
+    pub identifier: String,
+    pub kind: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ImportClass {
+    Empty,
+    DiskVerified,
+    AcceptedUnverified,
+    Unclassified,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ImportObservationDto {
+    pub classified_as: ImportClass,
+    pub disk_verified: bool,
+    pub envelope_is_not_disk_proof: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ImportResultDto {
+    pub source_id: String,
+    pub files: Vec<ImportedFileDto>,
+    pub files_written: bool,
+    pub observation: ImportObservationDto,
+    pub engine_import: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+}
+
+pub fn empty_import_result(source_id: &str) -> ImportResultDto {
+    ImportResultDto {
+        source_id: source_id.to_owned(),
+        files: Vec::new(),
+        files_written: false,
+        observation: ImportObservationDto {
+            classified_as: ImportClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_import: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+    }
+}
+
+pub fn reject_source_id(source_id: &str) -> Result<(), LibraryError> {
+    if source_id.trim().is_empty() {
+        return Err(LibraryError::schema(SCHEMA_SOURCE_ID));
+    }
+    if looks_like_filesystem_path(source_id) || source_id.contains('/') {
+        return Err(LibraryError::policy(POLICY_FILESYSTEM_SOURCE));
+    }
+    Ok(())
+}
+
+pub fn accept_import_result(report: ImportResultDto) -> Result<ImportResultDto, LibraryError> {
+    if report.engine_import {
+        return Err(LibraryError::unsupported(ENGINE_IMPORT_NOT_OWNED));
+    }
+    if report.scanned_user_obsidian_vault || report.scanned_user_basic_memory_home {
+        return Err(LibraryError::policy(POLICY_FILESYSTEM_SOURCE));
+    }
+    if report
+        .files
+        .iter()
+        .any(|file| looks_like_filesystem_path(&file.identifier) || file.identifier.contains('/'))
+    {
+        return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+    }
+    let mut report = report;
+    report.observation.envelope_is_not_disk_proof = true;
+    if !report.files_written
+        && (report.observation.disk_verified
+            || report.observation.classified_as == ImportClass::DiskVerified)
+    {
+        report.observation.disk_verified = false;
+        if report.observation.classified_as == ImportClass::DiskVerified {
+            report.observation.classified_as = ImportClass::AcceptedUnverified;
+        }
+    }
+    Ok(report)
+}
+
 pub fn parse_profile_id(value: &str) -> Result<&'static str, LibraryError> {
     if looks_like_filesystem_path(value) {
         return Err(LibraryError::policy(POLICY_FILESYSTEM_PROFILE));
@@ -1214,6 +1309,11 @@ pub trait NoteLibrary: Send + Sync {
         Ok(empty_cli_inventory(profile_id))
     }
 
+    fn import_notes(&self, source_id: &str) -> Result<ImportResultDto, LibraryError> {
+        reject_source_id(source_id)?;
+        Ok(empty_import_result(source_id))
+    }
+
     fn write_note(
         &self,
         identifier: &str,
@@ -1320,12 +1420,24 @@ struct CliLeafFile {
 #[derive(Debug, Clone)]
 pub struct FixtureLibrary {
     root: PathBuf,
+    import_sources_root: PathBuf,
 }
 
 #[cfg(test)]
 impl FixtureLibrary {
     pub fn new(root: PathBuf) -> Self {
-        Self { root }
+        let import_sources_root = root.join("import-sources");
+        Self {
+            root,
+            import_sources_root,
+        }
+    }
+
+    pub fn with_import_sources(root: PathBuf, import_sources_root: PathBuf) -> Self {
+        Self {
+            root,
+            import_sources_root,
+        }
     }
 
     fn collect_entries(&self) -> Result<Vec<TreeEntryDto>, LibraryError> {
@@ -1687,6 +1799,92 @@ impl FixtureLibrary {
             return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
         }
         Ok(candidate)
+    }
+
+    fn require_import_root(&self) -> Result<(), LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        reject_forbidden_library_root(&self.import_sources_root)?;
+        let root_ok = self.root.to_string_lossy().contains("bmdock-t28");
+        let source_ok = self
+            .import_sources_root
+            .to_string_lossy()
+            .contains("bmdock-t28");
+        if !root_ok || !source_ok {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        Ok(())
+    }
+
+    pub fn seed_import_source(
+        &self,
+        source_id: &str,
+        files: &[(&str, &str)],
+    ) -> Result<PathBuf, LibraryError> {
+        reject_source_id(source_id)?;
+        self.require_import_root()?;
+        let dir = self.import_sources_root.join(source_id);
+        fs::create_dir_all(&dir)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        for (identifier, body) in files {
+            reject_note_identifier(identifier)?;
+            crate::content_safety::persist_exact_utf8(&dir.join(format!("{identifier}.md")), body)
+                .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        }
+        Ok(dir)
+    }
+
+    fn resolve_import_source(&self, source_id: &str) -> Result<Option<PathBuf>, LibraryError> {
+        reject_source_id(source_id)?;
+        reject_forbidden_library_root(&self.import_sources_root)?;
+        let candidate = self.import_sources_root.join(source_id);
+        if !candidate.exists() {
+            return Ok(None);
+        }
+        if candidate.is_symlink() {
+            return Err(LibraryError::policy(POLICY_FILESYSTEM_SOURCE));
+        }
+        if !candidate.is_dir() {
+            return Ok(None);
+        }
+        let root = self
+            .import_sources_root
+            .canonicalize()
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let resolved = candidate
+            .canonicalize()
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        if !resolved.starts_with(&root) {
+            return Err(LibraryError::policy(POLICY_FILESYSTEM_SOURCE));
+        }
+        Ok(Some(resolved))
+    }
+
+    fn collect_import_markdown(snapshot: &Path) -> Result<Vec<(String, PathBuf)>, LibraryError> {
+        let reader = fs::read_dir(snapshot)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let mut files = Vec::new();
+        for item in reader {
+            let item =
+                item.map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+            let file_type = item
+                .file_type()
+                .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+            if file_type.is_symlink() {
+                return Err(LibraryError::policy(POLICY_FILESYSTEM_SOURCE));
+            }
+            if !file_type.is_file() {
+                continue;
+            }
+            let name = item.file_name().to_string_lossy().into_owned();
+            if !name.ends_with(".md") || is_prompt_sidecar_name(&name) {
+                continue;
+            }
+            let identifier = name.trim_end_matches(".md").to_string();
+            reject_note_identifier(&identifier)?;
+            files.push((identifier, item.path()));
+        }
+        files.sort_by(|left, right| left.0.cmp(&right.0));
+        Ok(files)
     }
 }
 
@@ -2253,6 +2451,62 @@ impl NoteLibrary for FixtureLibrary {
                 true,
             ),
         }
+    }
+
+    fn import_notes(&self, source_id: &str) -> Result<ImportResultDto, LibraryError> {
+        reject_source_id(source_id)?;
+        self.require_import_root()?;
+        let Some(snapshot) = self.resolve_import_source(source_id)? else {
+            return Ok(empty_import_result(source_id));
+        };
+        let markdown = Self::collect_import_markdown(&snapshot)?;
+        if markdown.is_empty() {
+            return Ok(empty_import_result(source_id));
+        }
+        fs::create_dir_all(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let mut files = Vec::new();
+        let mut wrote = false;
+        let mut all_verified = true;
+        for (identifier, source) in markdown {
+            let dest = self.resolve_create_path(&identifier)?;
+            if library_root_is_forbidden(&dest) {
+                return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+            }
+            let body = crate::content_safety::read_exact_text(&source)
+                .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+            crate::content_safety::persist_exact_utf8(&dest, &body)
+                .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+            wrote = true;
+            let (exists, verified, _) = Self::observe_exact_body(&dest, &body);
+            if !exists || !verified {
+                all_verified = false;
+            }
+            files.push(ImportedFileDto {
+                identifier,
+                kind: crate::routing::OWNED_KIND.to_owned(),
+            });
+        }
+        let classified = if wrote && all_verified {
+            ImportClass::DiskVerified
+        } else if wrote {
+            ImportClass::Unclassified
+        } else {
+            ImportClass::AcceptedUnverified
+        };
+        Ok(ImportResultDto {
+            source_id: source_id.to_owned(),
+            files,
+            files_written: wrote,
+            observation: ImportObservationDto {
+                classified_as: classified,
+                disk_verified: wrote && all_verified,
+                envelope_is_not_disk_proof: true,
+            },
+            engine_import: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+        })
     }
 
     fn write_note(
@@ -3723,6 +3977,25 @@ mod tests {
         assert!(!cli.engine_cli);
         assert!(!cli.executed);
         assert_eq!(cli.observation.classified_as, NoteCrudClass::Empty);
+        let imported = library.import_notes("fixture-welcome").unwrap();
+        assert!(imported.files.is_empty());
+        assert!(!imported.files_written);
+        assert!(!imported.engine_import);
+        assert!(!imported.scanned_user_obsidian_vault);
+        assert!(!imported.scanned_user_basic_memory_home);
+        assert_eq!(imported.observation.classified_as, ImportClass::Empty);
+        assert!(!imported.observation.disk_verified);
+        assert!(imported.observation.envelope_is_not_disk_proof);
+        assert_eq!(
+            library
+                .import_notes(r"C:\Users\someone\Documents\Obsidian")
+                .unwrap_err(),
+            LibraryError::policy(POLICY_FILESYSTEM_SOURCE)
+        );
+        assert_eq!(
+            library.import_notes("").unwrap_err(),
+            LibraryError::schema(SCHEMA_SOURCE_ID)
+        );
         let _ = (
             ENGINE_GRAPH_NOT_OWNED,
             ENGINE_SEARCH_NOT_OWNED,
@@ -3742,6 +4015,8 @@ mod tests {
             ENGINE_CLI_NOT_OWNED,
             OFFICIAL_TOOLS_MCP_UNVERIFIED,
             OFFICIAL_CLI_UNVERIFIED,
+            ENGINE_IMPORT_NOT_OWNED,
+            OFFICIAL_IMPORT_UNVERIFIED,
             ENGINE_CONTEXT_NOT_OWNED,
             ENGINE_ACTIVITY_NOT_OWNED,
             SEMANTIC_SEARCH_UNVERIFIED,
@@ -4527,6 +4802,29 @@ mod tests {
         }
     }
 
+    struct TempImport {
+        dir: PathBuf,
+    }
+
+    impl TempImport {
+        fn create() -> Self {
+            let nanos = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|duration| duration.as_nanos())
+                .unwrap_or(0);
+            let seq = FIXTURE_SEQ.fetch_add(1, Ordering::Relaxed);
+            let dir = std::env::temp_dir().join(format!("bmdock-t28-{nanos}-{seq}"));
+            fs::create_dir_all(&dir).unwrap();
+            Self { dir }
+        }
+    }
+
+    impl Drop for TempImport {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.dir);
+        }
+    }
+
     fn chinese_body() -> &'static str {
         "# 中文夹具笔记\n\n这是 BMDock 自有夹具正文。参见 [[欢迎]]。\n"
     }
@@ -5040,5 +5338,84 @@ mod tests {
             LibraryError::unsupported(UNSUPPORTED_NOTE_MISSING)
         );
         let _ = (NATIVE_GUI_UNVERIFIED, BOUNDED_HOST_EXPANSION);
+    }
+
+    #[test]
+    fn fixture_import_copies_owned_markdown_and_observes_utf8() {
+        let fixture = TempImport::create();
+        let library_root = fixture.dir.join("library");
+        let sources_root = fixture.dir.join("sources");
+        fs::create_dir_all(&library_root).unwrap();
+        fs::create_dir_all(&sources_root).unwrap();
+        let library = FixtureLibrary::with_import_sources(library_root.clone(), sources_root);
+        let body = "# 欢迎\n\n这是导入夹具正文。\n";
+        library
+            .seed_import_source("fixture-welcome", &[("欢迎", body)])
+            .unwrap();
+        let imported = library.import_notes("fixture-welcome").unwrap();
+        assert_eq!(imported.source_id, "fixture-welcome");
+        assert!(imported.files_written);
+        assert!(!imported.engine_import);
+        assert!(!imported.scanned_user_obsidian_vault);
+        assert!(!imported.scanned_user_basic_memory_home);
+        assert!(imported.observation.envelope_is_not_disk_proof);
+        assert_eq!(
+            imported.observation.classified_as,
+            ImportClass::DiskVerified
+        );
+        assert!(imported.observation.disk_verified);
+        assert_eq!(imported.files.len(), 1);
+        assert_eq!(imported.files[0].identifier, "欢迎");
+        assert_eq!(imported.files[0].kind, crate::routing::OWNED_KIND);
+        let dest = library_root.join("欢迎.md");
+        assert!(dest.is_file(), "import must observe a physical owned file");
+        let disk = fs::read_to_string(&dest).unwrap();
+        assert_eq!(disk, body);
+        assert!(disk.contains("欢迎"));
+        assert_ne!(
+            imported.observation.classified_as,
+            ImportClass::AcceptedUnverified
+        );
+        let missing = library.import_notes("fixture-absent").unwrap();
+        assert!(missing.files.is_empty());
+        assert!(!missing.files_written);
+        assert_eq!(missing.observation.classified_as, ImportClass::Empty);
+        assert_eq!(
+            library.import_notes(r"%APPDATA%\Obsidian").unwrap_err(),
+            LibraryError::policy(POLICY_FILESYSTEM_SOURCE)
+        );
+        let claimed = ImportResultDto {
+            engine_import: true,
+            ..empty_import_result("fixture-welcome")
+        };
+        assert_eq!(
+            accept_import_result(claimed).unwrap_err(),
+            LibraryError::unsupported(ENGINE_IMPORT_NOT_OWNED)
+        );
+        let envelope = ImportResultDto {
+            files: vec![ImportedFileDto {
+                identifier: "欢迎".to_owned(),
+                kind: crate::routing::OWNED_KIND.to_owned(),
+            }],
+            files_written: false,
+            observation: ImportObservationDto {
+                classified_as: ImportClass::DiskVerified,
+                disk_verified: true,
+                envelope_is_not_disk_proof: false,
+            },
+            ..empty_import_result("fixture-welcome")
+        };
+        let accepted = accept_import_result(envelope).unwrap();
+        assert!(!accepted.files_written);
+        assert!(!accepted.observation.disk_verified);
+        assert!(accepted.observation.envelope_is_not_disk_proof);
+        assert_eq!(
+            accepted.observation.classified_as,
+            ImportClass::AcceptedUnverified
+        );
+        assert_ne!(
+            accepted.observation.classified_as,
+            ImportClass::DiskVerified
+        );
     }
 }

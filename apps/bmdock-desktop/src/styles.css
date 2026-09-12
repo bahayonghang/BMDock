@@ -457,7 +457,8 @@ main {
 .resource-list,
 .prompt-list,
 .tool-list,
-.cli-list {
+.cli-list,
+.import-list {
   margin: 0.75rem 0 0;
   padding: 0;
   display: grid;
@@ -468,7 +469,8 @@ main {
 .resource-list li,
 .prompt-list li,
 .tool-list li,
-.cli-list li {
+.cli-list li,
+.import-list li {
   display: flex;
   justify-content: space-between;
   align-items: center;
