@@ -14,13 +14,21 @@ a separate developer tool.
   `get_runtime_state` DTO projection.
 - This module does not register start/stop IPC, raw `callTool`, vault
   routing, or note CRUD. `just contract` / `just contract-main` and
-  `bmdock-probe` stay independent.
+  `bmdock-probe` stay independent. T17 `begin_shutdown` is a host drain
+  gate on typed CRUD. It reuses `ShutdownReceipt` fields and MUST NOT start
+  Supervisor, spawn engines, or kill a live child as T17 proof. Idle
+  `not_started` drain is not a live engine lifespan. T07 unit fakes are
+  not native process-tree evidence.
 - Real Basic Memory engine handshake, native GUI behavior, and cross-platform
   job-object / process-tree evidence remain `UNVERIFIED` until directly
   exercised. `Drop` kill is host-handle cleanup, not that evidence.
   T13 `inspect_windows_runtime` may record `job_object_api_documented` from
   Windows API/docs. That is not Job Object assignment, not a WebView2 session,
   and not T17/T37/T38 recovery.
+- T17 host drain records `ShutdownReceipt` fields on `begin_shutdown`
+  without taking Supervisor start/stop ownership. Forced-kill, Job
+  Object, sleep-resume, and disk-failure remain `UNVERIFIED`. A successful
+  host drain is not those proofs and not T12 fixture restore.
 
 ## 2. Signatures
 

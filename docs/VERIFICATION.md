@@ -256,3 +256,23 @@ AC52：conflict 与 timeout_unknown 已记录。这不是 T17/T37 恢复。强�
 本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t16-conflict-unknown-result` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 109 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 10 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。`python -m unittest discover -s tests -v` 跑 70 项：69 ok，1 ERROR `test_repository_phase_order`（同一 `check_source`）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / OS file lock / 强杀恢复 / hosted CI 证据；这些仍为 `UNVERIFIED`。
 
 T16 证据与验收映射见 [t16-conflict-unknown-result.json](../execution/evidence/t16-conflict-unknown-result.json)。`execution/status.json` 仅将 T16 标为 `completed`；未改 T05–T15/G0。
+
+## T17：正常退出排空与故障恢复
+
+T17 在现有 `ipc_invoke` 上增加 typed `begin_shutdown`（`EmptyArgs`，`deny_unknown_fields`）。额外 `path`/`root` 为 schema。该命令不启动 Supervisor、不拉起引擎、也不把强杀活动子进程当作 T17 证明。Supervisor 未启动时的收据是空闲/`not_started` 排空（`forced=false`），不是活动引擎寿命。capabilities 精确允许列为 18 个命令。
+
+排空开始后，新的 typed `write_note` / `edit_note` / `move_note` / `delete_note` 返回 `unsupported`（`host is draining`），不是 `disk_verified`。Inflight `ConflictCoordinator` 键要么由持有者结束，要么记录为 `inflight_unknown`，不静默重试。
+
+AC05：`ShutdownReceipt` 复用 T07 字段（`transport_cancelled`、`child_exited`、`forced`、`timeout_unknown`）。未启动路径不 spawn、不 kill。带 FakeChild 的优雅关闭仍记录 `forced=false`。这些确定性假对象不是 native process-tree。
+
+AC17：优雅路径 `forced=false`。仅在记录未完成 inflight 时把收据标为 `timeout_unknown`，且仍不 `forced`。
+
+AC18：强杀、Job Object、睡眠恢复和磁盘故障保持 `UNVERIFIED`。成功的排空测试不是那些证明，也不是 T37/T38。
+
+AC52：宿主排空、T16 `conflict` 与 T12 `restore_fixture` 分开记录。夹具恢复不是本排空。zh-CN 运行状态用独立文案展示 idle / draining / timeout_unknown / conflict。无 `dangerouslySetInnerHTML`。不启动 Supervisor。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T17 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t17-graceful-exit-recovery` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 120 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 11 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。`python -m unittest discover -s tests -v` 跑 71 项：70 ok，1 ERROR `test_repository_phase_order`（同一 `check_source`）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / Job Object / 强杀恢复 / hosted CI 证据；这些仍为 `UNVERIFIED`。
+
+T17 证据与验收映射见 [t17-graceful-exit-recovery.json](../execution/evidence/t17-graceful-exit-recovery.json)。`execution/status.json` 仅将 T17 标为 `completed`；未改 T05–T16/G0。

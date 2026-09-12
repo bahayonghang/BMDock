@@ -9,6 +9,7 @@ import {
   type BackupRecordDto,
   type CapabilitiesDto,
   type ConfigDiscoveryDto,
+  type DrainResultDto,
   type EngineProfile,
   type IpcResponse,
   type NoteReadDto,
@@ -29,6 +30,7 @@ import {
 import { t } from "./i18n";
 import {
   errorCategoryLabel,
+  drainPhaseLabel,
   failureKindLabel,
   readPreflightSnapshot,
   readShellSnapshot,
@@ -281,6 +283,7 @@ function WorkbenchLibrary({
           case "note_edited":
           case "note_moved":
           case "note_deleted":
+          case "shutdown_begun":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
             return;
@@ -442,6 +445,7 @@ async function openNote(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "shutdown_begun":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
         return;
@@ -509,6 +513,7 @@ async function loadMoreTree(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "shutdown_begun":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
         return;
@@ -896,6 +901,7 @@ async function applyCrudResponse(
     case "windows_runtime":
     case "draft_saved":
     case "draft_loaded":
+    case "shutdown_begun":
       setError(unexpectedCrudResponse());
       return;
     default: {
@@ -1215,6 +1221,7 @@ async function persistDraft(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
       default: {
@@ -1285,6 +1292,7 @@ async function reloadDraft(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
       default: {
@@ -1339,6 +1347,7 @@ function RuntimePanel({
           capabilities={load.capabilities}
           runtime={load.runtime}
           refresh={refresh}
+          onRefresh={onRefresh}
         />
       );
     default: {
@@ -1352,36 +1361,66 @@ function ReadyRuntime({
   capabilities,
   runtime,
   refresh,
+  onRefresh,
 }: {
   capabilities: CapabilitiesDto;
   runtime: RuntimeStateDto;
   refresh: ReactNode;
+  onRefresh: () => void;
 }) {
-  const empty = runtime.status === "not_started";
+  const [drainResult, setDrainResult] = useState<DrainResultDto | null>(null);
+  const [drainError, setDrainError] = useState<{
+    category: "policy" | "schema" | "unsupported" | "invoke";
+    message: string;
+  } | null>(null);
+  const empty = runtime.status === "not_started" && runtime.host_drain === "idle";
   const failed = runtime.status === "failed";
-  const state = failed ? "error" : empty ? "empty" : "status";
-  const badge = failed ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
-  const title = failed
-    ? t("runtimeFailedTitle")
-    : empty
-      ? t("runtimeEmptyTitle")
-      : t("runtimeTitle");
+  const state = drainError ? "error" : failed ? "error" : empty ? "empty" : "status";
+  const badge = drainError || failed ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const title = drainError
+    ? t("runtimeErrorTitle")
+    : failed
+      ? t("runtimeFailedTitle")
+      : empty
+        ? t("runtimeEmptyTitle")
+        : t("runtimeTitle");
   const description = empty ? t("runtimeEmptyBody") : null;
+  const hostDrain = drainResult?.host_drain ?? runtime.host_drain;
+  const shutdown = drainResult?.shutdown ?? runtime.shutdown;
+  const timeoutUnknown =
+    runtime.failure === "timeout_unknown" || shutdown?.timeout_unknown === true;
 
   return (
     <section
       className="panel"
       data-state={state}
+      data-drain={hostDrain}
       aria-labelledby="runtime-title"
-      role={failed ? "alert" : undefined}
+      role={failed || drainError ? "alert" : undefined}
     >
       <p className="state-badge">{badge}</p>
       <h2 id="runtime-title">{title}</h2>
       {description ? <p>{description}</p> : null}
+      {drainError ? (
+        <p>
+          {errorCategoryLabel(drainError.category)}：{drainError.message}
+        </p>
+      ) : null}
+      <p>{t("runtimeDrainLegendTitle")}</p>
+      <ul className="drain-legend">
+        <li>{t("runtimeDrainIdleLabel")}</li>
+        <li>{t("runtimeDrainDrainingLabel")}</li>
+        <li>{t("runtimeDrainTimeoutUnknownLabel")}</li>
+        <li>{t("runtimeDrainConflictLabel")}</li>
+      </ul>
       <dl className="facts">
         <div>
           <dt>{t("runtimeStatusLabel")}</dt>
           <dd>{runtimeStatusLabel(runtime.status)}</dd>
+        </div>
+        <div>
+          <dt>{t("runtimeDrainLabel")}</dt>
+          <dd>{drainPhaseLabel(hostDrain)}</dd>
         </div>
         <div>
           <dt>{t("runtimeProfileLabel")}</dt>
@@ -1395,7 +1434,40 @@ function ReadyRuntime({
           <dt>{t("runtimeFailureLabel")}</dt>
           <dd>{runtime.failure ? failureKindLabel(runtime.failure) : t("runtimeNone")}</dd>
         </div>
+        <div>
+          <dt>{t("runtimeDrainTimeoutUnknownLabel")}</dt>
+          <dd>{timeoutUnknown ? t("failureTimeoutUnknown") : t("runtimeNone")}</dd>
+        </div>
+        <div>
+          <dt>{t("runtimeEngineSpawnedLabel")}</dt>
+          <dd>{drainResult?.engine_spawned ? t("runtimeYes") : t("runtimeNo")}</dd>
+        </div>
+        <div>
+          <dt>{t("runtimeChildKilledLabel")}</dt>
+          <dd>{drainResult?.child_killed ? t("runtimeYes") : t("runtimeNo")}</dd>
+        </div>
+        <div>
+          <dt>{t("runtimeShutdownForcedLabel")}</dt>
+          <dd>{shutdown?.forced ? t("runtimeYes") : t("runtimeNo")}</dd>
+        </div>
+        <div>
+          <dt>{t("runtimeShutdownChildExitedLabel")}</dt>
+          <dd>{shutdown?.child_exited ? t("runtimeYes") : t("runtimeNo")}</dd>
+        </div>
+        <div>
+          <dt>{t("runtimeShutdownTransportLabel")}</dt>
+          <dd>{shutdown?.transport_cancelled ? t("runtimeYes") : t("runtimeNo")}</dd>
+        </div>
+        <div>
+          <dt>{t("runtimeDrainUnknownKeysLabel")}</dt>
+          <dd>
+            {drainResult && drainResult.inflight_unknown.length > 0
+              ? drainResult.inflight_unknown.join("、")
+              : t("runtimeNone")}
+          </dd>
+        </div>
       </dl>
+      <p>{t("runtimeDrainNotRestore")}</p>
       <h3>{t("capabilitiesTitle")}</h3>
       <p>
         {t("capabilitiesCommands")}：{capabilities.commands.join("、")}
@@ -1407,9 +1479,49 @@ function ReadyRuntime({
         <li>{t("policyNoPaths")}</li>
         <li>{t("policyNoCallTool")}</li>
       </ul>
+      <button
+        type="button"
+        className="action"
+        onClick={() => {
+          void runBeginShutdown(setDrainResult, setDrainError, onRefresh);
+        }}
+      >
+        {t("runtimeDrainStart")}
+      </button>
       {refresh}
     </section>
   );
+}
+
+async function runBeginShutdown(
+  setResult: (next: DrainResultDto) => void,
+  setError: (
+    next: { category: "policy" | "schema" | "unsupported" | "invoke"; message: string } | null,
+  ) => void,
+  onRefresh: () => void,
+): Promise<void> {
+  setError(null);
+  try {
+    const response = await invokeTyped({
+      command: "begin_shutdown",
+      args: {},
+    });
+    if (response.kind === "error") {
+      setError({ category: response.category, message: response.message });
+      return;
+    }
+    if (response.kind !== "shutdown_begun") {
+      setError({ category: "schema", message: t("unexpectedDrain") });
+      return;
+    }
+    setResult(response);
+    onRefresh();
+  } catch (cause) {
+    setError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
 }
 
 function ProjectPanel({
@@ -1508,6 +1620,7 @@ function ProjectPanel({
                 case "note_edited":
                 case "note_moved":
                 case "note_deleted":
+                case "shutdown_begun":
                   setSelectError({
                     category: "schema",
                     message: t("unexpectedCatalog"),
@@ -1824,6 +1937,7 @@ function BackupPanel() {
           case "note_edited":
           case "note_moved":
           case "note_deleted":
+          case "shutdown_begun":
             setError(unexpectedBackupResponse());
             setPhase("error");
             return;
@@ -1999,6 +2113,7 @@ async function restoreNamedFixture(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "shutdown_begun":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
       default: {
@@ -2149,6 +2264,7 @@ function WindowsRuntimeCard() {
           case "note_edited":
           case "note_moved":
           case "note_deleted":
+          case "shutdown_begun":
             setError(unexpectedWindowsResponse());
             setPhase("error");
             return;

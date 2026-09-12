@@ -2,6 +2,7 @@ import {
   invokeTyped,
   type CapabilitiesDto,
   type ConfigDiscoveryDto,
+  type DrainPhase,
   type ErrorCategory,
   type FailureKind,
   type IpcResponse,
@@ -99,6 +100,7 @@ export async function readShellSnapshot(): Promise<Exclude<ShellLoadState, { pha
         profile: runtimeResponse.profile,
         failure: runtimeResponse.failure,
         shutdown: runtimeResponse.shutdown,
+        host_drain: runtimeResponse.host_drain,
       },
       catalog: {
         workspaces: catalogResponse.workspaces,
@@ -199,6 +201,21 @@ export function runtimeStatusLabel(status: RuntimeStatus): string {
       return t("statusFailed");
     default: {
       const exhaustive: never = status;
+      return exhaustive;
+    }
+  }
+}
+
+export function drainPhaseLabel(phase: DrainPhase): string {
+  switch (phase) {
+    case "idle":
+      return t("runtimeDrainIdle");
+    case "draining":
+      return t("runtimeDrainDraining");
+    case "drained":
+      return t("runtimeDrainDrained");
+    default: {
+      const exhaustive: never = phase;
       return exhaustive;
     }
   }

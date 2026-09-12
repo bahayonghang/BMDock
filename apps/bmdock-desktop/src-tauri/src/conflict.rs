@@ -53,6 +53,17 @@ impl ConflictCoordinator {
             .map(|inflight| inflight.contains(key))
             .unwrap_or(true)
     }
+
+    pub fn inflight_keys(&self) -> Vec<String> {
+        match self.inflight.lock() {
+            Ok(inflight) => {
+                let mut keys: Vec<String> = inflight.iter().cloned().collect();
+                keys.sort();
+                keys
+            }
+            Err(_) => Vec::new(),
+        }
+    }
 }
 
 impl Drop for InflightGuard<'_> {

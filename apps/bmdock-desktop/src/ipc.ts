@@ -74,7 +74,8 @@ export type IpcCommand =
   | { command: "write_note"; args: WriteNoteArgs }
   | { command: "edit_note"; args: EditNoteArgs }
   | { command: "move_note"; args: MoveNoteArgs }
-  | { command: "delete_note"; args: DeleteNoteArgs };
+  | { command: "delete_note"; args: DeleteNoteArgs }
+  | { command: "begin_shutdown"; args: Record<string, never> };
 
 export type IpcCommandName = IpcCommand["command"];
 export type IpcEventName = "runtime_state" | "policy";
@@ -103,6 +104,23 @@ export interface RuntimeStateDto {
   profile: EngineProfile | null;
   failure: FailureKind | null;
   shutdown: ShutdownReceipt | null;
+  host_drain: DrainPhase;
+}
+
+export type DrainPhase = "idle" | "draining" | "drained";
+export type DrainClass = "idle_not_started" | "inflight_unknown";
+
+export interface DrainResultDto {
+  host_drain: DrainPhase;
+  supervisor_status: RuntimeStatus;
+  engine_spawned: boolean;
+  child_killed: boolean;
+  files_written: boolean;
+  classified_as: DrainClass;
+  inflight_unknown: string[];
+  shutdown: ShutdownReceipt;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
 }
 
 export type EngineProfile = "release" | "main-preview";
@@ -342,6 +360,7 @@ export type IpcResponse =
   | { kind: "note_edited" } & NoteEditDto
   | { kind: "note_moved" } & NoteMoveDto
   | { kind: "note_deleted" } & NoteDeleteDto
+  | { kind: "shutdown_begun" } & DrainResultDto
   | { kind: "error"; category: ErrorCategory; message: string };
 
 export interface RuntimeStateEvent {
@@ -350,6 +369,7 @@ export interface RuntimeStateEvent {
   profile: EngineProfile | null;
   failure: FailureKind | null;
   shutdown: ShutdownReceipt | null;
+  host_drain: DrainPhase;
 }
 
 export interface PolicyEvent {
@@ -389,6 +409,7 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "run_preflight":
     case "discover_config":
     case "inspect_windows_runtime":
+    case "begin_shutdown":
       return;
     default: {
       const exhaustive: never = command;
@@ -566,3 +587,9 @@ export const deleteNote = (identifier: string) => {
     },
   });
 };
+
+export const beginShutdown = () =>
+  invokeTyped<{ kind: "shutdown_begun" } & DrainResultDto>({
+    command: "begin_shutdown",
+    args: {},
+  });

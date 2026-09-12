@@ -11,6 +11,7 @@ use tauri::State;
 mod backups;
 mod conflict;
 mod drafts;
+mod drain;
 mod ipc;
 mod library;
 mod preflight;
@@ -25,6 +26,7 @@ struct AppState {
     backups: Box<dyn backups::BackupStore>,
     drafts: Box<dyn drafts::DraftStore>,
     conflicts: conflict::ConflictCoordinator,
+    drain: drain::HostDrain,
 }
 
 #[tauri::command]
@@ -45,9 +47,10 @@ fn ipc_invoke(state: State<'_, Mutex<AppState>>, command: ipc::IpcCommand) -> ip
         backups,
         drafts,
         conflicts,
+        drain,
         supervisor: _,
     } = &mut *host;
-    match ipc::dispatch_with_conflicts(
+    match ipc::dispatch_with_drain(
         command,
         snapshot,
         route,
@@ -55,6 +58,7 @@ fn ipc_invoke(state: State<'_, Mutex<AppState>>, command: ipc::IpcCommand) -> ip
         backups.as_ref(),
         drafts.as_ref(),
         conflicts,
+        drain,
     ) {
         Ok(response) => response,
         Err(error) => ipc::IpcResponse::Error(error),
@@ -70,6 +74,7 @@ fn main() {
             backups: Box::new(backups::EmptyBackupStore),
             drafts: Box::new(drafts::EmptyDraftStore),
             conflicts: conflict::ConflictCoordinator::default(),
+            drain: drain::HostDrain::default(),
         }))
         .invoke_handler(tauri::generate_handler![ipc_invoke])
         .run(tauri::generate_context!())

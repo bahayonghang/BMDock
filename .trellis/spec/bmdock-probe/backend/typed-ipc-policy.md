@@ -9,12 +9,13 @@ project/workspace route, the T11 paginated `list_tree` /
 `inspect_windows_runtime` Windows host prototype, the T14
 `save_draft` / `load_draft` editor session, the T15
 typed `write_note` / `edit_note` / `move_note` /
-`delete_note` fixture note CRUD, and the T16 in-process
+`delete_note` fixture note CRUD, the T16 in-process
 same-target conflict coordinator plus unknown-result no-retry
-gate. It applies to
+gate, and the T17 host drain `begin_shutdown` command. It applies to
 `apps/bmdock-desktop/src-tauri/src/ipc.rs`,
 `apps/bmdock-desktop/src-tauri/src/library.rs`,
 `apps/bmdock-desktop/src-tauri/src/conflict.rs`,
+`apps/bmdock-desktop/src-tauri/src/drain.rs`,
 `apps/bmdock-desktop/src-tauri/src/backups.rs`,
 `apps/bmdock-desktop/src-tauri/src/drafts.rs`,
 `apps/bmdock-desktop/src-tauri/src/preflight.rs`,
@@ -35,9 +36,10 @@ interfaces remain separate. Lifecycle ownership lives in
   T12 BMDock-owned generated backup listing plus fixture restore,
   T13 Windows host runtime prototype observation, T14
   BMDock-owned draft persistence plus editor session, T15
-  fixture-backed typed note write/edit/move/delete, and T16
+  fixture-backed typed note write/edit/move/delete, T16
   in-process same-identifier inflight conflict coordination
-  plus timeout_unknown no-retry.
+  plus timeout_unknown no-retry, and T17 host drain via
+  `begin_shutdown`.
 - The boundary does not start or stop the Supervisor, call the official
   engine over rmcp, access a user vault, or expose raw `callTool`. T14
   drafts are BMDock-owned session artifacts, not a second note index and
@@ -47,7 +49,9 @@ interfaces remain separate. Lifecycle ownership lives in
   (`engine/library unavailable`). Tests inject `FixtureLibrary` over
   generated owned temp `{temp}/bmdock-t15-*`. T16 wraps those same typed
   CRUD commands with `ConflictCoordinator`; it does not add a new IPC
-  command or rmcp.
+  command or rmcp. T17 adds `begin_shutdown` with `EmptyArgs`. It does
+  not start Supervisor, spawn engines, or kill a live child as T17
+  proof. Idle/`not_started` drain is not a live engine lifespan.
 - T09 preflight and discovery inspect BMDock-owned in-repo or explicitly
   generated fixture paths only. T10 lists only generated BMDock-owned
   workspace/project records. T07 remains the owner of start/stop.
@@ -61,7 +65,15 @@ interfaces remain separate. Lifecycle ownership lives in
   `disk_verified`, not `timeout_unknown`, not policy-for-path). Sequential
   dest-exists remains `unsupported` and is not T16 atomicity. True
   concurrent OS-thread filesystem races remain UNVERIFIED; in-process
-  inflight is host coordination, not an OS file lock. T12 restores generated markdown into a generated owned target
+  inflight is host coordination, not an OS file lock. T17 `begin_shutdown`
+  takes `EmptyArgs`. Extra `path` / `root` fail closed as `schema`. Once
+  drain begins, new typed `write_note` / `edit_note` / `move_note` /
+  `delete_note` are refused as `unsupported` (`host is draining`), not
+  `disk_verified`. Inflight `ConflictCoordinator` keys finish or are
+  recorded as `inflight_unknown` and are not silently retried. If
+  Supervisor is not started, the receipt reuses T07 `ShutdownReceipt`
+  fields with `forced=false` and is idle/`not_started` drain, not a live
+  engine lifespan. T12 restores generated markdown into a generated owned target
   only; it is not user-vault restore and not T17/T37/T38 recovery.
   T14 writes generated draft bytes into a generated owned temp root
   `{temp}/bmdock-t14-*/` in tests only. T15 writes generated note markdown
@@ -105,6 +117,7 @@ write_note: { workspace, project, identifier, title, body }
 edit_note: { workspace, project, identifier, body }
 move_note: { workspace, project, identifier, destination }
 delete_note: { workspace, project, identifier }
+begin_shutdown: {}
 ```
 
 The renderer uses the matching `IpcCommand` union through:
@@ -144,7 +157,7 @@ fail closed as `schema`.
 
 ### Request and response fields
 
-- `get_capabilities` returns `kind: "capabilities"`, the seventeen command names,
+- `get_capabilities` returns `kind: "capabilities"`, the eighteen command names,
   the two event names, and a policy DTO.
 - `get_runtime_state` returns `kind: "runtime_state"` projected from the
   managed `Supervisor` snapshot plus T10 `RouteState`:
@@ -157,6 +170,7 @@ fail closed as `schema`.
   - `failure`: `FailureKind` as snake_case (`policy`, `transport`,
     `timeout_unknown`, `process`, `unverified`) or `null`
   - `shutdown`: `ShutdownReceipt` or `null`
+  - `host_drain`: `idle` / `draining` / `drained` from the host drain gate
   - `child_pid` is not part of the DTO
 - `select_project` returns `kind: "project_selected"` only for the exact
   project `bmdock-fixture`. It updates `RouteState` to workspace
@@ -316,8 +330,26 @@ fail closed as `schema`.
   `auto_retry_non_idempotent_write` must not invoke the retry helper.
   `timeout_unknown` stays on the runtime snapshot; the IPC error union
   stays `policy` / `schema` / `unsupported`. T16 records conflict and
-  unknown results; it is not T17/T37 recovery. Forced-kill, Job Object,
+  unknown results; it is not T17/T37 recovery. T17 host drain is a
+  distinct command and class from T16 conflict and from T12 fixture
+  restore. Forced-kill, Job Object,
   and disk-failure remain UNVERIFIED.
+- `begin_shutdown` returns `kind: "shutdown_begun"` with `host_drain`
+  (`idle` / `draining` / `drained`), `supervisor_status`,
+  `engine_spawned`, `child_killed=false`, `files_written=false`,
+  `classified_as` (`idle_not_started` or `inflight_unknown`),
+  `inflight_unknown[]`, and a nested T07 `ShutdownReceipt`
+  (`transport_cancelled`, `child_exited`, `forced`, `timeout_unknown`,
+  `exit_code`). Args are `EmptyArgs`. Extra `path` / `root` fail closed
+  as `schema`. The command does not start Supervisor, spawn an engine, or
+  kill a live child. If Supervisor is `not_started`, the receipt is idle
+  drain (`forced=false`, `timeout_unknown=false`), not a live engine
+  lifespan. Inflight keys are recorded unknown (`timeout_unknown=true`,
+  `forced=false`) and are not silently retried. After drain begins, new
+  typed CRUD is `unsupported` with `"host is draining"`. T12
+  `restore_fixture` remains a distinct command and is not this drain.
+  Forced-kill, Job Object, sleep-resume, and disk-failure stay
+  UNVERIFIED; a successful drain test is not T37/T38.
 - Error responses use `kind: "error"` and `category` in `policy`, `schema`, or
   `unsupported`, plus a human-readable `message`. Do not add `timeout_unknown`,
   `transport`, `process`, or `conflict` to this IPC error union; runtime
@@ -344,7 +376,7 @@ There is no path field on `list_projects` / `run_preflight` /
 `discover_config` / `list_tree` / `read_note` / `list_backups` /
 `restore_fixture` / `inspect_windows_runtime` / `save_draft` /
 `load_draft` / `write_note` / `edit_note` / `move_note` /
-`delete_note` and no raw `callTool` or search DTO or handler. Typed
+`delete_note` / `begin_shutdown` and no raw `callTool` or search DTO or handler. Typed
 `write_note` is a host command, not raw MCP. The renderer must not send
 arbitrary project paths or forward a tool name and arguments through this
 boundary.
@@ -377,7 +409,8 @@ T15 CRUD also sends `ExplicitRouteArgs` on every call; `RouteState.project`
 is not an implicit write target. T15 does not start Supervisor or add rmcp.
 T16 wraps those CRUD commands with `ConflictCoordinator` and refuses
 auto-retry after `timeout_unknown`. It does not add a command, start
-Supervisor, or add rmcp.
+Supervisor, or add rmcp. T17 adds `begin_shutdown` on the same
+`ipc_invoke` union. It still does not start Supervisor or add rmcp.
 
 ## 4. Validation & Error Matrix
 
@@ -387,7 +420,7 @@ Supervisor, or add rmcp.
 | Unknown `command`, including `call_tool` and `search_notes` | Serde deserialization fails closed | `schema` at the boundary |
 | Incomplete `write_note` args (for example only `project`) | `deny_unknown_fields` / missing fields | `schema` |
 | Extra field in `args` | `deny_unknown_fields` rejects the DTO | `schema` |
-| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, or `delete_note` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
 | Extra top-level field such as `path` beside `command`/`args` | `deny_unknown_fields` on `IpcCommand` | `schema` |
 | `select_project` for any value other than `bmdock-fixture` | Dispatcher rejects without filesystem access | `policy` |
 | `ExplicitRouteArgs` missing `project`/`workspace` or carrying an extra `path` | `deny_unknown_fields` rejects the DTO | `schema` |
@@ -404,6 +437,9 @@ Supervisor, or add rmcp.
 | Envelope-only `"saved"` write/edit/move/delete | Classify `accepted_unverified`; not disk proof | — |
 | Sequential move onto an existing destination | Reject; not T16 same-target conflict or atomic concurrent overwrite | `unsupported` |
 | Overlapping same-target inflight write/edit/move/delete | Return CRUD DTO `classified_as: conflict`; do not write; not policy-for-path | — |
+| `begin_shutdown` while Supervisor is `not_started` | Idle/`not_started` drain receipt; `forced=false`; do not start or kill | — |
+| New typed CRUD after drain began | Refuse; not `disk_verified` | `unsupported` |
+| Inflight keys present at `begin_shutdown` | Record as `inflight_unknown`; do not silently retry | — |
 | Distinct-target sequential writes | Each may be `disk_verified`; this is not same-target atomicity | — |
 | `timeout_unknown` on Supervisor snapshot / shutdown receipt | Stay on `RuntimeStateDto`; do not auto-retry non-idempotent writes; do not add to IPC error union | — |
 | `restore_fixture` `backup_id` that looks like a user vault / `%APPDATA%` / `.basic-memory` path | Reject without opening the backup store | `policy` |
@@ -523,22 +559,25 @@ Supervisor, or add rmcp.
   is not an implicit write target.
 - Bad: send `move_note` with destination `C:\\Users\\someone\\vault\\note.md`;
   filesystem destination is policy.
+- Bad: send `{"command":"begin_shutdown","args":{"path":"C:\\vault"}}` or
+  `{"command":"begin_shutdown","args":{"root":"/home/user/.basic-memory"}}`;
+  extra fields fail closed.
 
 ## 6. Tests Required
 
-- Rust unit test: capability response lists exactly seventeen commands and two
+- Rust unit test: capability response lists exactly eighteen commands and two
   events, and both arbitrary-path and raw-callTool policy flags are false.
   `list_tree`, `read_note`, `list_backups`, `restore_fixture`,
   `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`,
-  `edit_note`, `move_note`, and `delete_note` are present; `call_tool` and
+  `edit_note`, `move_note`, `delete_note`, and `begin_shutdown` are present; `call_tool` and
   `search_notes` are absent. Incomplete `write_note` args remain schema.
 - Rust unit test: a non-fixture project returns `ErrorCategory::Policy`.
 - Rust unit test: unknown command including `call_tool`, extra project path,
   extra runtime-state path, extra `list_projects` path/root, extra preflight
   path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_backups`
   path/root, extra `restore_fixture` path, extra
-  `inspect_windows_runtime` path/root, extra `save_draft` path/root, and extra
-  `load_draft` path/root all fail
+  `inspect_windows_runtime` path/root, extra `save_draft` path/root, extra
+  `load_draft` path/root, and extra `begin_shutdown` path/root all fail
   `serde_json::from_str::<IpcCommand>`. Incomplete
   `read_note` args (missing workspace/identifier), incomplete
   `restore_fixture` args (missing backup_id), incomplete `save_draft`
@@ -630,12 +669,25 @@ Supervisor, or add rmcp.
   that snapshot is not an auto-retry and must not add `timeout_unknown`
   to the CRUD error category. Forced-kill, Job Object, and disk-failure
   stay UNVERIFIED; T16 is not T17/T37 recovery.
+- Rust unit test: `begin_shutdown` uses `EmptyArgs`. Extra `path` /
+  `root` fail closed as `schema`. An idle/`not_started` Supervisor yields
+  `kind: shutdown_begun` with `classified_as: idle_not_started`,
+  `engine_spawned=false`, `child_killed=false`, `forced=false`, and
+  `host_drain=drained`. The command does not start Supervisor, spawn an
+  engine, or kill a live child. After drain begins, new
+  `write_note` / `edit_note` / `move_note` / `delete_note` return
+  `unsupported` (`host is draining`) and are not `disk_verified`. Inflight
+  keys are recorded as `inflight_unknown` and are not silently retried.
+  Drain remains distinct from T16 `conflict` and T12 `restore_fixture`.
+  T07 ShutdownReceipt fields are reused. Deterministic fakes are not
+  native process-tree. Forced-kill, Job Object, sleep-resume, and
+  disk-failure stay UNVERIFIED. Dual profiles stay isolated.
 - TypeScript `RuntimeStateDto` / `FailureKind` / `ShutdownReceipt` /
   `PreflightDto` / `ConfigDiscoveryDto` / `ProjectCatalogDto` /
   `TreePageDto` / `NoteReadDto` / `BackupCatalogDto` / `RestoreResultDto` /
   `WindowsRuntimeDto` / `DraftResultDto` / `NoteWriteDto` / `NoteEditDto` /
-  `NoteMoveDto` / `NoteDeleteDto` / `NoteCrudClass` (`conflict` included)
-  stay aligned with that JSON shape through
+  `NoteMoveDto` / `NoteDeleteDto` / `NoteCrudClass` (`conflict` included) /
+  `DrainResultDto` / `DrainPhase` stay aligned with that JSON shape through
   `npm run build`.
 - Validation checks: `task.py validate`, `cargo fmt --all -- --check`,
   `cargo test --workspace --locked --offline`,
@@ -731,6 +783,10 @@ await invokeTyped({
   command: "delete_note",
   args: { workspace: route.workspace, project: route.project, identifier },
 });
+await invokeTyped({
+  command: "begin_shutdown",
+  args: {},
+});
 await listenTyped("runtime_state", (state) => renderState(state));
 ```
 
@@ -757,7 +813,10 @@ distinct from `write_note`. T16 same-target overlapping inflight is
 `classified_as: conflict` on the CRUD DTO. `timeout_unknown` stays on
 `RuntimeStateDto`. Sequential dest-exists stays `unsupported`. True OS
 filesystem races, forced-kill, Job Object, and disk-failure stay
-UNVERIFIED and are not T17/T37 recovery.
+UNVERIFIED and are not T17/T37 recovery. `begin_shutdown` takes empty
+args, does not start Supervisor, and records idle/`not_started` drain
+when no engine is running. That receipt is not a live engine lifespan
+and is not T12 fixture restore.
 
 ### Wrong
 
@@ -781,6 +840,7 @@ type RuntimeStateDto = {
   profile: EngineProfile | null;
   failure: FailureKind | null;
   shutdown: ShutdownReceipt | null;
+  host_drain: DrainPhase;
 };
 ```
 

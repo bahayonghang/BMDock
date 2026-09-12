@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::backups::{self, BackupCatalogDto, BackupStore, RestoreResultDto};
 use crate::conflict::{self, ConflictCoordinator};
 use crate::drafts::{self, DraftResultDto, DraftStore};
+use crate::drain::{self, DrainPhase, DrainResultDto, HostDrain};
 use crate::library::{
     self, NoteDeleteDto, NoteEditDto, NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto,
     TreePageDto,
@@ -34,6 +35,7 @@ pub enum IpcCommandName {
     EditNote,
     MoveNote,
     DeleteNote,
+    BeginShutdown,
 }
 
 pub fn allowed_commands() -> Vec<IpcCommandName> {
@@ -55,6 +57,7 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::EditNote,
         IpcCommandName::MoveNote,
         IpcCommandName::DeleteNote,
+        IpcCommandName::BeginShutdown,
     ]
 }
 
@@ -261,6 +264,7 @@ pub enum IpcCommand {
     EditNote(EditNoteArgs),
     MoveNote(MoveNoteArgs),
     DeleteNote(DeleteNoteArgs),
+    BeginShutdown(EmptyArgs),
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -298,6 +302,7 @@ pub struct RuntimeStateDto {
     pub profile: Option<String>,
     pub failure: Option<FailureKind>,
     pub shutdown: Option<ShutdownReceipt>,
+    pub host_drain: DrainPhase,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -320,6 +325,7 @@ pub enum IpcResponse {
     NoteEdited(NoteEditDto),
     NoteMoved(NoteMoveDto),
     NoteDeleted(NoteDeleteDto),
+    ShutdownBegun(DrainResultDto),
     Error(IpcError),
 }
 
@@ -408,11 +414,13 @@ pub fn dispatch_with_stores(
     drafts: &dyn DraftStore,
 ) -> Result<IpcResponse, IpcError> {
     let conflicts = ConflictCoordinator::default();
-    dispatch_with_conflicts(
-        command, snapshot, route, library, backups, drafts, &conflicts,
+    let drain = HostDrain::default();
+    dispatch_with_drain(
+        command, snapshot, route, library, backups, drafts, &conflicts, &drain,
     )
 }
 
+#[cfg(test)]
 pub fn dispatch_with_conflicts(
     command: IpcCommand,
     snapshot: RuntimeSnapshot,
@@ -421,6 +429,22 @@ pub fn dispatch_with_conflicts(
     backups: &dyn BackupStore,
     drafts: &dyn DraftStore,
     conflicts: &ConflictCoordinator,
+) -> Result<IpcResponse, IpcError> {
+    let drain = HostDrain::default();
+    dispatch_with_drain(
+        command, snapshot, route, library, backups, drafts, conflicts, &drain,
+    )
+}
+
+pub fn dispatch_with_drain(
+    command: IpcCommand,
+    snapshot: RuntimeSnapshot,
+    route: &mut RouteState,
+    library: &dyn NoteLibrary,
+    backups: &dyn BackupStore,
+    drafts: &dyn DraftStore,
+    conflicts: &ConflictCoordinator,
+    drain: &HostDrain,
 ) -> Result<IpcResponse, IpcError> {
     match command {
         IpcCommand::GetCapabilities(_) => Ok(IpcResponse::Capabilities(CapabilitiesDto {
@@ -432,9 +456,9 @@ pub fn dispatch_with_conflicts(
                 raw_call_tool_allowed: false,
             },
         })),
-        IpcCommand::GetRuntimeState(_) => {
-            Ok(IpcResponse::RuntimeState(runtime_state(snapshot, route)))
-        }
+        IpcCommand::GetRuntimeState(_) => Ok(IpcResponse::RuntimeState(runtime_state(
+            snapshot, route, drain,
+        ))),
         IpcCommand::SelectProject(args) if args.project == FIXTURE_PROJECT => {
             route.select_fixture();
             Ok(IpcResponse::ProjectSelected {
@@ -497,6 +521,7 @@ pub fn dispatch_with_conflicts(
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
             library::reject_empty_title(&args.title)?;
+            refuse_if_draining(drain)?;
             conflict::refuse_auto_retry(&snapshot);
             match conflicts.try_acquire(conflict::identifier_keys(&args.identifier)) {
                 Err(_) => Ok(IpcResponse::NoteWritten(conflict::write_conflict(
@@ -514,6 +539,7 @@ pub fn dispatch_with_conflicts(
         IpcCommand::EditNote(args) => {
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
+            refuse_if_draining(drain)?;
             conflict::refuse_auto_retry(&snapshot);
             match conflicts.try_acquire(conflict::identifier_keys(&args.identifier)) {
                 Err(_) => Ok(IpcResponse::NoteEdited(conflict::edit_conflict(
@@ -531,6 +557,7 @@ pub fn dispatch_with_conflicts(
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
             library::reject_filesystem_destination(&args.destination)?;
+            refuse_if_draining(drain)?;
             conflict::refuse_auto_retry(&snapshot);
             match conflicts.try_acquire(conflict::move_keys(&args.identifier, &args.destination)) {
                 Err(_) => Ok(IpcResponse::NoteMoved(conflict::move_conflict(
@@ -548,6 +575,7 @@ pub fn dispatch_with_conflicts(
         IpcCommand::DeleteNote(args) => {
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
+            refuse_if_draining(drain)?;
             conflict::refuse_auto_retry(&snapshot);
             match conflicts.try_acquire(conflict::identifier_keys(&args.identifier)) {
                 Err(_) => Ok(IpcResponse::NoteDeleted(conflict::delete_conflict(
@@ -560,6 +588,9 @@ pub fn dispatch_with_conflicts(
                 }
             }
         }
+        IpcCommand::BeginShutdown(_) => Ok(IpcResponse::ShutdownBegun(
+            drain.begin(&snapshot, conflicts),
+        )),
     }
 }
 
@@ -570,13 +601,28 @@ fn require_explicit_fixture_route(route: &ExplicitRouteArgs) -> Result<(), IpcEr
     })
 }
 
-fn runtime_state(snapshot: RuntimeSnapshot, route: &RouteState) -> RuntimeStateDto {
+fn refuse_if_draining(drain: &HostDrain) -> Result<(), IpcError> {
+    if drain.is_closed() {
+        return Err(IpcError {
+            category: ErrorCategory::Unsupported,
+            message: drain::UNSUPPORTED_HOST_DRAINING.to_owned(),
+        });
+    }
+    Ok(())
+}
+
+fn runtime_state(
+    snapshot: RuntimeSnapshot,
+    route: &RouteState,
+    drain: &HostDrain,
+) -> RuntimeStateDto {
     RuntimeStateDto {
         status: snapshot.state.as_str().to_owned(),
         project: route.project.clone(),
         profile: snapshot.profile.map(|profile| profile.id().to_owned()),
         failure: snapshot.failure,
-        shutdown: snapshot.shutdown,
+        shutdown: snapshot.shutdown.or_else(|| drain.last_shutdown()),
+        host_drain: drain.phase(),
     }
 }
 
@@ -620,16 +666,17 @@ mod tests {
                 IpcCommandName::EditNote,
                 IpcCommandName::MoveNote,
                 IpcCommandName::DeleteNote,
+                IpcCommandName::BeginShutdown,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 17);
+        assert_eq!(capabilities.commands.len(), 18);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 17);
+        assert_eq!(commands.len(), 18);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
@@ -645,6 +692,7 @@ mod tests {
         assert!(commands.iter().any(|command| command == "edit_note"));
         assert!(commands.iter().any(|command| command == "move_note"));
         assert!(commands.iter().any(|command| command == "delete_note"));
+        assert!(commands.iter().any(|command| command == "begin_shutdown"));
         assert!(!commands.iter().any(|command| {
             command == "search_notes" || command == "call_tool" || command == "search"
         }));
@@ -733,8 +781,10 @@ mod tests {
         assert_eq!(state.profile, None);
         assert_eq!(state.failure, None);
         assert_eq!(state.shutdown, None);
+        assert_eq!(state.host_drain, DrainPhase::Idle);
         let json = serde_json::to_value(&IpcResponse::RuntimeState(state)).unwrap();
         assert!(json.get("child_pid").is_none());
+        assert_eq!(json["host_drain"], "idle");
     }
 
     #[test]
@@ -758,6 +808,7 @@ mod tests {
         assert_eq!(state.project, None);
         assert_eq!(state.failure, None);
         assert_eq!(state.shutdown, None);
+        assert_eq!(state.host_drain, DrainPhase::Idle);
     }
 
     #[test]
@@ -791,6 +842,7 @@ mod tests {
         assert_eq!(json["shutdown"]["forced"], true);
         assert_eq!(json["shutdown"]["timeout_unknown"], true);
         assert!(json["shutdown"]["exit_code"].is_null());
+        assert_eq!(json["host_drain"], "idle");
     }
 
     #[test]
@@ -999,6 +1051,17 @@ mod tests {
             r#"{"command":"delete_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome"}}"#,
         );
         assert!(well_formed_delete.is_ok());
+        let path_on_begin_shutdown = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"begin_shutdown","args":{"path":"C:\\vault"}}"#,
+        );
+        assert!(path_on_begin_shutdown.is_err());
+        let root_on_begin_shutdown = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"begin_shutdown","args":{"root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(root_on_begin_shutdown.is_err());
+        let well_formed_begin_shutdown =
+            serde_json::from_str::<IpcCommand>(r#"{"command":"begin_shutdown","args":{}}"#);
+        assert!(well_formed_begin_shutdown.is_ok());
     }
 
     #[test]
@@ -2936,5 +2999,315 @@ mod tests {
         assert_eq!(json["failure"], "timeout_unknown");
         assert_eq!(json["kind"], "runtime_state");
         assert!(conflict::RECOVERY_NOT_T16.contains("UNVERIFIED"));
+    }
+
+    #[test]
+    fn begin_shutdown_idle_not_started_does_not_start_or_kill() {
+        let drain = HostDrain::default();
+        let conflicts = ConflictCoordinator::default();
+        let snapshot = idle_snapshot();
+        let mut route = RouteState::default();
+        let IpcResponse::ShutdownBegun(begun) = dispatch_with_drain(
+            IpcCommand::BeginShutdown(EmptyArgs {}),
+            snapshot.clone(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+            &drafts::EmptyDraftStore,
+            &conflicts,
+            &drain,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(begun.host_drain, DrainPhase::Drained);
+        assert_eq!(
+            begun.classified_as,
+            crate::drain::DrainClass::IdleNotStarted
+        );
+        assert_eq!(begun.supervisor_status, "not_started");
+        assert!(!begun.engine_spawned);
+        assert!(!begun.child_killed);
+        assert!(!begun.files_written);
+        assert!(!begun.shutdown.forced);
+        assert!(!begun.shutdown.timeout_unknown);
+        assert!(!begun.shutdown.child_exited);
+        assert!(!begun.shutdown.transport_cancelled);
+        assert!(begun.inflight_unknown.is_empty());
+        assert!(!begun.scanned_user_obsidian_vault);
+        assert!(!begun.scanned_user_basic_memory_home);
+        let json = serde_json::to_value(&IpcResponse::ShutdownBegun(begun)).unwrap();
+        assert_eq!(json["kind"], "shutdown_begun");
+        assert_ne!(json["kind"], "note_written");
+        assert_ne!(json["kind"], "fixture_restored");
+        assert_ne!(json["classified_as"], "conflict");
+        assert_ne!(json["classified_as"], "disk_verified");
+        assert_eq!(json["shutdown"]["forced"], false);
+        assert_eq!(snapshot, idle_snapshot());
+        let IpcResponse::RuntimeState(state) = dispatch_with_drain(
+            IpcCommand::GetRuntimeState(EmptyArgs {}),
+            snapshot,
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+            &drafts::EmptyDraftStore,
+            &conflicts,
+            &drain,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(state.status, "not_started");
+        assert_eq!(state.host_drain, DrainPhase::Drained);
+        assert_eq!(
+            state.shutdown.as_ref().map(|receipt| receipt.forced),
+            Some(false)
+        );
+        assert!(drain::T07_FAKES_ARE_NOT_NATIVE_PROCESS_TREE.contains("UNVERIFIED"));
+        assert!(drain::T17_IS_NOT_T37_T38.contains("not T37"));
+    }
+
+    #[test]
+    fn drain_refuses_new_crud_and_does_not_retry() {
+        let library = CountingCrudLibrary {
+            writes: AtomicUsize::new(0),
+        };
+        let drain = HostDrain::default();
+        let conflicts = ConflictCoordinator::default();
+        let mut route = RouteState::default();
+        let IpcResponse::NoteWritten(written) = dispatch_with_drain(
+            IpcCommand::WriteNote(fixture_write_args(
+                "welcome",
+                "中文夹具笔记",
+                chinese_note_body(),
+            )),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+            &drafts::EmptyDraftStore,
+            &conflicts,
+            &drain,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(
+            written.observation.classified_as,
+            library::NoteCrudClass::AcceptedUnverified
+        );
+        assert_eq!(library.writes.load(Ordering::SeqCst), 1);
+        dispatch_with_drain(
+            IpcCommand::BeginShutdown(EmptyArgs {}),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+            &drafts::EmptyDraftStore,
+            &conflicts,
+            &drain,
+        )
+        .unwrap();
+        let write = dispatch_with_drain(
+            IpcCommand::WriteNote(fixture_write_args(
+                "welcome",
+                "中文夹具笔记",
+                "after drain\n",
+            )),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+            &drafts::EmptyDraftStore,
+            &conflicts,
+            &drain,
+        )
+        .unwrap_err();
+        assert_eq!(write.category, ErrorCategory::Unsupported);
+        assert_eq!(write.message, drain::UNSUPPORTED_HOST_DRAINING);
+        let edit = dispatch_with_drain(
+            IpcCommand::EditNote(fixture_edit_args("welcome", "after drain\n")),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+            &drafts::EmptyDraftStore,
+            &conflicts,
+            &drain,
+        )
+        .unwrap_err();
+        assert_eq!(edit.category, ErrorCategory::Unsupported);
+        let moved = dispatch_with_drain(
+            IpcCommand::MoveNote(fixture_move_args("welcome", "renamed")),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+            &drafts::EmptyDraftStore,
+            &conflicts,
+            &drain,
+        )
+        .unwrap_err();
+        assert_eq!(moved.category, ErrorCategory::Unsupported);
+        let deleted = dispatch_with_drain(
+            IpcCommand::DeleteNote(fixture_delete_args("welcome")),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+            &drafts::EmptyDraftStore,
+            &conflicts,
+            &drain,
+        )
+        .unwrap_err();
+        assert_eq!(deleted.category, ErrorCategory::Unsupported);
+        assert_eq!(library.writes.load(Ordering::SeqCst), 1);
+        let retried = std::sync::atomic::AtomicBool::new(false);
+        let invoked = conflict::auto_retry_non_idempotent_write(&idle_snapshot(), || {
+            retried.store(true, Ordering::SeqCst);
+        });
+        assert!(!invoked);
+        assert!(!retried.load(Ordering::SeqCst));
+        let restore = dispatch_with_drain(
+            IpcCommand::RestoreFixture(RestoreFixtureArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                backup_id: "fixture-welcome".to_owned(),
+            }),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+            &drafts::EmptyDraftStore,
+            &conflicts,
+            &drain,
+        )
+        .unwrap_err();
+        assert_eq!(restore.category, ErrorCategory::Unsupported);
+        assert_ne!(restore.message, drain::UNSUPPORTED_HOST_DRAINING);
+        assert!(drain::T12_RESTORE_IS_NOT_T17_DRAIN.contains("not T17 drain"));
+        assert!(drain::T16_CONFLICT_IS_NOT_T17_DRAIN.contains("not T17 host drain"));
+        assert!(drain::FORCED_KILL_UNVERIFIED.contains("UNVERIFIED"));
+        assert!(drain::JOB_OBJECT_UNVERIFIED.contains("UNVERIFIED"));
+        assert!(drain::SLEEP_RESUME_UNVERIFIED.contains("UNVERIFIED"));
+        assert!(drain::DISK_FAILURE_UNVERIFIED.contains("UNVERIFIED"));
+    }
+
+    #[test]
+    fn inflight_keys_are_recorded_unknown_on_begin_shutdown() {
+        let drain = HostDrain::default();
+        let conflicts = ConflictCoordinator::default();
+        let guard = conflicts
+            .try_acquire(conflict::identifier_keys("welcome"))
+            .unwrap();
+        let mut route = RouteState::default();
+        let IpcResponse::ShutdownBegun(begun) = dispatch_with_drain(
+            IpcCommand::BeginShutdown(EmptyArgs {}),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+            &drafts::EmptyDraftStore,
+            &conflicts,
+            &drain,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(begun.host_drain, DrainPhase::Draining);
+        assert_eq!(
+            begun.classified_as,
+            crate::drain::DrainClass::InflightUnknown
+        );
+        assert_eq!(begun.inflight_unknown, vec!["welcome".to_owned()]);
+        assert!(begun.shutdown.timeout_unknown);
+        assert!(!begun.shutdown.forced);
+        assert!(!begun.child_killed);
+        let write = dispatch_with_drain(
+            IpcCommand::WriteNote(fixture_write_args("other", "title", "body")),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+            &drafts::EmptyDraftStore,
+            &conflicts,
+            &drain,
+        )
+        .unwrap_err();
+        assert_eq!(write.category, ErrorCategory::Unsupported);
+        assert_eq!(write.message, drain::UNSUPPORTED_HOST_DRAINING);
+        let IpcResponse::RuntimeState(state) = dispatch_with_drain(
+            IpcCommand::GetRuntimeState(EmptyArgs {}),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+            &drafts::EmptyDraftStore,
+            &conflicts,
+            &drain,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(state.host_drain, DrainPhase::Draining);
+        assert_eq!(
+            state
+                .shutdown
+                .as_ref()
+                .map(|receipt| receipt.timeout_unknown),
+            Some(true)
+        );
+        assert_eq!(
+            state.shutdown.as_ref().map(|receipt| receipt.forced),
+            Some(false)
+        );
+        let runtime_json = serde_json::to_value(&IpcResponse::RuntimeState(state)).unwrap();
+        assert_eq!(runtime_json["kind"], "runtime_state");
+        assert_eq!(runtime_json["host_drain"], "draining");
+        assert_eq!(runtime_json["shutdown"]["timeout_unknown"], true);
+        assert_eq!(runtime_json["shutdown"]["forced"], false);
+        assert_ne!(runtime_json["kind"], "error");
+        drop(guard);
+        let retried = std::sync::atomic::AtomicBool::new(false);
+        let invoked = conflict::auto_retry_non_idempotent_write(&idle_snapshot(), || {
+            retried.store(true, Ordering::SeqCst);
+        });
+        assert!(!invoked);
+        assert!(!retried.load(Ordering::SeqCst));
+        assert!(drain::T07_FAKES_ARE_NOT_NATIVE_PROCESS_TREE.contains("not a native process-tree"));
+    }
+
+    #[test]
+    fn drain_does_not_mix_engine_profiles() {
+        let release = crate::supervisor::EngineProfile::Release;
+        let preview = crate::supervisor::EngineProfile::MainPreview;
+        assert_eq!(release.expected_tools(), 21);
+        assert_eq!(preview.expected_tools(), 27);
+        assert_ne!(release.commit(), preview.commit());
+        let drain = HostDrain::default();
+        let conflicts = ConflictCoordinator::default();
+        let mut route = RouteState::default();
+        let IpcResponse::ShutdownBegun(begun) = dispatch_with_drain(
+            IpcCommand::BeginShutdown(EmptyArgs {}),
+            RuntimeSnapshot {
+                state: ConnectionState::NotStarted,
+                profile: Some(preview),
+                child_pid: None,
+                failure: None,
+                shutdown: None,
+            },
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+            &drafts::EmptyDraftStore,
+            &conflicts,
+            &drain,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(!begun.engine_spawned);
+        assert!(!begun.child_killed);
+        assert_eq!(begun.supervisor_status, "not_started");
     }
 }

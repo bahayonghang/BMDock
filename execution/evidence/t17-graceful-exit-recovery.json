@@ -1,0 +1,198 @@
+{
+  "task": "T17",
+  "title": "正常退出排空与故障恢复",
+  "status": "accepted_with_limits",
+  "date": "2026-09-12",
+  "host_boundary": "T17 owns typed begin_shutdown on the existing ipc_invoke union. Args are EmptyArgs with deny_unknown_fields; extra path/root is schema. The command does not start Supervisor, spawn engines, or kill a live child as T17 proof. If Supervisor is not_started, the receipt is idle/not_started drain (forced=false), not a live engine lifespan. Once drain begins, new typed write_note/edit_note/move_note/delete_note return unsupported (host is draining) and are not disk_verified. Inflight ConflictCoordinator keys finish or are recorded as inflight_unknown and are not silently retried. ShutdownReceipt reuses T07 fields (transport_cancelled, child_exited, forced, timeout_unknown). Graceful path forced=false. T07/T17 deterministic fakes are not native process-tree. T12 restore_fixture remains a distinct command. T16 classified_as=conflict remains a distinct CRUD class. Forced-kill, Job Object, sleep-resume, and disk-failure stay UNVERIFIED. A successful drain test is not T37/T38. just build stays the G0 probe. just contract was not run as T17 proof.",
+  "acceptance": {
+    "AC05": {
+      "status": "host_drain_receipt_unit_tested",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/drain.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src-tauri/src/supervisor.rs",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "begin_shutdown records a ShutdownReceipt with T07 fields. Idle not_started drain does not start Supervisor, spawn an engine, or kill a child. A live FakeChild left in Starting remains in place (child_killed=false); that is not a live engine lifespan. A separate T07-style FakeChild/FakeTransport graceful shutdown still records transport_cancelled, child_exited, and forced=false. Those unit fakes, cargo test, npm build, UI copy, and just contract are not native process-tree, Job Object, or native GUI evidence."
+    },
+    "AC17": {
+      "status": "graceful_forced_false_unit_tested",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/drain.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Graceful idle/not_started drain and FakeChild WaitOutcome::Exited preserve forced=false. timeout_unknown is true only when inflight keys are recorded unknown, not because a child was killed. Normal cancellation-and-exit on deterministic fakes keeps forced=false."
+    },
+    "AC18": {
+      "status": "unverified_fault_injection",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/drain.rs",
+        "execution/evidence/t17-graceful-exit-recovery.json",
+        ".trellis/tasks/09-12-t17-graceful-exit-recovery/implement.md"
+      ],
+      "claim": "Forced-kill, Job Object/process-tree, sleep-resume, and disk-failure stay UNVERIFIED. A successful host drain test is not those proofs and is not T37/T38. T07 unit fakes are not native process-tree.",
+      "unverified": [
+        "forced_kill recovery",
+        "disk_failure injection",
+        "sleep/resume recovery",
+        "Windows Job Object / process-tree evidence",
+        "native GUI crash recovery",
+        "live engine lifespan drain",
+        "T37 install/upgrade recovery chain",
+        "T38 native installer regression"
+      ]
+    },
+    "AC52": {
+      "status": "drain_conflict_restore_recorded_distinct",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/drain.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "execution/evidence/t17-graceful-exit-recovery.json"
+      ],
+      "claim": "Host drain (begin_shutdown / host is draining) is recorded as distinct from T16 classified_as=conflict and from T12 restore_fixture. After drain, new CRUD is unsupported with host is draining; empty-store restore_fixture remains a different unsupported message. Renderer 运行状态 shows idle vs draining vs timeout_unknown vs conflict as distinct zh-CN labels. T12 fixture restore is not this drain.",
+      "unverified": [
+        "forced_kill recovery",
+        "Job Object assignment",
+        "disk_failure injection",
+        "sleep_resume recovery",
+        "T37 install/upgrade recovery",
+        "T38 native installer regression"
+      ]
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t17-graceful-exit-recovery",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 120 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 11 passed"
+    },
+    {
+      "cmd": "python -m unittest discover -s tests -v",
+      "exit": 1,
+      "result": "71 tests: 70 ok, 1 ERROR test_repository_phase_order via check_source because G0 is in_progress while T05+ are completed. DesktopShellTests 11 passed. T05-T16 were not reverted."
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T17 drain proof. Probe entries remain independent."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window was launched. Drain verification is source plus unit tests."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_125_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_discover": "70_ok_1_error_phase_order",
+    "python_unittest_desktop_shell": "11_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "bundle_active": false,
+    "typed_begin_shutdown": "present",
+    "raw_call_tool": "absent",
+    "supervisor_started_by_begin_shutdown": false,
+    "child_killed_as_t17_proof": false,
+    "rmcp_live_client": "not_added_in_t17",
+    "native_gui_session": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "forced_kill": "UNVERIFIED",
+    "job_object_assigned": "UNVERIFIED",
+    "sleep_resume": "UNVERIFIED",
+    "disk_failure": "UNVERIFIED",
+    "t12_restore_is_not_this_drain": true,
+    "t16_conflict_is_not_this_drain": true,
+    "t37_t38": "not_this_task"
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed_unchanged",
+    "T10": "completed_unchanged",
+    "T11": "completed_unchanged",
+    "T12": "completed_unchanged",
+    "T13": "completed_unchanged",
+    "T14": "completed_unchanged",
+    "T15": "completed_unchanged",
+    "T16": "completed_unchanged",
+    "T17": "completed"
+  },
+  "scope_limits": [
+    "Host drain for typed write_note/edit_note/move_note/delete_note. New writes after drain are unsupported (host is draining), not disk_verified.",
+    "Inflight ConflictCoordinator keys finish or are recorded inflight_unknown. They are not silently retried.",
+    "begin_shutdown takes EmptyArgs. Extra path/root is schema. It does not start Supervisor, spawn engines, or kill a live child.",
+    "Idle/not_started drain reuses T07 ShutdownReceipt fields with forced=false. That is not a live engine lifespan.",
+    "T07 unit fakes are not native process-tree or Job Object evidence.",
+    "Forced-kill, Job Object, sleep-resume, and disk-failure stay UNVERIFIED. A successful drain is not T37/T38.",
+    "Drain is distinct from T16 conflict and T12 fixture restore.",
+    "IPC error union stays policy/schema/unsupported. timeout_unknown stays on RuntimeStateDto/ShutdownReceipt.",
+    "just build stays scripts.tasks build. just contract* stay probe. just tauri-dev/tauri-build stay desktop.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "UI copy, tool lists, compiled exe, cargo test, npm build, and just contract are not native GUI / user-vault / Job Object / forced-kill proof."
+  ],
+  "rollback": "Remove begin_shutdown and HostDrain, restore the 17-command allowlist, drop drain.rs and the runtime drain legend, and leave T16 ConflictCoordinator in place. Do not revert T05-T16 status to make unit green."
+}
