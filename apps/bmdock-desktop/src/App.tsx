@@ -53,6 +53,7 @@ import {
   type PrivacyInspectionDto,
   type InstallInspectionDto,
   type BundleInspectionDto,
+  type HelpInspectionDto,
   type AuditedApiLeafDto,
   type AuditedCliLeafDto,
   type AuditedIpcCommandDto,
@@ -86,7 +87,7 @@ import {
   type ShellLoadState,
 } from "./shell";
 
-const SECTIONS = ["workbench", "runtime", "projects", "preflight", "backups", "import", "extras", "cloud", "sync", "hooks", "providers", "routes", "privacy", "install", "bundle", "about"] as const;
+const SECTIONS = ["workbench", "runtime", "projects", "preflight", "backups", "import", "extras", "cloud", "sync", "hooks", "providers", "routes", "privacy", "install", "bundle", "help", "about"] as const;
 type SectionId = (typeof SECTIONS)[number];
 
 function sectionLabel(id: SectionId): string {
@@ -121,6 +122,8 @@ function sectionLabel(id: SectionId): string {
       return t("navInstall");
     case "bundle":
       return t("navBundle");
+    case "help":
+      return t("navHelp");
     case "about":
       return t("navAbout");
     default: {
@@ -247,6 +250,8 @@ function SectionBody({
       return <InstallPanel />;
     case "bundle":
       return <BundlePanel />;
+    case "help":
+      return <HelpPanel />;
     case "about":
       return <AboutPanel />;
     default: {
@@ -457,6 +462,7 @@ function WorkbenchLibrary({
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
@@ -783,6 +789,7 @@ async function openNote(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
@@ -874,6 +881,7 @@ async function loadRelations(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setRelations(null);
         setRelationsError({ category: "schema", message: t("unexpectedRelations") });
@@ -998,6 +1006,7 @@ async function loadGraph(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setGraph(null);
         setGraphError(unexpectedGraphResponse());
@@ -1089,6 +1098,7 @@ async function loadMoreGraph(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setGraphError(unexpectedGraphResponse());
         return;
@@ -1180,6 +1190,7 @@ async function loadMoreTree(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
@@ -1237,7 +1248,7 @@ function ContentSafetyFacts({ body, previewId }: { body: string; previewId: stri
         </div>
       </dl>
       <p>{t("contentSafetyImeUnverified")}</p>
-      <p>{t("contentSafetyHelpNotT39")}</p>
+      <p>{t("contentSafetyHelpOwned")}</p>
       <p id={previewId}>{t("contentSafetyPreviewLabel")}</p>
       <pre className="note-body" data-preview="text" data-executed="false" aria-labelledby={previewId}>
         {body}
@@ -1664,6 +1675,7 @@ async function runSearch(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setSearch(null);
         setSearchError(unexpectedSearchResponse());
@@ -1755,6 +1767,7 @@ async function loadMoreSearch(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setSearchError(unexpectedSearchResponse());
         return;
@@ -1970,6 +1983,7 @@ async function runInspectSearch(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setInspector(null);
         setInspectorError(unexpectedInspectorResponse());
@@ -2214,6 +2228,7 @@ async function runRecallBenchmark(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setRecall(null);
         setRecallError(unexpectedRecallResponse());
@@ -2448,6 +2463,7 @@ async function runSchemaValidate(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setSchema(null);
         setSchemaError(unexpectedSchemaResponse());
@@ -2692,6 +2708,7 @@ async function loadContextPreview(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setPreview(null);
         setPreviewError(unexpectedPreviewResponse());
@@ -2875,6 +2892,7 @@ async function loadActivity(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setActivity(null);
         setActivityError(unexpectedActivityResponse());
@@ -2965,6 +2983,7 @@ async function loadMoreActivity(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setActivityError(unexpectedActivityResponse());
         return;
@@ -3139,6 +3158,7 @@ async function loadResources(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setResources(null);
         setResourcesError(unexpectedResourceResponse());
@@ -3229,6 +3249,7 @@ async function loadMoreResources(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setResourcesError(unexpectedResourceResponse());
         return;
@@ -3404,6 +3425,7 @@ async function loadPrompts(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setPrompts(null);
         setPromptsError(unexpectedPromptResponse());
@@ -3494,6 +3516,7 @@ async function loadMorePrompts(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setPromptsError(unexpectedPromptResponse());
         return;
@@ -3671,6 +3694,7 @@ async function loadTools(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setTools(null);
         setToolsError(unexpectedToolsResponse());
@@ -3868,6 +3892,7 @@ async function loadCli(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setCli(null);
         setCliError(unexpectedCliResponse());
@@ -3960,6 +3985,7 @@ async function loadMoreCli(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setCliError(unexpectedCliResponse());
         return;
@@ -4175,6 +4201,7 @@ async function loadApiAudit(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setAudit(null);
         setAuditError(unexpectedAuditResponse());
@@ -4689,6 +4716,7 @@ async function applyCrudResponse(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
       setError(unexpectedCrudResponse());
       return;
@@ -5035,6 +5063,7 @@ async function persistDraft(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -5131,6 +5160,7 @@ async function reloadDraft(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -5489,6 +5519,7 @@ function ProjectPanel({
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
                   setSelectError({
                     category: "schema",
@@ -5858,6 +5889,7 @@ function ImportPanel() {
         case "privacy_inspection":
         case "install_inspection":
         case "bundle_inspection":
+        case "help_inspection":
         case "shutdown_begun":
           setError(unexpectedImportResponse());
           setResult(null);
@@ -6072,6 +6104,7 @@ function ExtrasPanel() {
         case "privacy_inspection":
         case "install_inspection":
         case "bundle_inspection":
+        case "help_inspection":
         case "shutdown_begun":
           setError(unexpectedExtrasResponse());
           setCatalog(null);
@@ -6183,6 +6216,7 @@ function ExtrasPanel() {
         case "privacy_inspection":
         case "install_inspection":
         case "bundle_inspection":
+        case "help_inspection":
         case "shutdown_begun":
           setError(unexpectedExtrasResponse());
           setIngested(null);
@@ -6414,6 +6448,7 @@ function CloudPanel() {
         case "privacy_inspection":
         case "install_inspection":
           case "bundle_inspection":
+          case "help_inspection":
           setError(unexpectedCloudResponse());
           setReport(null);
           setPhase("error");
@@ -6613,6 +6648,7 @@ function SyncPanel() {
         case "privacy_inspection":
         case "install_inspection":
         case "bundle_inspection":
+        case "help_inspection":
         case "shutdown_begun":
           setError(unexpectedSyncResponse());
           setReport(null);
@@ -6744,6 +6780,7 @@ function SyncPanel() {
         case "privacy_inspection":
         case "install_inspection":
         case "bundle_inspection":
+        case "help_inspection":
         case "shutdown_begun":
           setError(unexpectedSyncResponse());
           setReport(null);
@@ -6967,6 +7004,7 @@ function HookPanel() {
         case "privacy_inspection":
         case "install_inspection":
         case "bundle_inspection":
+        case "help_inspection":
         case "shutdown_begun":
           setError(unexpectedHookResponse());
           setReport(null);
@@ -7197,6 +7235,7 @@ function ProviderPanel() {
         case "privacy_inspection":
         case "install_inspection":
         case "bundle_inspection":
+        case "help_inspection":
         case "shutdown_begun":
           setError(unexpectedProviderResponse());
           setReport(null);
@@ -7454,6 +7493,7 @@ function RoutePanel() {
         case "privacy_inspection":
         case "install_inspection":
         case "bundle_inspection":
+        case "help_inspection":
         case "shutdown_begun":
           setError(unexpectedRouteResponse());
           setReport(null);
@@ -7687,6 +7727,7 @@ function PrivacyPanel() {
         case "route_inspection":
         case "install_inspection":
         case "bundle_inspection":
+        case "help_inspection":
         case "shutdown_begun":
           setError(unexpectedPrivacyResponse());
           setReport(null);
@@ -7935,6 +7976,7 @@ function InstallPanel() {
         case "route_inspection":
         case "privacy_inspection":
         case "bundle_inspection":
+        case "help_inspection":
         case "shutdown_begun":
           setError(unexpectedInstallResponse());
           setReport(null);
@@ -8188,6 +8230,7 @@ function BundlePanel() {
         case "route_inspection":
         case "privacy_inspection":
         case "install_inspection":
+        case "help_inspection":
         case "shutdown_begun":
           setError(unexpectedBundleResponse());
           setReport(null);
@@ -8291,6 +8334,287 @@ function BundlePanel() {
             {report == null || report.observation.classified_as === "empty"
               ? t("bundleObservationEmpty")
               : t("bundleObservationUnverified")}
+          </span>
+        </li>
+      </ul>
+    </section>
+  );
+}
+
+type HelpError = {
+  category: "policy" | "schema" | "unsupported" | "invoke";
+  message: string;
+};
+
+function unexpectedHelpResponse(): HelpError {
+  return { category: "schema", message: t("unexpectedHelp") };
+}
+
+function HelpPanel() {
+  const [phase, setPhase] = useState<"empty" | "ready" | "error">("empty");
+  const [report, setReport] = useState<HelpInspectionDto | null>(null);
+  const [error, setError] = useState<HelpError | null>(null);
+
+  const loadHelp = async () => {
+    const route = copyFixtureRoute();
+    try {
+      const response = await invokeTyped<IpcResponse>({
+        command: "inspect_help",
+        args: {
+          workspace: route.workspace,
+          project: route.project,
+        },
+      });
+      switch (response.kind) {
+        case "error":
+          setError({ category: response.category, message: response.message });
+          setReport(null);
+          setPhase("error");
+          return;
+        case "help_inspection":
+          if (
+            response.files_written ||
+            response.help_claimed ||
+            response.a11y_cleared ||
+            response.native_gui ||
+            response.engine_activity ||
+            response.restore_sync_present ||
+            response.installer_rollback ||
+            response.g0_passed ||
+            response.g7_passed ||
+            response.remote_hosts_contacted ||
+            response.secrets_stored ||
+            response.env_tokens_read ||
+            response.mixed_profiles ||
+            response.engine_help ||
+            response.scanned_user_obsidian_vault ||
+            response.catalog.length > 0 ||
+            !response.skip_link ||
+            !response.nav_landmark ||
+            !response.main_landmark ||
+            !response.labelled_panels ||
+            !response.focus_visible ||
+            !response.keyboard_focusable ||
+            !response.preview_context_owned ||
+            !response.list_activity_owned ||
+            !response.license_present ||
+            !response.notice_present ||
+            !response.sbom_present ||
+            !response.local_offline ||
+            response.native_gui_status !== "UNVERIFIED" ||
+            response.screen_reader !== "UNVERIFIED" ||
+            response.ime !== "UNVERIFIED" ||
+            response.recent_activity_mcp !== "UNVERIFIED" ||
+            response.build_context_mcp !== "UNVERIFIED" ||
+            response.recovery_command !== "restore_fixture" ||
+            response.recovery_inventory.length !== 2 ||
+            response.recovery_inventory[0] !== "list_backups" ||
+            response.recovery_inventory[1] !== "restore_fixture"
+          ) {
+            setError(unexpectedHelpResponse());
+            setReport(null);
+            setPhase("error");
+            return;
+          }
+          setError(null);
+          setReport({
+            catalog: [],
+            files_written: false,
+            help_claimed: false,
+            a11y_cleared: false,
+            skip_link: true,
+            nav_landmark: true,
+            main_landmark: true,
+            labelled_panels: true,
+            focus_visible: true,
+            keyboard_focusable: true,
+            native_gui: false,
+            native_gui_status: "UNVERIFIED",
+            screen_reader: "UNVERIFIED",
+            ime: "UNVERIFIED",
+            preview_context_owned: true,
+            list_activity_owned: true,
+            engine_activity: false,
+            recent_activity_mcp: "UNVERIFIED",
+            build_context_mcp: "UNVERIFIED",
+            recovery_inventory: ["list_backups", "restore_fixture"],
+            recovery_command: "restore_fixture",
+            restore_sync_present: false,
+            installer_rollback: false,
+            license_present: true,
+            notice_present: true,
+            sbom_present: true,
+            g0_passed: false,
+            g7_passed: false,
+            secrets_stored: false,
+            env_tokens_read: false,
+            remote_hosts_contacted: false,
+            local_offline: true,
+            mixed_profiles: false,
+            observation: response.observation,
+            engine_help: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+          });
+          setPhase("ready");
+          return;
+        case "capabilities":
+        case "runtime_state":
+        case "project_selected":
+        case "project_catalog":
+        case "preflight":
+        case "config_discovery":
+        case "tree_page":
+        case "note_read":
+        case "backup_catalog":
+        case "fixture_restored":
+        case "windows_runtime":
+        case "draft_saved":
+        case "draft_loaded":
+        case "note_written":
+        case "note_edited":
+        case "note_moved":
+        case "note_deleted":
+        case "relation_list":
+        case "graph_page":
+        case "search_page":
+        case "context_preview":
+        case "activity_page":
+        case "search_inspector":
+        case "recall_benchmark":
+        case "schema_validated":
+        case "resource_page":
+        case "prompt_page":
+        case "tool_inspection":
+        case "cli_inventory":
+        case "notes_imported":
+        case "api_audit":
+        case "extras_catalog":
+        case "document_ingested":
+        case "cloud_inspection":
+        case "sync_inspection":
+        case "share_catalog":
+        case "hook_inspection":
+        case "provider_inspection":
+        case "route_inspection":
+        case "privacy_inspection":
+        case "install_inspection":
+        case "bundle_inspection":
+        case "shutdown_begun":
+          setError(unexpectedHelpResponse());
+          setReport(null);
+          setPhase("error");
+          return;
+        default: {
+          const exhaustive: never = response;
+          return exhaustive;
+        }
+      }
+    } catch (cause) {
+      setError({
+        category: "invoke",
+        message: cause instanceof Error ? cause.message : String(cause),
+      });
+      setReport(null);
+      setPhase("error");
+    }
+  };
+
+  const empty = phase === "empty" && !error;
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error
+    ? t("helpErrorTitle")
+    : empty
+      ? t("helpEmptyTitle")
+      : t("helpReadyTitle");
+
+  return (
+    <section
+      className="panel"
+      data-state={state}
+      aria-labelledby="help-title"
+      role={error ? "alert" : undefined}
+    >
+      <p className="state-badge">{badge}</p>
+      <h2 id="help-title">{heading}</h2>
+      <p>
+        {error
+          ? `${errorCategoryLabel(error.category)}：${error.message}`
+          : empty
+            ? t("helpEmptyBody")
+            : t("helpReadyBody")}
+      </p>
+      <p>{t("helpContextOwned")}</p>
+      <p>{t("helpOfficialUnverified")}</p>
+      <p>{t("helpRecoveryInventory")}</p>
+      <p>{t("helpA11yOwned")}</p>
+      <ul className="policy-list">
+        <li>
+          {t("helpSkipLinkLabel")}：{t("helpSkipLinkPresent")}
+        </li>
+        <li>
+          {t("helpLandmarksLabel")}：{t("helpLandmarksPresent")}
+        </li>
+        <li>
+          {t("helpFocusLabel")}：{t("helpFocusPresent")}
+        </li>
+        <li>
+          {t("helpScreenReaderLabel")}：{t("helpScreenReaderUnverified")}
+        </li>
+        <li>
+          {t("helpImeLabel")}：{t("helpImeUnverified")}
+        </li>
+        <li>
+          {t("helpNativeGuiLabel")}：{t("helpNativeGuiUnverified")}
+        </li>
+        <li>
+          {t("helpRecoveryLabel")}：{t("helpRecoveryFixture")}
+        </li>
+      </ul>
+      <button type="button" className="action" onClick={() => void loadHelp()}>
+        {t("helpInspect")}
+      </button>
+      <ul className="policy-list">
+        <li>{t("helpNoVault")}</li>
+        <li>{t("helpNoNativeGui")}</li>
+        <li>{t("helpNotOfficial")}</li>
+        <li>
+          {t("helpFilesWrittenLabel")}：
+          {report?.files_written ? t("helpWroteFiles") : t("helpNoWrite")}
+        </li>
+      </ul>
+      <ul className="help-list">
+        <li>
+          <span>{t("helpPreviewLabel")}</span>
+          <span>{t("helpPreviewOwned")}</span>
+        </li>
+        <li>
+          <span>{t("helpActivityLabel")}</span>
+          <span>{t("helpActivityOwned")}</span>
+        </li>
+        <li>
+          <span>{t("helpRecentLabel")}</span>
+          <span>{t("helpRecentUnverified")}</span>
+        </li>
+        <li>
+          <span>{t("helpBuildLabel")}</span>
+          <span>{t("helpBuildUnverified")}</span>
+        </li>
+        <li>
+          <span>{t("helpG0Label")}</span>
+          <span>{t("helpG0NotPassed")}</span>
+        </li>
+        <li>
+          <span>{t("helpG7Label")}</span>
+          <span>{t("helpG7NotPassed")}</span>
+        </li>
+        <li>
+          <span>{t("helpObservationLabel")}</span>
+          <span>
+            {report == null || report.observation.classified_as === "empty"
+              ? t("helpObservationEmpty")
+              : t("helpObservationUnverified")}
           </span>
         </li>
       </ul>
@@ -8405,6 +8729,7 @@ function BackupPanel() {
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
             setError(unexpectedBackupResponse());
             setPhase("error");
@@ -8606,6 +8931,7 @@ async function restoreNamedFixture(
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
@@ -8782,6 +9108,7 @@ function WindowsRuntimeCard() {
       case "privacy_inspection":
       case "install_inspection":
       case "bundle_inspection":
+      case "help_inspection":
       case "shutdown_begun":
             setError(unexpectedWindowsResponse());
             setPhase("error");

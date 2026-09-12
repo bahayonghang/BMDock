@@ -1,0 +1,198 @@
+{
+  "task": "T39",
+  "title": "用户帮助无障碍及支持文档",
+  "status": "accepted_with_limits",
+  "date": "2026-09-13",
+  "host_boundary": "T39 adds typed inspect_help with ExplicitRouteArgs. deny_unknown_fields. Extra path/root/token/host is schema. Missing route is schema. Non-fixture is policy and does not open the library. Production default: empty extra catalog, classified_as empty, files_written=false. Help names fixture-owned preview_context / list_activity. Official recent_activity / build_context stay UNVERIFIED. Recovery inventory is list_backups + restore_fixture, not cloud restore and not installer rollback of a user vault. Renderer skip-link, nav landmark, main landmark id=main, labelled panels, :focus-visible, and keyboard-focusable controls are T39-owned. Native screen reader / IME / native GUI stay UNVERIFIED because no native window was launched. contentSafetyHelpNotT39 was replaced with T39-owned help copy. Claiming a native a11y audit, G0/G7 pass, official recent_activity/build_context MCP, cloud restore, or installer rollback is unsupported. Unauthorized remote / env token / stored secret is policy. LICENSE/NOTICE/SBOM are present; G7 stays UNVERIFIED. The typed allowlist is the source of present commands (44) and includes inspect_api_audit, inspect_privacy, inspect_install, inspect_bundle, inspect_help. Tests inject FixtureLibrary {temp}/bmdock-t39-*. A BMDock-owned fixture help-claimed / a11y-cleared flag is unsupported, not a native a11y audit. Dual profiles stay isolated (21 vs 27). T39 does not start Supervisor, add rmcp, spawn engine_worker, store secrets, read user tokens from env, contact remote hosts, open a credential route, or treat just contract / UI copy / cargo test as native GUI / screen-reader / IME / Job Object / real vault proof.",
+  "acceptance": {
+    "AC31": {
+      "status": "help_names_fixture_preview_and_activity_official_mcp_unverified",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "docs/HELP.md",
+        "apps/bmdock-desktop/src/App.tsx"
+      ],
+      "claim": "Help catalog names fixture-owned preview_context / list_activity. Official recent_activity / build_context remain UNVERIFIED. Live engine MCP was not added.",
+      "unverified": [
+        "official recent_activity MCP",
+        "official build_context MCP"
+      ]
+    },
+    "AC53": {
+      "status": "recovery_inventory_is_list_backups_and_restore_fixture",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "docs/HELP.md"
+      ],
+      "claim": "Help/support docs name the recovery inventory: list_backups + restore_fixture (fixture-owned). Not cloud restore and not installer rollback of a user vault.",
+      "unverified": [
+        "cloud restore of a user vault",
+        "installer rollback of a user vault"
+      ]
+    },
+    "AC57": {
+      "status": "renderer_help_a11y_owned_native_unverified",
+      "evidence": [
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/styles.css",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "tests/test_desktop_shell.py"
+      ],
+      "claim": "T39 owns renderer help/a11y completeness: skip-link, nav landmark, main landmark id=main, labelled panels, :focus-visible, keyboard-focusable controls. contentSafetyHelpNotT39 was replaced. Native screen reader / IME / native GUI stay UNVERIFIED because no native window was launched.",
+      "unverified": [
+        "native screen reader",
+        "IME session",
+        "native GUI / WebView2 session"
+      ]
+    },
+    "AC60": {
+      "status": "support_docs_and_allowlist_listed",
+      "evidence": [
+        "docs/HELP.md",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "justfile",
+        "LICENSE",
+        "NOTICE",
+        "docs/sbom/lockfile-inventory.json"
+      ],
+      "claim": "Committed docs/HELP.md matches just dev=tauri-dev, just build=G0 probe, just contract*=probe, dual profiles isolated (21 vs 27), LICENSE/NOTICE/SBOM present but G7 UNVERIFIED. About/help panel lists the typed allowlist including inspect_api_audit, inspect_privacy, inspect_install, inspect_bundle, inspect_help. G0/G7 are not claimed passed.",
+      "unverified": [
+        "G0 product gate",
+        "G7 release gate"
+      ]
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t39-help-accessibility-docs",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "bmdock_app": 212,
+      "bmdock_probe": 5
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "note": "existing T07 supervisor dead_code warnings remain; T39 did not start Supervisor"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "tsc -b && vite build; npm ci not run this session"
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "ran": 33
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "error": "A later task was completed before G0",
+      "note": "G0 is not passed and T05+ are completed; T39 did not revert T05-T38"
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive / screen reader / IME",
+      "exit": "not_run",
+      "result": "No native window was launched. AC57 proof is typed inspect_help plus renderer skip-link/landmarks/:focus-visible, not a native screen-reader / IME / GUI session."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_217_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_desktop_shell": "33_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop_tauri_build_is_not_installer",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "typed_command_count": 44,
+    "typed_inspect_help": "allowed",
+    "restore_sync": "not_allowlisted",
+    "raw_call_tool": "not_allowlisted",
+    "extra_path_root_token_host_is_schema": true,
+    "missing_route_is_schema": true,
+    "non_fixture_is_policy": true,
+    "files_written_default": false,
+    "help_catalog_empty_in_production": true,
+    "preview_context_owned": true,
+    "list_activity_owned": true,
+    "recent_activity_mcp": "UNVERIFIED",
+    "build_context_mcp": "UNVERIFIED",
+    "recovery_inventory": ["list_backups", "restore_fixture"],
+    "native_gui": false,
+    "screen_reader": "UNVERIFIED",
+    "ime": "UNVERIFIED",
+    "g0_passed": false,
+    "g7_passed": false,
+    "help_claimed_fixture_flag_is_unsupported_not_native_a11y": true,
+    "a11y_cleared_fixture_flag_is_unsupported_not_native_a11y": true,
+    "table_driven_explicit_route_regression_includes_inspect_help": true,
+    "dangerouslySetInnerHTML": "absent",
+    "supervisor_started_by_t39": false,
+    "rmcp_live_client": "not_added_in_t39",
+    "new_npm_deps": false,
+    "native_gui_session": "UNVERIFIED",
+    "screen_reader_session": "UNVERIFIED",
+    "ime_session": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "g0": "in_progress",
+    "g7": "not_passed"
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false,
+    "official_engine_redistributed_as_bmdock": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "G7": "not_started",
+    "T05": "completed_unchanged",
+    "T38": "completed_unchanged",
+    "T39": "completed",
+    "T40": "planned_unchanged"
+  },
+  "unverified": [
+    "G0 product gate",
+    "G7 release gate",
+    "hosted CI for this T39 revision",
+    "native GUI / WebView2 session",
+    "native screen reader",
+    "IME session",
+    "Job Object assignment",
+    "official recent_activity MCP",
+    "official build_context MCP",
+    "real user vault"
+  ],
+  "rollback": "Remove inspect_help from the ipc_invoke union, drop HelpPanel and docs/HELP.md, restore the 43-command allowlist and contentSafetyHelpNotT39, and leave T38 inspect_bundle in place. Do not revert T05-T38 status to make unit green."
+}

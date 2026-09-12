@@ -99,6 +99,7 @@ export type InspectRoutesArgs = ExplicitRouteArgs;
 export type InspectPrivacyArgs = ExplicitRouteArgs;
 export type InspectInstallArgs = ExplicitRouteArgs;
 export type InspectBundleArgs = ExplicitRouteArgs;
+export type InspectHelpArgs = ExplicitRouteArgs;
 
 export type PreviewContextArgs = ExplicitRouteArgs & {
   identifier: string;
@@ -175,6 +176,7 @@ export type IpcCommand =
   | { command: "inspect_privacy"; args: InspectPrivacyArgs }
   | { command: "inspect_install"; args: InspectInstallArgs }
   | { command: "inspect_bundle"; args: InspectBundleArgs }
+  | { command: "inspect_help"; args: InspectHelpArgs }
   | { command: "preview_context"; args: PreviewContextArgs }
   | { command: "list_activity"; args: ListActivityArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
@@ -974,6 +976,50 @@ export interface BundleInspectionDto {
   scanned_user_basic_memory_home: false;
 }
 
+export interface HelpRecordDto {
+  identifier: string;
+}
+
+export interface HelpInspectionDto {
+  catalog: HelpRecordDto[];
+  files_written: false;
+  help_claimed: false;
+  a11y_cleared: false;
+  skip_link: true;
+  nav_landmark: true;
+  main_landmark: true;
+  labelled_panels: true;
+  focus_visible: true;
+  keyboard_focusable: true;
+  native_gui: false;
+  native_gui_status: "UNVERIFIED";
+  screen_reader: "UNVERIFIED";
+  ime: "UNVERIFIED";
+  preview_context_owned: true;
+  list_activity_owned: true;
+  engine_activity: false;
+  recent_activity_mcp: "UNVERIFIED";
+  build_context_mcp: "UNVERIFIED";
+  recovery_inventory: ["list_backups", "restore_fixture"];
+  recovery_command: "restore_fixture";
+  restore_sync_present: false;
+  installer_rollback: false;
+  license_present: true;
+  notice_present: true;
+  sbom_present: true;
+  g0_passed: false;
+  g7_passed: false;
+  secrets_stored: false;
+  env_tokens_read: false;
+  remote_hosts_contacted: false;
+  local_offline: true;
+  mixed_profiles: false;
+  observation: NoteCrudObservationDto;
+  engine_help: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+}
+
 export type DraftClass = "empty" | "disk_verified" | "accepted_unverified" | "unclassified";
 
 export interface DraftObservationDto {
@@ -1092,6 +1138,7 @@ export type IpcResponse =
   | { kind: "privacy_inspection" } & PrivacyInspectionDto
   | { kind: "install_inspection" } & InstallInspectionDto
   | { kind: "bundle_inspection" } & BundleInspectionDto
+  | { kind: "help_inspection" } & HelpInspectionDto
   | { kind: "context_preview" } & ContextPreviewDto
   | { kind: "activity_page" } & ActivityPageDto
   | { kind: "backup_catalog" } & BackupCatalogDto
@@ -1158,6 +1205,7 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "inspect_privacy":
     case "inspect_install":
     case "inspect_bundle":
+    case "inspect_help":
     case "preview_context":
     case "list_activity":
     case "list_backups":
@@ -1572,6 +1620,17 @@ export const inspectBundle = () => {
   const route = copyFixtureRoute();
   return invokeTyped<{ kind: "bundle_inspection" } & BundleInspectionDto>({
     command: "inspect_bundle",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+    },
+  });
+};
+
+export const inspectHelp = () => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "help_inspection" } & HelpInspectionDto>({
+    command: "inspect_help",
     args: {
       workspace: route.workspace,
       project: route.project,

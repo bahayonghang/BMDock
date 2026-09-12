@@ -253,6 +253,26 @@ pub const UNSUPPORTED_BUNDLE_INSTALLER_CLAIM: &str =
 pub const BUNDLE_CLAIMED_FLAG: &str = "bundle-claimed";
 #[cfg(test)]
 pub const INSTALLER_PRESENT_FLAG: &str = "installer-present";
+pub const ENGINE_HELP_NOT_OWNED: &str =
+    "inspect_help is a BMDock-owned local-only help and accessibility catalog; it is not a native screen-reader audit, IME session, native GUI session, official recent_activity/build_context MCP, cloud restore, or G0/G7 pass";
+#[cfg(test)]
+pub const OFFICIAL_HELP_UNVERIFIED: &str =
+    "native screen reader, IME, native GUI/WebView2 session, official recent_activity/build_context MCP, and G0/G7 remain UNVERIFIED";
+pub const UNSUPPORTED_HELP_CLAIMED_NOT_A11Y: &str =
+    "fixture help-claimed / a11y-cleared flag is unsupported, not a native accessibility audit; claiming a native screen reader / IME / native GUI session without a native window is unsupported";
+pub const POLICY_HELP_CREDENTIAL_ROUTE: &str =
+    "unauthorized remote, credential, env-token, stored-secret, api-key, or real-vault help/accessibility routes are policy and are not opened";
+pub const UNSUPPORTED_HELP_A11Y_CLAIM: &str =
+    "inspect_help must not claim a native screen reader, IME, native GUI session, G0/G7 pass, official recent_activity/build_context MCP, cloud restore, or installer rollback of a user vault";
+pub const SCREEN_READER_UNVERIFIED: &str = "UNVERIFIED";
+pub const IME_STATUS_UNVERIFIED: &str = "UNVERIFIED";
+pub const RECENT_ACTIVITY_STATUS_UNVERIFIED: &str = "UNVERIFIED";
+pub const BUILD_CONTEXT_STATUS_UNVERIFIED: &str = "UNVERIFIED";
+pub const RECOVERY_INVENTORY_LIST_BACKUPS: &str = "list_backups";
+#[cfg(test)]
+pub const HELP_CLAIMED_FLAG: &str = "help-claimed";
+#[cfg(test)]
+pub const A11Y_CLEARED_FLAG: &str = "a11y-cleared";
 pub const ABSENT_ALLOWLIST_COMMANDS: &[&str] = &[
     "enable_provider",
     "restore_sync",
@@ -327,6 +347,7 @@ pub const ALLOWLISTED_IPC_COMMANDS: &[&str] = &[
     "inspect_privacy",
     "inspect_install",
     "inspect_bundle",
+    "inspect_help",
     "preview_context",
     "list_activity",
     "list_backups",
@@ -2298,6 +2319,111 @@ pub fn empty_bundle_inspection() -> BundleInspectionDto {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct HelpRecordDto {
+    pub identifier: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct HelpInspectionDto {
+    pub catalog: Vec<HelpRecordDto>,
+    pub files_written: bool,
+    pub help_claimed: bool,
+    pub a11y_cleared: bool,
+    pub skip_link: bool,
+    pub nav_landmark: bool,
+    pub main_landmark: bool,
+    pub labelled_panels: bool,
+    pub focus_visible: bool,
+    pub keyboard_focusable: bool,
+    pub native_gui: bool,
+    pub native_gui_status: String,
+    pub screen_reader: String,
+    pub ime: String,
+    pub preview_context_owned: bool,
+    pub list_activity_owned: bool,
+    pub engine_activity: bool,
+    pub recent_activity_mcp: String,
+    pub build_context_mcp: String,
+    pub recovery_inventory: Vec<String>,
+    pub recovery_command: String,
+    pub restore_sync_present: bool,
+    pub installer_rollback: bool,
+    pub license_present: bool,
+    pub notice_present: bool,
+    pub sbom_present: bool,
+    pub g0_passed: bool,
+    pub g7_passed: bool,
+    pub secrets_stored: bool,
+    pub env_tokens_read: bool,
+    pub remote_hosts_contacted: bool,
+    pub local_offline: bool,
+    pub mixed_profiles: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_help: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+}
+
+fn canonical_recovery_inventory() -> Vec<String> {
+    vec![
+        RECOVERY_INVENTORY_LIST_BACKUPS.to_owned(),
+        RECOVERY_COMMAND_RESTORE_FIXTURE.to_owned(),
+    ]
+}
+
+fn recovery_inventory_is_canonical(items: &[String]) -> bool {
+    items.len() == 2
+        && items[0] == RECOVERY_INVENTORY_LIST_BACKUPS
+        && items[1] == RECOVERY_COMMAND_RESTORE_FIXTURE
+}
+
+pub fn empty_help_inspection() -> HelpInspectionDto {
+    HelpInspectionDto {
+        catalog: Vec::new(),
+        files_written: false,
+        help_claimed: false,
+        a11y_cleared: false,
+        skip_link: true,
+        nav_landmark: true,
+        main_landmark: true,
+        labelled_panels: true,
+        focus_visible: true,
+        keyboard_focusable: true,
+        native_gui: false,
+        native_gui_status: NATIVE_GUI_STATUS_UNVERIFIED.to_owned(),
+        screen_reader: SCREEN_READER_UNVERIFIED.to_owned(),
+        ime: IME_STATUS_UNVERIFIED.to_owned(),
+        preview_context_owned: true,
+        list_activity_owned: true,
+        engine_activity: false,
+        recent_activity_mcp: RECENT_ACTIVITY_STATUS_UNVERIFIED.to_owned(),
+        build_context_mcp: BUILD_CONTEXT_STATUS_UNVERIFIED.to_owned(),
+        recovery_inventory: canonical_recovery_inventory(),
+        recovery_command: RECOVERY_COMMAND_RESTORE_FIXTURE.to_owned(),
+        restore_sync_present: false,
+        installer_rollback: false,
+        license_present: true,
+        notice_present: true,
+        sbom_present: true,
+        g0_passed: false,
+        g7_passed: false,
+        secrets_stored: false,
+        env_tokens_read: false,
+        remote_hosts_contacted: false,
+        local_offline: true,
+        mixed_profiles: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_help: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+    }
+}
+
 fn absent_command_is_allowlisted(name: &str) -> bool {
     ABSENT_ALLOWLIST_COMMANDS.contains(&name)
         || name == SEARCH_IDENTITY
@@ -2543,6 +2669,53 @@ pub fn accept_bundle_inspection(
         ));
     }
     Ok(empty_bundle_inspection())
+}
+
+pub fn accept_help_inspection(
+    report: HelpInspectionDto,
+) -> Result<HelpInspectionDto, LibraryError> {
+    if report.scanned_user_obsidian_vault
+        || report.scanned_user_basic_memory_home
+        || report.remote_hosts_contacted
+        || report.secrets_stored
+        || report.env_tokens_read
+    {
+        return Err(LibraryError::policy(POLICY_HELP_CREDENTIAL_ROUTE));
+    }
+    if report.engine_help {
+        return Err(LibraryError::unsupported(ENGINE_HELP_NOT_OWNED));
+    }
+    if report.mixed_profiles {
+        return Err(LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES));
+    }
+    if report.native_gui
+        || report.g0_passed
+        || report.g7_passed
+        || report.engine_activity
+        || report.installer_rollback
+        || report.restore_sync_present
+        || report.native_gui_status != NATIVE_GUI_STATUS_UNVERIFIED
+        || report.screen_reader != SCREEN_READER_UNVERIFIED
+        || report.ime != IME_STATUS_UNVERIFIED
+        || report.recent_activity_mcp != RECENT_ACTIVITY_STATUS_UNVERIFIED
+        || report.build_context_mcp != BUILD_CONTEXT_STATUS_UNVERIFIED
+        || report.recovery_command != RECOVERY_COMMAND_RESTORE_FIXTURE
+        || !recovery_inventory_is_canonical(&report.recovery_inventory)
+    {
+        return Err(LibraryError::unsupported(UNSUPPORTED_HELP_A11Y_CLAIM));
+    }
+    if report.files_written
+        || report.help_claimed
+        || report.a11y_cleared
+        || !report.catalog.is_empty()
+        || report.observation.disk_verified
+        || report.observation.classified_as == NoteCrudClass::DiskVerified
+        || report.observation.classified_as == NoteCrudClass::Conflict
+        || report.observation.classified_as == NoteCrudClass::AcceptedUnverified
+    {
+        return Err(LibraryError::unsupported(UNSUPPORTED_HELP_CLAIMED_NOT_A11Y));
+    }
+    Ok(empty_help_inspection())
 }
 
 pub fn accept_import_result(report: ImportResultDto) -> Result<ImportResultDto, LibraryError> {
@@ -3073,6 +3246,10 @@ pub trait NoteLibrary: Send + Sync {
 
     fn inspect_bundle(&self) -> Result<BundleInspectionDto, LibraryError> {
         Ok(empty_bundle_inspection())
+    }
+
+    fn inspect_help(&self) -> Result<HelpInspectionDto, LibraryError> {
+        Ok(empty_help_inspection())
     }
 
     fn write_note(
@@ -3943,6 +4120,46 @@ impl FixtureLibrary {
         crate::content_safety::persist_exact_utf8(
             &path,
             "fixture-installer-present-not-native-installer\n",
+        )
+        .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        Ok(path)
+    }
+
+    fn require_help_root(&self) -> Result<(), LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        if !self.root.to_string_lossy().contains("bmdock-t39") {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        Ok(())
+    }
+
+    pub fn seed_help_claimed_flag(&self) -> Result<PathBuf, LibraryError> {
+        self.require_help_root()?;
+        fs::create_dir_all(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let path = self.root.join(HELP_CLAIMED_FLAG);
+        if library_root_is_forbidden(&path) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        crate::content_safety::persist_exact_utf8(
+            &path,
+            "fixture-help-claimed-not-native-a11y-audit\n",
+        )
+        .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        Ok(path)
+    }
+
+    pub fn seed_a11y_cleared_flag(&self) -> Result<PathBuf, LibraryError> {
+        self.require_help_root()?;
+        fs::create_dir_all(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let path = self.root.join(A11Y_CLEARED_FLAG);
+        if library_root_is_forbidden(&path) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        crate::content_safety::persist_exact_utf8(
+            &path,
+            "fixture-a11y-cleared-not-native-a11y-audit\n",
         )
         .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
         Ok(path)
@@ -4941,6 +5158,29 @@ impl NoteLibrary for FixtureLibrary {
             ));
         }
         Ok(empty_bundle_inspection())
+    }
+
+    fn inspect_help(&self) -> Result<HelpInspectionDto, LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        let help_flag = self.root.join(HELP_CLAIMED_FLAG);
+        let a11y_flag = self.root.join(A11Y_CLEARED_FLAG);
+        if help_flag.is_symlink() || a11y_flag.is_symlink() {
+            return Err(LibraryError::policy(POLICY_HELP_CREDENTIAL_ROUTE));
+        }
+        if help_flag.is_file() || a11y_flag.is_file() {
+            let flag = if help_flag.is_file() {
+                &help_flag
+            } else {
+                &a11y_flag
+            };
+            if library_root_is_forbidden(flag)
+                || !self.root.to_string_lossy().contains("bmdock-t39")
+            {
+                return Err(LibraryError::policy(POLICY_HELP_CREDENTIAL_ROUTE));
+            }
+            return Err(LibraryError::unsupported(UNSUPPORTED_HELP_CLAIMED_NOT_A11Y));
+        }
+        Ok(empty_help_inspection())
     }
 
     fn write_note(
@@ -6816,6 +7056,53 @@ mod tests {
             NoteCrudClass::AcceptedUnverified
         );
         assert!(!bundle.observation.disk_verified);
+        let help = library.inspect_help().unwrap();
+        assert!(help.catalog.is_empty());
+        assert!(!help.files_written);
+        assert!(!help.help_claimed);
+        assert!(!help.a11y_cleared);
+        assert!(help.skip_link);
+        assert!(help.nav_landmark);
+        assert!(help.main_landmark);
+        assert!(help.labelled_panels);
+        assert!(help.focus_visible);
+        assert!(help.keyboard_focusable);
+        assert!(!help.native_gui);
+        assert_eq!(help.native_gui_status, NATIVE_GUI_STATUS_UNVERIFIED);
+        assert_eq!(help.screen_reader, SCREEN_READER_UNVERIFIED);
+        assert_eq!(help.ime, IME_STATUS_UNVERIFIED);
+        assert!(help.preview_context_owned);
+        assert!(help.list_activity_owned);
+        assert!(!help.engine_activity);
+        assert_eq!(help.recent_activity_mcp, RECENT_ACTIVITY_STATUS_UNVERIFIED);
+        assert_eq!(help.build_context_mcp, BUILD_CONTEXT_STATUS_UNVERIFIED);
+        assert_eq!(
+            help.recovery_inventory,
+            vec![
+                RECOVERY_INVENTORY_LIST_BACKUPS.to_owned(),
+                RECOVERY_COMMAND_RESTORE_FIXTURE.to_owned()
+            ]
+        );
+        assert_eq!(help.recovery_command, RECOVERY_COMMAND_RESTORE_FIXTURE);
+        assert!(!help.restore_sync_present);
+        assert!(!help.installer_rollback);
+        assert!(help.license_present);
+        assert!(help.notice_present);
+        assert!(help.sbom_present);
+        assert!(!help.g0_passed);
+        assert!(!help.g7_passed);
+        assert!(!help.secrets_stored);
+        assert!(!help.env_tokens_read);
+        assert!(!help.remote_hosts_contacted);
+        assert!(help.local_offline);
+        assert!(!help.engine_help);
+        assert_eq!(help.observation.classified_as, NoteCrudClass::Empty);
+        assert_ne!(help.observation.classified_as, NoteCrudClass::Conflict);
+        assert_ne!(
+            help.observation.classified_as,
+            NoteCrudClass::AcceptedUnverified
+        );
+        assert!(!help.observation.disk_verified);
         let _ = (
             ENGINE_GRAPH_NOT_OWNED,
             ENGINE_SEARCH_NOT_OWNED,
@@ -9280,6 +9567,170 @@ mod tests {
             OFFICIAL_BUNDLE_UNVERIFIED,
             UNSUPPORTED_BUNDLE_CLAIMED_NOT_INSTALLER,
             UNSUPPORTED_BUNDLE_INSTALLER_CLAIM,
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn fixture_help_inspection_is_owned_and_claimed_flag_is_unsupported() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t39-{nanos}"));
+        fs::create_dir_all(&dir).unwrap();
+        let library = FixtureLibrary::new(dir.clone());
+        let report = library.inspect_help().unwrap();
+        assert!(report.catalog.is_empty());
+        assert!(!report.files_written);
+        assert!(!report.help_claimed);
+        assert!(!report.a11y_cleared);
+        assert!(report.skip_link);
+        assert!(report.nav_landmark);
+        assert!(report.main_landmark);
+        assert!(report.labelled_panels);
+        assert!(report.focus_visible);
+        assert!(report.keyboard_focusable);
+        assert!(!report.native_gui);
+        assert_eq!(report.native_gui_status, NATIVE_GUI_STATUS_UNVERIFIED);
+        assert_eq!(report.screen_reader, SCREEN_READER_UNVERIFIED);
+        assert_eq!(report.ime, IME_STATUS_UNVERIFIED);
+        assert!(report.preview_context_owned);
+        assert!(report.list_activity_owned);
+        assert!(!report.engine_activity);
+        assert_eq!(
+            report.recent_activity_mcp,
+            RECENT_ACTIVITY_STATUS_UNVERIFIED
+        );
+        assert_eq!(report.build_context_mcp, BUILD_CONTEXT_STATUS_UNVERIFIED);
+        assert_eq!(
+            report.recovery_inventory,
+            vec![
+                RECOVERY_INVENTORY_LIST_BACKUPS.to_owned(),
+                RECOVERY_COMMAND_RESTORE_FIXTURE.to_owned()
+            ]
+        );
+        assert_eq!(report.recovery_command, RECOVERY_COMMAND_RESTORE_FIXTURE);
+        assert!(!report.restore_sync_present);
+        assert!(!report.installer_rollback);
+        assert!(report.license_present);
+        assert!(report.notice_present);
+        assert!(report.sbom_present);
+        assert!(!report.g0_passed);
+        assert!(!report.g7_passed);
+        assert!(!report.engine_help);
+        assert_eq!(report.observation.classified_as, NoteCrudClass::Empty);
+        assert!(!report.observation.disk_verified);
+        let flag = library.seed_help_claimed_flag().unwrap();
+        assert!(flag.is_file());
+        let disk = fs::read_to_string(&flag).unwrap();
+        assert!(disk.contains("fixture-help-claimed-not-native-a11y-audit"));
+        assert_eq!(
+            library.inspect_help().unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_HELP_CLAIMED_NOT_A11Y)
+        );
+        let _ = fs::remove_file(&flag);
+        let a11y_flag = library.seed_a11y_cleared_flag().unwrap();
+        assert!(a11y_flag.is_file());
+        let a11y_disk = fs::read_to_string(&a11y_flag).unwrap();
+        assert!(a11y_disk.contains("fixture-a11y-cleared-not-native-a11y-audit"));
+        assert_eq!(
+            library.inspect_help().unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_HELP_CLAIMED_NOT_A11Y)
+        );
+        let claimed = HelpInspectionDto {
+            help_claimed: true,
+            a11y_cleared: true,
+            ..empty_help_inspection()
+        };
+        assert_eq!(
+            accept_help_inspection(claimed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_HELP_CLAIMED_NOT_A11Y)
+        );
+        let catalog = HelpInspectionDto {
+            catalog: vec![HelpRecordDto {
+                identifier: "help-claimed".to_owned(),
+            }],
+            ..empty_help_inspection()
+        };
+        assert_eq!(
+            accept_help_inspection(catalog).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_HELP_CLAIMED_NOT_A11Y)
+        );
+        let native = HelpInspectionDto {
+            native_gui: true,
+            g0_passed: true,
+            g7_passed: true,
+            ..empty_help_inspection()
+        };
+        assert_eq!(
+            accept_help_inspection(native).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_HELP_A11Y_CLAIM)
+        );
+        let activity = HelpInspectionDto {
+            engine_activity: true,
+            recent_activity_mcp: "verified".to_owned(),
+            build_context_mcp: "verified".to_owned(),
+            ..empty_help_inspection()
+        };
+        assert_eq!(
+            accept_help_inspection(activity).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_HELP_A11Y_CLAIM)
+        );
+        let restore_sync = HelpInspectionDto {
+            restore_sync_present: true,
+            installer_rollback: true,
+            recovery_command: "restore_sync".to_owned(),
+            recovery_inventory: vec!["restore_sync".to_owned()],
+            ..empty_help_inspection()
+        };
+        assert_eq!(
+            accept_help_inspection(restore_sync).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_HELP_A11Y_CLAIM)
+        );
+        let collapsed = HelpInspectionDto {
+            observation: NoteCrudObservationDto {
+                classified_as: NoteCrudClass::Conflict,
+                disk_verified: true,
+                envelope_is_not_disk_proof: true,
+            },
+            ..empty_help_inspection()
+        };
+        assert_eq!(
+            accept_help_inspection(collapsed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_HELP_CLAIMED_NOT_A11Y)
+        );
+        let credentials = HelpInspectionDto {
+            env_tokens_read: true,
+            secrets_stored: true,
+            remote_hosts_contacted: true,
+            ..empty_help_inspection()
+        };
+        assert_eq!(
+            accept_help_inspection(credentials).unwrap_err(),
+            LibraryError::policy(POLICY_HELP_CREDENTIAL_ROUTE)
+        );
+        let mixed = HelpInspectionDto {
+            mixed_profiles: true,
+            ..empty_help_inspection()
+        };
+        assert_eq!(
+            accept_help_inspection(mixed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES)
+        );
+        let engine = HelpInspectionDto {
+            engine_help: true,
+            ..empty_help_inspection()
+        };
+        assert_eq!(
+            accept_help_inspection(engine).unwrap_err(),
+            LibraryError::unsupported(ENGINE_HELP_NOT_OWNED)
+        );
+        let _ = (
+            ENGINE_HELP_NOT_OWNED,
+            OFFICIAL_HELP_UNVERIFIED,
+            UNSUPPORTED_HELP_CLAIMED_NOT_A11Y,
+            UNSUPPORTED_HELP_A11Y_CLAIM,
         );
         let _ = fs::remove_dir_all(&dir);
     }

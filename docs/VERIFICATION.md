@@ -707,3 +707,25 @@ zh-CN 工作台「原生安装包 / 故障回归」区分空态 / 错误 / 就�
 本机 Windows 本轮命令见 [t38-native-installer-regression.json](../execution/evidence/t38-native-installer-regression.json)。`python -m scripts.tasks unit` 以 G0 未 passed 且 T05+ 已 completed 失败（未回退）。未把 UI 文案、工具清单、编译 exe、`tauri-build`、cargo test 或 `just contract` 当作 native GUI / WebView2 / Job Object / 真实 vault / 安装包证据；这些仍为 `UNVERIFIED`。
 
 T38 证据与验收映射见 [t38-native-installer-regression.json](../execution/evidence/t38-native-installer-regression.json)。`execution/status.json` 仅将 T38 标为 `completed`；未改 T05–T37/G0。
+
+## T39：用户帮助无障碍及支持文档
+
+T39 在现有 `ipc_invoke` 上增加 typed `inspect_help`（`ExplicitRouteArgs`，`deny_unknown_fields`）。额外 `path`/`root`/`token`/`host` 为 schema。缺路由为 schema。非 fixture 路由为 policy，且不打开库。capabilities 精确允许列为 44 个命令。typed `inspect_help` 允许。`restore_sync` / raw `callTool` 不在允许列。
+
+生产 `EmptyLibrary`：空 extra catalog、`classified_as: empty`、`files_written=false`。帮助目录写明夹具自有 `preview_context` / `list_activity`，官方 `recent_activity` / `build_context` 仍为 `UNVERIFIED`。恢复库存是 `list_backups` + `restore_fixture`（夹具自有），不是云恢复，也不是安装器回滚用户 vault。Renderer 拥有 skip-link、nav landmark、main landmark `id=main`、带标签面板、`:focus-visible`、可键盘聚焦控件。native 读屏 / IME / native GUI 仍为 `UNVERIFIED`，因为本任务未打开原生窗口。`contentSafetyHelpNotT39` 已替换为 T39 自有帮助文案。测试注入 `{temp}/bmdock-t39-*`。夹具 `help-claimed` / `a11y-cleared` 为 unsupported，不是原生无障碍审计。宣称 G0/G7 已通过为 unsupported。conflict / `timeout_unknown` / `disk_verified` / `accepted_unverified` 保持区分。IPC 错误联合仍为 `policy` / `schema` / `unsupported`。无 `dangerouslySetInnerHTML`。不启动 Supervisor。无 rmcp。无新 npm 依赖。
+
+AC31：帮助目录写明夹具自有 `preview_context` / `list_activity`。官方 `recent_activity` / `build_context` 仍为 `UNVERIFIED`。未加入 live engine MCP。
+
+AC53：帮助与支持文档写明恢复库存是 `list_backups` + `restore_fixture`（夹具自有）。不是云恢复，也不是安装器回滚用户 vault。
+
+AC57：T39 拥有 renderer 帮助/无障碍完备性。未打开原生窗口，故 native 读屏 / IME / native GUI 为 `UNVERIFIED`。
+
+AC60：提交 `docs/HELP.md`，与 `just dev=tauri-dev`、`just build=G0 探针`、`just contract*=探针`、双 profile 隔离（21 vs 27）、LICENSE/NOTICE/SBOM 存在但 G7 `UNVERIFIED` 一致。About/帮助面板列出当前 typed 允许列，含 `inspect_api_audit`、`inspect_privacy`、`inspect_install`、`inspect_bundle`、`inspect_help`。不宣称 G0/G7 已通过。
+
+zh-CN 工作台「帮助 / 无障碍」区分空态 / 错误 / 就绪。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just tauri-build` 不是安装器；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T39 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令见 [t39-help-accessibility-docs.json](../execution/evidence/t39-help-accessibility-docs.json)。`python -m scripts.tasks unit` 以 G0 未 passed 且 T05+ 已 completed 失败（未回退）。未把 UI 文案、工具清单、cargo test 或 `just contract` 当作 native GUI / 读屏 / IME / Job Object / 真实 vault 证据；这些仍为 `UNVERIFIED`。
+
+T39 证据与验收映射见 [t39-help-accessibility-docs.json](../execution/evidence/t39-help-accessibility-docs.json)。`execution/status.json` 仅将 T39 标为 `completed`；未改 T05–T38/G0。未改 T40。

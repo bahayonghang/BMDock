@@ -476,7 +476,8 @@ main {
 .route-list,
 .privacy-list,
 .install-list,
-.bundle-list {
+.bundle-list,
+.help-list {
   margin: 0.75rem 0 0;
   padding: 0;
   display: grid;
@@ -499,7 +500,8 @@ main {
 .route-list li,
 .privacy-list li,
 .install-list li,
-.bundle-list li {
+.bundle-list li,
+.help-list li {
   display: flex;
   justify-content: space-between;
   align-items: center;
