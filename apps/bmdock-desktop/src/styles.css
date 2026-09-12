@@ -470,7 +470,8 @@ main {
 }
 
 .sync-list,
-.share-list {
+.share-list,
+.hook-list {
   margin: 0.75rem 0 0;
   padding: 0;
   display: grid;
@@ -487,7 +488,8 @@ main {
 .extras-list li,
 .cloud-list li,
 .sync-list li,
-.share-list li {
+.share-list li,
+.hook-list li {
   display: flex;
   justify-content: space-between;
   align-items: center;

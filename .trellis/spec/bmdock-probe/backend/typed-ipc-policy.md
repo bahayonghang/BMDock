@@ -56,7 +56,12 @@ FAIL-CLOSED local-only cloud sync/share status
 (`sync_enabled=false`, `sharing_enabled=false`,
 `remote_restore=false`, `last_sync=none`; claiming synced/shared
 without a live official cloud session is unsupported; recovery
-remains T12 `restore_fixture`, not cloud restore). It applies to
+remains T12 `restore_fixture`, not cloud restore), and T33 typed
+`inspect_hooks` FAIL-CLOSED local-only official Agent/hook status
+(`hooks_enabled=false`, `agent_connected=false`,
+`files_written=false`; claiming installed/connected without a live
+official Claude / Cursor / ChatGPT agent session is unsupported;
+production hook catalog is empty). It applies to
 `apps/bmdock-desktop/src-tauri/src/ipc.rs`,
 `apps/bmdock-desktop/src-tauri/src/library.rs`,
 `apps/bmdock-desktop/src-tauri/src/conflict.rs`,
@@ -359,6 +364,24 @@ interfaces remain separate. Lifecycle ownership lives in
   sync DTO. Official cloud sync / share remain UNVERIFIED. Do not
   add rmcp. Do not start Supervisor. Do not treat `just contract`
   as T32 proof.
+- T33 `inspect_hooks` is FAIL-CLOSED local-only. Args are
+  `ExplicitRouteArgs`. `deny_unknown_fields`. Extra `path` / `root` /
+  `token` / `host` fail closed as `schema`. Missing route is `schema`.
+  Non-fixture routes are `policy` and do not open the library.
+  Production default: `hooks_enabled=false`, `agent_connected=false`,
+  `files_written=false`. Production hook catalog is empty. Claiming
+  installed / connected / a live Claude / Cursor / ChatGPT agent hook
+  install without a live official agent session is `unsupported`. A
+  separate `list_hooks` command is not in the allowlist. Tests inject
+  `FixtureLibrary` over `{temp}/bmdock-t33-*` that still reports
+  `hooks_enabled=false`. A BMDock-owned fixture `hook-claimed` flag is
+  classified `unsupported`, not installed. Unauthorized remote / env
+  token / stored secret / remote host / real vault / Cursor rules /
+  user agent config is `policy`. Do not write into user agent configs,
+  Cursor rules, or real vaults. Dual profiles stay isolated (21 vs
+  27). Do not mix profiles into the hook DTO. Official Agent
+  integration remains UNVERIFIED. Do not add rmcp. Do not start
+  Supervisor. Do not treat `just contract` as T33 proof.
 - The boundary does not start or stop the Supervisor, call the official
   engine over rmcp, access a user vault, or expose raw `callTool`. T14
   drafts are BMDock-owned session artifacts, not a second note index and
@@ -413,9 +436,10 @@ interfaces remain separate. Lifecycle ownership lives in
   `inspect_api_audit` carries `ExplicitRouteArgs` plus required
   `profile_id`. T30 `inspect_extras` carries `ExplicitRouteArgs`
   plus optional `extra_id`.   T30 `ingest_document` carries
-  `ExplicitRouteArgs` plus required `source_id`. T31 `inspect_cloud`
+  `ExplicitRouteArgs` plus required `source_id`.   T31 `inspect_cloud`
   carries `ExplicitRouteArgs`. T32 `inspect_sync` and `list_shares`
-  carry `ExplicitRouteArgs`. T22 `preview_context`
+  carry `ExplicitRouteArgs`. T33 `inspect_hooks` carries
+  `ExplicitRouteArgs`. T22 `preview_context`
   carries `ExplicitRouteArgs` plus `identifier` and optional `query`.
   T22 `list_activity` carries `ExplicitRouteArgs` plus optional
   `cursor` / `page_size`. T16 coordinates overlapping
@@ -484,6 +508,7 @@ ingest_document: { workspace, project, source_id }
 inspect_cloud: { workspace, project }
 inspect_sync: { workspace, project }
 list_shares: { workspace, project }
+inspect_hooks: { workspace, project }
 preview_context: { workspace, project, identifier, query? }
 list_activity: { workspace, project, cursor?, page_size? }
 list_backups: { workspace, project }
@@ -970,7 +995,7 @@ The capability policy must report:
 `EditNoteArgs`, `MoveNoteArgs`, `DeleteNoteArgs`, and `EmptyArgs`
 use `#[serde(deny_unknown_fields)]`.
 There is no path field on `list_projects` / `run_preflight` /
-`discover_config` / `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `inspect_cloud` / `inspect_sync` / `list_shares` / `preview_context` / `list_activity` / `list_backups` /
+`discover_config` / `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `inspect_cloud` / `inspect_sync` / `list_shares` / `inspect_hooks` / `preview_context` / `list_activity` / `list_backups` /
 `restore_fixture` / `inspect_windows_runtime` / `save_draft` /
 `load_draft` / `write_note` / `edit_note` / `move_note` /
 `delete_note` / `begin_shutdown` and no raw `callTool` handler. Typed
@@ -1166,6 +1191,18 @@ T12 `restore_fixture`, not cloud restore. Extra `path` / `root` /
 Do not store secrets, read env tokens, or contact remote hosts.
 Dual profiles stay isolated (21 vs 27). Official cloud sync /
 share remain UNVERIFIED. T32 does not start Supervisor or add rmcp.
+T33 adds `inspect_hooks` on the same `ipc_invoke` union.
+Official Agent/hook integration is FAIL-CLOSED local-only.
+Production `EmptyLibrary` is `hooks_enabled=false`,
+`agent_connected=false`, `files_written=false`, empty hook catalog,
+`classified_as: empty`. Claiming installed/connected without a live
+official agent session is `unsupported`. A fixture `hook-claimed`
+flag over `{temp}/bmdock-t33-*` is `unsupported`, not installed.
+Extra `path` / `root` / `token` / `host` fail closed as `schema`.
+Non-fixture is `policy`. Do not write into user agent configs,
+Cursor rules, or real vaults. Dual profiles stay isolated (21 vs 27).
+Official Agent hook install remains UNVERIFIED. T33 does not start
+Supervisor or add rmcp.
 T22 adds `preview_context` and `list_activity` on the same
 `ipc_invoke` union. Preview is a BMDock-owned fixture markdown
 snippet (`executed=false`). Activity is fixture markdown mtime
@@ -1187,7 +1224,7 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 | Unknown `command`, including `call_tool` and MCP identity `search` / `fetch` / `recent_activity` / `build_context` / `schema_infer` / `schema_diff` / `resources/list` / `resources/read` / `prompts/list` / `prompts/get` / `tools/call` | Serde deserialization fails closed | `schema` at the boundary |
 | Incomplete `write_note` args (for example only `project`) | `deny_unknown_fields` / missing fields | `schema` |
 | Extra field in `args` | `deny_unknown_fields` rejects the DTO | `schema` |
-| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
 | Extra top-level field such as `path` beside `command`/`args` | `deny_unknown_fields` on `IpcCommand` | `schema` |
 | `select_project` for any value other than `bmdock-fixture` | Dispatcher rejects without filesystem access | `policy` |
 | `ExplicitRouteArgs` missing `project`/`workspace` or carrying an extra `path` | `deny_unknown_fields` rejects the DTO | `schema` |
@@ -1321,6 +1358,13 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 | Empty library `list_shares` | Empty `shares[]`, `sharing_enabled=false`, `classified_as: empty`, `local_offline=true` | empty state |
 | Claiming a live shared remote / non-empty shares without a live official cloud session | Reject; not shared | `unsupported` |
 | Fixture `share-claimed` flag on `{temp}/bmdock-t32-*` | Classify `unsupported`, not shared; still not live share | `unsupported` |
+| Extra `path` / `root` / `token` / `host` on `inspect_hooks` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Missing `inspect_hooks` route | Reject without opening the library | `schema` |
+| Non-fixture `inspect_hooks` | Reject without opening the library | `policy` |
+| Unauthorized remote / env token / stored secret / remote host / real vault / Cursor rules / user agent config on `inspect_hooks` | Reject; do not open a hook/credential/agent-config route | `policy` |
+| Empty library `inspect_hooks` | Empty `hooks[]`, `hooks_enabled=false`, `agent_connected=false`, `files_written=false`, `classified_as: empty`, `local_offline=true` | empty state |
+| Claiming `installed` / `agent_connected` / `hooks_enabled=true` without a live official agent session | Reject; not installed | `unsupported` |
+| Fixture `hook-claimed` flag on `{temp}/bmdock-t33-*` | Classify `unsupported`, not installed; still not live agent | `unsupported` |
 | Cloud/sync restore / `restore_sync` | Unknown command is `schema`; if a restore-sync path were added it stays `unsupported` / `policy`, not disk-verified user-vault/cloud restore. Recovery remains T12 `restore_fixture`. Envelope `"synced"` / `"restored"` is not disk proof. | `schema` / `unsupported` / `policy` |
 | Unknown official tool name in the selected profile baseline | List as `denied` / `missing`; do not auto-admit | — |
 | Missing `preview_context` identifier | Reject without opening the library | `schema` |
@@ -1532,16 +1576,16 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
 
 ## 6. Tests Required
 
-- Rust unit test: capability response lists exactly thirty-seven commands and two
+- Rust unit test: capability response lists exactly thirty-eight commands and two
   events, and both arbitrary-path and raw-callTool policy flags are false.
-  `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`,
+  `list_tree`, `read_note`, `list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`,
   `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`,
   `edit_note`, `move_note`, `delete_note`, and `begin_shutdown` are present; `call_tool`,
   MCP identity `search`, `fetch`, `recent_activity`, `build_context`, `schema_infer`, `schema_diff`, `resources/list`, `resources/read`, `prompts/list`, `prompts/get`, and `tools/call` are absent. Incomplete `write_note` args remain schema.
 - Rust unit test: a non-fixture project returns `ErrorCategory::Policy`.
 - Rust unit test: unknown command including `call_tool`, extra project path,
   extra runtime-state path, extra `list_projects` path/root, extra preflight
-  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `expand_graph` path/root,   extra `search_notes` path/root/`id`, extra `inspect_search` path/root/`id`, extra `run_recall_benchmark` path/root, extra `schema_validate` path/root, extra `list_resources` path/root, extra `list_prompts` path/root, extra `inspect_tools` path/root, extra `list_cli_inventory` path/root, extra `import_notes` path/root, extra `inspect_api_audit` path/root, extra `inspect_extras` path/root, extra `ingest_document` path/root, extra `inspect_cloud` path/root, extra `inspect_sync` path/root/token/host, extra `list_shares` path/root/token/host, extra `preview_context` path/root, extra `list_activity` path/root, extra `list_backups`
+  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `expand_graph` path/root,   extra `search_notes` path/root/`id`, extra `inspect_search` path/root/`id`, extra `run_recall_benchmark` path/root, extra `schema_validate` path/root, extra `list_resources` path/root, extra `list_prompts` path/root, extra `inspect_tools` path/root, extra `list_cli_inventory` path/root, extra `import_notes` path/root, extra `inspect_api_audit` path/root, extra `inspect_extras` path/root, extra `ingest_document` path/root, extra `inspect_cloud` path/root, extra `inspect_sync` path/root/token/host, extra `list_shares` path/root/token/host, extra `inspect_hooks` path/root/token/host, extra `preview_context` path/root, extra `list_activity` path/root, extra `list_backups`
   path/root, extra `restore_fixture` path, extra
   `inspect_windows_runtime` path/root, extra `save_draft` path/root, extra
   `load_draft` path/root, and extra `begin_shutdown` path/root all fail
@@ -1561,7 +1605,7 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
   scan user vaults, and keeps `cross_project_search_allowed` and
   `implicit_current_project_writes` false.   `ExplicitRouteArgs` requires both
   fields, rejects extra paths as schema, and rejects non-fixture routes as
-  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `inspect_cloud` / `inspect_sync` / `list_shares` / `preview_context` / `list_activity` / `list_backups` /
+  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `expand_graph` / `search_notes` / `inspect_search` / `run_recall_benchmark` / `schema_validate` / `list_resources` / `list_prompts` / `inspect_tools` / `list_cli_inventory` / `import_notes` / `inspect_api_audit` / `inspect_extras` / `ingest_document` / `inspect_cloud` / `inspect_sync` / `list_shares` / `inspect_hooks` / `preview_context` / `list_activity` / `list_backups` /
   `restore_fixture` / `save_draft` / `load_draft` / `write_note` /
   `edit_note` / `move_note` / `delete_note` must not open the library,
   backup store, or draft store.
@@ -1802,6 +1846,20 @@ UNVERIFIED. T22 does not start Supervisor or add rmcp.
   `"synced"` / `"restored"` is not disk proof. `restore_sync` is
   not an allowlisted command. T32 does not start Supervisor or add
   rmcp.
+- Rust unit test: `inspect_hooks` requires `ExplicitRouteArgs`. Extra
+  `path` / `root` / `token` / `host` fail closed as `schema`. Missing
+  route is `schema`. Non-fixture is `policy` and does not open the
+  library. Production `EmptyLibrary` is `hooks_enabled=false`,
+  `agent_connected=false`, `files_written=false`, empty hook catalog,
+  `classified_as: empty`. Tests inject `{temp}/bmdock-t33-*` that
+  still reports `hooks_enabled=false`. A BMDock-owned fixture
+  `hook-claimed` flag is `unsupported`, not installed. Claiming
+  installed/connected without a live official agent session is
+  `unsupported`. Unauthorized remote / env tokens / stored secrets /
+  remote hosts / real vaults / Cursor rules / user agent configs are
+  `policy`. Dual profiles stay isolated (21 vs 27). Do not mix
+  profiles into the hook DTO. Official Agent hook install remains
+  UNVERIFIED. T33 does not start Supervisor or add rmcp.
 - Rust unit test: `preview_context` requires `ExplicitRouteArgs` plus
   `identifier` plus optional `query`. Extra `path` / `root` fail
   closed as `schema`. Missing identifier is `schema`. Non-fixture
@@ -2036,6 +2094,10 @@ await invokeTyped({
   args: { workspace: route.workspace, project: route.project },
 });
 await invokeTyped({
+  command: "inspect_hooks",
+  args: { workspace: route.workspace, project: route.project },
+});
+await invokeTyped({
   command: "preview_context",
   args: { workspace: route.workspace, project: route.project, identifier, query },
 });
@@ -2106,7 +2168,7 @@ await listenTyped("runtime_state", (state) => renderState(state));
 These calls use the shared DTOs and the explicit fixture/event allowlist.
 `list_projects`, `run_preflight`, and `discover_config` take empty args.
 `select_project` remains fixture-only. `list_tree`, `read_note`,
-`list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
+`list_relations`, `expand_graph`, `search_notes`, `inspect_search`, `run_recall_benchmark`, `schema_validate`, `list_resources`, `list_prompts`, `inspect_tools`, `list_cli_inventory`, `import_notes`, `inspect_api_audit`, `inspect_extras`, `ingest_document`, `inspect_cloud`, `inspect_sync`, `list_shares`, `inspect_hooks`, `preview_context`, `list_activity`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
 `write_note`, `edit_note`, `move_note`, and `delete_note` copy
 `ExplicitRouteArgs` on every call and must not treat `runtime.project` as
 an implicit target.
@@ -2124,7 +2186,10 @@ remote auth remain UNVERIFIED. `inspect_sync` / `list_shares` are
 FAIL-CLOSED local-only (`sync_enabled=false`, `sharing_enabled=false`,
 `remote_restore=false`, `last_sync=none`). Official cloud sync / share
 remain UNVERIFIED. Recovery remains T12 `restore_fixture`.
-`save_draft` / `load_draft`
+`inspect_hooks` is FAIL-CLOSED local-only (`hooks_enabled=false`,
+`agent_connected=false`, `files_written=false`). Official Agent hook
+install remains UNVERIFIED. Claiming installed/connected without a
+live official agent session is unsupported. `save_draft` / `load_draft`
 persist BMDock-owned session drafts, not official engine notes. Typed
 `write_note` is a host command on `NoteLibrary`, not raw `callTool`.
 Preflight reports

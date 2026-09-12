@@ -159,6 +159,17 @@ pub const LAST_SYNC_NONE: &str = "none";
 pub const SYNC_CLAIMED_FLAG: &str = "sync-claimed";
 #[cfg(test)]
 pub const SHARE_CLAIMED_FLAG: &str = "share-claimed";
+pub const ENGINE_HOOKS_NOT_OWNED: &str =
+    "inspect_hooks is a BMDock-owned local-only status; it is not a live official Claude, Cursor, or ChatGPT agent session or hook install";
+#[cfg(test)]
+pub const OFFICIAL_HOOKS_UNVERIFIED: &str =
+    "official Claude / Cursor / ChatGPT agent hook install remains UNVERIFIED";
+pub const UNSUPPORTED_HOOK_CLAIMED_NOT_LIVE: &str =
+    "fixture hook-claimed flag is unsupported, not installed; claiming installed/connected without a live official agent session is unsupported";
+pub const POLICY_HOOK_CREDENTIAL_ROUTE: &str =
+    "unauthorized remote, credential, env-token, Cursor rules, user agent config, or real-vault hook routes are policy and are not opened";
+#[cfg(test)]
+pub const HOOK_CLAIMED_FLAG: &str = "hook-claimed";
 pub const CAPABILITY_SEMANTIC: &str = "semantic";
 pub const CAPABILITY_EXTRAS_INGEST: &str = "extras_ingest";
 pub const CAPABILITY_CLOUD: &str = "cloud";
@@ -214,6 +225,7 @@ pub const ALLOWLISTED_IPC_COMMANDS: &[&str] = &[
     "inspect_cloud",
     "inspect_sync",
     "list_shares",
+    "inspect_hooks",
     "preview_context",
     "list_activity",
     "list_backups",
@@ -1614,6 +1626,113 @@ pub fn accept_share_catalog(report: ShareCatalogDto) -> Result<ShareCatalogDto, 
     Ok(report)
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct HookRecordDto {
+    pub identifier: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct HookInspectionDto {
+    pub hooks: Vec<HookRecordDto>,
+    pub hooks_enabled: bool,
+    pub agent_connected: bool,
+    pub files_written: bool,
+    pub installed: bool,
+    pub hook_claimed: bool,
+    pub local_offline: bool,
+    pub live_official_agent_session: bool,
+    pub remote_hosts_contacted: bool,
+    pub secrets_stored: bool,
+    pub env_tokens_read: bool,
+    pub mixed_profiles: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_hooks: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub scanned_cursor_rules: bool,
+    pub scanned_user_agent_config: bool,
+}
+
+pub fn empty_hook_inspection() -> HookInspectionDto {
+    HookInspectionDto {
+        hooks: Vec::new(),
+        hooks_enabled: false,
+        agent_connected: false,
+        files_written: false,
+        installed: false,
+        hook_claimed: false,
+        local_offline: true,
+        live_official_agent_session: false,
+        remote_hosts_contacted: false,
+        secrets_stored: false,
+        env_tokens_read: false,
+        mixed_profiles: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_hooks: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        scanned_cursor_rules: false,
+        scanned_user_agent_config: false,
+    }
+}
+
+pub fn accept_hook_inspection(
+    report: HookInspectionDto,
+) -> Result<HookInspectionDto, LibraryError> {
+    if report.scanned_user_obsidian_vault
+        || report.scanned_user_basic_memory_home
+        || report.scanned_cursor_rules
+        || report.scanned_user_agent_config
+        || report.remote_hosts_contacted
+        || report.secrets_stored
+        || report.env_tokens_read
+    {
+        return Err(LibraryError::policy(POLICY_HOOK_CREDENTIAL_ROUTE));
+    }
+    if report.engine_hooks {
+        return Err(LibraryError::unsupported(ENGINE_HOOKS_NOT_OWNED));
+    }
+    if report.mixed_profiles {
+        return Err(LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES));
+    }
+    if report.files_written
+        || report.hooks_enabled
+        || report.agent_connected
+        || report.installed
+        || report.hook_claimed
+        || report.live_official_agent_session
+        || !report.hooks.is_empty()
+        || report.observation.disk_verified
+        || report.observation.classified_as == NoteCrudClass::DiskVerified
+    {
+        return Err(LibraryError::unsupported(UNSUPPORTED_HOOK_CLAIMED_NOT_LIVE));
+    }
+    let mut report = report;
+    report.hooks.clear();
+    report.hooks_enabled = false;
+    report.agent_connected = false;
+    report.files_written = false;
+    report.installed = false;
+    report.hook_claimed = false;
+    report.local_offline = true;
+    report.live_official_agent_session = false;
+    report.remote_hosts_contacted = false;
+    report.secrets_stored = false;
+    report.env_tokens_read = false;
+    report.mixed_profiles = false;
+    report.engine_hooks = false;
+    report.scanned_cursor_rules = false;
+    report.scanned_user_agent_config = false;
+    report.observation.envelope_is_not_disk_proof = true;
+    report.observation.disk_verified = false;
+    report.observation.classified_as = NoteCrudClass::Empty;
+    Ok(report)
+}
+
 pub fn accept_import_result(report: ImportResultDto) -> Result<ImportResultDto, LibraryError> {
     if report.engine_import {
         return Err(LibraryError::unsupported(ENGINE_IMPORT_NOT_OWNED));
@@ -2118,6 +2237,10 @@ pub trait NoteLibrary: Send + Sync {
 
     fn list_shares(&self) -> Result<ShareCatalogDto, LibraryError> {
         Ok(empty_share_catalog())
+    }
+
+    fn inspect_hooks(&self) -> Result<HookInspectionDto, LibraryError> {
+        Ok(empty_hook_inspection())
     }
 
     fn write_note(
@@ -2796,6 +2919,30 @@ impl FixtureLibrary {
         crate::content_safety::persist_exact_utf8(
             &path,
             "fixture-share-claimed-not-live-shared-remote\n",
+        )
+        .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        Ok(path)
+    }
+
+    fn require_hooks_root(&self) -> Result<(), LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        if !self.root.to_string_lossy().contains("bmdock-t33") {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        Ok(())
+    }
+
+    pub fn seed_hook_claimed_flag(&self) -> Result<PathBuf, LibraryError> {
+        self.require_hooks_root()?;
+        fs::create_dir_all(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let path = self.root.join(HOOK_CLAIMED_FLAG);
+        if library_root_is_forbidden(&path) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        crate::content_safety::persist_exact_utf8(
+            &path,
+            "fixture-hook-claimed-not-live-official-agent-session\n",
         )
         .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
         Ok(path)
@@ -3664,6 +3811,23 @@ impl NoteLibrary for FixtureLibrary {
             ));
         }
         Ok(empty_share_catalog())
+    }
+
+    fn inspect_hooks(&self) -> Result<HookInspectionDto, LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        let flag = self.root.join(HOOK_CLAIMED_FLAG);
+        if flag.is_symlink() {
+            return Err(LibraryError::policy(POLICY_HOOK_CREDENTIAL_ROUTE));
+        }
+        if flag.is_file() {
+            if library_root_is_forbidden(&flag)
+                || !self.root.to_string_lossy().contains("bmdock-t33")
+            {
+                return Err(LibraryError::policy(POLICY_HOOK_CREDENTIAL_ROUTE));
+            }
+            return Err(LibraryError::unsupported(UNSUPPORTED_HOOK_CLAIMED_NOT_LIVE));
+        }
+        Ok(empty_hook_inspection())
     }
 
     fn write_note(
@@ -5374,6 +5538,19 @@ mod tests {
         assert!(shares.local_offline);
         assert!(!shares.engine_share);
         assert_eq!(shares.observation.classified_as, NoteCrudClass::Empty);
+        let hooks = library.inspect_hooks().unwrap();
+        assert!(hooks.hooks.is_empty());
+        assert!(!hooks.hooks_enabled);
+        assert!(!hooks.agent_connected);
+        assert!(!hooks.files_written);
+        assert!(!hooks.installed);
+        assert!(!hooks.hook_claimed);
+        assert!(hooks.local_offline);
+        assert!(!hooks.live_official_agent_session);
+        assert!(!hooks.engine_hooks);
+        assert!(!hooks.scanned_cursor_rules);
+        assert!(!hooks.scanned_user_agent_config);
+        assert_eq!(hooks.observation.classified_as, NoteCrudClass::Empty);
         let _ = (
             ENGINE_GRAPH_NOT_OWNED,
             ENGINE_SEARCH_NOT_OWNED,
@@ -7066,6 +7243,92 @@ mod tests {
             UNSUPPORTED_SYNC_CLAIMED_NOT_LIVE,
             UNSUPPORTED_SHARE_CLAIMED_NOT_LIVE,
             UNSUPPORTED_SYNC_RESTORE_NOT_T12,
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn fixture_hook_inspection_is_disabled_and_claimed_flag_is_unsupported() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t33-{nanos}"));
+        fs::create_dir_all(&dir).unwrap();
+        let library = FixtureLibrary::new(dir.clone());
+        let report = library.inspect_hooks().unwrap();
+        assert!(report.hooks.is_empty());
+        assert!(!report.hooks_enabled);
+        assert!(!report.agent_connected);
+        assert!(!report.files_written);
+        assert!(!report.installed);
+        assert!(!report.hook_claimed);
+        assert!(report.local_offline);
+        assert!(!report.live_official_agent_session);
+        assert!(!report.remote_hosts_contacted);
+        assert!(!report.secrets_stored);
+        assert!(!report.env_tokens_read);
+        assert!(!report.mixed_profiles);
+        assert!(!report.engine_hooks);
+        assert!(!report.scanned_cursor_rules);
+        assert!(!report.scanned_user_agent_config);
+        assert_eq!(report.observation.classified_as, NoteCrudClass::Empty);
+        let flag = library.seed_hook_claimed_flag().unwrap();
+        assert!(flag.is_file());
+        let disk = fs::read_to_string(&flag).unwrap();
+        assert!(disk.contains("fixture-hook-claimed-not-live"));
+        assert_eq!(
+            library.inspect_hooks().unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_HOOK_CLAIMED_NOT_LIVE)
+        );
+        let claimed = HookInspectionDto {
+            hooks_enabled: true,
+            agent_connected: true,
+            installed: true,
+            ..empty_hook_inspection()
+        };
+        assert_eq!(
+            accept_hook_inspection(claimed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_HOOK_CLAIMED_NOT_LIVE)
+        );
+        let live_hooks = HookInspectionDto {
+            hooks: vec![HookRecordDto {
+                identifier: "claude-cursor-chatgpt".to_owned(),
+            }],
+            ..empty_hook_inspection()
+        };
+        assert_eq!(
+            accept_hook_inspection(live_hooks).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_HOOK_CLAIMED_NOT_LIVE)
+        );
+        let credentials = HookInspectionDto {
+            env_tokens_read: true,
+            ..empty_hook_inspection()
+        };
+        assert_eq!(
+            accept_hook_inspection(credentials).unwrap_err(),
+            LibraryError::policy(POLICY_HOOK_CREDENTIAL_ROUTE)
+        );
+        let cursor_rules = HookInspectionDto {
+            scanned_cursor_rules: true,
+            ..empty_hook_inspection()
+        };
+        assert_eq!(
+            accept_hook_inspection(cursor_rules).unwrap_err(),
+            LibraryError::policy(POLICY_HOOK_CREDENTIAL_ROUTE)
+        );
+        let mixed = HookInspectionDto {
+            mixed_profiles: true,
+            ..empty_hook_inspection()
+        };
+        assert_eq!(
+            accept_hook_inspection(mixed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES)
+        );
+        let _ = (
+            ENGINE_HOOKS_NOT_OWNED,
+            OFFICIAL_HOOKS_UNVERIFIED,
+            UNSUPPORTED_HOOK_CLAIMED_NOT_LIVE,
         );
         let _ = fs::remove_dir_all(&dir);
     }

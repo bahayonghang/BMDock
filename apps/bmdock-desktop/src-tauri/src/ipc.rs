@@ -6,10 +6,10 @@ use crate::drafts::{self, DraftResultDto, DraftStore};
 use crate::drain::{self, DrainPhase, DrainResultDto, HostDrain};
 use crate::library::{
     self, ActivityPageDto, ApiAuditDto, CliInventoryDto, CloudInspectionDto, ContextPreviewDto,
-    ExtrasCatalogDto, GraphPageDto, ImportResultDto, IngestResultDto, NoteDeleteDto, NoteEditDto,
-    NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto, PromptPageDto, RecallBenchmarkDto,
-    RelationListDto, ResourcePageDto, SchemaValidateDto, SearchInspectorDto, SearchPageDto,
-    ShareCatalogDto, SyncInspectionDto, ToolInspectionDto, TreePageDto,
+    ExtrasCatalogDto, GraphPageDto, HookInspectionDto, ImportResultDto, IngestResultDto,
+    NoteDeleteDto, NoteEditDto, NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto, PromptPageDto,
+    RecallBenchmarkDto, RelationListDto, ResourcePageDto, SchemaValidateDto, SearchInspectorDto,
+    SearchPageDto, ShareCatalogDto, SyncInspectionDto, ToolInspectionDto, TreePageDto,
 };
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
@@ -46,6 +46,7 @@ pub enum IpcCommandName {
     InspectCloud,
     InspectSync,
     ListShares,
+    InspectHooks,
     PreviewContext,
     ListActivity,
     ListBackups,
@@ -87,6 +88,7 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::InspectCloud,
         IpcCommandName::InspectSync,
         IpcCommandName::ListShares,
+        IpcCommandName::InspectHooks,
         IpcCommandName::PreviewContext,
         IpcCommandName::ListActivity,
         IpcCommandName::ListBackups,
@@ -614,6 +616,7 @@ pub enum IpcCommand {
     InspectCloud(ExplicitRouteArgs),
     InspectSync(ExplicitRouteArgs),
     ListShares(ExplicitRouteArgs),
+    InspectHooks(ExplicitRouteArgs),
     PreviewContext(PreviewContextArgs),
     ListActivity(ListActivityArgs),
     ListBackups(ExplicitRouteArgs),
@@ -696,6 +699,7 @@ pub enum IpcResponse {
     CloudInspection(CloudInspectionDto),
     SyncInspection(SyncInspectionDto),
     ShareCatalog(ShareCatalogDto),
+    HookInspection(HookInspectionDto),
     ContextPreview(ContextPreviewDto),
     ActivityPage(ActivityPageDto),
     BackupCatalog(BackupCatalogDto),
@@ -998,6 +1002,12 @@ pub fn dispatch_with_drain(
                 library.list_shares()?,
             )?))
         }
+        IpcCommand::InspectHooks(route_args) => {
+            require_explicit_fixture_route(&route_args)?;
+            Ok(IpcResponse::HookInspection(
+                library::accept_hook_inspection(library.inspect_hooks()?)?,
+            ))
+        }
         IpcCommand::PreviewContext(args) => {
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
@@ -1201,6 +1211,7 @@ mod tests {
                 IpcCommandName::InspectCloud,
                 IpcCommandName::InspectSync,
                 IpcCommandName::ListShares,
+                IpcCommandName::InspectHooks,
                 IpcCommandName::PreviewContext,
                 IpcCommandName::ListActivity,
                 IpcCommandName::ListBackups,
@@ -1215,14 +1226,14 @@ mod tests {
                 IpcCommandName::BeginShutdown,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 37);
+        assert_eq!(capabilities.commands.len(), 38);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 37);
+        assert_eq!(commands.len(), 38);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
@@ -1250,6 +1261,7 @@ mod tests {
         assert!(commands.iter().any(|command| command == "inspect_cloud"));
         assert!(commands.iter().any(|command| command == "inspect_sync"));
         assert!(commands.iter().any(|command| command == "list_shares"));
+        assert!(commands.iter().any(|command| command == "inspect_hooks"));
         assert!(commands.iter().any(|command| command == "preview_context"));
         assert!(commands.iter().any(|command| command == "list_activity"));
         assert!(commands.iter().any(|command| command == "list_backups"));
@@ -1782,6 +1794,37 @@ mod tests {
             r#"{"command":"list_shares","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
         );
         assert!(well_formed_shares.is_ok());
+        let extra_path_on_hooks = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_hooks","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_hooks.is_err());
+        let extra_root_on_hooks = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_hooks","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_hooks.is_err());
+        let extra_token_on_hooks = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_hooks","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","token":"env-token"}}"#,
+        );
+        assert!(extra_token_on_hooks.is_err());
+        let extra_host_on_hooks = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_hooks","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","host":"https://example.invalid"}}"#,
+        );
+        assert!(extra_host_on_hooks.is_err());
+        let hooks_without_route =
+            serde_json::from_str::<IpcCommand>(r#"{"command":"inspect_hooks","args":{}}"#);
+        assert!(hooks_without_route.is_err());
+        let well_formed_hooks = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_hooks","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(well_formed_hooks.is_ok());
+        let install_hooks = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"install_hooks","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(install_hooks.is_err());
+        let list_hooks = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_hooks","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(list_hooks.is_err());
         let restore_sync = serde_json::from_str::<IpcCommand>(
             r#"{"command":"restore_sync","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
         );
@@ -2387,6 +2430,10 @@ mod tests {
         }
 
         fn list_shares(&self) -> Result<library::ShareCatalogDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
+        fn inspect_hooks(&self) -> Result<library::HookInspectionDto, library::LibraryError> {
             panic!("policy rejection must not open the library")
         }
 
@@ -3270,6 +3317,18 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(shares_route.category, ErrorCategory::Policy);
+        let hooks_route = dispatch_with_library(
+            IpcCommand::InspectHooks(ExplicitRouteArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(hooks_route.category, ErrorCategory::Policy);
         let prompts_route = dispatch_with_library(
             IpcCommand::ListPrompts(ListPromptsArgs {
                 workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
@@ -8222,7 +8281,7 @@ mod tests {
             release.ipc_commands.len(),
             library::ALLOWLISTED_IPC_COMMANDS.len()
         );
-        assert_eq!(release.ipc_commands.len(), 37);
+        assert_eq!(release.ipc_commands.len(), 38);
         assert!(release.ipc_commands.iter().any(|command| {
             command.name == "inspect_api_audit"
                 && command.coverage == library::AuditCoverage::Present
@@ -9416,6 +9475,238 @@ mod tests {
             library::ENGINE_SYNC_NOT_OWNED,
             library::OFFICIAL_SYNC_UNVERIFIED,
             library::ENGINE_SHARE_NOT_OWNED,
+        );
+    }
+
+    #[test]
+    fn inspect_hooks_empty_library_is_disabled_not_connected() {
+        let mut route = RouteState::default();
+        let IpcResponse::HookInspection(report) = dispatch_with_library(
+            IpcCommand::InspectHooks(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(report.hooks.is_empty());
+        assert!(!report.hooks_enabled);
+        assert!(!report.agent_connected);
+        assert!(!report.files_written);
+        assert!(!report.installed);
+        assert!(!report.hook_claimed);
+        assert!(report.local_offline);
+        assert!(!report.live_official_agent_session);
+        assert!(!report.remote_hosts_contacted);
+        assert!(!report.secrets_stored);
+        assert!(!report.env_tokens_read);
+        assert!(!report.mixed_profiles);
+        assert!(!report.engine_hooks);
+        assert!(!report.scanned_user_obsidian_vault);
+        assert!(!report.scanned_user_basic_memory_home);
+        assert!(!report.scanned_cursor_rules);
+        assert!(!report.scanned_user_agent_config);
+        assert_eq!(
+            report.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        assert!(!report.observation.disk_verified);
+        assert!(report.observation.envelope_is_not_disk_proof);
+        let json = serde_json::to_value(&IpcResponse::HookInspection(report)).unwrap();
+        assert_eq!(json["kind"], "hook_inspection");
+        assert_eq!(json["hooks_enabled"], false);
+        assert_eq!(json["agent_connected"], false);
+        assert_eq!(json["files_written"], false);
+        assert_eq!(json["installed"], false);
+        assert!(json["hooks"].as_array().unwrap().is_empty());
+        assert!(json.get("expected_tools").is_none());
+        let _ = (
+            library::ENGINE_HOOKS_NOT_OWNED,
+            library::OFFICIAL_HOOKS_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn inspect_hooks_fixture_stays_disabled_and_claimed_flag_is_unsupported() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t33-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let library = library::FixtureLibrary::new(dir.clone());
+        let mut route = RouteState::default();
+        let IpcResponse::HookInspection(report) = dispatch_with_library(
+            IpcCommand::InspectHooks(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(report.hooks.is_empty());
+        assert!(!report.hooks_enabled);
+        assert!(!report.agent_connected);
+        assert!(!report.files_written);
+        assert!(!report.installed);
+        assert!(report.local_offline);
+        assert_eq!(
+            report.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        let flag = library.seed_hook_claimed_flag().unwrap();
+        assert!(flag.is_file());
+        let disk = std::fs::read_to_string(&flag).unwrap();
+        assert!(disk.contains("fixture-hook-claimed-not-live"));
+        let claimed = dispatch_with_library(
+            IpcCommand::InspectHooks(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(claimed.category, ErrorCategory::Unsupported);
+        assert_eq!(claimed.message, library::UNSUPPORTED_HOOK_CLAIMED_NOT_LIVE);
+        let release = EngineProfile::Release;
+        let preview = EngineProfile::MainPreview;
+        assert_eq!(release.expected_tools(), 21);
+        assert_eq!(preview.expected_tools(), 27);
+        assert_ne!(release.expected_tools(), preview.expected_tools());
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = (
+            library::ENGINE_HOOKS_NOT_OWNED,
+            library::OFFICIAL_HOOKS_UNVERIFIED,
+        );
+    }
+
+    struct ClaimedHookLibrary;
+
+    impl NoteLibrary for ClaimedHookLibrary {
+        fn list_tree(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            Ok(library::TreePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: false,
+            })
+        }
+
+        fn read_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            Err(library::LibraryError::unsupported(
+                library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
+            ))
+        }
+
+        fn inspect_hooks(&self) -> Result<library::HookInspectionDto, library::LibraryError> {
+            Ok(library::HookInspectionDto {
+                hooks: vec![library::HookRecordDto {
+                    identifier: "claude-cursor-chatgpt".to_owned(),
+                }],
+                hooks_enabled: true,
+                agent_connected: true,
+                files_written: true,
+                installed: true,
+                hook_claimed: true,
+                local_offline: false,
+                live_official_agent_session: true,
+                remote_hosts_contacted: false,
+                secrets_stored: false,
+                env_tokens_read: false,
+                mixed_profiles: false,
+                observation: library::NoteCrudObservationDto {
+                    classified_as: library::NoteCrudClass::DiskVerified,
+                    disk_verified: true,
+                    envelope_is_not_disk_proof: false,
+                },
+                engine_hooks: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                scanned_cursor_rules: false,
+                scanned_user_agent_config: false,
+            })
+        }
+    }
+
+    struct CredentialHookLibrary;
+
+    impl NoteLibrary for CredentialHookLibrary {
+        fn list_tree(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            Ok(library::TreePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: false,
+            })
+        }
+
+        fn read_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            Err(library::LibraryError::unsupported(
+                library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
+            ))
+        }
+
+        fn inspect_hooks(&self) -> Result<library::HookInspectionDto, library::LibraryError> {
+            Ok(library::HookInspectionDto {
+                env_tokens_read: true,
+                secrets_stored: true,
+                remote_hosts_contacted: true,
+                scanned_cursor_rules: true,
+                scanned_user_agent_config: true,
+                ..library::empty_hook_inspection()
+            })
+        }
+    }
+
+    #[test]
+    fn inspect_hooks_claimed_connected_or_env_tokens_are_not_success() {
+        let mut route = RouteState::default();
+        let claimed = dispatch_with_library(
+            IpcCommand::InspectHooks(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &ClaimedHookLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(claimed.category, ErrorCategory::Unsupported);
+        assert_eq!(claimed.message, library::UNSUPPORTED_HOOK_CLAIMED_NOT_LIVE);
+        let credentials = dispatch_with_library(
+            IpcCommand::InspectHooks(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &CredentialHookLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(credentials.category, ErrorCategory::Policy);
+        assert_eq!(credentials.message, library::POLICY_HOOK_CREDENTIAL_ROUTE);
+        let release = EngineProfile::Release;
+        let preview = EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(preview.commit(), "3452c821d76c083823d020984d71e06904a1ff1e");
+        assert_ne!(release.expected_tools(), preview.expected_tools());
+        let _ = (
+            library::ENGINE_HOOKS_NOT_OWNED,
+            library::OFFICIAL_HOOKS_UNVERIFIED,
         );
     }
 }

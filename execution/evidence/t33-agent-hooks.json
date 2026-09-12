@@ -1,0 +1,198 @@
+{
+  "task": "T33",
+  "title": "官方Agent集成及hook管理",
+  "status": "accepted_with_limits",
+  "date": "2026-09-13",
+  "host_boundary": "T33 adds typed inspect_hooks with ExplicitRouteArgs. deny_unknown_fields. Extra path/root/token/host is schema. Missing route is schema. Non-fixture is policy and does not open the library. Official Agent/hook integration is FAIL-CLOSED. Production default: hooks_enabled=false, agent_connected=false, files_written=false. Production hook catalog is empty. Claiming installed/connected without a live official Claude/Cursor/ChatGPT agent session is unsupported. list_hooks and install_hooks are not allowlisted. Tests inject FixtureLibrary {temp}/bmdock-t33-* that still reports hooks_enabled=false. A BMDock-owned fixture hook-claimed flag is unsupported, not installed. Unauthorized remote / env token / stored secret / remote host / Cursor rules / user agent config is policy. Dual profiles stay isolated (21 vs 27). Do not mix profiles into the hook DTO. T33 does not start Supervisor, add rmcp, spawn engine_worker, store secrets, read user tokens from env, contact remote hosts, write user agent configs or Cursor rules, or treat just contract as T33 proof. just build stays the G0 probe.",
+  "acceptance": {
+    "AC44": {
+      "status": "fail_closed_hooks_not_installed",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Official Agent integration is FAIL-CLOSED. Production EmptyLibrary is hooks_enabled=false, agent_connected=false, files_written=false, empty catalog, classified_as empty. Dual profiles stay isolated (21 vs 27). Hook DTO does not carry expected_tools or mixed profile fields as success. Fixture {temp}/bmdock-t33-* hook-claimed flag is unsupported, not installed. User agent configs, Cursor rules, and real vaults are not written.",
+      "unverified": [
+        "official Claude/Cursor/ChatGPT agent hook install",
+        "live official agent session",
+        "native GUI session",
+        "real user vault"
+      ]
+    },
+    "AC47": {
+      "status": "unauthorized_remote_is_policy_or_unsupported_not_success",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Unauthorized remote / env token / stored secret / remote host / real vault / Cursor rules / user agent config is policy, not success. Claiming installed/connected/hooks_enabled without a live official agent session is unsupported. Fixture {temp}/bmdock-t33-* hook-claimed flag is unsupported, not installed, and is not a live agent.",
+      "unverified": [
+        "live unauthorized remote against an official agent",
+        "native GUI unauthorized flow",
+        "real user credentials"
+      ]
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t33-agent-hooks",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 187 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 27 passed"
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T33 agent/hook proof. Probe entries remain independent. Official Agent hook install remains UNVERIFIED."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window was launched. AC44/AC47 proof is typed fail-closed inspect_hooks, not a native GUI session."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_192_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_desktop_shell": "27_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "typed_command_count": 38,
+    "typed_inspect_hooks": "allowed",
+    "list_hooks": "not_allowlisted",
+    "install_hooks": "not_allowlisted",
+    "extra_path_root_token_host_is_schema": true,
+    "missing_route_is_schema": true,
+    "non_fixture_is_policy": true,
+    "hooks_enabled_default": false,
+    "agent_connected_default": false,
+    "files_written_default": false,
+    "hooks_catalog_empty_in_production": true,
+    "installed_without_live_session_is_unsupported": true,
+    "fixture_hook_claimed_is_unsupported_not_installed": true,
+    "unauthorized_remote_is_policy_or_unsupported": true,
+    "secrets_stored": false,
+    "env_tokens_read": false,
+    "remote_hosts_contacted": false,
+    "cursor_rules_written": false,
+    "user_agent_configs_written": false,
+    "dangerouslySetInnerHTML": "absent",
+    "supervisor_started_by_t33": false,
+    "rmcp_live_client": "not_added_in_t33",
+    "official_agent_hook_install": "UNVERIFIED",
+    "live_official_agent_session": "UNVERIFIED",
+    "native_gui_session": "UNVERIFIED",
+    "webview2_session": "UNVERIFIED",
+    "installer": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "real_vault": "UNVERIFIED"
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed_unchanged",
+    "T10": "completed_unchanged",
+    "T11": "completed_unchanged",
+    "T12": "completed_unchanged",
+    "T13": "completed_unchanged",
+    "T14": "completed_unchanged",
+    "T15": "completed_unchanged",
+    "T16": "completed_unchanged",
+    "T17": "completed_unchanged",
+    "T18": "completed_unchanged",
+    "T19": "completed_unchanged",
+    "T20": "completed_unchanged",
+    "T21": "completed_unchanged",
+    "T22": "completed_unchanged",
+    "T23": "completed_unchanged",
+    "T24": "completed_unchanged",
+    "T25": "completed_unchanged",
+    "T26": "completed_unchanged",
+    "T27": "completed_unchanged",
+    "T28": "completed_unchanged",
+    "T29": "completed_unchanged",
+    "T30": "completed_unchanged",
+    "T31": "completed_unchanged",
+    "T32": "completed_unchanged",
+    "T33": "completed"
+  },
+  "scope_limits": [
+    "inspect_hooks is FAIL-CLOSED local-only status. It is not a live official Claude/Cursor/ChatGPT agent session or hook install.",
+    "Production EmptyLibrary stays hooks_enabled=false, agent_connected=false, files_written=false, empty catalog, local_offline=true, classified_as empty.",
+    "Fixture {temp}/bmdock-t33-* still reports hooks_enabled=false. A BMDock-owned hook-claimed flag is unsupported, not installed.",
+    "Unauthorized remote / env token / stored secret / remote host / real vault / Cursor rules / user agent config is policy. Claiming installed/connected without a live official agent session is unsupported.",
+    "Official Agent hook install, native GUI, WebView2, installer, hosted CI, and real user vaults remain UNVERIFIED.",
+    "IPC error union stays policy/schema/unsupported. Dual profiles stay isolated (21 vs 27).",
+    "just build stays scripts.tasks build. just contract* stay probe. just tauri-dev/tauri-build stay desktop.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "T34-T40 were not implemented."
+  ],
+  "rollback": "Remove inspect_hooks from the ipc_invoke union, drop HookPanel, restore the 37-command allowlist, and leave T32 inspect_sync / list_shares in place. Do not revert T05-T32 status to make unit green."
+}

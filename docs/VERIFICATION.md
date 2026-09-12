@@ -564,3 +564,21 @@ zh-CN 工作台「同步 / 共享」区分空态 / 错误 / 就绪，显示未�
 本机 Windows 本轮命令见 [t32-cloud-sync-recovery.json](../execution/evidence/t32-cloud-sync-recovery.json)。`python -m scripts.tasks unit` 以 G0 未 passed 且 T05+ 已 completed 失败（未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方 cloud sync / hosted CI 证据；这些仍为 `UNVERIFIED`。
 
 T32 证据与验收映射见 [t32-cloud-sync-recovery.json](../execution/evidence/t32-cloud-sync-recovery.json)。`execution/status.json` 仅将 T32 标为 `completed`；未改 T05–T31/G0。
+
+## T33：官方 Agent 集成及 hook 管理
+
+T33 在现有 `ipc_invoke` 上增加 typed `inspect_hooks`（`ExplicitRouteArgs`，`deny_unknown_fields`）。额外 `path`/`root`/`token`/`host` 为 schema。缺路由为 schema。非 fixture 路由为 policy，且不打开库。capabilities 精确允许列为 38 个命令。typed `inspect_hooks` 允许。`list_hooks` / `install_hooks` 不在允许列。
+
+官方 Agent 集成保持 FAIL-CLOSED。生产默认 `hooks_enabled=false`、`agent_connected=false`、`files_written=false`。生产 hook 目录为空。宣称 installed/connected 而没有 live official agent session 为 unsupported。测试注入 `{temp}/bmdock-t33-*`，默认仍报告 `hooks_enabled=false`。BMDock 自有夹具 `hook-claimed` 标记仍不是已安装，分类为 unsupported。未授权远程 / env token / stored secret / remote host / Cursor rules / 用户 Agent 配置为 policy。不会写入用户 Agent 配置、Cursor rules 或真实 vault。未存储密钥，未读取用户环境 token，未联系远程主机。未把 `just contract` 当作 T33 证明。不启动 Supervisor。无 rmcp。
+
+AC44：官方 Agent 集成 FAIL-CLOSED。`hooks_enabled=false`，`agent_connected=false`，`files_written=false`。release（21）与 main-preview（27）保持隔离，不把 profile 混进 hook DTO。夹具 hook-claimed 不是已安装。
+
+AC47：未授权远程 / env token / stored secret / remote host 是 policy。宣称 installed/connected 而没有 live official agent session 为 unsupported。夹具 hook-claimed 不是 connected。
+
+zh-CN 工作台「Hook / Agent」区分空态 / 错误 / 就绪，显示未启用 / 未连接。无 `dangerouslySetInnerHTML`。不启动 Supervisor。无新 npm 依赖。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T33 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令见 [t33-agent-hooks.json](../execution/evidence/t33-agent-hooks.json)。`python -m scripts.tasks unit` 以 G0 未 passed 且 T05+ 已 completed 失败（未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方 Agent hook / hosted CI 证据；这些仍为 `UNVERIFIED`。
+
+T33 证据与验收映射见 [t33-agent-hooks.json](../execution/evidence/t33-agent-hooks.json)。`execution/status.json` 仅将 T33 标为 `completed`；未改 T05–T32/G0。

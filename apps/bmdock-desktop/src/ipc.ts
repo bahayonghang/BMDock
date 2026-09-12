@@ -93,6 +93,7 @@ export type IngestDocumentArgs = ExplicitRouteArgs & {
 export type InspectCloudArgs = ExplicitRouteArgs;
 export type InspectSyncArgs = ExplicitRouteArgs;
 export type ListSharesArgs = ExplicitRouteArgs;
+export type InspectHooksArgs = ExplicitRouteArgs;
 
 export type PreviewContextArgs = ExplicitRouteArgs & {
   identifier: string;
@@ -163,6 +164,7 @@ export type IpcCommand =
   | { command: "inspect_cloud"; args: InspectCloudArgs }
   | { command: "inspect_sync"; args: InspectSyncArgs }
   | { command: "list_shares"; args: ListSharesArgs }
+  | { command: "inspect_hooks"; args: InspectHooksArgs }
   | { command: "preview_context"; args: PreviewContextArgs }
   | { command: "list_activity"; args: ListActivityArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
@@ -762,6 +764,31 @@ export interface ShareCatalogDto {
   files_written: false;
 }
 
+export interface HookRecordDto {
+  identifier: string;
+}
+
+export interface HookInspectionDto {
+  hooks: HookRecordDto[];
+  hooks_enabled: false;
+  agent_connected: false;
+  files_written: false;
+  installed: false;
+  hook_claimed: false;
+  local_offline: true;
+  live_official_agent_session: false;
+  remote_hosts_contacted: false;
+  secrets_stored: false;
+  env_tokens_read: false;
+  mixed_profiles: false;
+  observation: NoteCrudObservationDto;
+  engine_hooks: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  scanned_cursor_rules: false;
+  scanned_user_agent_config: false;
+}
+
 export type DraftClass = "empty" | "disk_verified" | "accepted_unverified" | "unclassified";
 
 export interface DraftObservationDto {
@@ -874,6 +901,7 @@ export type IpcResponse =
   | { kind: "cloud_inspection" } & CloudInspectionDto
   | { kind: "sync_inspection" } & SyncInspectionDto
   | { kind: "share_catalog" } & ShareCatalogDto
+  | { kind: "hook_inspection" } & HookInspectionDto
   | { kind: "context_preview" } & ContextPreviewDto
   | { kind: "activity_page" } & ActivityPageDto
   | { kind: "backup_catalog" } & BackupCatalogDto
@@ -934,6 +962,7 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "inspect_cloud":
     case "inspect_sync":
     case "list_shares":
+    case "inspect_hooks":
     case "preview_context":
     case "list_activity":
     case "list_backups":
@@ -1282,6 +1311,17 @@ export const listShares = () => {
   const route = copyFixtureRoute();
   return invokeTyped<{ kind: "share_catalog" } & ShareCatalogDto>({
     command: "list_shares",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+    },
+  });
+};
+
+export const inspectHooks = () => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "hook_inspection" } & HookInspectionDto>({
+    command: "inspect_hooks",
     args: {
       workspace: route.workspace,
       project: route.project,
