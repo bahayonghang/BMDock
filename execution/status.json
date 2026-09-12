@@ -12,7 +12,7 @@
 {"id":"T06","title":"实现typed IPC及权限策略","phase":"P1","depends_on":["T05","T02"],"acceptance_ids":["AC06","AC07","AC20","AC37","AC45","AC58"],"status":"completed"},
 {"id":"T07","title":"实现引擎Supervisor与连接状态机","phase":"P1","depends_on":["T05","T02"],"acceptance_ids":["AC04","AC05","AC16","AC17","AC18","AC47"],"status":"completed"},
 {"id":"T08","title":"实现桌面布局、导航与i18n","phase":"P1","depends_on":["T05","T06"],"acceptance_ids":["AC21","AC57","AC60"],"status":"completed"},
-{"id":"T09","title":"无副作用预检与配置发现","phase":"P2","depends_on":["T06","T07"],"acceptance_ids":["AC03","AC04","AC19","AC38"],"status":"planned"},
+{"id":"T09","title":"无副作用预检与配置发现","phase":"P2","depends_on":["T06","T07"],"acceptance_ids":["AC03","AC04","AC19","AC38"],"status":"completed"},
 {"id":"T10","title":"项目、工作区与显式路由","phase":"P2","depends_on":["T09","T08"],"acceptance_ids":["AC06","AC14","AC25","AC38"],"status":"planned"},
 {"id":"T11","title":"分页文件树与笔记读取","phase":"P2","depends_on":["T10","T06"],"acceptance_ids":["AC19","AC22","AC33","AC46"],"status":"planned"},
 {"id":"T12","title":"备份清单与fixture恢复基线","phase":"P2","depends_on":["T09","T03"],"acceptance_ids":["AC18","AC40","AC52","AC53"],"status":"planned"},

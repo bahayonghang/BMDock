@@ -1,9 +1,11 @@
 import {
   invokeTyped,
   type CapabilitiesDto,
+  type ConfigDiscoveryDto,
   type ErrorCategory,
   type FailureKind,
   type IpcResponse,
+  type PreflightDto,
   type RuntimeStateDto,
   type RuntimeStatus,
 } from "./ipc";
@@ -12,6 +14,11 @@ import { t } from "./i18n";
 export type ShellLoadState =
   | { phase: "loading" }
   | { phase: "ready"; capabilities: CapabilitiesDto; runtime: RuntimeStateDto }
+  | { phase: "error"; category: ErrorCategory | "invoke"; message: string };
+
+export type PreflightLoadState =
+  | { phase: "loading" }
+  | { phase: "ready"; preflight: PreflightDto; discovery: ConfigDiscoveryDto }
   | { phase: "error"; category: ErrorCategory | "invoke"; message: string };
 
 export async function readShellSnapshot(): Promise<Exclude<ShellLoadState, { phase: "loading" }>> {
@@ -67,6 +74,68 @@ export async function readShellSnapshot(): Promise<Exclude<ShellLoadState, { pha
         profile: runtimeResponse.profile,
         failure: runtimeResponse.failure,
         shutdown: runtimeResponse.shutdown,
+      },
+    };
+  } catch (cause) {
+    return {
+      phase: "error",
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    };
+  }
+}
+
+export async function readPreflightSnapshot(): Promise<Exclude<PreflightLoadState, { phase: "loading" }>> {
+  try {
+    const preflightResponse = await invokeTyped<IpcResponse>({
+      command: "run_preflight",
+      args: {},
+    });
+    if (preflightResponse.kind === "error") {
+      return {
+        phase: "error",
+        category: preflightResponse.category,
+        message: preflightResponse.message,
+      };
+    }
+    if (preflightResponse.kind !== "preflight") {
+      return {
+        phase: "error",
+        category: "schema",
+        message: t("unexpectedPreflight"),
+      };
+    }
+
+    const discoveryResponse = await invokeTyped<IpcResponse>({
+      command: "discover_config",
+      args: {},
+    });
+    if (discoveryResponse.kind === "error") {
+      return {
+        phase: "error",
+        category: discoveryResponse.category,
+        message: discoveryResponse.message,
+      };
+    }
+    if (discoveryResponse.kind !== "config_discovery") {
+      return {
+        phase: "error",
+        category: "schema",
+        message: t("unexpectedDiscovery"),
+      };
+    }
+
+    return {
+      phase: "ready",
+      preflight: {
+        profiles: preflightResponse.profiles,
+        host: preflightResponse.host,
+      },
+      discovery: {
+        root: discoveryResponse.root,
+        candidates: discoveryResponse.candidates,
+        scanned_user_basic_memory_home: discoveryResponse.scanned_user_basic_memory_home,
+        copied_or_rewrote_production_config: discoveryResponse.copied_or_rewrote_production_config,
       },
     };
   } catch (cause) {

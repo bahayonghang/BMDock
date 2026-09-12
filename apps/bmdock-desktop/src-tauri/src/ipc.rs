@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::supervisor::{ConnectionState, FailureKind, RuntimeSnapshot, ShutdownReceipt};
+use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
+use crate::supervisor::{FailureKind, RuntimeSnapshot, ShutdownReceipt};
 
 pub const FIXTURE_PROJECT: &str = "bmdock-fixture";
 
@@ -10,6 +11,18 @@ pub enum IpcCommandName {
     GetCapabilities,
     GetRuntimeState,
     SelectProject,
+    RunPreflight,
+    DiscoverConfig,
+}
+
+pub fn allowed_commands() -> Vec<IpcCommandName> {
+    vec![
+        IpcCommandName::GetCapabilities,
+        IpcCommandName::GetRuntimeState,
+        IpcCommandName::SelectProject,
+        IpcCommandName::RunPreflight,
+        IpcCommandName::DiscoverConfig,
+    ]
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -30,11 +43,18 @@ pub struct SelectProjectArgs {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(tag = "command", content = "args", rename_all = "snake_case")]
+#[serde(
+    tag = "command",
+    content = "args",
+    rename_all = "snake_case",
+    deny_unknown_fields
+)]
 pub enum IpcCommand {
     GetCapabilities(EmptyArgs),
     GetRuntimeState(EmptyArgs),
     SelectProject(SelectProjectArgs),
+    RunPreflight(EmptyArgs),
+    DiscoverConfig(EmptyArgs),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -80,6 +100,8 @@ pub enum IpcResponse {
     Capabilities(CapabilitiesDto),
     RuntimeState(RuntimeStateDto),
     ProjectSelected { project: &'static str },
+    Preflight(PreflightDto),
+    ConfigDiscovery(ConfigDiscoveryDto),
     Error(IpcError),
 }
 
@@ -88,7 +110,7 @@ pub fn dispatch(command: IpcCommand) -> Result<IpcResponse, IpcError> {
     dispatch_with_snapshot(
         command,
         RuntimeSnapshot {
-            state: ConnectionState::NotStarted,
+            state: crate::supervisor::ConnectionState::NotStarted,
             profile: None,
             child_pid: None,
             failure: None,
@@ -103,11 +125,7 @@ pub fn dispatch_with_snapshot(
 ) -> Result<IpcResponse, IpcError> {
     match command {
         IpcCommand::GetCapabilities(_) => Ok(IpcResponse::Capabilities(CapabilitiesDto {
-            commands: vec![
-                IpcCommandName::GetCapabilities,
-                IpcCommandName::GetRuntimeState,
-                IpcCommandName::SelectProject,
-            ],
+            commands: allowed_commands(),
             events: vec![IpcEventName::RuntimeState, IpcEventName::Policy],
             policy: PolicyDto {
                 project: FIXTURE_PROJECT,
@@ -125,20 +143,18 @@ pub fn dispatch_with_snapshot(
             category: ErrorCategory::Policy,
             message: "Only the generated fixture project is allowed".to_owned(),
         }),
+        IpcCommand::RunPreflight(_) => {
+            Ok(IpcResponse::Preflight(preflight::run_preflight(&snapshot)))
+        }
+        IpcCommand::DiscoverConfig(_) => {
+            Ok(IpcResponse::ConfigDiscovery(preflight::empty_discovery()))
+        }
     }
 }
 
 fn runtime_state(snapshot: RuntimeSnapshot) -> RuntimeStateDto {
-    let status = match snapshot.state {
-        ConnectionState::NotStarted => "not_started",
-        ConnectionState::Starting => "starting",
-        ConnectionState::Connected => "connected",
-        ConnectionState::Stopping => "stopping",
-        ConnectionState::Stopped => "stopped",
-        ConnectionState::Failed => "failed",
-    };
     RuntimeStateDto {
-        status: status.to_owned(),
+        status: snapshot.state.as_str().to_owned(),
         project: None,
         profile: snapshot.profile.map(|profile| profile.id().to_owned()),
         failure: snapshot.failure,
@@ -149,6 +165,8 @@ fn runtime_state(snapshot: RuntimeSnapshot) -> RuntimeStateDto {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::preflight::POLICY_NON_OWNED_PATH;
+    use crate::supervisor::ConnectionState;
 
     #[test]
     fn capabilities_are_explicit_and_fail_closed() {
@@ -161,12 +179,15 @@ mod tests {
         assert_eq!(capabilities.policy.project, "bmdock-fixture");
         assert!(!capabilities.policy.arbitrary_paths_allowed);
         assert!(!capabilities.policy.raw_call_tool_allowed);
+        assert_eq!(capabilities.commands, allowed_commands());
         assert_eq!(
             capabilities.commands,
             vec![
                 IpcCommandName::GetCapabilities,
                 IpcCommandName::GetRuntimeState,
                 IpcCommandName::SelectProject,
+                IpcCommandName::RunPreflight,
+                IpcCommandName::DiscoverConfig,
             ]
         );
         assert_eq!(
@@ -282,5 +303,107 @@ mod tests {
             r#"{"command":"get_runtime_state","args":{"path":"C:\\vault"}}"#,
         );
         assert!(path_on_runtime.is_err());
+        let path_on_preflight = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"run_preflight","args":{"path":"C:\\vault"}}"#,
+        );
+        assert!(path_on_preflight.is_err());
+        let path_on_discovery = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"discover_config","args":{"path":"C:\\Users\\someone\\.basic-memory"}}"#,
+        );
+        assert!(path_on_discovery.is_err());
+        let root_on_discovery = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"discover_config","args":{"root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(root_on_discovery.is_err());
+        let top_level_path = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"run_preflight","args":{},"path":"C:\\vault"}"#,
+        );
+        assert!(top_level_path.is_err());
+    }
+
+    #[test]
+    fn run_preflight_is_read_only_and_does_not_spawn() {
+        let snapshot = RuntimeSnapshot {
+            state: crate::supervisor::ConnectionState::NotStarted,
+            profile: None,
+            child_pid: None,
+            failure: None,
+            shutdown: None,
+        };
+        let before = snapshot.clone();
+        let IpcResponse::Preflight(report) =
+            dispatch_with_snapshot(IpcCommand::RunPreflight(EmptyArgs {}), snapshot.clone())
+                .unwrap()
+        else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(snapshot, before);
+        assert!(!report.host.engine_spawned);
+        assert!(!report.host.files_written);
+        assert!(report.host.supervisor_idle);
+        assert_eq!(report.host.supervisor_status, "not_started");
+        assert_eq!(report.profiles[0].expected_tools, 21);
+        assert_eq!(report.profiles[1].expected_tools, 27);
+        let json = serde_json::to_value(&IpcResponse::Preflight(report)).unwrap();
+        assert_eq!(json["kind"], "preflight");
+        assert!(json.get("child_pid").is_none());
+        assert_eq!(json["host"]["engine_spawned"], false);
+        assert_eq!(json["host"]["files_written"], false);
+    }
+
+    #[test]
+    fn run_preflight_reports_connected_lifecycle_without_start_or_stop() {
+        let snapshot = RuntimeSnapshot {
+            state: ConnectionState::Connected,
+            profile: Some(crate::supervisor::EngineProfile::Release),
+            child_pid: Some(42),
+            failure: None,
+            shutdown: None,
+        };
+        let before = snapshot.clone();
+        let IpcResponse::Preflight(report) =
+            dispatch_with_snapshot(IpcCommand::RunPreflight(EmptyArgs {}), snapshot.clone())
+                .unwrap()
+        else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(snapshot, before);
+        assert!(report.host.engine_spawned);
+        assert!(!report.host.files_written);
+        assert!(!report.host.supervisor_idle);
+        assert_eq!(report.host.supervisor_status, "connected");
+        assert_eq!(report.host.supervisor_status, snapshot.state.as_str());
+        let json = serde_json::to_value(&IpcResponse::Preflight(report)).unwrap();
+        assert_eq!(json["host"]["engine_spawned"], true);
+        assert_eq!(json["host"]["files_written"], false);
+        assert!(json.get("child_pid").is_none());
+    }
+
+    #[test]
+    fn discover_config_default_is_empty_not_user_vault() {
+        let IpcResponse::ConfigDiscovery(discovery) =
+            dispatch(IpcCommand::DiscoverConfig(EmptyArgs {})).unwrap()
+        else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(discovery.root, "none");
+        assert!(discovery.candidates.is_empty());
+        assert!(!discovery.scanned_user_basic_memory_home);
+        assert!(!discovery.copied_or_rewrote_production_config);
+        let json = serde_json::to_value(&IpcResponse::ConfigDiscovery(discovery)).unwrap();
+        assert_eq!(json["kind"], "config_discovery");
+        assert_eq!(json["root"], "none");
+        assert_eq!(json["candidates"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn non_owned_path_inspect_is_policy_not_schema() {
+        let error = preflight::discover_config(Some(r"C:\Users\someone\vault")).unwrap_err();
+        assert_eq!(error, POLICY_NON_OWNED_PATH);
+        let mapped = IpcError {
+            category: ErrorCategory::Policy,
+            message: error.to_owned(),
+        };
+        assert_eq!(mapped.category, ErrorCategory::Policy);
     }
 }

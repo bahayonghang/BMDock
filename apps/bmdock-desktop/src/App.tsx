@@ -1,15 +1,23 @@
 import { useEffect, useState, type ReactNode } from "react";
-import type { CapabilitiesDto, EngineProfile, RuntimeStateDto } from "./ipc";
+import type {
+  CapabilitiesDto,
+  ConfigDiscoveryDto,
+  EngineProfile,
+  PreflightDto,
+  RuntimeStateDto,
+} from "./ipc";
 import { t } from "./i18n";
 import {
   errorCategoryLabel,
   failureKindLabel,
+  readPreflightSnapshot,
   readShellSnapshot,
   runtimeStatusLabel,
+  type PreflightLoadState,
   type ShellLoadState,
 } from "./shell";
 
-const SECTIONS = ["workbench", "runtime", "about"] as const;
+const SECTIONS = ["workbench", "runtime", "preflight", "about"] as const;
 type SectionId = (typeof SECTIONS)[number];
 
 function sectionLabel(id: SectionId): string {
@@ -18,6 +26,8 @@ function sectionLabel(id: SectionId): string {
       return t("navWorkbench");
     case "runtime":
       return t("navRuntime");
+    case "preflight":
+      return t("navPreflight");
     case "about":
       return t("navAbout");
     default: {
@@ -113,6 +123,8 @@ function SectionBody({
       return <WorkbenchPanel load={load} onRefresh={onRefresh} />;
     case "runtime":
       return <RuntimePanel load={load} onRefresh={onRefresh} />;
+    case "preflight":
+      return <PreflightPanel />;
     case "about":
       return <AboutPanel />;
     default: {
@@ -268,6 +280,155 @@ function ReadyRuntime({
         <li>{t("policyNoCallTool")}</li>
       </ul>
       {refresh}
+    </section>
+  );
+}
+
+function PreflightPanel() {
+  const [reloadToken, setReloadToken] = useState(0);
+  const [load, setLoad] = useState<PreflightLoadState>({ phase: "loading" });
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoad({ phase: "loading" });
+    void readPreflightSnapshot().then((next) => {
+      if (!cancelled) {
+        setLoad(next);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadToken]);
+
+  const refresh = (
+    <button type="button" className="action" onClick={() => setReloadToken((token) => token + 1)}>
+      {t("preflightRefresh")}
+    </button>
+  );
+
+  switch (load.phase) {
+    case "loading":
+      return (
+        <section className="panel" data-state="status" aria-labelledby="preflight-title" aria-busy="true">
+          <p className="state-badge">{t("statusBadge")}</p>
+          <h2 id="preflight-title">{t("preflightTitle")}</h2>
+          <p role="status">{t("preflightLoading")}</p>
+        </section>
+      );
+    case "error":
+      return (
+        <section className="panel" data-state="error" aria-labelledby="preflight-error-title" role="alert">
+          <p className="state-badge">{t("errorBadge")}</p>
+          <h2 id="preflight-error-title">{t("preflightErrorTitle")}</h2>
+          <p>
+            {errorCategoryLabel(load.category)}：{load.message}
+          </p>
+          <p>{t("preflightBody")}</p>
+          {refresh}
+        </section>
+      );
+    case "ready":
+      return <ReadyPreflight preflight={load.preflight} discovery={load.discovery} refresh={refresh} />;
+    default: {
+      const exhaustive: never = load;
+      return exhaustive;
+    }
+  }
+}
+
+function ReadyPreflight({
+  preflight,
+  discovery,
+  refresh,
+}: {
+  preflight: PreflightDto;
+  discovery: ConfigDiscoveryDto;
+  refresh: ReactNode;
+}) {
+  const discoveryEmpty = discovery.candidates.length === 0;
+
+  return (
+    <section className="panel" data-state="status" aria-labelledby="preflight-title">
+      <p className="state-badge">{t("statusBadge")}</p>
+      <h2 id="preflight-title">{t("preflightReadyTitle")}</h2>
+      <p>{t("preflightBody")}</p>
+      <h3>{t("preflightProfilesTitle")}</h3>
+      <ul className="policy-list">
+        {preflight.profiles.map((profile) => (
+          <li key={profile.id}>
+            {profileLabel(profile.id)} · {t("preflightToolsLabel")} {profile.expected_tools} ·{" "}
+            {t("preflightCommitLabel")} {profile.commit.slice(0, 8)}
+          </li>
+        ))}
+      </ul>
+      <h3>{t("preflightHostTitle")}</h3>
+      <dl className="facts">
+        <div>
+          <dt>{t("preflightSupervisorLabel")}</dt>
+          <dd>{preflight.host.supervisor_idle ? t("preflightIdle") : t("preflightNotIdle")}</dd>
+        </div>
+        <div>
+          <dt>{t("runtimeStatusLabel")}</dt>
+          <dd>{runtimeStatusLabel(preflight.host.supervisor_status)}</dd>
+        </div>
+        <div>
+          <dt>{t("preflightEngineSpawnedLabel")}</dt>
+          <dd>
+            {preflight.host.engine_spawned
+              ? t("preflightEnginePresent")
+              : t("preflightEngineAbsent")}
+          </dd>
+        </div>
+        <div>
+          <dt>{t("preflightFilesWrittenLabel")}</dt>
+          <dd>
+            {preflight.host.files_written ? t("preflightWroteFiles") : t("preflightNoWrite")}
+          </dd>
+        </div>
+      </dl>
+      <ul className="policy-list">
+        <li>{t("preflightNoCloud")}</li>
+        <li>{t("preflightNoSpawn")}</li>
+        <li>{t("preflightLocalOffline")}</li>
+      </ul>
+      <DiscoveryBlock discovery={discovery} empty={discoveryEmpty} />
+      {refresh}
+    </section>
+  );
+}
+
+function DiscoveryBlock({
+  discovery,
+  empty,
+}: {
+  discovery: ConfigDiscoveryDto;
+  empty: boolean;
+}) {
+  return (
+    <section
+      className="subpanel"
+      data-state={empty ? "empty" : "status"}
+      aria-labelledby="discovery-title"
+    >
+      <p className="state-badge">{empty ? t("emptyBadge") : t("statusBadge")}</p>
+      <h3 id="discovery-title">{empty ? t("discoveryEmptyTitle") : t("discoveryReadyTitle")}</h3>
+      {empty ? <p>{t("discoveryEmptyBody")}</p> : null}
+      <dl className="facts">
+        <div>
+          <dt>{t("discoveryRootLabel")}</dt>
+          <dd>{discovery.root === "none" ? t("discoveryNone") : discovery.root}</dd>
+        </div>
+      </dl>
+      {empty ? null : (
+        <ul className="policy-list">
+          {discovery.candidates.map((candidate) => (
+            <li key={candidate.path}>
+              {candidate.kind}：{candidate.path}
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

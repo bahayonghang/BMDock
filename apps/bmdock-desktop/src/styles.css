@@ -208,6 +208,25 @@ main {
   color: #c5cedd;
 }
 
+.subpanel {
+  margin-top: 1.25rem;
+  padding: 1rem 1.1rem;
+  border-radius: 0.75rem;
+  background: #121a2b;
+}
+
+.subpanel[data-state="empty"] {
+  border: 2px dashed #7dd3fc;
+}
+
+.subpanel[data-state="status"] {
+  border: 2px solid #86efac;
+}
+
+.subpanel h3 {
+  margin: 0 0 0.75rem;
+}
+
 @media (max-width: 720px) {
   .layout {
     grid-template-columns: 1fr;
@@ -219,6 +238,6 @@ main {
   }
 
   .nav-list {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }

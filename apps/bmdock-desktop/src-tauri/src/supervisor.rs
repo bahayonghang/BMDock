@@ -46,6 +46,19 @@ pub enum ConnectionState {
     Failed,
 }
 
+impl ConnectionState {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::NotStarted => "not_started",
+            Self::Starting => "starting",
+            Self::Connected => "connected",
+            Self::Stopping => "stopping",
+            Self::Stopped => "stopped",
+            Self::Failed => "failed",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FailureKind {

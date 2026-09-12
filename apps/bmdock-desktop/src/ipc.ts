@@ -6,7 +6,9 @@ export const FIXTURE_PROJECT = "bmdock-fixture" as const;
 export type IpcCommand =
   | { command: "get_capabilities"; args: Record<string, never> }
   | { command: "get_runtime_state"; args: Record<string, never> }
-  | { command: "select_project"; args: { project: typeof FIXTURE_PROJECT } };
+  | { command: "select_project"; args: { project: typeof FIXTURE_PROJECT } }
+  | { command: "run_preflight"; args: Record<string, never> }
+  | { command: "discover_config"; args: Record<string, never> };
 
 export type IpcCommandName = IpcCommand["command"];
 export type IpcEventName = "runtime_state" | "policy";
@@ -48,10 +50,47 @@ export interface ShutdownReceipt {
   exit_code: number | null;
 }
 
+export interface ProfileRecordDto {
+  id: EngineProfile;
+  commit: string;
+  expected_tools: number;
+}
+
+export interface PreflightHostDto {
+  profiles_metadata_present: boolean;
+  arbitrary_paths_allowed: false;
+  raw_call_tool_allowed: false;
+  supervisor_status: RuntimeStatus;
+  supervisor_idle: boolean;
+  cloud_or_credential_required: false;
+  engine_spawned: boolean;
+  files_written: boolean;
+  local_offline: true;
+}
+
+export interface PreflightDto {
+  profiles: ProfileRecordDto[];
+  host: PreflightHostDto;
+}
+
+export interface ConfigCandidateDto {
+  path: string;
+  kind: string;
+}
+
+export interface ConfigDiscoveryDto {
+  root: string;
+  candidates: ConfigCandidateDto[];
+  scanned_user_basic_memory_home: boolean;
+  copied_or_rewrote_production_config: boolean;
+}
+
 export type IpcResponse =
   | { kind: "capabilities"; commands: IpcCommandName[]; events: IpcEventName[]; policy: PolicyDto }
   | { kind: "runtime_state" } & RuntimeStateDto
   | { kind: "project_selected"; project: typeof FIXTURE_PROJECT }
+  | { kind: "preflight" } & PreflightDto
+  | { kind: "config_discovery" } & ConfigDiscoveryDto
   | { kind: "error"; category: ErrorCategory; message: string };
 
 export interface RuntimeStateEvent {
@@ -100,4 +139,13 @@ export const selectFixtureProject = () =>
   invokeTyped<{ kind: "project_selected"; project: typeof FIXTURE_PROJECT }>({
     command: "select_project",
     args: { project: FIXTURE_PROJECT },
+  });
+
+export const runPreflight = () =>
+  invokeTyped<{ kind: "preflight" } & PreflightDto>({ command: "run_preflight", args: {} });
+
+export const discoverConfig = () =>
+  invokeTyped<{ kind: "config_discovery" } & ConfigDiscoveryDto>({
+    command: "discover_config",
+    args: {},
   });

@@ -1,0 +1,155 @@
+{
+  "task": "T09",
+  "title": "无副作用预检与配置发现",
+  "status": "accepted_with_limits",
+  "date": "2026-09-12",
+  "host_boundary": "T09 owns read-only run_preflight and discover_config on the existing ipc_invoke union. It does not start or stop Supervisor, spawn the official engine, write files, mutate global Basic Memory config, open user Obsidian vaults, or expose raw callTool. T07 remains the owner of engine lifecycle. P0 bmdock-probe and just contract/contract-main stay independent. just build stays the G0 probe. just dev remains the T08 Tauri shell.",
+  "acceptance": {
+    "AC03": {
+      "status": "no_side_effect_preflight",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/preflight.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "run_preflight takes empty deny_unknown_fields args, reports isolated profile records and host checks, and does not spawn, start/stop Supervisor, or write files. engine_spawned is projected from Supervisor lifecycle; files_written stays false because T09 writes nothing. Extra path fields (args and top-level) fail closed as schema."
+    },
+    "AC04": {
+      "status": "readiness_without_starting_engine",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/preflight.rs",
+        "apps/bmdock-desktop/src-tauri/src/supervisor.rs",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Preflight reports dual immutable profiles (release c0bd87c6 / 21 tools vs main-preview 3452c821 / 27 tools) and supervisor_status / engine_spawned from the T07 snapshot. files_written stays false. T07 remains owner of start/stop. This command does not start the engine."
+    },
+    "AC19": {
+      "status": "read_only_discovery_listing",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/preflight.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "discover_config default root is none with an empty candidate list. Empty discovery is the empty state, not success-with-user-vault. Non-owned paths return policy without opening. Owned fixture listing does not copy or rewrite config.json."
+    },
+    "AC38": {
+      "status": "local_offline_no_cloud_credential_route",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/preflight.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        ".trellis/spec/bmdock-probe/backend/typed-ipc-policy.md"
+      ],
+      "claim": "Preflight reports cloud_or_credential_required=false and local_offline=true. Capabilities still advertise arbitrary_paths_allowed=false and raw_call_tool_allowed=false. No cloud, credential, or real-vault route was added."
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t09-preflight-config-discovery",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 28 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 6 passed"
+    },
+    {
+      "cmd": "python -m unittest discover -s tests -v",
+      "exit": 1,
+      "result": "66 tests: 65 ok, 1 ERROR test_repository_phase_order via check_source because G0 is in_progress while T05+ are completed. DesktopShellTests 6 passed. T05-T08 were not reverted."
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T09 proof. Probe entries remain independent."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window, WebView2, or Job Object session was exercised."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_33_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_discover": "65_ok_1_error_phase_order",
+    "python_unittest_desktop_shell": "6_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "native_gui": "UNVERIFIED",
+    "webview2": "UNVERIFIED",
+    "job_object": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "official_engine_spawn": "UNVERIFIED_not_started_by_t09"
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed"
+  },
+  "scope_limits": [
+    "run_preflight and discover_config are read-only. They do not start or stop Supervisor.",
+    "engine_spawned is projected from Supervisor lifecycle; files_written stays false because T09 writes nothing.",
+    "Default discovery root is none. Empty candidates are the empty state, not a user-vault success.",
+    "IPC error union stays policy/schema/unsupported. Runtime failure kinds stay on RuntimeStateDto.",
+    "just build stays scripts.tasks build. just contract* stay probe. just dev remains T08 Tauri.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "UI copy, tool lists, compiled exe, and just contract are not native GUI / WebView2 / Job Object / real vault / hosted CI proof."
+  ],
+  "rollback": "Remove run_preflight and discover_config from the IpcCommand union, restore the three-command allowlist, and remove the 预检 nav section. Do not revert T05-T08 status to make unit green."
+}

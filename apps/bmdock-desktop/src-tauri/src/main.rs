@@ -9,6 +9,7 @@ use std::sync::Mutex;
 use tauri::State;
 
 mod ipc;
+mod preflight;
 mod supervisor;
 
 #[tauri::command]
