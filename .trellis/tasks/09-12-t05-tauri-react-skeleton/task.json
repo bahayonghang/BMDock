@@ -3,7 +3,7 @@
   "name": "t05-tauri-react-skeleton",
   "title": "初始化代码骨架与真实依赖锁",
   "description": "T05 P1: 初始化代码骨架与真实依赖锁",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": "bmdock-probe",
@@ -11,7 +11,7 @@
   "creator": "lyh",
   "assignee": "lyh",
   "createdAt": "2026-09-12",
-  "completedAt": null,
+  "completedAt": "2026-09-12",
   "branch": null,
   "base_branch": "main",
   "worktree_path": null,
@@ -21,6 +21,6 @@
   "children": [],
   "parent": "09-12-bmdock-product-completion",
   "relatedFiles": [],
-  "notes": "",
+  "notes": "T05 closed as Tauri/React host with real locks and just tauri-dev/tauri-build. just dev/build/contract* remain P0. T06 IPC and T07 Supervisor in bmdock-app were not reverted. Native GUI/WebView2/installer/Job Object/hosted CI/real vault UNVERIFIED. python -m scripts.tasks unit fails check_source because G0 is not passed while T05+ are completed.",
   "meta": {}
 }

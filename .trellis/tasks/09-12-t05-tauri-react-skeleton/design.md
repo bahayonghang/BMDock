@@ -44,6 +44,8 @@ Tauri window → React App (静态壳)
 
 T05 的 Rust `main` 只负责启动 Tauri 应用并注册空状态；不得注册 raw `callTool`、任意路径参数或直接文件操作。T06 将在同一入口增加 DTO 和策略，T07 再接管官方引擎进程。官方 Basic Memory 仍是笔记和私有数据库的权威所有者。
 
+关闭记录（2026-09-12）：工作树中同一 crate 已含 T06 `ipc_invoke` 与 T07 Supervisor。T05 关闭时不回退这些模块、不把空 `main` 当作验收条件；renderer 仍保持静态壳。`bmdock-app` 是 T05 宿主，IPC/Supervisor 归属 T06/T07。
+
 ## 命令与回滚
 
 - 在 T05 骨架能够完成最小 dev/build 检查后，增加独立的 `just tauri-dev` / `just tauri-build` 入口。

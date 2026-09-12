@@ -95,10 +95,12 @@ T04 的逐项 AC07/AC54/AC60 映射见 [t04-architecture-adr-licensing.json](../
 
 ## T05：Tauri + React/TypeScript 桌面骨架
 
-T05 建立了 `apps/bmdock-desktop/` 的静态 React/Vite renderer、Tauri 2 Rust 启动入口和真实依赖锁文件。`bmdock-app` 仅创建默认窗口，不注册 typed IPC、raw `callTool`、文件系统或笔记命令；P0 的 `just build`、`just contract` 和 `just contract-main` 入口保持独立。显式桌面命令为 `just tauri-dev` 与 `just tauri-build`。
+T05 建立了 `apps/bmdock-desktop/` 的静态 React/Vite renderer、Tauri 2 Rust 宿主 crate `bmdock-app`、真实 `package-lock.json` 与工作区 `Cargo.lock`，以及独立的 `just tauri-dev` / `just tauri-build`。P0 的 `just dev`、`just build`、`just contract` 和 `just contract-main` 仍转发到 `scripts.tasks` 探针路径，没有切到桌面入口。renderer `App.tsx` 仍是静态 BMDock UI 壳，不调用 MCP、文件系统或路径写入。`bmdock-app` 是 T05 宿主；同一 crate 里已经存在的 typed `ipc_invoke` 与 Supervisor 属于 T06/T07，本任务不回退它们，也不把空 `main` 当作关闭条件。本任务没有运行或合并 release / main-preview 引擎契约。
 
-T06 建立了单一 `ipc_invoke` typed 命令入口和 renderer 侧 `invokeTyped`/`listenTyped` DTO 边界。当前仅允许 `get_capabilities`、`get_runtime_state` 和 fixture-only 的 `select_project`；未知命令、任意路径字段、非 `bmdock-fixture` 项目和 raw `callTool` 形状均 fail closed。T06 不启动 Supervisor、不调用 MCP、不访问真实 vault 或文件系统；错误响应保留 `policy`、`schema`、`unsupported` 分类。证据见 [t06-typed-ipc-policy.json](../execution/evidence/t06-typed-ipc-policy.json)。
+本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t05-tauri-react-skeleton` 通过；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 14 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过；`npm run tauri:build`（`CARGO_NET_OFFLINE=true`）生成 `target/release/bmdock-app.exe`，`bundle.active` 仍为 false。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T06/T07 已 completed，未回退）。`python -m unittest discover -s tests -v` 跑 60 项：59 ok，1 ERROR `test_repository_phase_order`（同一 `check_source`）。`git diff --check` 通过。未把 UI 文案、`just contract` 或编译出的 exe 当作 native GUI / WebView2 / 安装器 / Job Object / hosted CI / 真实 vault 证据。依赖锁是既有 Cargo/npm 解析产物，未提交 `node_modules/`、`dist/`、Tauri `gen/` 或其他构建目录。
 
-本机 Windows 验证：`npm ci --ignore-scripts`、`npm run build`、`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`、`cargo check --workspace --locked --offline` 和 `npm run tauri:build` 均通过；后者生成 `target/release/bmdock-app.exe`。依赖锁是 Cargo/npm 解析产物，未提交 `node_modules/`、`dist/`、Tauri `gen/` 或其他构建目录。
+T05 证据与验收映射见 [t05-tauri-react-skeleton.json](../execution/evidence/t05-tauri-react-skeleton.json)。真实窗口交互、WebView2 运行时行为、安装器、签名、Job Object、hosted CI 和真实 vault 仍属 UNVERIFIED（T13、T36–T40）；本任务不把静态壳或本地二进制当作这些证据。
 
-T05 证据与验收映射见 [t05-tauri-react-skeleton.json](../execution/evidence/t05-tauri-react-skeleton.json)。真实窗口交互、WebView2、安装器、签名、hosted CI、真实 vault 和产品 IPC 仍分别属于 T13、T36–T40 或后续任务；本任务不把静态构建当作这些证据。
+## T06：typed IPC 与权限策略
+
+T06 建立了单一 `ipc_invoke` typed 命令入口和 renderer 侧 `invokeTyped`/`listenTyped` DTO 边界。当前仅允许 `get_capabilities`、`get_runtime_state` 和 fixture-only 的 `select_project`；未知命令、任意路径字段、非 `bmdock-fixture` 项目和 raw `callTool` 形状均 fail closed。T06 不启动 Supervisor、不调用 MCP、不访问真实 vault 或文件系统；错误响应保留 `policy`、`schema`、`unsupported` 分类。证据见 [t06-typed-ipc-policy.json](../execution/evidence/t06-typed-ipc-policy.json)。该段不是 T05 的 AC49/AC55/AC60 证据。

@@ -3,24 +3,135 @@
   "title": "初始化代码骨架与真实依赖锁",
   "status": "accepted_with_limits",
   "date": "2026-09-12",
+  "host_boundary": "T05 owns the Tauri 2 + React/Vite skeleton, workspace membership, real locks, and just tauri-dev/tauri-build. bmdock-app is the host crate. Typed ipc_invoke and Supervisor already live in this crate from T06/T07 and were not reverted. Renderer App.tsx remains a static BMDock UI shell with no MCP, filesystem, or path-write calls.",
   "acceptance": {
     "AC49": {
       "status": "local_build_passed_native_runtime_unverified",
-      "evidence": ["apps/bmdock-desktop/package.json", "apps/bmdock-desktop/package-lock.json", "apps/bmdock-desktop/src-tauri/Cargo.toml", "apps/bmdock-desktop/src-tauri/src/main.rs", "Cargo.lock", "npm run build", "cargo check --workspace --locked --offline", "npm run tauri:build"],
-      "claim": "A minimal Tauri 2 + React/TypeScript application and real npm/Cargo locks compile locally; native window interaction, WebView2 behavior and installer evidence remain UNVERIFIED."
+      "evidence": [
+        "apps/bmdock-desktop/package.json",
+        "apps/bmdock-desktop/package-lock.json",
+        "apps/bmdock-desktop/src-tauri/Cargo.toml",
+        "apps/bmdock-desktop/src-tauri/src/main.rs",
+        "apps/bmdock-desktop/src/App.tsx",
+        "Cargo.lock",
+        "npm run build",
+        "cargo check --workspace --locked --offline",
+        "npm run tauri:build"
+      ],
+      "claim": "A minimal Tauri 2 + React/TypeScript application and real npm/Cargo locks compile locally, including target/release/bmdock-app.exe from this session's tauri:build. Native window interaction, WebView2 runtime behavior, installer, signing, Job Object, and hosted CI remain UNVERIFIED. Compiling the exe is not those proofs."
     },
     "AC55": {
       "status": "independent_entrypoints_preserved",
-      "evidence": ["justfile", "apps/bmdock-desktop/src-tauri/tauri.conf.json", "python -m scripts.tasks unit", "cargo test --workspace --locked --offline"],
-      "claim": "The desktop shell has explicit tauri-dev/tauri-build commands while P0 probe build and contract commands remain unchanged and independently addressable."
+      "evidence": [
+        "justfile",
+        "apps/bmdock-desktop/src-tauri/tauri.conf.json",
+        "python -m unittest discover -s tests -v",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "just tauri-dev and just tauri-build remain explicit desktop entries. just dev, just build, just contract, and just contract-main still forward to scripts.tasks P0 probe/contract semantics and were not switched."
     },
     "AC60": {
       "status": "documented",
-      "evidence": ["execution/status.json", "docs/VERIFICATION.md", "execution/evidence/t05-tauri-react-skeleton.json", ".trellis/tasks/09-12-t05-tauri-react-skeleton/design.md", ".trellis/tasks/09-12-t05-tauri-react-skeleton/implement.md"],
-      "claim": "T05 files, commands, lock provenance, acceptance mapping, limits and rollback scope are traceable."
+      "evidence": [
+        "execution/status.json",
+        "docs/VERIFICATION.md",
+        "execution/evidence/t05-tauri-react-skeleton.json",
+        ".trellis/tasks/09-12-t05-tauri-react-skeleton/design.md",
+        ".trellis/tasks/09-12-t05-tauri-react-skeleton/implement.md",
+        "docs/adr/0001-bmdock-boundaries-naming-licensing.md"
+      ],
+      "claim": "T05 files, this session's commands, lock provenance, host-versus-T06/T07 ownership, acceptance mapping, limits, and rollback scope are traceable."
     }
   },
-  "versions": {"tauri_crate": "2.11.5", "tauri_build": "2.6.3", "tauri_api": "2.11.1", "tauri_cli": "2.11.4", "react": "19.1.1", "vite": "7.1.7", "typescript": "5.9.2"},
-  "scope_limits": ["No typed IPC, Supervisor, note CRUD, real vault, installer, signing or production command is implemented.", "No native GUI interaction, hosted CI or cross-platform runtime result is inferred from local compilation.", "Generated node_modules, dist, Tauri gen schemas and target artifacts remain ignored/untracked."],
-  "rollback": "Remove apps/bmdock-desktop and its workspace/justfile/lockfile additions; preserve crates/bmdock-probe and just contract* semantics."
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t05-tauri-react-skeleton",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest discover -s tests -v",
+      "exit": 1,
+      "result": "60 tests: 59 ok, 1 ERROR test_repository_phase_order via check_source because G0 is in_progress while T06/T07 are completed. T06/T07 were not reverted."
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover)."
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 14 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T06/T07 dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules; npm ci was not run this session."
+    },
+    {
+      "cmd": "npm run tauri:build",
+      "cwd": "apps/bmdock-desktop",
+      "env": ["CARGO_NET_OFFLINE=true"],
+      "exit": 0,
+      "result": "Built target/release/bmdock-app.exe; bundle.active is false so no installer was produced. Not treated as native GUI, WebView2, installer, or Job Object proof."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "result": "Not run as T05 GUI/installer/vault proof. justfile still forwards both to scripts.tasks."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "python_unittest_discover": "59_ok_1_error_phase_order_check_source",
+    "python_scripts_tasks_unit": "failed_check_source_later_task_completed_before_g0",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_19_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t06_t07_dead_code_warnings",
+    "npm_ci": "not_run_lock_and_node_modules_already_present",
+    "npm_build": "passed",
+    "npm_tauri_build_offline": "passed_binary_native_gui_unverified",
+    "git_diff_check": "passed",
+    "just_dev_still_p0_probe": "confirmed",
+    "just_contract_and_contract_main": "confirmed_in_justfile_not_executed",
+    "native_gui_webview2_interaction": "UNVERIFIED",
+    "installer_signing_hosted_ci": "UNVERIFIED",
+    "job_object": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "dual_profile_isolation": "T05 did not run, merge, or average release and main-preview engine contracts; just contract* remain independent and were not executed as T05 proof"
+  },
+  "versions": {
+    "tauri_crate": "2.11.5",
+    "tauri_build": "2.6.3",
+    "tauri_api": "2.11.1",
+    "tauri_cli": "2.11.4",
+    "react": "19.1.1",
+    "vite": "7.1.7",
+    "typescript": "5.9.2"
+  },
+  "gates": {
+    "G0": "in_progress"
+  },
+  "scope_limits": [
+    "T05 does not implement note CRUD, layout/i18n, real vault, installer, or production write permissions.",
+    "Typed IPC and Supervisor are later-task product in the same crate (T06/T07) and were preserved.",
+    "Renderer static copy is not IPC, GUI, installer, Job Object, or vault evidence.",
+    "T05 did not mix engine profiles or treat compiled bmdock-app.exe as native GUI, WebView2, installer, or Job Object proof.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; T06/T07 were not reverted.",
+    "Generated node_modules, dist, Tauri gen schemas and target artifacts remain ignored/untracked."
+  ],
+  "rollback": "Remove apps/bmdock-desktop and its workspace/justfile/lockfile additions only if rolling back the T05 skeleton; preserve crates/bmdock-probe, just contract* semantics, and do not strip T06/T07 modules to recreate an empty main."
 }

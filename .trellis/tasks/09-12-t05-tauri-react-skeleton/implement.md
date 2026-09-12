@@ -32,3 +32,9 @@
 ## 完成门槛
 
 只有当骨架文件、真实锁文件、最小静态构建检查、P0 入口保留证据和三项 AC 映射齐全后，才可把 T05 标为完成并进入 T06/T07；不能以目录存在、UI 文案或工具清单替代构建和边界证据。
+
+## 本轮关闭记录（2026-09-12）
+
+工作树中 T05 骨架、锁文件和 `just tauri-dev` / `just tauri-build` 已存在。本轮不回退 T06/T07：`bmdock-app` 仍注册 `ipc_invoke` 与 Supervisor；T05 只把该 crate 当作宿主，renderer 保持静态壳。`just dev` / `just build` / `just contract*` 仍为 P0 探针语义。G0 保持 `in_progress`。`execution/status.json` 仅将 T05 标为 `completed`。
+
+本轮命令：validate 通过；`npm run build` 通过（未跑 `npm ci`）；`cargo fmt --check`、`cargo test --workspace --locked --offline`、`cargo check --workspace --locked --offline` 通过；`npm run tauri:build` 在 `CARGO_NET_OFFLINE=true` 下生成 `target/release/bmdock-app.exe`（不是 native GUI / WebView2 / 安装器 / Job Object 证明）；`git diff --check` 通过。`python -m scripts.tasks unit` 因 `check_source`（G0 未 passed 且 T06/T07 已 completed）失败；`python -m unittest discover -s tests -v` 为 59 ok + 1 ERROR（同一 phase-order 检查）。未运行 `just contract` 作为 T05 证据，也未合并双 profile。

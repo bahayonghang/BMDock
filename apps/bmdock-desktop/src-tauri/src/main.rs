@@ -1,3 +1,7 @@
+//! T05 desktop host: window bootstrap for `bmdock-app`.
+//! Typed IPC (`ipc`) is T06; engine Supervisor is T07. Do not strip those modules
+//! to recreate an empty T05 `main`.
+
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::sync::Mutex;
