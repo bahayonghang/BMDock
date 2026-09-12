@@ -582,3 +582,27 @@ zh-CN 工作台「Hook / Agent」区分空态 / 错误 / 就绪，显示未启�
 本机 Windows 本轮命令见 [t33-agent-hooks.json](../execution/evidence/t33-agent-hooks.json)。`python -m scripts.tasks unit` 以 G0 未 passed 且 T05+ 已 completed 失败（未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方 Agent hook / hosted CI 证据；这些仍为 `UNVERIFIED`。
 
 T33 证据与验收映射见 [t33-agent-hooks.json](../execution/evidence/t33-agent-hooks.json)。`execution/status.json` 仅将 T33 标为 `completed`；未改 T05–T32/G0。
+
+## T34：外部Provider与后端档位验证
+
+T34 在现有 `ipc_invoke` 上增加 typed `inspect_providers`（`ExplicitRouteArgs`，`deny_unknown_fields`）。额外 `path`/`root`/`token`/`host`/`api_key` 为 schema。缺路由为 schema。非 fixture 路由为 policy，且不打开库。capabilities 精确允许列为 39 个命令。typed `inspect_providers` 允许。`enable_provider` / `list_providers` / `connect_provider` 不在允许列。
+
+外部 Provider 与后端档位保持 FAIL-CLOSED。生产默认 `provider_enabled=false`、`semantic_enabled=false`、`model_loaded=false`、`files_written=false`、`backend_tier=disabled`。生产 provider 目录为空。openai / anthropic / huggingface / cloud embeddings 显式 unavailable/unverified，从不静默启用。宣称 live provider session 为 unsupported。测试注入 `{temp}/bmdock-t34-*`，默认仍报告 `provider_enabled=false`。BMDock 自有夹具 `provider-claimed` 标记仍不是已连接，分类为 unsupported。未授权远程 / env token / stored secret / remote host / api_key / cloud credential 路由为 policy。未存储密钥，未读取用户环境 token，未联系远程主机。未打开 cloud credential 路由。未把 `just contract` 当作 T34 证明。不启动 Supervisor。无 rmcp。
+
+AC23：检索仍是 T21 夹具词法。Providers 不会启用官方 semantic/search/fetch。`search_notes` 保持 typed 夹具检索，不是 MCP `search`。
+
+AC24：search 与 fetch 保持不同且被拒绝的身份。`semantic_enabled=false`，`model_loaded=false`，`embedding_backend=none`。
+
+AC38：local/offline。未打开 cloud credential 路由。`files_written=false`。不启动 Supervisor。
+
+AC41：缺失/不可用的 openai、anthropic、huggingface、cloud embeddings 显式标为 unavailable/unverified，从不静默当成已启用。夹具 provider-claimed 不是已连接。
+
+AC48：后端档位验证 FAIL-CLOSED。生产 `provider_enabled=false`。宣称 live provider session 不受支持。不联系远程主机，不存储密钥。
+
+zh-CN 工作台「Provider / 后端档位」区分空态 / 错误 / 就绪，均显示未启用。无 `dangerouslySetInnerHTML`。不启动 Supervisor。无新 npm 依赖。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T34 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令见 [t34-provider-backend-validation.json](../execution/evidence/t34-provider-backend-validation.json)。`python -m scripts.tasks unit` 以 G0 未 passed 且 T05+ 已 completed 失败（未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方 provider / hosted CI 证据；这些仍为 `UNVERIFIED`。
+
+T34 证据与验收映射见 [t34-provider-backend-validation.json](../execution/evidence/t34-provider-backend-validation.json)。`execution/status.json` 仅将 T34 标为 `completed`；未改 T05–T33/G0。

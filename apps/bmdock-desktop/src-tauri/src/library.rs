@@ -170,6 +170,23 @@ pub const POLICY_HOOK_CREDENTIAL_ROUTE: &str =
     "unauthorized remote, credential, env-token, Cursor rules, user agent config, or real-vault hook routes are policy and are not opened";
 #[cfg(test)]
 pub const HOOK_CLAIMED_FLAG: &str = "hook-claimed";
+pub const ENGINE_PROVIDERS_NOT_OWNED: &str =
+    "inspect_providers is a BMDock-owned local-only status; it is not a live official provider session, embedding backend, or credential store";
+#[cfg(test)]
+pub const OFFICIAL_PROVIDERS_UNVERIFIED: &str =
+    "official openai / anthropic / huggingface / cloud embeddings providers remain UNVERIFIED";
+pub const UNSUPPORTED_PROVIDER_CLAIMED_NOT_LIVE: &str =
+    "fixture provider-claimed flag is unsupported, not connected; claiming a live provider session is unsupported";
+pub const POLICY_PROVIDER_CREDENTIAL_ROUTE: &str =
+    "unauthorized remote, credential, env-token, api-key, or real-vault provider routes are policy and are not opened";
+#[cfg(test)]
+pub const PROVIDER_CLAIMED_FLAG: &str = "provider-claimed";
+pub const PROVIDER_STATUS_UNAVAILABLE: &str = "unavailable";
+pub const BACKEND_TIER_DISABLED: &str = "disabled";
+pub const PROVIDER_OPENAI: &str = "openai";
+pub const PROVIDER_ANTHROPIC: &str = "anthropic";
+pub const PROVIDER_HUGGINGFACE: &str = "huggingface";
+pub const PROVIDER_CLOUD_EMBEDDINGS: &str = "cloud_embeddings";
 pub const CAPABILITY_SEMANTIC: &str = "semantic";
 pub const CAPABILITY_EXTRAS_INGEST: &str = "extras_ingest";
 pub const CAPABILITY_CLOUD: &str = "cloud";
@@ -226,6 +243,7 @@ pub const ALLOWLISTED_IPC_COMMANDS: &[&str] = &[
     "inspect_sync",
     "list_shares",
     "inspect_hooks",
+    "inspect_providers",
     "preview_context",
     "list_activity",
     "list_backups",
@@ -1733,6 +1751,175 @@ pub fn accept_hook_inspection(
     Ok(report)
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ProviderRecordDto {
+    pub identifier: String,
+    pub status: String,
+    pub verified: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ProviderInspectionDto {
+    pub providers: Vec<ProviderRecordDto>,
+    pub unavailable: Vec<ProviderRecordDto>,
+    pub provider_enabled: bool,
+    pub semantic_enabled: bool,
+    pub model_loaded: bool,
+    pub embedding_backend: EmbeddingBackend,
+    pub backend_tier: String,
+    pub files_written: bool,
+    pub connected: bool,
+    pub provider_claimed: bool,
+    pub local_offline: bool,
+    pub live_provider_session: bool,
+    pub official_semantic: bool,
+    pub official_search: bool,
+    pub official_fetch: bool,
+    pub search_fetch_distinct: bool,
+    pub cloud_credential_route: bool,
+    pub remote_hosts_contacted: bool,
+    pub secrets_stored: bool,
+    pub env_tokens_read: bool,
+    pub mixed_profiles: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_providers: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+}
+
+pub fn unavailable_provider_records() -> Vec<ProviderRecordDto> {
+    [
+        PROVIDER_OPENAI,
+        PROVIDER_ANTHROPIC,
+        PROVIDER_HUGGINGFACE,
+        PROVIDER_CLOUD_EMBEDDINGS,
+    ]
+    .into_iter()
+    .map(|identifier| ProviderRecordDto {
+        identifier: identifier.to_owned(),
+        status: PROVIDER_STATUS_UNAVAILABLE.to_owned(),
+        verified: false,
+    })
+    .collect()
+}
+
+pub fn empty_provider_inspection() -> ProviderInspectionDto {
+    ProviderInspectionDto {
+        providers: Vec::new(),
+        unavailable: unavailable_provider_records(),
+        provider_enabled: false,
+        semantic_enabled: false,
+        model_loaded: false,
+        embedding_backend: EmbeddingBackend::None,
+        backend_tier: BACKEND_TIER_DISABLED.to_owned(),
+        files_written: false,
+        connected: false,
+        provider_claimed: false,
+        local_offline: true,
+        live_provider_session: false,
+        official_semantic: false,
+        official_search: false,
+        official_fetch: false,
+        search_fetch_distinct: true,
+        cloud_credential_route: false,
+        remote_hosts_contacted: false,
+        secrets_stored: false,
+        env_tokens_read: false,
+        mixed_profiles: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_providers: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+    }
+}
+
+fn unavailable_is_canonical(records: &[ProviderRecordDto]) -> bool {
+    let expected = unavailable_provider_records();
+    records.len() == expected.len()
+        && records.iter().zip(expected.iter()).all(|(got, want)| {
+            got.identifier == want.identifier
+                && got.status == PROVIDER_STATUS_UNAVAILABLE
+                && !got.verified
+        })
+}
+
+pub fn accept_provider_inspection(
+    report: ProviderInspectionDto,
+) -> Result<ProviderInspectionDto, LibraryError> {
+    if report.scanned_user_obsidian_vault
+        || report.scanned_user_basic_memory_home
+        || report.remote_hosts_contacted
+        || report.secrets_stored
+        || report.env_tokens_read
+        || report.cloud_credential_route
+    {
+        return Err(LibraryError::policy(POLICY_PROVIDER_CREDENTIAL_ROUTE));
+    }
+    if report.engine_providers {
+        return Err(LibraryError::unsupported(ENGINE_PROVIDERS_NOT_OWNED));
+    }
+    if report.mixed_profiles {
+        return Err(LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES));
+    }
+    if report.files_written
+        || report.provider_enabled
+        || report.connected
+        || report.provider_claimed
+        || report.live_provider_session
+        || report.semantic_enabled
+        || report.model_loaded
+        || report.official_semantic
+        || report.official_search
+        || report.official_fetch
+        || !report.search_fetch_distinct
+        || report.embedding_backend != EmbeddingBackend::None
+        || report.backend_tier != BACKEND_TIER_DISABLED
+        || !report.providers.is_empty()
+        || report
+            .unavailable
+            .iter()
+            .any(|provider| provider.verified || provider.status != PROVIDER_STATUS_UNAVAILABLE)
+        || report.observation.disk_verified
+        || report.observation.classified_as == NoteCrudClass::DiskVerified
+    {
+        return Err(LibraryError::unsupported(
+            UNSUPPORTED_PROVIDER_CLAIMED_NOT_LIVE,
+        ));
+    }
+    let mut report = report;
+    report.providers.clear();
+    report.unavailable = unavailable_provider_records();
+    report.provider_enabled = false;
+    report.semantic_enabled = false;
+    report.model_loaded = false;
+    report.embedding_backend = EmbeddingBackend::None;
+    report.backend_tier = BACKEND_TIER_DISABLED.to_owned();
+    report.files_written = false;
+    report.connected = false;
+    report.provider_claimed = false;
+    report.local_offline = true;
+    report.live_provider_session = false;
+    report.official_semantic = false;
+    report.official_search = false;
+    report.official_fetch = false;
+    report.search_fetch_distinct = true;
+    report.cloud_credential_route = false;
+    report.remote_hosts_contacted = false;
+    report.secrets_stored = false;
+    report.env_tokens_read = false;
+    report.mixed_profiles = false;
+    report.engine_providers = false;
+    report.observation.envelope_is_not_disk_proof = true;
+    report.observation.disk_verified = false;
+    report.observation.classified_as = NoteCrudClass::Empty;
+    let _ = unavailable_is_canonical(&report.unavailable);
+    Ok(report)
+}
+
 pub fn accept_import_result(report: ImportResultDto) -> Result<ImportResultDto, LibraryError> {
     if report.engine_import {
         return Err(LibraryError::unsupported(ENGINE_IMPORT_NOT_OWNED));
@@ -2241,6 +2428,10 @@ pub trait NoteLibrary: Send + Sync {
 
     fn inspect_hooks(&self) -> Result<HookInspectionDto, LibraryError> {
         Ok(empty_hook_inspection())
+    }
+
+    fn inspect_providers(&self) -> Result<ProviderInspectionDto, LibraryError> {
+        Ok(empty_provider_inspection())
     }
 
     fn write_note(
@@ -2943,6 +3134,30 @@ impl FixtureLibrary {
         crate::content_safety::persist_exact_utf8(
             &path,
             "fixture-hook-claimed-not-live-official-agent-session\n",
+        )
+        .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        Ok(path)
+    }
+
+    fn require_providers_root(&self) -> Result<(), LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        if !self.root.to_string_lossy().contains("bmdock-t34") {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        Ok(())
+    }
+
+    pub fn seed_provider_claimed_flag(&self) -> Result<PathBuf, LibraryError> {
+        self.require_providers_root()?;
+        fs::create_dir_all(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let path = self.root.join(PROVIDER_CLAIMED_FLAG);
+        if library_root_is_forbidden(&path) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        crate::content_safety::persist_exact_utf8(
+            &path,
+            "fixture-provider-claimed-not-live-official-provider-session\n",
         )
         .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
         Ok(path)
@@ -3828,6 +4043,25 @@ impl NoteLibrary for FixtureLibrary {
             return Err(LibraryError::unsupported(UNSUPPORTED_HOOK_CLAIMED_NOT_LIVE));
         }
         Ok(empty_hook_inspection())
+    }
+
+    fn inspect_providers(&self) -> Result<ProviderInspectionDto, LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        let flag = self.root.join(PROVIDER_CLAIMED_FLAG);
+        if flag.is_symlink() {
+            return Err(LibraryError::policy(POLICY_PROVIDER_CREDENTIAL_ROUTE));
+        }
+        if flag.is_file() {
+            if library_root_is_forbidden(&flag)
+                || !self.root.to_string_lossy().contains("bmdock-t34")
+            {
+                return Err(LibraryError::policy(POLICY_PROVIDER_CREDENTIAL_ROUTE));
+            }
+            return Err(LibraryError::unsupported(
+                UNSUPPORTED_PROVIDER_CLAIMED_NOT_LIVE,
+            ));
+        }
+        Ok(empty_provider_inspection())
     }
 
     fn write_note(
@@ -5551,6 +5785,45 @@ mod tests {
         assert!(!hooks.scanned_cursor_rules);
         assert!(!hooks.scanned_user_agent_config);
         assert_eq!(hooks.observation.classified_as, NoteCrudClass::Empty);
+        let providers = library.inspect_providers().unwrap();
+        assert!(providers.providers.is_empty());
+        assert_eq!(providers.unavailable.len(), 4);
+        assert!(providers.unavailable.iter().all(|provider| {
+            provider.status == PROVIDER_STATUS_UNAVAILABLE && !provider.verified
+        }));
+        assert!(providers
+            .unavailable
+            .iter()
+            .any(|provider| provider.identifier == PROVIDER_OPENAI));
+        assert!(providers
+            .unavailable
+            .iter()
+            .any(|provider| provider.identifier == PROVIDER_ANTHROPIC));
+        assert!(providers
+            .unavailable
+            .iter()
+            .any(|provider| provider.identifier == PROVIDER_HUGGINGFACE));
+        assert!(providers
+            .unavailable
+            .iter()
+            .any(|provider| provider.identifier == PROVIDER_CLOUD_EMBEDDINGS));
+        assert!(!providers.provider_enabled);
+        assert!(!providers.semantic_enabled);
+        assert!(!providers.model_loaded);
+        assert_eq!(providers.embedding_backend, EmbeddingBackend::None);
+        assert_eq!(providers.backend_tier, BACKEND_TIER_DISABLED);
+        assert!(!providers.files_written);
+        assert!(!providers.connected);
+        assert!(!providers.provider_claimed);
+        assert!(providers.local_offline);
+        assert!(!providers.live_provider_session);
+        assert!(!providers.official_semantic);
+        assert!(!providers.official_search);
+        assert!(!providers.official_fetch);
+        assert!(providers.search_fetch_distinct);
+        assert!(!providers.cloud_credential_route);
+        assert!(!providers.engine_providers);
+        assert_eq!(providers.observation.classified_as, NoteCrudClass::Empty);
         let _ = (
             ENGINE_GRAPH_NOT_OWNED,
             ENGINE_SEARCH_NOT_OWNED,
@@ -5576,6 +5849,10 @@ mod tests {
             OFFICIAL_API_COVERAGE_UNVERIFIED,
             ENGINE_EXTRAS_NOT_OWNED,
             OFFICIAL_EXTRAS_UNVERIFIED,
+            ENGINE_HOOKS_NOT_OWNED,
+            OFFICIAL_HOOKS_UNVERIFIED,
+            ENGINE_PROVIDERS_NOT_OWNED,
+            OFFICIAL_PROVIDERS_UNVERIFIED,
             ENGINE_CONTEXT_NOT_OWNED,
             ENGINE_ACTIVITY_NOT_OWNED,
             SEMANTIC_SEARCH_UNVERIFIED,
@@ -7329,6 +7606,125 @@ mod tests {
             ENGINE_HOOKS_NOT_OWNED,
             OFFICIAL_HOOKS_UNVERIFIED,
             UNSUPPORTED_HOOK_CLAIMED_NOT_LIVE,
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn fixture_provider_inspection_is_disabled_and_claimed_flag_is_unsupported() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t34-{nanos}"));
+        fs::create_dir_all(&dir).unwrap();
+        let library = FixtureLibrary::new(dir.clone());
+        let report = library.inspect_providers().unwrap();
+        assert!(report.providers.is_empty());
+        assert_eq!(report.unavailable.len(), 4);
+        assert!(report.unavailable.iter().all(|provider| {
+            provider.status == PROVIDER_STATUS_UNAVAILABLE && !provider.verified
+        }));
+        assert!(!report.provider_enabled);
+        assert!(!report.semantic_enabled);
+        assert!(!report.model_loaded);
+        assert_eq!(report.embedding_backend, EmbeddingBackend::None);
+        assert_eq!(report.backend_tier, BACKEND_TIER_DISABLED);
+        assert!(!report.files_written);
+        assert!(!report.connected);
+        assert!(!report.provider_claimed);
+        assert!(report.local_offline);
+        assert!(!report.live_provider_session);
+        assert!(!report.official_semantic);
+        assert!(!report.official_search);
+        assert!(!report.official_fetch);
+        assert!(report.search_fetch_distinct);
+        assert!(!report.remote_hosts_contacted);
+        assert!(!report.secrets_stored);
+        assert!(!report.env_tokens_read);
+        assert!(!report.mixed_profiles);
+        assert!(!report.engine_providers);
+        assert!(!report.cloud_credential_route);
+        assert_eq!(report.observation.classified_as, NoteCrudClass::Empty);
+        assert_eq!(tool_admission(SEARCH_IDENTITY), ToolAdmission::Denied);
+        assert_eq!(tool_admission(FETCH_IDENTITY), ToolAdmission::Denied);
+        assert_ne!(SEARCH_IDENTITY, FETCH_IDENTITY);
+        let flag = library.seed_provider_claimed_flag().unwrap();
+        assert!(flag.is_file());
+        let disk = fs::read_to_string(&flag).unwrap();
+        assert!(disk.contains("fixture-provider-claimed-not-live"));
+        assert_eq!(
+            library.inspect_providers().unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_PROVIDER_CLAIMED_NOT_LIVE)
+        );
+        let claimed = ProviderInspectionDto {
+            provider_enabled: true,
+            connected: true,
+            live_provider_session: true,
+            ..empty_provider_inspection()
+        };
+        assert_eq!(
+            accept_provider_inspection(claimed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_PROVIDER_CLAIMED_NOT_LIVE)
+        );
+        let live_providers = ProviderInspectionDto {
+            providers: vec![ProviderRecordDto {
+                identifier: PROVIDER_OPENAI.to_owned(),
+                status: "connected".to_owned(),
+                verified: true,
+            }],
+            ..empty_provider_inspection()
+        };
+        assert_eq!(
+            accept_provider_inspection(live_providers).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_PROVIDER_CLAIMED_NOT_LIVE)
+        );
+        let semantic = ProviderInspectionDto {
+            semantic_enabled: true,
+            model_loaded: true,
+            official_semantic: true,
+            ..empty_provider_inspection()
+        };
+        assert_eq!(
+            accept_provider_inspection(semantic).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_PROVIDER_CLAIMED_NOT_LIVE)
+        );
+        let mixed_identities = ProviderInspectionDto {
+            search_fetch_distinct: false,
+            official_search: true,
+            official_fetch: true,
+            ..empty_provider_inspection()
+        };
+        assert_eq!(
+            accept_provider_inspection(mixed_identities).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_PROVIDER_CLAIMED_NOT_LIVE)
+        );
+        let credentials = ProviderInspectionDto {
+            env_tokens_read: true,
+            secrets_stored: true,
+            remote_hosts_contacted: true,
+            cloud_credential_route: true,
+            ..empty_provider_inspection()
+        };
+        assert_eq!(
+            accept_provider_inspection(credentials).unwrap_err(),
+            LibraryError::policy(POLICY_PROVIDER_CREDENTIAL_ROUTE)
+        );
+        let mixed = ProviderInspectionDto {
+            mixed_profiles: true,
+            ..empty_provider_inspection()
+        };
+        assert_eq!(
+            accept_provider_inspection(mixed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES)
+        );
+        let _ = (
+            ENGINE_PROVIDERS_NOT_OWNED,
+            OFFICIAL_PROVIDERS_UNVERIFIED,
+            UNSUPPORTED_PROVIDER_CLAIMED_NOT_LIVE,
+            SEMANTIC_SEARCH_UNVERIFIED,
+            OFFICIAL_SEARCH_MCP_UNVERIFIED,
+            OFFICIAL_FETCH_MCP_UNVERIFIED,
         );
         let _ = fs::remove_dir_all(&dir);
     }

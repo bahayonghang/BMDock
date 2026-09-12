@@ -48,6 +48,7 @@ import {
   type SyncInspectionDto,
   type ShareCatalogDto,
   type HookInspectionDto,
+  type ProviderInspectionDto,
   type AuditedApiLeafDto,
   type AuditedCliLeafDto,
   type AuditedIpcCommandDto,
@@ -81,7 +82,7 @@ import {
   type ShellLoadState,
 } from "./shell";
 
-const SECTIONS = ["workbench", "runtime", "projects", "preflight", "backups", "import", "extras", "cloud", "sync", "hooks", "about"] as const;
+const SECTIONS = ["workbench", "runtime", "projects", "preflight", "backups", "import", "extras", "cloud", "sync", "hooks", "providers", "about"] as const;
 type SectionId = (typeof SECTIONS)[number];
 
 function sectionLabel(id: SectionId): string {
@@ -106,6 +107,8 @@ function sectionLabel(id: SectionId): string {
       return t("navSync");
     case "hooks":
       return t("navHooks");
+    case "providers":
+      return t("navProviders");
     case "about":
       return t("navAbout");
     default: {
@@ -222,6 +225,8 @@ function SectionBody({
       return <SyncPanel />;
     case "hooks":
       return <HookPanel />;
+    case "providers":
+      return <ProviderPanel />;
     case "about":
       return <AboutPanel />;
     default: {
@@ -427,6 +432,7 @@ function WorkbenchLibrary({
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
@@ -748,6 +754,7 @@ async function openNote(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
@@ -834,6 +841,7 @@ async function loadRelations(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setRelations(null);
         setRelationsError({ category: "schema", message: t("unexpectedRelations") });
@@ -953,6 +961,7 @@ async function loadGraph(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setGraph(null);
         setGraphError(unexpectedGraphResponse());
@@ -1039,6 +1048,7 @@ async function loadMoreGraph(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setGraphError(unexpectedGraphResponse());
         return;
@@ -1125,6 +1135,7 @@ async function loadMoreTree(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
@@ -1604,6 +1615,7 @@ async function runSearch(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setSearch(null);
         setSearchError(unexpectedSearchResponse());
@@ -1690,6 +1702,7 @@ async function loadMoreSearch(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setSearchError(unexpectedSearchResponse());
         return;
@@ -1900,6 +1913,7 @@ async function runInspectSearch(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setInspector(null);
         setInspectorError(unexpectedInspectorResponse());
@@ -2139,6 +2153,7 @@ async function runRecallBenchmark(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setRecall(null);
         setRecallError(unexpectedRecallResponse());
@@ -2368,6 +2383,7 @@ async function runSchemaValidate(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setSchema(null);
         setSchemaError(unexpectedSchemaResponse());
@@ -2607,6 +2623,7 @@ async function loadContextPreview(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setPreview(null);
         setPreviewError(unexpectedPreviewResponse());
@@ -2785,6 +2802,7 @@ async function loadActivity(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setActivity(null);
         setActivityError(unexpectedActivityResponse());
@@ -2870,6 +2888,7 @@ async function loadMoreActivity(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setActivityError(unexpectedActivityResponse());
         return;
@@ -3039,6 +3058,7 @@ async function loadResources(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setResources(null);
         setResourcesError(unexpectedResourceResponse());
@@ -3124,6 +3144,7 @@ async function loadMoreResources(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setResourcesError(unexpectedResourceResponse());
         return;
@@ -3294,6 +3315,7 @@ async function loadPrompts(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setPrompts(null);
         setPromptsError(unexpectedPromptResponse());
@@ -3379,6 +3401,7 @@ async function loadMorePrompts(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setPromptsError(unexpectedPromptResponse());
         return;
@@ -3551,6 +3574,7 @@ async function loadTools(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setTools(null);
         setToolsError(unexpectedToolsResponse());
@@ -3743,6 +3767,7 @@ async function loadCli(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setCli(null);
         setCliError(unexpectedCliResponse());
@@ -3830,6 +3855,7 @@ async function loadMoreCli(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setCliError(unexpectedCliResponse());
         return;
@@ -4040,6 +4066,7 @@ async function loadApiAudit(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setAudit(null);
         setAuditError(unexpectedAuditResponse());
@@ -4549,6 +4576,7 @@ async function applyCrudResponse(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
       setError(unexpectedCrudResponse());
       return;
@@ -4890,6 +4918,7 @@ async function persistDraft(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -4981,6 +5010,7 @@ async function reloadDraft(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -5334,6 +5364,7 @@ function ProjectPanel({
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
                   setSelectError({
                     category: "schema",
@@ -5698,6 +5729,7 @@ function ImportPanel() {
         case "sync_inspection":
         case "share_catalog":
         case "hook_inspection":
+        case "provider_inspection":
         case "shutdown_begun":
           setError(unexpectedImportResponse());
           setResult(null);
@@ -5907,6 +5939,7 @@ function ExtrasPanel() {
         case "sync_inspection":
         case "share_catalog":
         case "hook_inspection":
+        case "provider_inspection":
         case "shutdown_begun":
           setError(unexpectedExtrasResponse());
           setCatalog(null);
@@ -6013,6 +6046,7 @@ function ExtrasPanel() {
         case "sync_inspection":
         case "share_catalog":
         case "hook_inspection":
+        case "provider_inspection":
         case "shutdown_begun":
           setError(unexpectedExtrasResponse());
           setIngested(null);
@@ -6239,6 +6273,7 @@ function CloudPanel() {
         case "sync_inspection":
         case "share_catalog":
         case "hook_inspection":
+        case "provider_inspection":
           setError(unexpectedCloudResponse());
           setReport(null);
           setPhase("error");
@@ -6433,6 +6468,7 @@ function SyncPanel() {
         case "cloud_inspection":
         case "share_catalog":
         case "hook_inspection":
+        case "provider_inspection":
         case "shutdown_begun":
           setError(unexpectedSyncResponse());
           setReport(null);
@@ -6559,6 +6595,7 @@ function SyncPanel() {
         case "cloud_inspection":
         case "sync_inspection":
         case "hook_inspection":
+        case "provider_inspection":
         case "shutdown_begun":
           setError(unexpectedSyncResponse());
           setReport(null);
@@ -6777,6 +6814,7 @@ function HookPanel() {
         case "cloud_inspection":
         case "sync_inspection":
         case "share_catalog":
+        case "provider_inspection":
         case "shutdown_begun":
           setError(unexpectedHookResponse());
           setReport(null);
@@ -6867,6 +6905,248 @@ function HookPanel() {
                 : t("hooksObservationUnverified")}
             </span>
           </li>
+        </ul>
+      ) : null}
+    </section>
+  );
+}
+
+type ProviderError = {
+  category: "policy" | "schema" | "unsupported" | "invoke";
+  message: string;
+};
+
+function unexpectedProviderResponse(): ProviderError {
+  return { category: "schema", message: t("unexpectedProviders") };
+}
+
+function ProviderPanel() {
+  const [phase, setPhase] = useState<"empty" | "ready" | "error">("empty");
+  const [report, setReport] = useState<ProviderInspectionDto | null>(null);
+  const [error, setError] = useState<ProviderError | null>(null);
+
+  const loadProviders = async () => {
+    const route = copyFixtureRoute();
+    try {
+      const response = await invokeTyped<IpcResponse>({
+        command: "inspect_providers",
+        args: {
+          workspace: route.workspace,
+          project: route.project,
+        },
+      });
+      switch (response.kind) {
+        case "error":
+          setError({ category: response.category, message: response.message });
+          setReport(null);
+          setPhase("error");
+          return;
+        case "provider_inspection":
+          if (
+            response.provider_enabled ||
+            response.semantic_enabled ||
+            response.model_loaded ||
+            response.files_written ||
+            response.connected ||
+            response.provider_claimed ||
+            response.live_provider_session ||
+            response.official_semantic ||
+            response.official_search ||
+            response.official_fetch ||
+            !response.search_fetch_distinct ||
+            response.cloud_credential_route ||
+            response.remote_hosts_contacted ||
+            response.secrets_stored ||
+            response.env_tokens_read ||
+            response.mixed_profiles ||
+            response.engine_providers ||
+            response.scanned_user_obsidian_vault ||
+            response.providers.length > 0 ||
+            response.embedding_backend !== "none" ||
+            response.backend_tier !== "disabled" ||
+            !response.local_offline ||
+            response.unavailable.some(
+              (provider) => provider.verified || provider.status !== "unavailable",
+            )
+          ) {
+            setError(unexpectedProviderResponse());
+            setReport(null);
+            setPhase("error");
+            return;
+          }
+          setError(null);
+          setReport({
+            providers: [],
+            unavailable: response.unavailable,
+            provider_enabled: false,
+            semantic_enabled: false,
+            model_loaded: false,
+            embedding_backend: "none",
+            backend_tier: "disabled",
+            files_written: false,
+            connected: false,
+            provider_claimed: false,
+            local_offline: true,
+            live_provider_session: false,
+            official_semantic: false,
+            official_search: false,
+            official_fetch: false,
+            search_fetch_distinct: true,
+            cloud_credential_route: false,
+            remote_hosts_contacted: false,
+            secrets_stored: false,
+            env_tokens_read: false,
+            mixed_profiles: false,
+            observation: response.observation,
+            engine_providers: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+          });
+          setPhase("ready");
+          return;
+        case "capabilities":
+        case "runtime_state":
+        case "project_selected":
+        case "project_catalog":
+        case "preflight":
+        case "config_discovery":
+        case "tree_page":
+        case "note_read":
+        case "backup_catalog":
+        case "fixture_restored":
+        case "windows_runtime":
+        case "draft_saved":
+        case "draft_loaded":
+        case "note_written":
+        case "note_edited":
+        case "note_moved":
+        case "note_deleted":
+        case "relation_list":
+        case "graph_page":
+        case "search_page":
+        case "context_preview":
+        case "activity_page":
+        case "search_inspector":
+        case "recall_benchmark":
+        case "schema_validated":
+        case "resource_page":
+        case "prompt_page":
+        case "tool_inspection":
+        case "cli_inventory":
+        case "notes_imported":
+        case "api_audit":
+        case "extras_catalog":
+        case "document_ingested":
+        case "cloud_inspection":
+        case "sync_inspection":
+        case "share_catalog":
+        case "hook_inspection":
+        case "shutdown_begun":
+          setError(unexpectedProviderResponse());
+          setReport(null);
+          setPhase("error");
+          return;
+        default: {
+          const exhaustive: never = response;
+          return exhaustive;
+        }
+      }
+    } catch (cause) {
+      setError({
+        category: "invoke",
+        message: cause instanceof Error ? cause.message : String(cause),
+      });
+      setReport(null);
+      setPhase("error");
+    }
+  };
+
+  const empty = phase === "empty" && !error;
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error
+    ? t("providersErrorTitle")
+    : empty
+      ? t("providersEmptyTitle")
+      : t("providersReadyTitle");
+
+  return (
+    <section
+      className="panel"
+      data-state={state}
+      aria-labelledby="providers-title"
+      role={error ? "alert" : undefined}
+    >
+      <p className="state-badge">{badge}</p>
+      <h2 id="providers-title">{heading}</h2>
+      <p>
+        {error
+          ? `${errorCategoryLabel(error.category)}：${error.message}`
+          : empty
+            ? t("providersEmptyBody")
+            : t("providersReadyBody")}
+      </p>
+      <p>{t("providersNotEnabled")}</p>
+      <ul className="policy-list">
+        <li>
+          {t("providerEnabledLabel")}：{t("providerEnabledFalse")}
+        </li>
+        <li>
+          {t("providersSemanticLabel")}：{t("providersSemanticFalse")}
+        </li>
+        <li>
+          {t("providersModelLabel")}：{t("providersModelFalse")}
+        </li>
+        <li>
+          {t("providersCatalogLabel")}：{t("providersCatalogEmpty")}
+        </li>
+        <li>
+          {t("providersOpenaiLabel")}：{t("providersUnavailable")}
+        </li>
+        <li>
+          {t("providersAnthropicLabel")}：{t("providersUnavailable")}
+        </li>
+        <li>
+          {t("providersHuggingfaceLabel")}：{t("providersUnavailable")}
+        </li>
+        <li>
+          {t("providersCloudEmbeddingsLabel")}：{t("providersUnavailable")}
+        </li>
+      </ul>
+      <button type="button" className="action" onClick={() => void loadProviders()}>
+        {t("providersInspect")}
+      </button>
+      <ul className="policy-list">
+        <li>{t("providersNoVault")}</li>
+        <li>{t("providersNoSecrets")}</li>
+        <li>{t("providersNoRemote")}</li>
+        <li>{t("providersNoCloudRoute")}</li>
+        <li>{t("providersNotOfficial")}</li>
+        <li>
+          {t("providersFilesWrittenLabel")}：
+          {report?.files_written ? t("providersWroteFiles") : t("providersNoWrite")}
+        </li>
+      </ul>
+      {report ? (
+        <ul className="provider-list">
+          <li>
+            <span>{t("providersLocalOfflineLabel")}</span>
+            <span>{report.local_offline ? t("providersYes") : t("providersNo")}</span>
+          </li>
+          <li>
+            <span>{t("providersObservationLabel")}</span>
+            <span>
+              {report.observation.classified_as === "empty"
+                ? t("providersObservationEmpty")
+                : t("providersObservationUnverified")}
+            </span>
+          </li>
+          {report.unavailable.map((provider) => (
+            <li key={provider.identifier}>
+              <span>{provider.identifier}</span>
+              <span>{t("providersUnavailable")}</span>
+            </li>
+          ))}
         </ul>
       ) : null}
     </section>
@@ -6975,6 +7255,7 @@ function BackupPanel() {
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
             setError(unexpectedBackupResponse());
             setPhase("error");
@@ -7171,6 +7452,7 @@ async function restoreNamedFixture(
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
@@ -7342,6 +7624,7 @@ function WindowsRuntimeCard() {
       case "sync_inspection":
       case "share_catalog":
       case "hook_inspection":
+      case "provider_inspection":
       case "shutdown_begun":
             setError(unexpectedWindowsResponse());
             setPhase("error");

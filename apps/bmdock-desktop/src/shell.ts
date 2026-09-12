@@ -94,6 +94,7 @@ export async function readShellSnapshot(): Promise<Exclude<ShellLoadState, { pha
         events: capabilitiesResponse.events,
         policy: capabilitiesResponse.policy,
         cloud_allowed: false,
+        provider_enabled: false,
       },
       runtime: {
         status: runtimeResponse.status,

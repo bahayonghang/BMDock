@@ -8,8 +8,9 @@ use crate::library::{
     self, ActivityPageDto, ApiAuditDto, CliInventoryDto, CloudInspectionDto, ContextPreviewDto,
     ExtrasCatalogDto, GraphPageDto, HookInspectionDto, ImportResultDto, IngestResultDto,
     NoteDeleteDto, NoteEditDto, NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto, PromptPageDto,
-    RecallBenchmarkDto, RelationListDto, ResourcePageDto, SchemaValidateDto, SearchInspectorDto,
-    SearchPageDto, ShareCatalogDto, SyncInspectionDto, ToolInspectionDto, TreePageDto,
+    ProviderInspectionDto, RecallBenchmarkDto, RelationListDto, ResourcePageDto, SchemaValidateDto,
+    SearchInspectorDto, SearchPageDto, ShareCatalogDto, SyncInspectionDto, ToolInspectionDto,
+    TreePageDto,
 };
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
@@ -47,6 +48,7 @@ pub enum IpcCommandName {
     InspectSync,
     ListShares,
     InspectHooks,
+    InspectProviders,
     PreviewContext,
     ListActivity,
     ListBackups,
@@ -89,6 +91,7 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::InspectSync,
         IpcCommandName::ListShares,
         IpcCommandName::InspectHooks,
+        IpcCommandName::InspectProviders,
         IpcCommandName::PreviewContext,
         IpcCommandName::ListActivity,
         IpcCommandName::ListBackups,
@@ -617,6 +620,7 @@ pub enum IpcCommand {
     InspectSync(ExplicitRouteArgs),
     ListShares(ExplicitRouteArgs),
     InspectHooks(ExplicitRouteArgs),
+    InspectProviders(ExplicitRouteArgs),
     PreviewContext(PreviewContextArgs),
     ListActivity(ListActivityArgs),
     ListBackups(ExplicitRouteArgs),
@@ -658,6 +662,7 @@ pub struct CapabilitiesDto {
     pub events: Vec<IpcEventName>,
     pub policy: PolicyDto,
     pub cloud_allowed: bool,
+    pub provider_enabled: bool,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -700,6 +705,7 @@ pub enum IpcResponse {
     SyncInspection(SyncInspectionDto),
     ShareCatalog(ShareCatalogDto),
     HookInspection(HookInspectionDto),
+    ProviderInspection(ProviderInspectionDto),
     ContextPreview(ContextPreviewDto),
     ActivityPage(ActivityPageDto),
     BackupCatalog(BackupCatalogDto),
@@ -842,6 +848,7 @@ pub fn dispatch_with_drain(
                 raw_call_tool_allowed: false,
             },
             cloud_allowed: false,
+            provider_enabled: false,
         })),
         IpcCommand::GetRuntimeState(_) => Ok(IpcResponse::RuntimeState(runtime_state(
             snapshot, route, drain,
@@ -1006,6 +1013,12 @@ pub fn dispatch_with_drain(
             require_explicit_fixture_route(&route_args)?;
             Ok(IpcResponse::HookInspection(
                 library::accept_hook_inspection(library.inspect_hooks()?)?,
+            ))
+        }
+        IpcCommand::InspectProviders(route_args) => {
+            require_explicit_fixture_route(&route_args)?;
+            Ok(IpcResponse::ProviderInspection(
+                library::accept_provider_inspection(library.inspect_providers()?)?,
             ))
         }
         IpcCommand::PreviewContext(args) => {
@@ -1182,6 +1195,7 @@ mod tests {
         assert!(!capabilities.policy.arbitrary_paths_allowed);
         assert!(!capabilities.policy.raw_call_tool_allowed);
         assert!(!capabilities.cloud_allowed);
+        assert!(!capabilities.provider_enabled);
         assert_eq!(capabilities.commands, allowed_commands());
         assert_eq!(
             capabilities.commands,
@@ -1212,6 +1226,7 @@ mod tests {
                 IpcCommandName::InspectSync,
                 IpcCommandName::ListShares,
                 IpcCommandName::InspectHooks,
+                IpcCommandName::InspectProviders,
                 IpcCommandName::PreviewContext,
                 IpcCommandName::ListActivity,
                 IpcCommandName::ListBackups,
@@ -1226,14 +1241,14 @@ mod tests {
                 IpcCommandName::BeginShutdown,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 38);
+        assert_eq!(capabilities.commands.len(), 39);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 38);
+        assert_eq!(commands.len(), 39);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
@@ -1262,6 +1277,9 @@ mod tests {
         assert!(commands.iter().any(|command| command == "inspect_sync"));
         assert!(commands.iter().any(|command| command == "list_shares"));
         assert!(commands.iter().any(|command| command == "inspect_hooks"));
+        assert!(commands
+            .iter()
+            .any(|command| command == "inspect_providers"));
         assert!(commands.iter().any(|command| command == "preview_context"));
         assert!(commands.iter().any(|command| command == "list_activity"));
         assert!(commands.iter().any(|command| command == "list_backups"));
@@ -1281,6 +1299,9 @@ mod tests {
         assert!(!commands.iter().any(|command| command == "call_tool"));
         assert!(!commands.iter().any(|command| command == "search"));
         assert!(!commands.iter().any(|command| command == "fetch"));
+        assert!(!commands.iter().any(|command| command == "enable_provider"));
+        assert!(!commands.iter().any(|command| command == "list_providers"));
+        assert!(!commands.iter().any(|command| command == "connect_provider"));
         assert!(!commands.iter().any(|command| command == "tools/call"));
         assert!(!commands.iter().any(|command| command == "schema_infer"));
         assert!(!commands.iter().any(|command| command == "schema_diff"));
@@ -1291,6 +1312,7 @@ mod tests {
         assert!(!commands.iter().any(|command| command == "prompts/list"));
         assert!(!commands.iter().any(|command| command == "prompts/get"));
         assert_eq!(json["cloud_allowed"], false);
+        assert_eq!(json["provider_enabled"], false);
     }
 
     #[test]
@@ -1817,6 +1839,45 @@ mod tests {
             r#"{"command":"inspect_hooks","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
         );
         assert!(well_formed_hooks.is_ok());
+        let extra_path_on_providers = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_providers","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_providers.is_err());
+        let extra_root_on_providers = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_providers","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_providers.is_err());
+        let extra_token_on_providers = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_providers","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","token":"env-token"}}"#,
+        );
+        assert!(extra_token_on_providers.is_err());
+        let extra_host_on_providers = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_providers","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","host":"https://example.invalid"}}"#,
+        );
+        assert!(extra_host_on_providers.is_err());
+        let extra_api_key_on_providers = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_providers","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","api_key":"sk-test"}}"#,
+        );
+        assert!(extra_api_key_on_providers.is_err());
+        let providers_without_route =
+            serde_json::from_str::<IpcCommand>(r#"{"command":"inspect_providers","args":{}}"#);
+        assert!(providers_without_route.is_err());
+        let well_formed_providers = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_providers","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(well_formed_providers.is_ok());
+        let enable_provider = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"enable_provider","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(enable_provider.is_err());
+        let list_providers = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_providers","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(list_providers.is_err());
+        let connect_provider = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"connect_provider","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(connect_provider.is_err());
         let install_hooks = serde_json::from_str::<IpcCommand>(
             r#"{"command":"install_hooks","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
         );
@@ -2434,6 +2495,12 @@ mod tests {
         }
 
         fn inspect_hooks(&self) -> Result<library::HookInspectionDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
+        fn inspect_providers(
+            &self,
+        ) -> Result<library::ProviderInspectionDto, library::LibraryError> {
             panic!("policy rejection must not open the library")
         }
 
@@ -3329,6 +3396,18 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(hooks_route.category, ErrorCategory::Policy);
+        let providers_route = dispatch_with_library(
+            IpcCommand::InspectProviders(ExplicitRouteArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(providers_route.category, ErrorCategory::Policy);
         let prompts_route = dispatch_with_library(
             IpcCommand::ListPrompts(ListPromptsArgs {
                 workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
@@ -8281,9 +8360,13 @@ mod tests {
             release.ipc_commands.len(),
             library::ALLOWLISTED_IPC_COMMANDS.len()
         );
-        assert_eq!(release.ipc_commands.len(), 38);
+        assert_eq!(release.ipc_commands.len(), 39);
         assert!(release.ipc_commands.iter().any(|command| {
             command.name == "inspect_api_audit"
+                && command.coverage == library::AuditCoverage::Present
+        }));
+        assert!(release.ipc_commands.iter().any(|command| {
+            command.name == "inspect_providers"
                 && command.coverage == library::AuditCoverage::Present
         }));
         assert!(!release.ipc_commands.iter().any(|command| {
@@ -9707,6 +9790,271 @@ mod tests {
         let _ = (
             library::ENGINE_HOOKS_NOT_OWNED,
             library::OFFICIAL_HOOKS_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn inspect_providers_empty_library_is_disabled_not_connected() {
+        let mut route = RouteState::default();
+        let IpcResponse::ProviderInspection(report) = dispatch_with_library(
+            IpcCommand::InspectProviders(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(report.providers.is_empty());
+        assert_eq!(report.unavailable.len(), 4);
+        assert!(report.unavailable.iter().all(|provider| {
+            provider.status == library::PROVIDER_STATUS_UNAVAILABLE && !provider.verified
+        }));
+        assert!(report
+            .unavailable
+            .iter()
+            .any(|provider| provider.identifier == library::PROVIDER_OPENAI));
+        assert!(report
+            .unavailable
+            .iter()
+            .any(|provider| provider.identifier == library::PROVIDER_ANTHROPIC));
+        assert!(report
+            .unavailable
+            .iter()
+            .any(|provider| provider.identifier == library::PROVIDER_HUGGINGFACE));
+        assert!(report
+            .unavailable
+            .iter()
+            .any(|provider| provider.identifier == library::PROVIDER_CLOUD_EMBEDDINGS));
+        assert!(!report.provider_enabled);
+        assert!(!report.semantic_enabled);
+        assert!(!report.model_loaded);
+        assert_eq!(report.embedding_backend, library::EmbeddingBackend::None);
+        assert_eq!(report.backend_tier, library::BACKEND_TIER_DISABLED);
+        assert!(!report.files_written);
+        assert!(!report.connected);
+        assert!(!report.provider_claimed);
+        assert!(report.local_offline);
+        assert!(!report.live_provider_session);
+        assert!(!report.official_semantic);
+        assert!(!report.official_search);
+        assert!(!report.official_fetch);
+        assert!(report.search_fetch_distinct);
+        assert!(!report.cloud_credential_route);
+        assert!(!report.remote_hosts_contacted);
+        assert!(!report.secrets_stored);
+        assert!(!report.env_tokens_read);
+        assert!(!report.mixed_profiles);
+        assert!(!report.engine_providers);
+        assert!(!report.scanned_user_obsidian_vault);
+        assert!(!report.scanned_user_basic_memory_home);
+        assert_eq!(
+            report.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        assert!(!report.observation.disk_verified);
+        assert!(report.observation.envelope_is_not_disk_proof);
+        assert_eq!(
+            library::tool_admission(library::SEARCH_IDENTITY),
+            library::ToolAdmission::Denied
+        );
+        assert_eq!(
+            library::tool_admission(library::FETCH_IDENTITY),
+            library::ToolAdmission::Denied
+        );
+        assert_ne!(library::SEARCH_IDENTITY, library::FETCH_IDENTITY);
+        let json = serde_json::to_value(&IpcResponse::ProviderInspection(report)).unwrap();
+        assert_eq!(json["kind"], "provider_inspection");
+        assert_eq!(json["provider_enabled"], false);
+        assert_eq!(json["semantic_enabled"], false);
+        assert_eq!(json["model_loaded"], false);
+        assert_eq!(json["files_written"], false);
+        assert_eq!(json["backend_tier"], "disabled");
+        assert!(json["providers"].as_array().unwrap().is_empty());
+        assert!(json.get("expected_tools").is_none());
+        let _ = (
+            library::ENGINE_PROVIDERS_NOT_OWNED,
+            library::OFFICIAL_PROVIDERS_UNVERIFIED,
+            library::SEMANTIC_SEARCH_UNVERIFIED,
+            library::OFFICIAL_SEARCH_MCP_UNVERIFIED,
+            library::OFFICIAL_FETCH_MCP_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn inspect_providers_fixture_stays_disabled_and_claimed_flag_is_unsupported() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t34-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let library = library::FixtureLibrary::new(dir.clone());
+        let mut route = RouteState::default();
+        let IpcResponse::ProviderInspection(report) = dispatch_with_library(
+            IpcCommand::InspectProviders(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(report.providers.is_empty());
+        assert!(!report.provider_enabled);
+        assert!(!report.semantic_enabled);
+        assert!(!report.model_loaded);
+        assert!(!report.files_written);
+        assert!(report.local_offline);
+        assert_eq!(
+            report.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        let flag = library.seed_provider_claimed_flag().unwrap();
+        assert!(flag.is_file());
+        let disk = std::fs::read_to_string(&flag).unwrap();
+        assert!(disk.contains("fixture-provider-claimed-not-live"));
+        let claimed = dispatch_with_library(
+            IpcCommand::InspectProviders(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(claimed.category, ErrorCategory::Unsupported);
+        assert_eq!(
+            claimed.message,
+            library::UNSUPPORTED_PROVIDER_CLAIMED_NOT_LIVE
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    struct ClaimedProviderLibrary;
+
+    impl NoteLibrary for ClaimedProviderLibrary {
+        fn list_tree(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            Ok(library::TreePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: false,
+            })
+        }
+
+        fn read_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            Err(library::LibraryError::unsupported(
+                library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
+            ))
+        }
+
+        fn inspect_providers(
+            &self,
+        ) -> Result<library::ProviderInspectionDto, library::LibraryError> {
+            Ok(library::ProviderInspectionDto {
+                providers: vec![library::ProviderRecordDto {
+                    identifier: library::PROVIDER_OPENAI.to_owned(),
+                    status: "connected".to_owned(),
+                    verified: true,
+                }],
+                provider_enabled: true,
+                semantic_enabled: true,
+                model_loaded: true,
+                connected: true,
+                provider_claimed: true,
+                local_offline: false,
+                live_provider_session: true,
+                official_semantic: true,
+                files_written: true,
+                ..library::empty_provider_inspection()
+            })
+        }
+    }
+
+    struct CredentialProviderLibrary;
+
+    impl NoteLibrary for CredentialProviderLibrary {
+        fn list_tree(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            Ok(library::TreePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: false,
+            })
+        }
+
+        fn read_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            Err(library::LibraryError::unsupported(
+                library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
+            ))
+        }
+
+        fn inspect_providers(
+            &self,
+        ) -> Result<library::ProviderInspectionDto, library::LibraryError> {
+            Ok(library::ProviderInspectionDto {
+                env_tokens_read: true,
+                secrets_stored: true,
+                remote_hosts_contacted: true,
+                cloud_credential_route: true,
+                ..library::empty_provider_inspection()
+            })
+        }
+    }
+
+    #[test]
+    fn inspect_providers_claimed_connected_or_env_tokens_are_not_success() {
+        let mut route = RouteState::default();
+        let claimed = dispatch_with_library(
+            IpcCommand::InspectProviders(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &ClaimedProviderLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(claimed.category, ErrorCategory::Unsupported);
+        assert_eq!(
+            claimed.message,
+            library::UNSUPPORTED_PROVIDER_CLAIMED_NOT_LIVE
+        );
+        let credentials = dispatch_with_library(
+            IpcCommand::InspectProviders(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &CredentialProviderLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(credentials.category, ErrorCategory::Policy);
+        assert_eq!(
+            credentials.message,
+            library::POLICY_PROVIDER_CREDENTIAL_ROUTE
+        );
+        let release = EngineProfile::Release;
+        let preview = EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(preview.commit(), "3452c821d76c083823d020984d71e06904a1ff1e");
+        assert_ne!(release.expected_tools(), preview.expected_tools());
+        let _ = (
+            library::ENGINE_PROVIDERS_NOT_OWNED,
+            library::OFFICIAL_PROVIDERS_UNVERIFIED,
         );
     }
 }
