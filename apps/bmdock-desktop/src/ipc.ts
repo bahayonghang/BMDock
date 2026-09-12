@@ -2,6 +2,27 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 export const FIXTURE_PROJECT = "bmdock-fixture" as const;
+export const OWNED_WORKSPACE = "bmdock-workspace" as const;
+export const OWNED_KIND = "bmdock_owned" as const;
+export const TREE_PAGE_SIZE = 20 as const;
+
+export type ExplicitRouteArgs = {
+  workspace: typeof OWNED_WORKSPACE;
+  project: typeof FIXTURE_PROJECT;
+};
+
+export function copyFixtureRoute(): ExplicitRouteArgs {
+  return { workspace: OWNED_WORKSPACE, project: FIXTURE_PROJECT };
+}
+
+export type ListTreeArgs = ExplicitRouteArgs & {
+  cursor?: string;
+  page_size?: number;
+};
+
+export type ReadNoteArgs = ExplicitRouteArgs & {
+  identifier: string;
+};
 
 export type IpcCommand =
   | { command: "get_capabilities"; args: Record<string, never> }
@@ -9,7 +30,9 @@ export type IpcCommand =
   | { command: "select_project"; args: { project: typeof FIXTURE_PROJECT } }
   | { command: "list_projects"; args: Record<string, never> }
   | { command: "run_preflight"; args: Record<string, never> }
-  | { command: "discover_config"; args: Record<string, never> };
+  | { command: "discover_config"; args: Record<string, never> }
+  | { command: "list_tree"; args: ListTreeArgs }
+  | { command: "read_note"; args: ReadNoteArgs };
 
 export type IpcCommandName = IpcCommand["command"];
 export type IpcEventName = "runtime_state" | "policy";
@@ -86,9 +109,6 @@ export interface ConfigDiscoveryDto {
   copied_or_rewrote_production_config: boolean;
 }
 
-export const OWNED_WORKSPACE = "bmdock-workspace" as const;
-export const OWNED_KIND = "bmdock_owned" as const;
-
 export interface WorkspaceRecordDto {
   id: typeof OWNED_WORKSPACE;
   kind: typeof OWNED_KIND;
@@ -112,6 +132,36 @@ export interface ProjectCatalogDto {
   files_written: false;
 }
 
+export type TreeEntryKind = "note" | "directory";
+
+export interface TreeEntryDto {
+  identifier: string;
+  title: string;
+  kind: TreeEntryKind;
+}
+
+export interface TreePageDto {
+  entries: TreeEntryDto[];
+  next_cursor: string | null;
+  page: number;
+  truncated: boolean;
+}
+
+export type ObservationClass = "empty" | "body_matches_disk" | "accepted_unverified" | "unclassified";
+
+export interface NoteObservationDto {
+  classified_as: ObservationClass;
+  disk_verified: boolean;
+  envelope_is_not_disk_proof: true;
+}
+
+export interface NoteReadDto {
+  title: string;
+  identifier: string;
+  body: string;
+  observation: NoteObservationDto;
+}
+
 export type IpcResponse =
   | { kind: "capabilities"; commands: IpcCommandName[]; events: IpcEventName[]; policy: PolicyDto }
   | { kind: "runtime_state" } & RuntimeStateDto
@@ -119,6 +169,8 @@ export type IpcResponse =
   | { kind: "project_catalog" } & ProjectCatalogDto
   | { kind: "preflight" } & PreflightDto
   | { kind: "config_discovery" } & ConfigDiscoveryDto
+  | { kind: "tree_page" } & TreePageDto
+  | { kind: "note_read" } & NoteReadDto
   | { kind: "error"; category: ErrorCategory; message: string };
 
 export interface RuntimeStateEvent {
@@ -140,8 +192,28 @@ export type IpcEventPayload = {
 };
 
 function assertFixtureCommand(command: IpcCommand): void {
-  if (command.command === "select_project" && command.args.project !== FIXTURE_PROJECT) {
-    throw new Error("Only the generated fixture project is allowed");
+  switch (command.command) {
+    case "select_project":
+      if (command.args.project !== FIXTURE_PROJECT) {
+        throw new Error("Only the generated fixture project is allowed");
+      }
+      return;
+    case "list_tree":
+    case "read_note":
+      if (command.args.project !== FIXTURE_PROJECT || command.args.workspace !== OWNED_WORKSPACE) {
+        throw new Error("Only the generated fixture project is allowed");
+      }
+      return;
+    case "get_capabilities":
+    case "get_runtime_state":
+    case "list_projects":
+    case "run_preflight":
+    case "discover_config":
+      return;
+    default: {
+      const exhaustive: never = command;
+      return exhaustive;
+    }
   }
 }
 
@@ -183,3 +255,28 @@ export const discoverConfig = () =>
     command: "discover_config",
     args: {},
   });
+
+export const listTree = (args: { cursor?: string; page_size?: number } = {}) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "tree_page" } & TreePageDto>({
+    command: "list_tree",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      ...(args.cursor ? { cursor: args.cursor } : {}),
+      page_size: args.page_size ?? TREE_PAGE_SIZE,
+    },
+  });
+};
+
+export const readNote = (identifier: string) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "note_read" } & NoteReadDto>({
+    command: "read_note",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      identifier,
+    },
+  });
+};

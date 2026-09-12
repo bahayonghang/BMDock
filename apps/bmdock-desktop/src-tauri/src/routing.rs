@@ -44,7 +44,6 @@ pub struct ProjectCatalogDto {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-#[allow(dead_code)]
 pub struct ExplicitRouteArgs {
     pub workspace: String,
     pub project: String,
@@ -71,7 +70,6 @@ pub fn owned_catalog() -> ProjectCatalogDto {
     }
 }
 
-#[allow(dead_code)]
 pub fn require_explicit_fixture_route(route: &ExplicitRouteArgs) -> Result<(), &'static str> {
     if route.workspace == OWNED_WORKSPACE_ID && route.project == FIXTURE_PROJECT {
         Ok(())

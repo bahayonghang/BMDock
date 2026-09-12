@@ -138,3 +138,21 @@ T10 在现有 `ipc_invoke` 上增加只读 `list_projects`（空 `args`，`deny_
 本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t10-project-workspace-routing` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 35 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 6 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。`python -m unittest discover -s tests -v` 跑 66 项：65 ok，1 ERROR `test_repository_phase_order`（同一 `check_source`）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / WebView2 / Job Object / 真实 vault / hosted CI 证据；这些仍为 `UNVERIFIED`。
 
 T10 证据与验收映射见 [t10-project-workspace-routing.json](../execution/evidence/t10-project-workspace-routing.json)。`execution/status.json` 仅将 T10 标为 `completed`；未改 T05–T09/G0。
+
+## T11：分页文件树与笔记读取
+
+T11 在现有 `ipc_invoke` 上增加 typed `list_tree` 与 `read_note`。两条命令每次都必须携带 `ExplicitRouteArgs`（`workspace` + `project`）；缺少路由字段或额外 `path`/文件系统路径字段为 schema（`deny_unknown_fields`）。非 fixture 项目或非自有工作区为 policy，且不打开路径。`read_note` 的标识是笔记 identifier/permalink/title，不是用户 vault 文件系统 path 字段。capabilities 精确允许列为 8 个命令；未知 `call_tool` 仍失败；未恢复 T10 那个「`read_note` 命令 DTO 不存在」的断言。
+
+分页（AC19）对齐 `scripts/core.py paginate()`：可选 cursor、有界 page_size（0 或过大为 schema）；响应含 `entries[]`、`next_cursor`（末页为 null）、`page`、`truncated=false`。非法 cursor、循环 next_cursor、截断/部分清单失败关闭（schema 或 unsupported），不会把整棵树一次性倾倒当作分页成功。
+
+笔记读取（AC22）返回 title、identifier、markdown body 和观察分类；成功信封不是磁盘证据。测试在临时自有目录写入含中文与 wiki-link 的 BMDock fixture markdown，并断言返回正文等于物理文件。空库 `list_tree` 是空态，不是用户 vault 成功；未安装库时 `read_note` 为 unsupported。
+
+官方引擎仍是未来数据所有者（AC33）：本任务未加入 rmcp/live MCP。`NoteLibrary` trait 由测试注入 `FixtureLibrary`；生产默认 `EmptyLibrary` 不扫描 `%APPDATA%`、用户 Obsidian 或全局 Basic Memory 主目录。官方 `list_directory` / `read_note` MCP 记录为 `UNVERIFIED`，未把 `just contract` 当作 T11 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+内容安全（AC46）：工作台以 `<pre>` 纯文本显示 Markdown，无 `dangerouslySetInnerHTML`。未实现写入、编辑、移动或删除（T14/T15）。zh-CN 工作台展示分页树与笔记预览（空态 / 错误 / 就绪）；加载更多跟随 `next_cursor`；选中笔记每次复制 ExplicitRouteArgs，不依赖隐式 `runtime.project`。预检 / 项目 / 运行状态 / 说明分区保留。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T11 证明。
+
+本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t11-paginated-tree-note-read` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 48 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 6 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。`python -m unittest discover -s tests -v` 跑 66 项：65 ok，1 ERROR `test_repository_phase_order`（同一 `check_source`）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / WebView2 / Job Object / 真实 vault / hosted CI / 官方 MCP 读取证据；这些仍为 `UNVERIFIED`。
+
+T11 证据与验收映射见 [t11-paginated-tree-note-read.json](../execution/evidence/t11-paginated-tree-note-read.json)。`execution/status.json` 仅将 T11 标为 `completed`；未改 T05–T10/G0。

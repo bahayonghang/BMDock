@@ -1,0 +1,162 @@
+{
+  "task": "T11",
+  "title": "分页文件树与笔记读取",
+  "status": "accepted_with_limits",
+  "date": "2026-09-12",
+  "host_boundary": "T11 owns typed list_tree and read_note on the existing ipc_invoke union. Both commands require ExplicitRouteArgs (workspace + project) on every call. Pagination follows scripts/core.py fail-closed cursor semantics. Note read returns title, identifier, markdown body, and an observation that does not treat a success envelope as disk proof. Production default is EmptyLibrary: list_tree returns empty entries, read_note returns unsupported. Tests inject FixtureLibrary over BMDock-owned temp markdown. T11 does not start rmcp, mix engine profiles, expose callTool, write/edit/move/delete notes, scan user Obsidian vaults, %APPDATA%, or global Basic Memory home. Official list_directory / read_note MCP remain UNVERIFIED. T07 remains the owner of engine lifecycle. P0 bmdock-probe and just contract/contract-main stay independent. just build stays the G0 probe. just dev remains the T08 Tauri shell.",
+  "acceptance": {
+    "AC19": {
+      "status": "bounded_fail_closed_pagination",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "scripts/core.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "list_tree takes optional cursor and bounded page_size (reject 0 / >64 as schema). Responses include entries[], next_cursor (null on last page), page, truncated=false. Invalid cursor, repeated next-cursor loops, and truncated/partial inventory fail closed as schema or unsupported. The command does not dump the entire tree as one unbounded success."
+    },
+    "AC22": {
+      "status": "fixture_body_matches_disk_not_envelope",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "read_note returns title, identifier, markdown body, and observation (envelope_is_not_disk_proof=true). Fixture tests write BMDock-owned Chinese markdown with a wiki link in a temp owned dir and assert the returned body equals the physical file (classified_as=body_matches_disk, disk_verified=true). Envelope-only success is accepted_unverified and not disk_verified. Empty library listing is empty state, not a user-vault success; empty-library read_note is unsupported."
+    },
+    "AC33": {
+      "status": "resource_like_identifier_without_live_mcp",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        ".trellis/spec/bmdock-probe/backend/typed-ipc-policy.md"
+      ],
+      "claim": "read_note uses a note identifier/permalink/title field, not a user-vault filesystem path. Extra path fields are schema. Filesystem-looking identifiers are policy and do not open the path. Official engine remains the future data owner via NoteLibrary; production EmptyLibrary does not call rmcp. Live official list_directory / read_note MCP is UNVERIFIED and was not run as T11 proof. Dual profiles stay isolated (release c0bd87c6 / 21 vs main-preview 3452c821 / 27) and are not merged into tree/read responses."
+    },
+    "AC46": {
+      "status": "markdown_rendered_as_text",
+      "evidence": [
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/styles.css",
+        "tests/test_desktop_shell.py",
+        "python -m unittest tests.test_desktop_shell -v"
+      ],
+      "claim": "Workbench preview shows markdown in a pre element as text. App.tsx has no dangerouslySetInnerHTML and no innerHTML. T11 does not write, edit, move, or delete notes."
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t11-paginated-tree-note-read",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 48 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 6 passed"
+    },
+    {
+      "cmd": "python -m unittest discover -s tests -v",
+      "exit": 1,
+      "result": "66 tests: 65 ok, 1 ERROR test_repository_phase_order via check_source because G0 is in_progress while T05+ are completed. DesktopShellTests 6 passed. T05-T10 were not reverted."
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T11 proof. Official list_directory / read_note MCP remain UNVERIFIED. Probe entries remain independent."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window, WebView2, or Job Object session was exercised."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_53_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_discover": "65_ok_1_error_phase_order",
+    "python_unittest_desktop_shell": "6_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "official_list_directory_mcp": "UNVERIFIED",
+    "official_read_note_mcp": "UNVERIFIED",
+    "native_gui": "UNVERIFIED",
+    "webview2": "UNVERIFIED",
+    "job_object": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "rmcp_live_client": "not_added_in_t11"
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed_unchanged",
+    "T10": "completed_unchanged",
+    "T11": "completed"
+  },
+  "scope_limits": [
+    "list_tree and read_note require ExplicitRouteArgs copied on every call. RouteState.project is not an implicit read target.",
+    "Production EmptyLibrary does not scan user vaults or global Basic Memory home. Empty list_tree is empty state. read_note without a library is unsupported.",
+    "FixtureLibrary is test-only. Tests generate BMDock-owned temp markdown and compare the returned body to the physical file.",
+    "No rmcp / live MCP client was added. Official list_directory and read_note MCP remain UNVERIFIED.",
+    "Capabilities advertise eight commands. call_tool, search_notes, and write_note remain absent. T14/T15 write/edit/move/delete are out of scope.",
+    "IPC error union stays policy/schema/unsupported. Runtime failure kinds stay on RuntimeStateDto.",
+    "just build stays scripts.tasks build. just contract* stay probe. just dev remains T08 Tauri.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "UI copy, tool lists, compiled exe, and just contract are not native GUI / WebView2 / Job Object / real vault / hosted CI proof."
+  ],
+  "rollback": "Remove list_tree and read_note from the IpcCommand union, restore the six-command allowlist, drop library.rs/EmptyLibrary/FixtureLibrary, and restore the workbench empty placeholder. Do not revert T05-T10 status to make unit green."
+}

@@ -2,9 +2,11 @@
 
 This contract describes the T06 Tauri command boundary, the T07
 `get_runtime_state` snapshot projection, the T09 read-only
-`run_preflight` / `discover_config` commands, and the T10 explicit
-project/workspace route. It applies to
+`run_preflight` / `discover_config` commands, the T10 explicit
+project/workspace route, and the T11 paginated `list_tree` /
+`read_note` commands. It applies to
 `apps/bmdock-desktop/src-tauri/src/ipc.rs`,
+`apps/bmdock-desktop/src-tauri/src/library.rs`,
 `apps/bmdock-desktop/src-tauri/src/preflight.rs`,
 `apps/bmdock-desktop/src-tauri/src/routing.rs`, and
 `apps/bmdock-desktop/src/ipc.ts`; the P0 `bmdock-probe` and `just contract*`
@@ -16,16 +18,18 @@ interfaces remain separate. Lifecycle ownership lives in
 - Trigger: a renderer needs to invoke Rust or listen for an application event.
 - Scope: typed command and event DTOs, capability discovery, the
   fixture-only project policy, read-only projection of Supervisor
-  runtime state, side-effect-free preflight / config discovery, and
-  BMDock-owned project/workspace listing with explicit routing.
+  runtime state, side-effect-free preflight / config discovery,
+  BMDock-owned project/workspace listing with explicit routing, and
+  T11 paginated fixture-backed tree listing plus note read.
 - The boundary does not start or stop the Supervisor, call the official
-  engine, access a user vault, expose note CRUD, or expose raw `callTool`.
+  engine over rmcp, access a user vault, expose note write/edit/move/delete,
+  or expose raw `callTool`.
 - T09 preflight and discovery inspect BMDock-owned in-repo or explicitly
   generated fixture paths only. T10 lists only generated BMDock-owned
   workspace/project records. T07 remains the owner of start/stop.
-- T11 note read and T15 CRUD are out of scope. Later read/write commands
-  must carry an explicit `ExplicitRouteArgs` (`workspace` + `project`)
-  and must not inherit an implicit current project.
+- T11 `list_tree` and `read_note` must carry an explicit `ExplicitRouteArgs`
+  (`workspace` + `project`) on every call and must not inherit an implicit
+  current project. T15 CRUD remains out of scope.
 
 ## 2. Signatures
 
@@ -45,6 +49,8 @@ select_project: { project: "bmdock-fixture" }
 list_projects: {}
 run_preflight: {}
 discover_config: {}
+list_tree: { workspace, project, cursor?, page_size? }
+read_note: { workspace, project, identifier }
 ```
 
 The renderer uses the matching `IpcCommand` union through:
@@ -67,13 +73,15 @@ Future read/write DTOs use:
 struct ExplicitRouteArgs { workspace: String, project: String }
 ```
 
-T10 does not add a note-read or CRUD command that consumes this struct.
+T11 `list_tree` and `read_note` consume this struct on every call. `read_note`
+uses a note identifier/permalink/title field, not a user-vault filesystem
+`path`. Extra `path` fields fail closed as `schema`.
 
 ## 3. Contracts
 
 ### Request and response fields
 
-- `get_capabilities` returns `kind: "capabilities"`, the six command names,
+- `get_capabilities` returns `kind: "capabilities"`, the eight command names,
   the two event names, and a policy DTO.
 - `get_runtime_state` returns `kind: "runtime_state"` projected from the
   managed `Supervisor` snapshot plus T10 `RouteState`:
@@ -114,6 +122,25 @@ T10 does not add a note-read or CRUD command that consumes this struct.
   `"none"` with an empty candidate list. Empty discovery is the empty state,
   not success-with-user-vault. The command does not scan the user's real
   Basic Memory home, copy a production `config.json`, or rewrite one.
+- `list_tree` returns `kind: "tree_page"` with `entries[]`, `next_cursor`
+  (null on the last page), `page`, and `truncated=false`. Args are
+  `ExplicitRouteArgs` plus optional `cursor` and bounded `page_size`
+  (default 20, reject 0 / greater than 64 as `schema`). Invalid cursor,
+  repeated next-cursor loops, and truncated/partial inventory fail closed
+  as `schema` or `unsupported`; never return a silent partial success or
+  an unbounded tree dump. Missing library and disconnected Supervisor yield
+  empty `entries` (empty state), not a user-vault success. The command does
+  not scan `%APPDATA%`, user Obsidian vaults, or global Basic Memory home.
+  Official `list_directory` MCP remains UNVERIFIED.
+- `read_note` returns `kind: "note_read"` with `title`, `identifier`,
+  markdown `body`, and an observation DTO. The identifier is a permalink or
+  title, not a filesystem `path` field. Observation never treats a success
+  envelope as disk proof (`envelope_is_not_disk_proof=true`). Fixture tests
+  write BMDock-owned markdown (Chinese text and wiki links allowed) and
+  assert the returned body matches the physical file (`classified_as:
+  body_matches_disk`, `disk_verified=true`). Production default without an
+  installed fixture library returns `unsupported` (`engine/library
+  unavailable`). Official engine `read_note` MCP remains UNVERIFIED.
 - Error responses use `kind: "error"` and `category` in `policy`, `schema`, or
   `unsupported`, plus a human-readable `message`. Do not add `timeout_unknown`,
   `transport`, or `process` to this IPC error union; those belong on the
@@ -131,12 +158,12 @@ The capability policy must report:
 }
 ```
 
-`SelectProjectArgs`, `ExplicitRouteArgs`, and `EmptyArgs` use
-`#[serde(deny_unknown_fields)]`. There is no path field on
-`list_projects` / `run_preflight` / `discover_config` and no raw
-`callTool`, search, or note CRUD DTO or handler. The renderer must not
-send arbitrary project paths or forward a tool name and arguments through
-this boundary.
+`SelectProjectArgs`, `ExplicitRouteArgs`, `ListTreeArgs`, `ReadNoteArgs`,
+and `EmptyArgs` use `#[serde(deny_unknown_fields)]`. There is no path field
+on `list_projects` / `run_preflight` / `discover_config` / `list_tree` /
+`read_note` and no raw `callTool`, search, or note write DTO or handler.
+The renderer must not send arbitrary project paths or forward a tool name
+and arguments through this boundary.
 
 Inspecting an arbitrary user path or real vault is `policy` and must not
 open the path. Extra path/root fields on empty-args commands fail closed as
@@ -147,26 +174,34 @@ open the path. Extra path/root fields on empty-args commands fail closed as
 The Rust side is the trusted policy boundary. TypeScript checks the fixture
 constant before invoking, while Rust remains authoritative and returns a
 `policy` error for any non-fixture project. The official Basic Memory engine
-remains the future data owner; this command surface does not read or write
-user data. T07 may expose Supervisor snapshot fields, but it still does not
-start the engine from the renderer. T09 reports readiness from that snapshot
-without taking lifecycle ownership. T10 `RouteState` records the explicit
-fixture selection for projection only; later writes must still send
-`ExplicitRouteArgs` and must not use the stored route as an implicit target.
+remains the future data owner; T11 injects a `NoteLibrary` trait so tests
+can install a fixture-backed store without starting rmcp or mixing engine
+profiles. Production default is `EmptyLibrary`. T07 may expose Supervisor
+snapshot fields, but it still does not start the engine from the renderer.
+T09 reports readiness from that snapshot without taking lifecycle ownership.
+T10 `RouteState` records the explicit fixture selection for projection only;
+T11 reads still send `ExplicitRouteArgs` and must not use the stored route
+as an implicit target.
 
 ## 4. Validation & Error Matrix
 
 | Input or condition | Boundary behavior | Category |
 | --- | --- | --- |
 | Known command with its exact DTO | Dispatch the typed response | — |
-| Unknown `command`, including `call_tool`, `search_notes`, `read_note`, `write_note` | Serde deserialization fails closed | `schema` at the boundary |
+| Unknown `command`, including `call_tool`, `search_notes`, `write_note` | Serde deserialization fails closed | `schema` at the boundary |
 | Extra field in `args` | `deny_unknown_fields` rejects the DTO | `schema` |
-| Extra `path` / `root` on `list_projects`, `run_preflight`, or `discover_config` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, or `read_note` | `deny_unknown_fields` rejects the DTO | `schema` |
 | Extra top-level field such as `path` beside `command`/`args` | `deny_unknown_fields` on `IpcCommand` | `schema` |
 | `select_project` for any value other than `bmdock-fixture` | Dispatcher rejects without filesystem access | `policy` |
-| `ExplicitRouteArgs` missing `project` or carrying an extra `path` | `deny_unknown_fields` rejects the DTO | `schema` |
+| `ExplicitRouteArgs` missing `project`/`workspace` or carrying an extra `path` | `deny_unknown_fields` rejects the DTO | `schema` |
 | `ExplicitRouteArgs` with a non-fixture project or non-owned workspace | Helper rejects without filesystem access | `policy` |
+| `list_tree` `page_size` 0 or greater than 64 | Reject without listing | `schema` |
+| `list_tree` invalid cursor, empty cursor, or next-cursor loop | Reject; do not return a partial page | `schema` |
+| Truncated or partial tree inventory | Reject; `truncated=true` is not a success | `unsupported` |
+| `read_note` identifier that looks like a user vault filesystem path | Reject without opening the path | `policy` |
 | Inspect an arbitrary user path or real vault | Reject without opening the path | `policy` |
+| Empty library `list_tree` | Empty `entries`, `next_cursor=null`, `truncated=false` | empty state |
+| Empty library `read_note` | Engine/library unavailable | `unsupported` |
 | Arbitrary path or raw `callTool` payload | No DTO/handler exists; never forward it | `schema` |
 | Cross-project search or implicit current-project write | Keep it absent; catalog flags stay false | `unsupported` |
 | Capability outside the current allowlist | Keep it absent and do not infer support | `unsupported` |
@@ -196,6 +231,12 @@ fixture selection for projection only; later writes must still send
 - Base: invoke `discover_config` with empty args and receive `root: "none"`
   and an empty candidate list. That empty listing is not a user-vault
   success.
+- Base: invoke `list_tree` with explicit fixture route and no installed
+  library; receive empty `entries`, `next_cursor: null`, `truncated: false`.
+  That empty listing is not a user-vault success.
+- Good: install a fixture library of BMDock-owned markdown, page with
+  `page_size=2`, follow `next_cursor` until null, and read a note whose
+  body matches the physical file including Chinese text and a wiki link.
 - Bad: send `{"command":"select_project","args":{"project":"bmdock-fixture","path":"C:\\vault"}}`; deserialization fails because the extra path is denied.
 - Bad: send `{"command":"list_projects","args":{"path":"C:\\vault"}}` or
   `{"command":"list_projects","args":{"root":"/home/user/.basic-memory"}}`;
@@ -203,18 +244,27 @@ fixture selection for projection only; later writes must still send
 - Bad: send `{"command":"run_preflight","args":{"path":"C:\\vault"}}` or
   `{"command":"discover_config","args":{"root":"/home/user/.basic-memory"}}`;
   extra fields fail closed.
+- Bad: send `{"command":"list_tree","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","path":"C:\\vault"}}`
+  or `read_note` with an extra `path`; extra fields fail closed.
+- Bad: send `{"command":"read_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"C:\\\\Users\\\\someone\\\\vault\\\\note.md"}}`;
+  policy rejects the filesystem identifier without opening it.
 - Bad: send `{"command":"call_tool","args":{"name":"read_note"}}` or
-  `{"command":"search_notes","args":{"query":"..."}}`; no raw tool or
-  cross-project search route is accepted or advertised.
+  `{"command":"search_notes","args":{"query":"..."}}` or
+  `{"command":"write_note","args":{"project":"bmdock-fixture"}}`;
+  no raw tool, search, or write route is accepted or advertised.
 
 ## 6. Tests Required
 
-- Rust unit test: capability response lists exactly six commands and two
+- Rust unit test: capability response lists exactly eight commands and two
   events, and both arbitrary-path and raw-callTool policy flags are false.
+  `list_tree` and `read_note` are present; `call_tool`, `search_notes`, and
+  `write_note` are absent.
 - Rust unit test: a non-fixture project returns `ErrorCategory::Policy`.
-- Rust unit test: unknown command, extra project path, extra runtime-state
-  path, extra `list_projects` path/root, extra preflight path, and extra
-  discovery path/root all fail `serde_json::from_str::<IpcCommand>`.
+- Rust unit test: unknown command including `call_tool`, extra project path,
+  extra runtime-state path, extra `list_projects` path/root, extra preflight
+  path, extra discovery path/root, extra `list_tree` path, and extra
+  `read_note` path all fail `serde_json::from_str::<IpcCommand>`. Incomplete
+  `read_note` args (missing workspace/identifier) also fail closed.
 - Rust unit test: a connected snapshot projects `status`/`profile` and keeps
   `project` null until fixture select; after select, `project` is
   `bmdock-fixture` without writing files or starting Supervisor. A stopped
@@ -224,16 +274,23 @@ fixture selection for projection only; later writes must still send
   scan user vaults, and keeps `cross_project_search_allowed` and
   `implicit_current_project_writes` false. `ExplicitRouteArgs` requires both
   fields, rejects extra paths as schema, and rejects non-fixture routes as
-  policy.
+  policy. Non-fixture `list_tree` / `read_note` must not open the library.
 - Rust unit test: `run_preflight` does not spawn, does not write, and leaves
   a `not_started` snapshot unchanged. A connected or stopped snapshot reports
   `engine_spawned` from lifecycle and `files_written: false` without
   start/stop. Profiles stay isolated (21 vs 27,
   distinct commits). A non-owned path is `policy` and is not opened. Default
   discovery is empty, not success-with-user-vault.
+- Rust unit test: `list_tree` paginates a fixture library (`entries`,
+  `next_cursor`, `page`, `truncated=false`). Invalid cursor, `page_size` 0 or
+  huge, and truncated inventory fail closed. `read_note` body matches the
+  physical fixture file; envelope-only success is not `disk_verified`.
+  Empty library listing is empty, not a user-vault success; empty-library
+  `read_note` is `unsupported`.
 - TypeScript `RuntimeStateDto` / `FailureKind` / `ShutdownReceipt` /
-  `PreflightDto` / `ConfigDiscoveryDto` / `ProjectCatalogDto` stay aligned
-  with that JSON shape through `npm run build`.
+  `PreflightDto` / `ConfigDiscoveryDto` / `ProjectCatalogDto` /
+  `TreePageDto` / `NoteReadDto` stay aligned with that JSON shape through
+  `npm run build`.
 - Validation checks: `task.py validate`, `cargo fmt --all -- --check`,
   `cargo test --workspace --locked --offline`,
   `cargo check --workspace --locked --offline`, and `git diff --check`.
@@ -248,6 +305,7 @@ invoke("select_project", { project: userSuppliedPath });
 invoke("list_projects", { root: userHomeBasicMemory });
 invoke("search_notes", { query: "all projects" });
 invoke("write_note", { title: "x" }); // implicit current project
+invoke("read_note", { path: userVaultFile });
 ```
 
 This bypasses the command union, exposes a raw MCP route, permits a path
@@ -262,14 +320,23 @@ await selectFixtureProject();
 await getRuntimeState();
 await runPreflight();
 await discoverConfig();
+const route = copyFixtureRoute();
+await invokeTyped({
+  command: "list_tree",
+  args: { workspace: route.workspace, project: route.project, page_size: 20 },
+});
+await invokeTyped({
+  command: "read_note",
+  args: { workspace: route.workspace, project: route.project, identifier },
+});
 await listenTyped("runtime_state", (state) => renderState(state));
 ```
 
 These calls use the shared DTOs and the explicit fixture/event allowlist.
 `list_projects`, `run_preflight`, and `discover_config` take empty args.
-`select_project` remains fixture-only. Later read/write commands must
-include `ExplicitRouteArgs` and must not treat `runtime.project` as an
-implicit write target. Preflight reports `supervisor_status` and
+`select_project` remains fixture-only. `list_tree` and `read_note` copy
+`ExplicitRouteArgs` on every call and must not treat `runtime.project` as an
+implicit target. Preflight reports `supervisor_status` and
 `engine_spawned` from the snapshot without taking start/stop ownership;
 `files_written` stays false.
 

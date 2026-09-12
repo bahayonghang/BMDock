@@ -9,6 +9,7 @@ use std::sync::Mutex;
 use tauri::State;
 
 mod ipc;
+mod library;
 mod preflight;
 mod routing;
 mod supervisor;
@@ -16,6 +17,7 @@ mod supervisor;
 struct AppState {
     supervisor: supervisor::Supervisor,
     route: routing::RouteState,
+    library: Box<dyn library::NoteLibrary>,
 }
 
 #[tauri::command]
@@ -30,7 +32,12 @@ fn ipc_invoke(state: State<'_, Mutex<AppState>>, command: ipc::IpcCommand) -> ip
         }
     };
     let snapshot = host.supervisor.snapshot();
-    match ipc::dispatch_with_route(command, snapshot, &mut host.route) {
+    let AppState {
+        route,
+        library,
+        supervisor: _,
+    } = &mut *host;
+    match ipc::dispatch_with_library(command, snapshot, route, library.as_ref()) {
         Ok(response) => response,
         Err(error) => ipc::IpcResponse::Error(error),
     }
@@ -41,6 +48,7 @@ fn main() {
         .manage(Mutex::new(AppState {
             supervisor: supervisor::Supervisor::default(),
             route: routing::RouteState::default(),
+            library: Box::new(library::EmptyLibrary),
         }))
         .invoke_handler(tauri::generate_handler![ipc_invoke])
         .run(tauri::generate_context!())

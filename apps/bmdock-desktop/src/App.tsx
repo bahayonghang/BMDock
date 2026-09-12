@@ -1,14 +1,18 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
   FIXTURE_PROJECT,
+  TREE_PAGE_SIZE,
+  copyFixtureRoute,
   invokeTyped,
   type CapabilitiesDto,
   type ConfigDiscoveryDto,
   type EngineProfile,
   type IpcResponse,
+  type NoteReadDto,
   type PreflightDto,
   type ProjectCatalogDto,
   type RuntimeStateDto,
+  type TreeEntryDto,
 } from "./ipc";
 import { t } from "./i18n";
 import {
@@ -165,19 +169,339 @@ function WorkbenchPanel({
         </section>
       );
     case "loading":
-    case "ready":
       return (
-        <section className="panel" data-state="empty" aria-labelledby="workbench-title">
-          <p className="state-badge">{t("emptyBadge")}</p>
-          <h2 id="workbench-title">{t("workbenchEmptyTitle")}</h2>
-          <p>{t("workbenchEmptyBody")}</p>
+        <section className="panel" data-state="status" aria-labelledby="workbench-title" aria-busy="true">
+          <p className="state-badge">{t("statusBadge")}</p>
+          <h2 id="workbench-title">{t("workbenchTitle")}</h2>
+          <p role="status">{t("workbenchLoading")}</p>
         </section>
       );
+    case "ready":
+      return <WorkbenchLibrary onRefresh={onRefresh} />;
     default: {
       const exhaustive: never = load;
       return exhaustive;
     }
   }
+}
+
+type WorkbenchError = {
+  category: "policy" | "schema" | "unsupported" | "invoke";
+  message: string;
+};
+
+function unexpectedWorkbenchResponse(): WorkbenchError {
+  return { category: "schema", message: t("unexpectedTree") };
+}
+
+function WorkbenchLibrary({ onRefresh }: { onRefresh: () => void }) {
+  const [reloadToken, setReloadToken] = useState(0);
+  const [phase, setPhase] = useState<"loading" | "ready" | "empty" | "error">("loading");
+  const [entries, setEntries] = useState<TreeEntryDto[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [note, setNote] = useState<NoteReadDto | null>(null);
+  const [error, setError] = useState<WorkbenchError | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPhase("loading");
+    setEntries([]);
+    setNextCursor(null);
+    setNote(null);
+    setError(null);
+    void (async () => {
+      try {
+        const route = copyFixtureRoute();
+        const response = await invokeTyped<IpcResponse>({
+          command: "list_tree",
+          args: {
+            workspace: route.workspace,
+            project: route.project,
+            page_size: TREE_PAGE_SIZE,
+          },
+        });
+        if (cancelled) {
+          return;
+        }
+        switch (response.kind) {
+          case "error":
+            setError({ category: response.category, message: response.message });
+            setPhase("error");
+            return;
+          case "tree_page":
+            if (response.truncated) {
+              setError({ category: "schema", message: t("unexpectedTree") });
+              setPhase("error");
+              return;
+            }
+            setEntries(response.entries);
+            setNextCursor(response.next_cursor);
+            setPhase(response.entries.length === 0 ? "empty" : "ready");
+            return;
+          case "capabilities":
+          case "runtime_state":
+          case "project_selected":
+          case "project_catalog":
+          case "preflight":
+          case "config_discovery":
+          case "note_read":
+            setError(unexpectedWorkbenchResponse());
+            setPhase("error");
+            return;
+          default: {
+            const exhaustive: never = response;
+            return exhaustive;
+          }
+        }
+      } catch (cause) {
+        if (!cancelled) {
+          setError({
+            category: "invoke",
+            message: cause instanceof Error ? cause.message : String(cause),
+          });
+          setPhase("error");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadToken]);
+
+  const refresh = (
+    <button
+      type="button"
+      className="action"
+      onClick={() => {
+        setReloadToken((token) => token + 1);
+        onRefresh();
+      }}
+    >
+      {t("workbenchRefresh")}
+    </button>
+  );
+
+  if (phase === "loading") {
+    return (
+      <section className="panel" data-state="status" aria-labelledby="workbench-title" aria-busy="true">
+        <p className="state-badge">{t("statusBadge")}</p>
+        <h2 id="workbench-title">{t("workbenchTitle")}</h2>
+        <p role="status">{t("workbenchLoading")}</p>
+      </section>
+    );
+  }
+
+  if (phase === "error" && error) {
+    return (
+      <section className="panel" data-state="error" aria-labelledby="workbench-error-title" role="alert">
+        <p className="state-badge">{t("errorBadge")}</p>
+        <h2 id="workbench-error-title">{t("workbenchErrorTitle")}</h2>
+        <p>
+          {errorCategoryLabel(error.category)}：{error.message}
+        </p>
+        <p>{t("workbenchErrorBody")}</p>
+        {refresh}
+      </section>
+    );
+  }
+
+  const empty = phase === "empty";
+  return (
+    <section
+      className="panel"
+      data-state={empty ? "empty" : "status"}
+      aria-labelledby="workbench-title"
+    >
+      <p className="state-badge">{empty ? t("emptyBadge") : t("statusBadge")}</p>
+      <h2 id="workbench-title">{empty ? t("workbenchEmptyTitle") : t("workbenchReadyTitle")}</h2>
+      <p>{empty ? t("workbenchEmptyBody") : t("workbenchReadyBody")}</p>
+      <h3>{t("workbenchTreeTitle")}</h3>
+      {empty ? null : (
+        <ul className="tree-list">
+          {entries.map((entry) => (
+            <li key={entry.identifier}>
+              <button
+                type="button"
+                className="tree-item"
+                onClick={() => {
+                  if (entry.kind === "note") {
+                    void openNote(entry.identifier, setNote, setError, setPhase);
+                  }
+                }}
+              >
+                {entry.title}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {nextCursor ? (
+        <button
+          type="button"
+          className="action"
+          onClick={() => {
+            void loadMoreTree(nextCursor, entries, setEntries, setNextCursor, setError, setPhase);
+          }}
+        >
+          {t("workbenchLoadMore")}
+        </button>
+      ) : null}
+      <NotePreview note={note} />
+      {refresh}
+    </section>
+  );
+}
+
+async function openNote(
+  identifier: string,
+  setNote: (note: NoteReadDto | null) => void,
+  setError: (error: WorkbenchError | null) => void,
+  setPhase: (phase: "loading" | "ready" | "empty" | "error") => void,
+): Promise<void> {
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "read_note",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        identifier,
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setError({ category: response.category, message: response.message });
+        setPhase("error");
+        return;
+      case "note_read":
+        setError(null);
+        setNote({
+          title: response.title,
+          identifier: response.identifier,
+          body: response.body,
+          observation: response.observation,
+        });
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+        setError({ category: "schema", message: t("unexpectedNote") });
+        setPhase("error");
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+    setPhase("error");
+  }
+}
+
+async function loadMoreTree(
+  cursor: string,
+  current: TreeEntryDto[],
+  setEntries: (entries: TreeEntryDto[]) => void,
+  setNextCursor: (cursor: string | null) => void,
+  setError: (error: WorkbenchError | null) => void,
+  setPhase: (phase: "loading" | "ready" | "empty" | "error") => void,
+): Promise<void> {
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "list_tree",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        cursor,
+        page_size: TREE_PAGE_SIZE,
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setError({ category: response.category, message: response.message });
+        setPhase("error");
+        return;
+      case "tree_page":
+        if (response.truncated) {
+          setError({ category: "schema", message: t("unexpectedTree") });
+          setPhase("error");
+          return;
+        }
+        setEntries([...current, ...response.entries]);
+        setNextCursor(response.next_cursor);
+        setPhase(current.length + response.entries.length === 0 ? "empty" : "ready");
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "note_read":
+        setError(unexpectedWorkbenchResponse());
+        setPhase("error");
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+    setPhase("error");
+  }
+}
+
+function observationLabel(note: NoteReadDto): string {
+  switch (note.observation.classified_as) {
+    case "body_matches_disk":
+      return t("workbenchObservationDisk");
+    case "accepted_unverified":
+      return t("workbenchObservationUnverified");
+    case "empty":
+      return t("workbenchObservationEmpty");
+    case "unclassified":
+      return t("workbenchObservationUnclassified");
+    default: {
+      const exhaustive: never = note.observation.classified_as;
+      return exhaustive;
+    }
+  }
+}
+
+function NotePreview({ note }: { note: NoteReadDto | null }) {
+  if (!note) {
+    return (
+      <section className="subpanel" data-state="empty" aria-labelledby="note-preview-title">
+        <p className="state-badge">{t("emptyBadge")}</p>
+        <h3 id="note-preview-title">{t("workbenchPreviewTitle")}</h3>
+        <p>{t("workbenchPreviewEmpty")}</p>
+      </section>
+    );
+  }
+  return (
+    <section className="subpanel" data-state="status" aria-labelledby="note-preview-title">
+      <p className="state-badge">{t("statusBadge")}</p>
+      <h3 id="note-preview-title">{note.title}</h3>
+      <p>
+        {t("workbenchIdentifierLabel")}：{note.identifier}
+      </p>
+      <p>{observationLabel(note)}</p>
+      <pre className="note-body">{note.body}</pre>
+    </section>
+  );
 }
 
 function RuntimePanel({
@@ -377,6 +701,8 @@ function ProjectPanel({
                 case "project_catalog":
                 case "preflight":
                 case "config_discovery":
+                case "tree_page":
+                case "note_read":
                   setSelectError({
                     category: "schema",
                     message: t("unexpectedCatalog"),

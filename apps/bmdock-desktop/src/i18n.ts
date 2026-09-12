@@ -16,10 +16,27 @@ export const messages = {
   statusBadge: "状态",
   workbenchEmptyTitle: "还没有可显示的笔记",
   workbenchEmptyBody:
-    "当前只提供分区导航与中文界面壳。显式项目路由在「项目」分区；分页目录、草稿和笔记读写属于后续任务；本页不会连接真实资料库，也不会写入磁盘。",
+    "目录为空表示当前没有安装 BMDock 自有笔记库，也不是已打开用户 Obsidian vault。分页读取使用 list_tree；选中笔记会携带显式 workspace 与 project 调用 read_note。不会写入、移动或删除笔记。",
+  workbenchTitle: "工作台",
+  workbenchLoading: "正在读取分页目录…",
+  workbenchReadyTitle: "分页目录",
+  workbenchReadyBody:
+    "以下条目来自 BMDock 自有笔记库的分页 listing。加载更多会跟随 next_cursor。选中笔记会重新复制 ExplicitRouteArgs，不会使用隐式 runtime.project。",
+  workbenchTreeTitle: "笔记目录",
+  workbenchLoadMore: "加载更多",
+  workbenchRefresh: "重新读取目录",
+  workbenchPreviewTitle: "笔记预览",
+  workbenchPreviewEmpty: "选择一条笔记后，这里以纯文本显示 Markdown，不会执行 HTML。",
+  workbenchIdentifierLabel: "标识",
+  workbenchObservationDisk: "观察分类：正文已与磁盘文件比对",
+  workbenchObservationUnverified: "观察分类：仅信封成功，不能当作磁盘证据",
+  workbenchObservationEmpty: "观察分类：空库",
+  workbenchObservationUnclassified: "观察分类：未分类",
   workbenchErrorTitle: "无法读取工作台状态",
   workbenchErrorBody:
-    "只读快照失败。下面是分类后的错误，不会启动 Supervisor，也不会写入资料库。",
+    "只读快照或分页读取失败。下面是分类后的错误，不会启动 Supervisor，也不会写入资料库。",
+  unexpectedTree: "目录分页响应格式不符合预期",
+  unexpectedNote: "笔记读取响应格式不符合预期",
   unexpectedCapabilities: "能力响应格式不符合预期",
   unexpectedRuntime: "运行状态响应格式不符合预期",
   unexpectedCatalog: "项目目录响应格式不符合预期",
@@ -96,9 +113,9 @@ export const messages = {
   discoveryNone: "无",
   aboutTitle: "说明",
   aboutIntro:
-    "这是桌面布局壳加只读预检与显式项目路由。默认界面语言为简体中文。完整编辑器属于后续任务，帮助与无障碍完备性也不在本任务关闭。",
+    "这是桌面布局壳加只读预检、显式项目路由、分页目录与笔记预览。默认界面语言为简体中文。写入、移动、删除和完整编辑器属于后续任务，帮助与无障碍完备性也不在本任务关闭。",
   aboutSafety:
-    "只读调用 get_capabilities、get_runtime_state、list_projects、run_preflight 与 discover_config。选择项目仅允许 bmdock-fixture。默认运行状态为未启动。不会启动引擎、打开真实资料库或写入 vault。",
+    "只读调用 get_capabilities、get_runtime_state、list_projects、run_preflight、discover_config、list_tree 与 read_note。选择项目仅允许 bmdock-fixture。list_tree 与 read_note 每次都携带显式 workspace 与 project。Markdown 以纯文本预览，不执行 HTML。不会 raw callTool、不会写入 vault。",
   aboutProfiles:
     "release（c0bd87c6，21 个工具）与 main-preview（3452c821，27 个工具）保持隔离。本界面不把工具清单或 just contract 当作功能验收。",
   aboutCommands:

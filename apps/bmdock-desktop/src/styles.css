@@ -227,6 +227,38 @@ main {
   margin: 0 0 0.75rem;
 }
 
+.tree-list {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.tree-item {
+  font: inherit;
+  color: inherit;
+  background: #1c2740;
+  border: 1px solid #3b4b66;
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.7rem;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.note-body {
+  margin: 0.75rem 0 0;
+  padding: 0.85rem 1rem;
+  border-radius: 0.5rem;
+  background: #0f1624;
+  color: #e7edf7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: "Cascadia Code", "Sarasa Mono SC", ui-monospace, monospace;
+  font-size: 0.92rem;
+}
+
 @media (max-width: 720px) {
   .layout {
     grid-template-columns: 1fr;
