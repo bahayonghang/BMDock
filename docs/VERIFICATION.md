@@ -22,6 +22,8 @@ GitHub Actions：[CI run 34309026376](https://github.com/bahayonghang/BMDock/act
 
 下列数量已在两个操作系统的原始报告中核对一致。CLI 节点包含命令组；叶子数不包含命令组。数量不等于已逐项实现或成功执行全部功能。
 
+T01 的逐 profile 固定版本、能力数量、验收映射和范围限制汇总见 [t01-capability-baseline.json](../execution/evidence/t01-capability-baseline.json)。T01 只把双平台发现数量和独立工具名基线当作能力清单证据；CLI/API 注册树不等于功能成功。桌面负向测试、UI 漂移标记、named CLI 叶子目录、已提交握手/分页页数字段，以及独立于工具名的 schema/命令叶子 CI 阻断，仍为 UNVERIFIED。
+
 | 项目 | release / v0.23.2 | main-preview / 3452c821 |
 |---|---:|---:|
 | MCP tools | 21 | 27 |

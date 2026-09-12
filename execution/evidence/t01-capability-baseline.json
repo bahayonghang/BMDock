@@ -1,0 +1,235 @@
+{
+  "kind": "t01_capability_baseline",
+  "task": "T01",
+  "title": "固定版本并采集完整能力清单",
+  "status": "verified_with_scope_limits",
+  "date": "2026-09-12",
+  "product_gate": "G0 remains in_progress",
+  "profiles": {
+    "release": {
+      "repository": "https://github.com/basicmachines-co/basic-memory.git",
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "version": "0.23.2",
+      "registry_source": "https://github.com/basicmachines-co/basic-memory/blob/c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048/src/basic_memory/mcp/tools/__init__.py",
+      "expected_tools": [
+        "basic_memory_diagnostics",
+        "build_context",
+        "create_memory_project",
+        "delete_note",
+        "delete_project",
+        "edit_note",
+        "fetch",
+        "list_directory",
+        "list_memory_projects",
+        "list_workspaces",
+        "move_note",
+        "read_content",
+        "read_note",
+        "recent_activity",
+        "schema_diff",
+        "schema_infer",
+        "schema_validate",
+        "search",
+        "search_notes",
+        "view_note",
+        "write_note"
+      ],
+      "expected_tools_count": 21,
+      "observed": {
+        "tools": 21,
+        "prompts": 4,
+        "resources": 1,
+        "resource_templates": 1,
+        "cli_nodes": 99,
+        "cli_leaves": 83,
+        "api_paths": 47
+      }
+    },
+    "main-preview": {
+      "repository": "https://github.com/basicmachines-co/basic-memory.git",
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "version": null,
+      "registry_source": "https://github.com/basicmachines-co/basic-memory/blob/3452c821d76c083823d020984d71e06904a1ff1e/src/basic_memory/mcp/tools/__init__.py",
+      "expected_tools": [
+        "basic_memory_diagnostics",
+        "build_context",
+        "cat",
+        "create_memory_project",
+        "delete_note",
+        "delete_project",
+        "edit_note",
+        "fetch",
+        "find",
+        "grep",
+        "list_directory",
+        "list_memory_projects",
+        "list_workspaces",
+        "ls",
+        "man",
+        "move_note",
+        "read_content",
+        "read_note",
+        "recent_activity",
+        "schema_diff",
+        "schema_infer",
+        "schema_validate",
+        "search",
+        "search_notes",
+        "tail",
+        "view_note",
+        "write_note"
+      ],
+      "expected_tools_count": 27,
+      "observed": {
+        "tools": 27,
+        "prompts": 4,
+        "resources": 32,
+        "resource_templates": 3,
+        "cli_nodes": 122,
+        "cli_leaves": 104,
+        "api_paths": 49
+      }
+    }
+  },
+  "profile_isolation": {
+    "mixed_or_averaged_baseline": false,
+    "added_in_main_preview_only": ["cat", "find", "grep", "ls", "man", "tail"],
+    "removed_from_release": [],
+    "search_and_fetch_are_distinct_tools_in_each_profile": true
+  },
+  "toolchain": {
+    "engine_python": "3.12.12",
+    "host_python_ci": "3.13.5",
+    "rust": "1.90.0",
+    "rmcp": "3.2.0",
+    "uv": "0.12.11",
+    "just": "1.40.0",
+    "setup_pin": "uv sync --frozen --no-dev --no-editable --python 3.12.12 --prerelease allow --reinstall-package basic-memory"
+  },
+  "evidence": {
+    "source_manifest": "compatibility/profiles.json",
+    "runtime_summary": "execution/evidence/g0-smoke-03c2839.json",
+    "profile_comparison": "execution/evidence/profile-comparison.json",
+    "source_links": "docs/SOURCES.md",
+    "verified_run": "https://github.com/bahayonghang/BMDock/actions/runs/34309026376",
+    "tested_code_commit": "03c2839f3182e177a0c8cc60354eafb28487103e",
+    "platforms": ["ubuntu-latest", "windows-latest"],
+    "checks": [
+      "immutable profile checkout and release tag verification",
+      "mcp_discovery counts for tools/prompts/resources/resource_templates (probe paginates list methods)",
+      "runtime tool names match the selected profile baseline",
+      "CLI registration tree and OpenAPI path inventory counts",
+      "unknown profile ids rejected; unknown probe tools denied"
+    ]
+  },
+  "acceptance": {
+    "AC01": {
+      "status": "verified",
+      "claim": "Each profile has a fixed repository, 40-character commit, registry source, and isolated expected_tools. release is pinned to v0.23.2; main-preview is a commit snapshot with version null. Unknown profile ids are rejected.",
+      "evidence": [
+        "compatibility/profiles.json",
+        "scripts/core.py:profile",
+        "scripts/tasks.py:bootstrap_engines",
+        "tests/test_core.py:ProfileTests",
+        "docs/SOURCES.md"
+      ],
+      "unverified": []
+    },
+    "AC02": {
+      "status": "discovery_verified",
+      "claim": "Dual-OS hosted CI ran the real official engine for both profiles. Committed g0-smoke-03c2839.json records mcp_discovery passed plus per-profile tools/prompts/resources/resource_templates counts. This is T01 inventory evidence, not full interoperability. just contract was not re-run as T01 proof.",
+      "evidence": [
+        "execution/evidence/g0-smoke-03c2839.json",
+        "scripts/probe.py:run_contract",
+        "docs/VERIFICATION.md"
+      ],
+      "unverified": [
+        "committed handshake payload and per-list page counts (only in gitignored artifacts/<profile>.contract.json)",
+        "resource/prompt round-trip, input-schema invariants, and policy/schema/rpc error envelopes belong to T02",
+        "native GUI, Job Object, and real-user-vault MCP sessions"
+      ]
+    },
+    "AC35": {
+      "status": "inventory_verified",
+      "claim": "release remains 21 tools and main-preview remains 27 tools. The six added main-preview tools are cat/find/grep/ls/man/tail. search and fetch are separate names in each baseline and in the probe allowlist; they are not aliased.",
+      "evidence": [
+        "compatibility/profiles.json",
+        "execution/evidence/profile-comparison.json",
+        "execution/evidence/g0-smoke-03c2839.json",
+        "crates/bmdock-probe/src/main.rs"
+      ],
+      "unverified": [
+        "ordinary desktop-client negative tests and in-product tool execution",
+        "per-tool functional success beyond discovery counts"
+      ]
+    },
+    "AC36": {
+      "status": "counts_verified",
+      "claim": "engine_worker inventory walks the official CLI registration tree (nodes vs leaves) and records OpenAPI paths. Dual-OS smoke counts match: release 99/83/47 and main-preview 122/104/49.",
+      "evidence": [
+        "scripts/engine_worker.py",
+        "tests/test_cli_inventory.py",
+        "execution/evidence/g0-smoke-03c2839.json"
+      ],
+      "unverified": [
+        "committed named CLI leaf/OpenAPI path catalogs (full trees live in gitignored artifacts/<profile>.contract.json)",
+        "product wiring or success of each command/API"
+      ]
+    },
+    "AC58": {
+      "status": "drift_detection_verified",
+      "claim": "Runtime tools/list is compared to the selected profile expected_tools via inventory_delta; missing or added names fail the contract suite. The G0 probe allowlist denies tools/methods outside its fixture set, including delete_project. Observed inputSchema diffs are recorded per profile in profile-comparison.json and are not mixed into one baseline.",
+      "evidence": [
+        "scripts/core.py:inventory_delta",
+        "scripts/probe.py:run_contract",
+        "tests/test_core.py:ProfileTests.test_drift_retains_both_directions",
+        "crates/bmdock-probe/src/main.rs:unknown_tool_is_denied",
+        "execution/evidence/profile-comparison.json"
+      ],
+      "unverified": [
+        "desktop UI marking of unknown capabilities",
+        "CI fail-closed on inputSchema or named CLI/OpenAPI leaf drift independently of tool-name inventory_delta",
+        "a dedicated hosted-CI fixture that mutates the registry as a separate experiment (live suites fail closed on name drift, but that mutation was not re-run this session)"
+      ]
+    }
+  },
+  "validation": {
+    "task_validate": {"exit": 0, "result": "passed"},
+    "unittest_discover": {
+      "exit": 1,
+      "ran": 43,
+      "passed": 42,
+      "errors": 1,
+      "error": "test_repository_phase_order: RuntimeError: A later task was completed before G0"
+    },
+    "t01_profile_and_inventory_tests": {"exit": 0, "ran": 10, "result": "ok"},
+    "scripts_tasks_unit": {
+      "exit": 1,
+      "error": "ERROR: A later task was completed before G0"
+    },
+    "cargo_fmt": {"exit": 0},
+    "cargo_test_workspace_locked_offline": {"exit": 0, "bmdock_probe": 4, "bmdock_app": 14},
+    "cargo_check_workspace_locked_offline": {"exit": 0},
+    "git_diff_check": {"exit": 0},
+    "just_contract": "not_run_for_t01_inventory",
+    "just_setup": "not_run",
+    "npm_build": "skipped_apps_untouched"
+  },
+  "result_categories": {
+    "claim": "Inventory counts are not treated as write or GUI success. classify_tool_result keeps tool_error, rejected, accepted_unverified, and unclassified distinct from disk observation.",
+    "evidence": [
+      "tests/test_core.py:ResultTests",
+      "scripts/core.py:classify_tool_result"
+    ],
+    "unverified": [
+      "timeout_unknown live injection remains T03",
+      "UI copy as a success signal"
+    ]
+  },
+  "limitations": [
+    "inventory counts do not prove every command or tool succeeds",
+    "full MCP interoperability, Markdown fidelity, concurrency and failure recovery remain in T02/T03",
+    "no desktop, user vault, global configuration or remote resource was used",
+    "python -m scripts.tasks unit is blocked by check_source because T06/T07 are completed while G0 is not passed; T01 did not revert those statuses"
+  ]
+}

@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/guides/index.md", "reason": "加载通用实施与证据边界规范。"}
+{"file": "execution/status.json", "reason": "核对该子任务的阶段、依赖和 acceptance 映射。"}
+{"file": ".trellis/spec/bmdock-probe/backend/index.md", "reason": "沿用现有后端、错误处理和质量检查约束。"}
+{"file": "docs/G0_HANDOFF.md", "reason": "T01 关联 AC01/AC02/AC35/AC36/AC58 原文与不可扩大证据边界。"}
+{"file": ".trellis/spec/bmdock-probe/backend/quality-guidelines.md", "reason": "质量检查与禁止模式。"}
