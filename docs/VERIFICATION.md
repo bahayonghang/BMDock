@@ -212,3 +212,29 @@ AC21 / AC57：zh-CN 工作台编辑器使用带 label 的 textarea，可键盘�
 本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t14-draft-persistence-editor-session` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 82 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 8 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。`python -m unittest discover -s tests -v` 跑 68 项：67 ok，1 ERROR `test_repository_phase_order`（同一 `check_source`）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方引擎持久化 / hosted CI 证据；这些仍为 `UNVERIFIED`。
 
 T14 证据与验收映射见 [t14-draft-persistence-editor-session.json](../execution/evidence/t14-draft-persistence-editor-session.json)。`execution/status.json` 仅将 T14 标为 `completed`；未改 T05–T13/G0。
+
+## T15：完整笔记写入编辑移动删除
+
+T15 在现有 `ipc_invoke` 上增加 typed `write_note` / `edit_note` / `move_note` / `delete_note`。这四条是宿主命令，不是 raw `callTool`。每次都必须携带 `ExplicitRouteArgs`（`workspace` + `project`）。`write_note` 另加 `identifier` + `title` + `body`；`edit_note` 加 `identifier` + `body`；`move_note` 加 `identifier` + `destination`（permalink/标识，不是文件系统路径）；`delete_note` 加 `identifier`。缺少字段或额外 `path`/`root` 为 schema。非 fixture 路由或看起来像用户 vault / `%APPDATA%` / `.basic-memory` 的 identifier/destination 为 policy，且不打开笔记库。`RouteState.project` 不是隐式写入目标。capabilities 精确允许列为 17 个命令；未知 `call_tool` / `search_notes` 仍失败。不完整的 `write_note`（例如只有 `project`）仍为 schema。
+
+生产默认 `EmptyLibrary`：四条 CRUD 均为 `unsupported`，文案为 `engine/library unavailable`。测试注入 `FixtureLibrary`，根目录为生成的自有 `{temp}/bmdock-t15-*`。未写入 `%APPDATA%`、用户 Obsidian 或全局 Basic Memory 配置。未添加 rmcp/live MCP。`save_draft` / `load_draft` 与 `write_note` 保持区分。`engine_persisted` 保持 false（无官方引擎）。
+
+AC08 / AC10：写入/编辑后测试观察物理 Markdown。夹具正文含中文与 wiki-link `[[欢迎]]`，与磁盘文件逐字比对。信封 `"saved"` 不是磁盘证据。分类 `disk_verified` 与 `accepted_unverified`。
+
+AC11：`edit_note` 覆盖已有标识正文，并观察磁盘。
+
+AC12：`move_note` 在自有夹具库内重命名标识；旧路径消失，新路径存在且正文相同。文件系统 destination 为 policy。顺序移动到已存在目标为 `unsupported`，不主张 T16。
+
+AC13：删除后文件从磁盘消失。删除后缺失是带观察的成功，不是用户 vault 成功。仅信封的删除为 `accepted_unverified`。
+
+AC14：每条 CRUD 都携带 `ExplicitRouteArgs`。非 fixture 为 policy。
+
+T16 同目标冲突 / 未知结果仍为 `UNVERIFIED`。不主张原子并发覆盖。
+
+zh-CN 工作台提供 fixture 标识的写入/编辑/移动/删除控件；删除需确认。区分空态 / 错误 / 就绪。无 `dangerouslySetInnerHTML`。不启动 Supervisor。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T15 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t15-note-crud-operations` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 97 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 9 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。`python -m unittest discover -s tests -v` 跑 69 项：68 ok，1 ERROR `test_repository_phase_order`（同一 `check_source`）。顺序移动到已存在目标为 `unsupported`，不主张 T16。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方引擎持久化 / T16 并发覆盖 / hosted CI 证据；这些仍为 `UNVERIFIED`。
+
+T15 证据与验收映射见 [t15-note-crud-operations.json](../execution/evidence/t15-note-crud-operations.json)。`execution/status.json` 仅将 T15 标为 `completed`；未改 T05–T14/G0。

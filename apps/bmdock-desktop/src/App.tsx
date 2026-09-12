@@ -19,6 +19,11 @@ import {
   type TreeEntryDto,
   type WindowsRuntimeDto,
   type DraftResultDto,
+  type NoteWriteDto,
+  type NoteEditDto,
+  type NoteMoveDto,
+  type NoteDeleteDto,
+  type NoteCrudClass,
 } from "./ipc";
 import { t } from "./i18n";
 import {
@@ -265,6 +270,10 @@ function WorkbenchLibrary({ onRefresh }: { onRefresh: () => void }) {
           case "windows_runtime":
           case "draft_saved":
           case "draft_loaded":
+          case "note_written":
+          case "note_edited":
+          case "note_moved":
+          case "note_deleted":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
             return;
@@ -367,6 +376,12 @@ function WorkbenchLibrary({ onRefresh }: { onRefresh: () => void }) {
         </button>
       ) : null}
       <NotePreview note={note} />
+      <NoteCrudPanel
+        seedIdentifier={note?.identifier ?? null}
+        seedTitle={note?.title ?? null}
+        seedBody={note?.body ?? null}
+        onMutated={() => setReloadToken((token) => token + 1)}
+      />
       <DraftEditor seedIdentifier={note?.identifier ?? null} seedBody={note?.body ?? null} />
       {refresh}
     </section>
@@ -415,6 +430,10 @@ async function openNote(
       case "windows_runtime":
       case "draft_saved":
       case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
         return;
@@ -478,6 +497,10 @@ async function loadMoreTree(
       case "windows_runtime":
       case "draft_saved":
       case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
         return;
@@ -533,6 +556,445 @@ function NotePreview({ note }: { note: NoteReadDto | null }) {
       <pre className="note-body">{note.body}</pre>
     </section>
   );
+}
+
+function isFixtureNoteIdentifier(value: string): boolean {
+  const identifier = value.trim();
+  if (identifier === "") {
+    return false;
+  }
+  return !(
+    identifier.includes("\\") ||
+    identifier.includes("..") ||
+    identifier.includes("%") ||
+    identifier.includes(":") ||
+    identifier.startsWith("/") ||
+    identifier.includes(".obsidian") ||
+    identifier.includes(".basic-memory")
+  );
+}
+
+function unexpectedCrudResponse(): WorkbenchError {
+  return { category: "schema", message: t("unexpectedCrud") };
+}
+
+function crudObservationLabel(classified: NoteCrudClass): string {
+  switch (classified) {
+    case "disk_verified":
+      return t("crudObservationDisk");
+    case "accepted_unverified":
+      return t("crudObservationUnverified");
+    case "empty":
+      return t("crudObservationEmpty");
+    case "unclassified":
+      return t("crudObservationUnclassified");
+    default: {
+      const exhaustive: never = classified;
+      return exhaustive;
+    }
+  }
+}
+
+type NoteCrudResult =
+  | ({ kind: "note_written" } & NoteWriteDto)
+  | ({ kind: "note_edited" } & NoteEditDto)
+  | ({ kind: "note_moved" } & NoteMoveDto)
+  | ({ kind: "note_deleted" } & NoteDeleteDto);
+
+function NoteCrudPanel({
+  seedIdentifier,
+  seedTitle,
+  seedBody,
+  onMutated,
+}: {
+  seedIdentifier: string | null;
+  seedTitle: string | null;
+  seedBody: string | null;
+  onMutated: () => void;
+}) {
+  const [identifier, setIdentifier] = useState("");
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [destination, setDestination] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [result, setResult] = useState<NoteCrudResult | null>(null);
+  const [error, setError] = useState<WorkbenchError | null>(null);
+
+  useEffect(() => {
+    if (!seedIdentifier) {
+      return;
+    }
+    setIdentifier(seedIdentifier);
+    setTitle(seedTitle ?? "");
+    setBody(seedBody ?? "");
+    setDestination("");
+    setConfirmDelete(false);
+    setResult(null);
+    setError(null);
+  }, [seedIdentifier, seedTitle, seedBody]);
+
+  const empty = identifier.trim() === "" && body === "" && result === null && error === null;
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error ? t("crudErrorTitle") : empty ? t("crudEmptyTitle") : t("crudReadyTitle");
+  const fixtureOk = isFixtureNoteIdentifier(identifier);
+  const destinationOk = destination.trim() === "" || isFixtureNoteIdentifier(destination);
+
+  return (
+    <section className="subpanel" data-state={state} aria-labelledby="note-crud-title" role={error ? "alert" : undefined}>
+      <p className="state-badge">{badge}</p>
+      <h3 id="note-crud-title">{heading}</h3>
+      <p>{error ? `${errorCategoryLabel(error.category)}：${error.message}` : empty ? t("crudEmptyBody") : t("crudReadyBody")}</p>
+      <div className="crud-editor">
+        <label htmlFor="crud-identifier">{t("crudIdentifierLabel")}</label>
+        <input
+          id="crud-identifier"
+          type="text"
+          value={identifier}
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(event) => {
+            setIdentifier(event.target.value);
+            setConfirmDelete(false);
+            setError(null);
+          }}
+        />
+        <label htmlFor="crud-title">{t("crudTitleLabel")}</label>
+        <input
+          id="crud-title"
+          type="text"
+          value={title}
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(event) => {
+            setTitle(event.target.value);
+            setError(null);
+          }}
+        />
+        <label htmlFor="crud-body">{t("crudBodyLabel")}</label>
+        <textarea
+          id="crud-body"
+          className="crud-body"
+          value={body}
+          spellCheck={false}
+          onChange={(event) => {
+            setBody(event.target.value);
+            setError(null);
+          }}
+        />
+        <label htmlFor="crud-destination">{t("crudDestinationLabel")}</label>
+        <input
+          id="crud-destination"
+          type="text"
+          value={destination}
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(event) => {
+            setDestination(event.target.value);
+            setError(null);
+          }}
+        />
+      </div>
+      <dl className="facts">
+        <div>
+          <dt>{t("crudEnginePersistedLabel")}</dt>
+          <dd>{result?.engine_persisted ? t("crudEngineYes") : t("crudEngineNo")}</dd>
+        </div>
+        <div>
+          <dt>{t("crudFilesWrittenLabel")}</dt>
+          <dd>{result?.files_written ? t("crudWroteFiles") : t("crudNoWrite")}</dd>
+        </div>
+      </dl>
+      {result ? <p>{crudObservationLabel(result.observation.classified_as)}</p> : null}
+      {!fixtureOk && identifier.trim() !== "" ? <p>{t("crudFixtureOnly")}</p> : null}
+      {!destinationOk ? <p>{t("crudFixtureOnly")}</p> : null}
+      <button
+        type="button"
+        className="action"
+        disabled={!fixtureOk || title.trim() === ""}
+        onClick={() => {
+          void runWriteNote(identifier, title, body, setResult, setError, onMutated);
+        }}
+      >
+        {t("crudWrite")}
+      </button>
+      <button
+        type="button"
+        className="action"
+        disabled={!fixtureOk}
+        onClick={() => {
+          void runEditNote(identifier, body, setResult, setError, onMutated);
+        }}
+      >
+        {t("crudEdit")}
+      </button>
+      <button
+        type="button"
+        className="action"
+        disabled={!fixtureOk || !isFixtureNoteIdentifier(destination)}
+        onClick={() => {
+          void runMoveNote(identifier, destination, setResult, setIdentifier, setError, onMutated);
+        }}
+      >
+        {t("crudMove")}
+      </button>
+      {confirmDelete ? (
+        <>
+          <p>{t("crudDeleteConfirmBody")}</p>
+          <button
+            type="button"
+            className="action"
+            onClick={() => {
+              setConfirmDelete(false);
+              void runDeleteNote(identifier, setResult, setError, onMutated);
+            }}
+          >
+            {t("crudDeleteConfirm")}
+          </button>
+          <button
+            type="button"
+            className="action"
+            onClick={() => setConfirmDelete(false)}
+          >
+            {t("crudDeleteCancel")}
+          </button>
+        </>
+      ) : (
+        <button
+          type="button"
+          className="action"
+          disabled={!fixtureOk}
+          onClick={() => setConfirmDelete(true)}
+        >
+          {t("crudDelete")}
+        </button>
+      )}
+    </section>
+  );
+}
+
+async function applyCrudResponse(
+  response: IpcResponse,
+  setResult: (result: NoteCrudResult | null) => void,
+  setError: (error: WorkbenchError | null) => void,
+  onMutated: () => void,
+  onMoved?: (destination: string) => void,
+): Promise<void> {
+  switch (response.kind) {
+    case "error":
+      setError({ category: response.category, message: response.message });
+      return;
+    case "note_written":
+      setError(null);
+      setResult({
+        kind: "note_written",
+        identifier: response.identifier,
+        title: response.title,
+        body: response.body,
+        files_written: response.files_written,
+        engine_persisted: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        observation: response.observation,
+      });
+      if (response.observation.disk_verified) {
+        onMutated();
+      }
+      return;
+    case "note_edited":
+      setError(null);
+      setResult({
+        kind: "note_edited",
+        identifier: response.identifier,
+        body: response.body,
+        files_written: response.files_written,
+        engine_persisted: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        observation: response.observation,
+      });
+      if (response.observation.disk_verified) {
+        onMutated();
+      }
+      return;
+    case "note_moved":
+      setError(null);
+      setResult({
+        kind: "note_moved",
+        identifier: response.identifier,
+        destination: response.destination,
+        body: response.body,
+        files_written: response.files_written,
+        engine_persisted: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        observation: response.observation,
+      });
+      if (response.observation.disk_verified) {
+        onMoved?.(response.destination);
+        onMutated();
+      }
+      return;
+    case "note_deleted":
+      setError(null);
+      setResult({
+        kind: "note_deleted",
+        identifier: response.identifier,
+        files_written: response.files_written,
+        engine_persisted: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        observation: response.observation,
+      });
+      if (response.observation.disk_verified) {
+        onMutated();
+      }
+      return;
+    case "capabilities":
+    case "runtime_state":
+    case "project_selected":
+    case "project_catalog":
+    case "preflight":
+    case "config_discovery":
+    case "tree_page":
+    case "note_read":
+    case "backup_catalog":
+    case "fixture_restored":
+    case "windows_runtime":
+    case "draft_saved":
+    case "draft_loaded":
+      setError(unexpectedCrudResponse());
+      return;
+    default: {
+      const exhaustive: never = response;
+      return exhaustive;
+    }
+  }
+}
+
+async function runWriteNote(
+  identifier: string,
+  title: string,
+  body: string,
+  setResult: (result: NoteCrudResult | null) => void,
+  setError: (error: WorkbenchError | null) => void,
+  onMutated: () => void,
+): Promise<void> {
+  if (!isFixtureNoteIdentifier(identifier)) {
+    setError({ category: "policy", message: t("crudFixtureOnly") });
+    return;
+  }
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "write_note",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        identifier,
+        title,
+        body,
+      },
+    });
+    await applyCrudResponse(response, setResult, setError, onMutated);
+  } catch (cause) {
+    setError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+async function runEditNote(
+  identifier: string,
+  body: string,
+  setResult: (result: NoteCrudResult | null) => void,
+  setError: (error: WorkbenchError | null) => void,
+  onMutated: () => void,
+): Promise<void> {
+  if (!isFixtureNoteIdentifier(identifier)) {
+    setError({ category: "policy", message: t("crudFixtureOnly") });
+    return;
+  }
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "edit_note",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        identifier,
+        body,
+      },
+    });
+    await applyCrudResponse(response, setResult, setError, onMutated);
+  } catch (cause) {
+    setError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+async function runMoveNote(
+  identifier: string,
+  destination: string,
+  setResult: (result: NoteCrudResult | null) => void,
+  setIdentifier: (identifier: string) => void,
+  setError: (error: WorkbenchError | null) => void,
+  onMutated: () => void,
+): Promise<void> {
+  if (!isFixtureNoteIdentifier(identifier) || !isFixtureNoteIdentifier(destination)) {
+    setError({ category: "policy", message: t("crudFixtureOnly") });
+    return;
+  }
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "move_note",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        identifier,
+        destination,
+      },
+    });
+    await applyCrudResponse(response, setResult, setError, onMutated, setIdentifier);
+  } catch (cause) {
+    setError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+async function runDeleteNote(
+  identifier: string,
+  setResult: (result: NoteCrudResult | null) => void,
+  setError: (error: WorkbenchError | null) => void,
+  onMutated: () => void,
+): Promise<void> {
+  if (!isFixtureNoteIdentifier(identifier)) {
+    setError({ category: "policy", message: t("crudFixtureOnly") });
+    return;
+  }
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "delete_note",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        identifier,
+      },
+    });
+    await applyCrudResponse(response, setResult, setError, onMutated);
+  } catch (cause) {
+    setError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
 }
 
 function unexpectedDraftResponse(): WorkbenchError {
@@ -716,6 +1178,10 @@ async function persistDraft(
       case "fixture_restored":
       case "windows_runtime":
       case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
         setError(unexpectedDraftResponse());
         return;
       default: {
@@ -782,6 +1248,10 @@ async function reloadDraft(
       case "fixture_restored":
       case "windows_runtime":
       case "draft_saved":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
         setError(unexpectedDraftResponse());
         return;
       default: {
@@ -1001,6 +1471,10 @@ function ProjectPanel({
                 case "windows_runtime":
                 case "draft_saved":
                 case "draft_loaded":
+                case "note_written":
+                case "note_edited":
+                case "note_moved":
+                case "note_deleted":
                   setSelectError({
                     category: "schema",
                     message: t("unexpectedCatalog"),
@@ -1313,6 +1787,10 @@ function BackupPanel() {
           case "windows_runtime":
           case "draft_saved":
           case "draft_loaded":
+          case "note_written":
+          case "note_edited":
+          case "note_moved":
+          case "note_deleted":
             setError(unexpectedBackupResponse());
             setPhase("error");
             return;
@@ -1484,6 +1962,10 @@ async function restoreNamedFixture(
       case "windows_runtime":
       case "draft_saved":
       case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
       default: {
@@ -1630,6 +2112,10 @@ function WindowsRuntimeCard() {
           case "fixture_restored":
           case "draft_saved":
           case "draft_loaded":
+          case "note_written":
+          case "note_edited":
+          case "note_moved":
+          case "note_deleted":
             setError(unexpectedWindowsResponse());
             setPhase("error");
             return;

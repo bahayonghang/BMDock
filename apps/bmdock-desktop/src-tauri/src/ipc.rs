@@ -2,7 +2,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::backups::{self, BackupCatalogDto, BackupStore, RestoreResultDto};
 use crate::drafts::{self, DraftResultDto, DraftStore};
-use crate::library::{self, NoteLibrary, NoteReadDto, TreePageDto};
+use crate::library::{
+    self, NoteDeleteDto, NoteEditDto, NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto,
+    TreePageDto,
+};
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
 use crate::supervisor::{FailureKind, RuntimeSnapshot, ShutdownReceipt};
@@ -26,6 +29,10 @@ pub enum IpcCommandName {
     InspectWindowsRuntime,
     SaveDraft,
     LoadDraft,
+    WriteNote,
+    EditNote,
+    MoveNote,
+    DeleteNote,
 }
 
 pub fn allowed_commands() -> Vec<IpcCommandName> {
@@ -43,6 +50,10 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::InspectWindowsRuntime,
         IpcCommandName::SaveDraft,
         IpcCommandName::LoadDraft,
+        IpcCommandName::WriteNote,
+        IpcCommandName::EditNote,
+        IpcCommandName::MoveNote,
+        IpcCommandName::DeleteNote,
     ]
 }
 
@@ -153,6 +164,78 @@ impl LoadDraftArgs {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct WriteNoteArgs {
+    pub workspace: String,
+    pub project: String,
+    pub identifier: String,
+    pub title: String,
+    pub body: String,
+}
+
+impl WriteNoteArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct EditNoteArgs {
+    pub workspace: String,
+    pub project: String,
+    pub identifier: String,
+    pub body: String,
+}
+
+impl EditNoteArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct MoveNoteArgs {
+    pub workspace: String,
+    pub project: String,
+    pub identifier: String,
+    pub destination: String,
+}
+
+impl MoveNoteArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct DeleteNoteArgs {
+    pub workspace: String,
+    pub project: String,
+    pub identifier: String,
+}
+
+impl DeleteNoteArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(
     tag = "command",
     content = "args",
@@ -173,6 +256,10 @@ pub enum IpcCommand {
     InspectWindowsRuntime(EmptyArgs),
     SaveDraft(SaveDraftArgs),
     LoadDraft(LoadDraftArgs),
+    WriteNote(WriteNoteArgs),
+    EditNote(EditNoteArgs),
+    MoveNote(MoveNoteArgs),
+    DeleteNote(DeleteNoteArgs),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -228,6 +315,10 @@ pub enum IpcResponse {
     WindowsRuntime(WindowsRuntimeDto),
     DraftSaved(DraftResultDto),
     DraftLoaded(DraftResultDto),
+    NoteWritten(NoteWriteDto),
+    NoteEdited(NoteEditDto),
+    NoteMoved(NoteMoveDto),
+    NoteDeleted(NoteDeleteDto),
     Error(IpcError),
 }
 
@@ -385,6 +476,38 @@ pub fn dispatch_with_stores(
                 drafts.load_draft(&args.identifier)?,
             ))
         }
+        IpcCommand::WriteNote(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            library::reject_note_identifier(&args.identifier)?;
+            library::reject_empty_title(&args.title)?;
+            Ok(IpcResponse::NoteWritten(library.write_note(
+                &args.identifier,
+                &args.title,
+                &args.body,
+            )?))
+        }
+        IpcCommand::EditNote(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            library::reject_note_identifier(&args.identifier)?;
+            Ok(IpcResponse::NoteEdited(
+                library.edit_note(&args.identifier, &args.body)?,
+            ))
+        }
+        IpcCommand::MoveNote(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            library::reject_note_identifier(&args.identifier)?;
+            library::reject_filesystem_destination(&args.destination)?;
+            Ok(IpcResponse::NoteMoved(
+                library.move_note(&args.identifier, &args.destination)?,
+            ))
+        }
+        IpcCommand::DeleteNote(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            library::reject_note_identifier(&args.identifier)?;
+            Ok(IpcResponse::NoteDeleted(
+                library.delete_note(&args.identifier)?,
+            ))
+        }
     }
 }
 
@@ -439,16 +562,20 @@ mod tests {
                 IpcCommandName::InspectWindowsRuntime,
                 IpcCommandName::SaveDraft,
                 IpcCommandName::LoadDraft,
+                IpcCommandName::WriteNote,
+                IpcCommandName::EditNote,
+                IpcCommandName::MoveNote,
+                IpcCommandName::DeleteNote,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 13);
+        assert_eq!(capabilities.commands.len(), 17);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 13);
+        assert_eq!(commands.len(), 17);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
@@ -460,11 +587,12 @@ mod tests {
             .any(|command| command == "inspect_windows_runtime"));
         assert!(commands.iter().any(|command| command == "save_draft"));
         assert!(commands.iter().any(|command| command == "load_draft"));
+        assert!(commands.iter().any(|command| command == "write_note"));
+        assert!(commands.iter().any(|command| command == "edit_note"));
+        assert!(commands.iter().any(|command| command == "move_note"));
+        assert!(commands.iter().any(|command| command == "delete_note"));
         assert!(!commands.iter().any(|command| {
-            command == "search_notes"
-                || command == "call_tool"
-                || command == "search"
-                || command == "write_note"
+            command == "search_notes" || command == "call_tool" || command == "search"
         }));
     }
 
@@ -653,10 +781,14 @@ mod tests {
             r#"{"command":"search_notes","args":{"query":"cross-project"}}"#,
         );
         assert!(search.is_err());
-        let write_note = serde_json::from_str::<IpcCommand>(
+        let incomplete_write_note = serde_json::from_str::<IpcCommand>(
             r#"{"command":"write_note","args":{"project":"bmdock-fixture"}}"#,
         );
-        assert!(write_note.is_err());
+        assert!(incomplete_write_note.is_err());
+        let raw_call_tool = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"call_tool","args":{"name":"write_note","arguments":{"title":"x"}}}"#,
+        );
+        assert!(raw_call_tool.is_err());
         let incomplete_read = serde_json::from_str::<IpcCommand>(
             r#"{"command":"read_note","args":{"project":"bmdock-fixture"}}"#,
         );
@@ -753,6 +885,66 @@ mod tests {
             r#"{"command":"load_draft","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome"}}"#,
         );
         assert!(well_formed_load_draft.is_ok());
+        let extra_path_on_write = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"write_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","title":"中文夹具笔记","body":"x","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_write.is_err());
+        let extra_root_on_write = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"write_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","title":"中文夹具笔记","body":"x","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_write.is_err());
+        let extra_path_on_edit = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"edit_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","body":"x","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_edit.is_err());
+        let extra_root_on_edit = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"edit_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","body":"x","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_edit.is_err());
+        let extra_path_on_move = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"move_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","destination":"renamed","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_move.is_err());
+        let extra_root_on_move = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"move_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","destination":"renamed","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_move.is_err());
+        let extra_path_on_delete = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"delete_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","path":"%APPDATA%\\\\Obsidian"}}"#,
+        );
+        assert!(extra_path_on_delete.is_err());
+        let extra_root_on_delete = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"delete_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_delete.is_err());
+        let incomplete_edit = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"edit_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome"}}"#,
+        );
+        assert!(incomplete_edit.is_err());
+        let incomplete_move = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"move_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome"}}"#,
+        );
+        assert!(incomplete_move.is_err());
+        let incomplete_delete = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"delete_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(incomplete_delete.is_err());
+        let well_formed_write = serde_json::from_str::<IpcCommand>(
+            r##"{"command":"write_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","title":"中文夹具笔记","body":"# 中文夹具笔记\n\n参见 [[欢迎]]。\n"}}"##,
+        );
+        assert!(well_formed_write.is_ok());
+        let well_formed_edit = serde_json::from_str::<IpcCommand>(
+            r##"{"command":"edit_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","body":"# 覆盖后的笔记\n\n[[欢迎]]\n"}}"##,
+        );
+        assert!(well_formed_edit.is_ok());
+        let well_formed_move = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"move_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","destination":"renamed"}}"#,
+        );
+        assert!(well_formed_move.is_ok());
+        let well_formed_delete = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"delete_note","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome"}}"#,
+        );
+        assert!(well_formed_delete.is_ok());
     }
 
     #[test]
@@ -955,6 +1147,38 @@ mod tests {
             &self,
             _identifier: &str,
         ) -> Result<library::NoteReadDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
+        fn write_note(
+            &self,
+            _identifier: &str,
+            _title: &str,
+            _body: &str,
+        ) -> Result<library::NoteWriteDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
+        fn edit_note(
+            &self,
+            _identifier: &str,
+            _body: &str,
+        ) -> Result<library::NoteEditDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
+        fn move_note(
+            &self,
+            _identifier: &str,
+            _destination: &str,
+        ) -> Result<library::NoteMoveDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
+        fn delete_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteDeleteDto, library::LibraryError> {
             panic!("policy rejection must not open the library")
         }
     }
@@ -1865,5 +2089,390 @@ mod tests {
         assert!(json.get("profile").is_none());
         assert!(json.get("tools").is_none());
         assert_eq!(json["engine_persisted"], false);
+    }
+
+    fn fixture_write_args(identifier: &str, title: &str, body: &str) -> WriteNoteArgs {
+        WriteNoteArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            identifier: identifier.to_owned(),
+            title: title.to_owned(),
+            body: body.to_owned(),
+        }
+    }
+
+    fn fixture_edit_args(identifier: &str, body: &str) -> EditNoteArgs {
+        EditNoteArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            identifier: identifier.to_owned(),
+            body: body.to_owned(),
+        }
+    }
+
+    fn fixture_move_args(identifier: &str, destination: &str) -> MoveNoteArgs {
+        MoveNoteArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            identifier: identifier.to_owned(),
+            destination: destination.to_owned(),
+        }
+    }
+
+    fn fixture_delete_args(identifier: &str) -> DeleteNoteArgs {
+        DeleteNoteArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            identifier: identifier.to_owned(),
+        }
+    }
+
+    fn chinese_note_body() -> &'static str {
+        "# 中文夹具笔记\n\n这是 BMDock 自有夹具正文。参见 [[欢迎]]。\n"
+    }
+
+    #[test]
+    fn empty_library_crud_is_unsupported() {
+        let mut route = RouteState::default();
+        let body = chinese_note_body();
+        let write = dispatch_with_library(
+            IpcCommand::WriteNote(fixture_write_args("welcome", "中文夹具笔记", body)),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(write.category, ErrorCategory::Unsupported);
+        assert_eq!(write.message, library::UNSUPPORTED_LIBRARY_UNAVAILABLE);
+        let edit = dispatch_with_library(
+            IpcCommand::EditNote(fixture_edit_args("welcome", body)),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(edit.category, ErrorCategory::Unsupported);
+        let moved = dispatch_with_library(
+            IpcCommand::MoveNote(fixture_move_args("welcome", "renamed")),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(moved.category, ErrorCategory::Unsupported);
+        let deleted = dispatch_with_library(
+            IpcCommand::DeleteNote(fixture_delete_args("welcome")),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(deleted.category, ErrorCategory::Unsupported);
+        assert_eq!(route.project, None);
+    }
+
+    #[test]
+    fn non_fixture_crud_is_policy_and_does_not_open() {
+        let snapshot = idle_snapshot();
+        let mut route = RouteState::default();
+        route.select_fixture();
+        let body = chinese_note_body();
+        let write = dispatch_with_library(
+            IpcCommand::WriteNote(WriteNoteArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+                identifier: "welcome".to_owned(),
+                title: "中文夹具笔记".to_owned(),
+                body: body.to_owned(),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(write.category, ErrorCategory::Policy);
+        let workspace = dispatch_with_library(
+            IpcCommand::EditNote(EditNoteArgs {
+                workspace: "user-home".to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                identifier: "welcome".to_owned(),
+                body: body.to_owned(),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(workspace.category, ErrorCategory::Policy);
+        let identifier = dispatch_with_library(
+            IpcCommand::WriteNote(WriteNoteArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                identifier: r"%APPDATA%\Obsidian\welcome.md".to_owned(),
+                title: "中文夹具笔记".to_owned(),
+                body: body.to_owned(),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(identifier.category, ErrorCategory::Policy);
+        let destination = dispatch_with_library(
+            IpcCommand::MoveNote(MoveNoteArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                identifier: "welcome".to_owned(),
+                destination: r"C:\Users\someone\vault\note.md".to_owned(),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(destination.category, ErrorCategory::Policy);
+        let deleted = dispatch_with_library(
+            IpcCommand::DeleteNote(DeleteNoteArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                identifier: r"%APPDATA%\Obsidian\welcome.md".to_owned(),
+            }),
+            snapshot,
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(deleted.category, ErrorCategory::Policy);
+        assert_eq!(route.project.as_deref(), Some(FIXTURE_PROJECT));
+        assert!(!routing::owned_catalog().implicit_current_project_writes);
+    }
+
+    #[test]
+    fn fixture_crud_observes_physical_files_not_saved_text() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t15-ipc-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let library = library::FixtureLibrary::new(dir.clone());
+        let body = chinese_note_body();
+        let mut route = RouteState::default();
+        let snapshot = idle_snapshot();
+        let before = snapshot.clone();
+        let IpcResponse::NoteWritten(written) = dispatch_with_library(
+            IpcCommand::WriteNote(fixture_write_args("welcome", "中文夹具笔记", body)),
+            snapshot.clone(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(snapshot, before);
+        assert_eq!(route.project, None);
+        let dest = dir.join("welcome.md");
+        assert!(dest.is_file(), "write must observe a physical owned file");
+        let disk = std::fs::read_to_string(&dest).unwrap();
+        assert_eq!(disk, body);
+        assert!(disk.contains("[[欢迎]]"));
+        assert_eq!(written.body, body);
+        assert!(written.files_written);
+        assert!(!written.engine_persisted);
+        assert!(written.observation.disk_verified);
+        assert!(written.observation.envelope_is_not_disk_proof);
+        assert_eq!(
+            written.observation.classified_as,
+            library::NoteCrudClass::DiskVerified
+        );
+        let json = serde_json::to_value(&IpcResponse::NoteWritten(written)).unwrap();
+        assert_eq!(json["kind"], "note_written");
+        assert_eq!(json["engine_persisted"], false);
+        assert_ne!(json["observation"]["classified_as"], "saved");
+        assert!(json.get("path").is_none());
+        assert!(json.get("expected_tools").is_none());
+
+        let replacement = "# 覆盖后的笔记\n\n替换后的中文正文 [[欢迎]]。\n";
+        let IpcResponse::NoteEdited(edited) = dispatch_with_library(
+            IpcCommand::EditNote(fixture_edit_args("welcome", replacement)),
+            snapshot.clone(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let edited_disk = std::fs::read_to_string(&dest).unwrap();
+        assert_eq!(edited_disk, replacement);
+        assert_eq!(edited.body, replacement);
+        assert!(edited.observation.disk_verified);
+        assert!(!edited.engine_persisted);
+
+        let IpcResponse::NoteMoved(moved) = dispatch_with_library(
+            IpcCommand::MoveNote(fixture_move_args("welcome", "renamed")),
+            snapshot.clone(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(!dest.exists());
+        let renamed = dir.join("renamed.md");
+        assert!(renamed.is_file());
+        assert_eq!(std::fs::read_to_string(&renamed).unwrap(), replacement);
+        assert_eq!(moved.body, replacement);
+        assert!(moved.observation.disk_verified);
+        assert!(!moved.engine_persisted);
+
+        let IpcResponse::NoteDeleted(deleted) = dispatch_with_library(
+            IpcCommand::DeleteNote(fixture_delete_args("renamed")),
+            snapshot,
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(!renamed.exists());
+        assert!(deleted.files_written);
+        assert!(!deleted.engine_persisted);
+        assert!(deleted.observation.disk_verified);
+        assert_eq!(
+            deleted.observation.classified_as,
+            library::NoteCrudClass::DiskVerified
+        );
+        let json = serde_json::to_value(&IpcResponse::NoteDeleted(deleted)).unwrap();
+        assert_eq!(json["kind"], "note_deleted");
+        assert!(json.get("path").is_none());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn sequential_move_onto_existing_destination_is_unsupported_not_t16() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t15-ipc-conflict-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let library = library::FixtureLibrary::new(dir.clone());
+        let body = chinese_note_body();
+        library.write_note("welcome", "中文夹具笔记", body).unwrap();
+        library
+            .write_note("renamed", "已有目标", "other body\n")
+            .unwrap();
+        let mut route = RouteState::default();
+        let error = dispatch_with_library(
+            IpcCommand::MoveNote(fixture_move_args("welcome", "renamed")),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(error.category, ErrorCategory::Unsupported);
+        assert_eq!(error.message, library::UNSUPPORTED_MOVE_DESTINATION_EXISTS);
+        assert!(
+            error.message.contains("UNVERIFIED"),
+            "sequential dest-exists must not claim T16 concurrent overwrite"
+        );
+        assert!(dir.join("welcome.md").is_file());
+        assert!(dir.join("renamed.md").is_file());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn envelope_crud_is_accepted_unverified_and_does_not_write() {
+        let library = library::EnvelopeCrudLibrary;
+        let mut route = RouteState::default();
+        let IpcResponse::NoteWritten(written) = dispatch_with_library(
+            IpcCommand::WriteNote(fixture_write_args(
+                "welcome",
+                "中文夹具笔记",
+                chinese_note_body(),
+            )),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(!written.files_written);
+        assert!(!written.engine_persisted);
+        assert!(!written.observation.disk_verified);
+        assert_eq!(
+            written.observation.classified_as,
+            library::NoteCrudClass::AcceptedUnverified
+        );
+        let json = serde_json::to_value(&IpcResponse::NoteWritten(written)).unwrap();
+        assert_eq!(json["kind"], "note_written");
+        assert_ne!(json["observation"]["classified_as"], "saved");
+        let IpcResponse::NoteDeleted(deleted) = dispatch_with_library(
+            IpcCommand::DeleteNote(fixture_delete_args("welcome")),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(!deleted.files_written);
+        assert!(!deleted.observation.disk_verified);
+        assert_eq!(
+            deleted.observation.classified_as,
+            library::NoteCrudClass::AcceptedUnverified
+        );
+    }
+
+    #[test]
+    fn crud_commands_do_not_merge_engine_profiles() {
+        let release = crate::supervisor::EngineProfile::Release;
+        let preview = crate::supervisor::EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(preview.commit(), "3452c821d76c083823d020984d71e06904a1ff1e");
+        assert_eq!(release.expected_tools(), 21);
+        assert_eq!(preview.expected_tools(), 27);
+        assert_ne!(release.expected_tools(), preview.expected_tools());
+        let mut route = RouteState::default();
+        let error = dispatch_with_library(
+            IpcCommand::WriteNote(fixture_write_args(
+                "welcome",
+                "中文夹具笔记",
+                chinese_note_body(),
+            )),
+            RuntimeSnapshot {
+                state: ConnectionState::Connected,
+                profile: Some(release),
+                child_pid: Some(7),
+                failure: None,
+                shutdown: None,
+            },
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(error.category, ErrorCategory::Unsupported);
+        assert!(serde_json::to_value(&IpcResponse::Error(error))
+            .unwrap()
+            .get("expected_tools")
+            .is_none());
     }
 }

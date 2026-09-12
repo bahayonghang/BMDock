@@ -1,0 +1,214 @@
+{
+  "task": "T15",
+  "title": "完整笔记写入编辑移动删除",
+  "status": "accepted_with_limits",
+  "date": "2026-09-12",
+  "host_boundary": "T15 owns typed write_note, edit_note, move_note, and delete_note on the existing ipc_invoke union. These are host commands, not raw callTool. Every command requires ExplicitRouteArgs (workspace + project). write_note adds identifier + title + body. edit_note adds identifier + body. move_note adds identifier + destination (permalink, not a filesystem path). delete_note adds identifier. deny_unknown_fields. Extra path/root is schema. Non-fixture route or filesystem identifier/destination is policy and does not open the library. RouteState.project is not an implicit write target. Production default is EmptyLibrary: all four CRUD ops are unsupported with engine/library unavailable. Tests inject FixtureLibrary over generated owned temp roots {temp}/bmdock-t15-*. T15 does not start/stop Supervisor, spawn engines, open user vaults, mix release/main-preview tool counts, call rmcp/live MCP, or write %APPDATA% Obsidian / user vault / global Basic Memory config. save_draft/load_draft remain distinct from write_note. engine_persisted stays false. P0 bmdock-probe and just contract/contract-main stay independent. just build stays the G0 probe. just dev remains the T08 Tauri shell.",
+  "acceptance": {
+    "AC08": {
+      "status": "fixture_write_disk_observed_not_envelope",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Fixture tests write BMDock-owned markdown whose body includes Chinese text and wiki-link [[欢迎]], then observe the physical file {temp}/bmdock-t15-*/welcome.md. classified_as=disk_verified, disk_verified=true, files_written=true, envelope_is_not_disk_proof=true, engine_persisted=false. Envelope-only saved text is accepted_unverified and files_written=false. The command does not write into %APPDATA%, user Obsidian, or global Basic Memory config, and does not call MCP write_note.",
+      "unverified": [
+        "official engine write_note MCP",
+        "user vault fidelity",
+        "T16 same-target conflict"
+      ]
+    },
+    "AC10": {
+      "status": "write_and_edit_observe_exact_body",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "After write_note and edit_note, tests compare the returned body to the physical markdown file, including Chinese text and [[欢迎]]. Envelope saved is not disk proof. Draft save_draft remains a distinct T14 path.",
+      "unverified": [
+        "official engine markdown persist",
+        "native GUI editor interaction"
+      ]
+    },
+    "AC11": {
+      "status": "edit_overwrites_existing_identifier",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "edit_note overwrite/replaces the body of an existing identifier. Tests observe the new physical file body and that it differs from the original. Missing identifier is unsupported.",
+      "unverified": [
+        "official engine edit_note MCP",
+        "T16 concurrent overwrite"
+      ]
+    },
+    "AC12": {
+      "status": "move_renames_within_owned_fixture",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "move_note renames an identifier within the owned fixture library. The old path is gone and the new path exists with the same body. Destination is a permalink. Filesystem destination is policy and does not open the library. Sequential move onto an existing destination is unsupported and does not claim T16 concurrent overwrite.",
+      "unverified": [
+        "atomic concurrent overwrite",
+        "T16 same-target conflict / unknown result"
+      ]
+    },
+    "AC13": {
+      "status": "delete_missing_is_observation_not_user_vault",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "delete_note removes the physical owned file. Missing after delete is success-with-observation (disk_verified when absence is observed), not user-vault success. Envelope-only delete is accepted_unverified.",
+      "unverified": [
+        "official engine delete_note MCP",
+        "user vault delete"
+      ]
+    },
+    "AC14": {
+      "status": "explicit_route_on_every_crud_call",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Every CRUD call carries ExplicitRouteArgs. Extra path/root is schema. Non-fixture project or workspace is policy and does not open the library even if RouteState.project is already bmdock-fixture. implicit_current_project_writes stays false.",
+      "unverified": [
+        "cross-project search",
+        "implicit current-project write"
+      ]
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t15-note-crud-operations",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 97 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 9 passed"
+    },
+    {
+      "cmd": "python -m unittest discover -s tests -v",
+      "exit": 1,
+      "result": "69 tests: 68 ok, 1 ERROR test_repository_phase_order via check_source because G0 is in_progress while T05+ are completed. DesktopShellTests 9 passed. T05-T14 were not reverted."
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T15 note-CRUD proof. Probe entries remain independent."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window was launched. CRUD verification is source plus unit tests."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_102_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_discover": "68_ok_1_error_phase_order",
+    "python_unittest_desktop_shell": "9_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "bundle_active": false,
+    "typed_write_note": "present",
+    "raw_call_tool": "absent",
+    "engine_persisted": false,
+    "native_gui_session": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "t16_conflict": "UNVERIFIED",
+    "official_engine_crud_mcp": "UNVERIFIED",
+    "rmcp_live_client": "not_added_in_t15"
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false,
+    "present_on_crud_dto": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed_unchanged",
+    "T10": "completed_unchanged",
+    "T11": "completed_unchanged",
+    "T12": "completed_unchanged",
+    "T13": "completed_unchanged",
+    "T14": "completed_unchanged",
+    "T15": "completed"
+  },
+  "scope_limits": [
+    "write_note, edit_note, move_note, and delete_note require ExplicitRouteArgs on every call. Extra path/root is schema. Non-fixture routes and filesystem identifiers/destinations are policy and do not open the library.",
+    "Capabilities advertise seventeen commands. call_tool and search_notes remain absent. Incomplete write_note args remain schema.",
+    "Production EmptyLibrary CRUD is unsupported with engine/library unavailable.",
+    "files_written is true only after owned note files exist or were removed. Envelope saved is accepted_unverified.",
+    "engine_persisted stays false. Official engine CRUD MCP is UNVERIFIED.",
+    "T16 same-target conflict / unknown result remain UNVERIFIED. Do not claim atomic concurrent overwrite.",
+    "save_draft/load_draft remain distinct from write_note.",
+    "IPC error union stays policy/schema/unsupported. Runtime failure kinds stay on RuntimeStateDto.",
+    "just build stays scripts.tasks build. just contract* stay probe. just tauri-dev/tauri-build stay desktop. bundle.active stays false.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "UI copy, tool lists, compiled exe, cargo test, npm build, and just contract are not native GUI / user-vault / engine-persist proof."
+  ],
+  "rollback": "Remove write_note, edit_note, move_note, and delete_note from the IpcCommand union, restore the thirteen-command allowlist, drop FixtureLibrary CRUD, and remove the workbench CRUD panel. Do not revert T05-T14 status to make unit green."
+}

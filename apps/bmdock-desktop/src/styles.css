@@ -277,19 +277,23 @@ main {
   font-size: 0.92rem;
 }
 
-.draft-editor {
+.draft-editor,
+.crud-editor {
   display: grid;
   gap: 0.45rem;
   margin: 0.75rem 0;
 }
 
-.draft-editor label {
+.draft-editor label,
+.crud-editor label {
   font-weight: 600;
   color: #e7edf7;
 }
 
 .draft-editor input,
-.draft-body {
+.draft-body,
+.crud-editor input,
+.crud-body {
   font: inherit;
   color: inherit;
   background: #0f1624;
@@ -299,7 +303,8 @@ main {
   width: 100%;
 }
 
-.draft-body {
+.draft-body,
+.crud-body {
   min-height: 12rem;
   resize: vertical;
   white-space: pre-wrap;

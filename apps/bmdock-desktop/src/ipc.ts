@@ -37,6 +37,26 @@ export type LoadDraftArgs = ExplicitRouteArgs & {
   identifier: string;
 };
 
+export type WriteNoteArgs = ExplicitRouteArgs & {
+  identifier: string;
+  title: string;
+  body: string;
+};
+
+export type EditNoteArgs = ExplicitRouteArgs & {
+  identifier: string;
+  body: string;
+};
+
+export type MoveNoteArgs = ExplicitRouteArgs & {
+  identifier: string;
+  destination: string;
+};
+
+export type DeleteNoteArgs = ExplicitRouteArgs & {
+  identifier: string;
+};
+
 export type IpcCommand =
   | { command: "get_capabilities"; args: Record<string, never> }
   | { command: "get_runtime_state"; args: Record<string, never> }
@@ -50,7 +70,11 @@ export type IpcCommand =
   | { command: "restore_fixture"; args: RestoreFixtureArgs }
   | { command: "inspect_windows_runtime"; args: Record<string, never> }
   | { command: "save_draft"; args: SaveDraftArgs }
-  | { command: "load_draft"; args: LoadDraftArgs };
+  | { command: "load_draft"; args: LoadDraftArgs }
+  | { command: "write_note"; args: WriteNoteArgs }
+  | { command: "edit_note"; args: EditNoteArgs }
+  | { command: "move_note"; args: MoveNoteArgs }
+  | { command: "delete_note"; args: DeleteNoteArgs };
 
 export type IpcCommandName = IpcCommand["command"];
 export type IpcEventName = "runtime_state" | "policy";
@@ -232,6 +256,55 @@ export interface DraftResultDto {
   observation: DraftObservationDto;
 }
 
+export type NoteCrudClass = "empty" | "disk_verified" | "accepted_unverified" | "unclassified";
+
+export interface NoteCrudObservationDto {
+  classified_as: NoteCrudClass;
+  disk_verified: boolean;
+  envelope_is_not_disk_proof: true;
+}
+
+export interface NoteWriteDto {
+  identifier: string;
+  title: string;
+  body: string;
+  files_written: boolean;
+  engine_persisted: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  observation: NoteCrudObservationDto;
+}
+
+export interface NoteEditDto {
+  identifier: string;
+  body: string;
+  files_written: boolean;
+  engine_persisted: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  observation: NoteCrudObservationDto;
+}
+
+export interface NoteMoveDto {
+  identifier: string;
+  destination: string;
+  body: string;
+  files_written: boolean;
+  engine_persisted: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  observation: NoteCrudObservationDto;
+}
+
+export interface NoteDeleteDto {
+  identifier: string;
+  files_written: boolean;
+  engine_persisted: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  observation: NoteCrudObservationDto;
+}
+
 export type HostOs = "windows" | "other";
 
 export interface WindowsRuntimeDto {
@@ -260,6 +333,10 @@ export type IpcResponse =
   | { kind: "windows_runtime" } & WindowsRuntimeDto
   | { kind: "draft_saved" } & DraftResultDto
   | { kind: "draft_loaded" } & DraftResultDto
+  | { kind: "note_written" } & NoteWriteDto
+  | { kind: "note_edited" } & NoteEditDto
+  | { kind: "note_moved" } & NoteMoveDto
+  | { kind: "note_deleted" } & NoteDeleteDto
   | { kind: "error"; category: ErrorCategory; message: string };
 
 export interface RuntimeStateEvent {
@@ -293,6 +370,10 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "restore_fixture":
     case "save_draft":
     case "load_draft":
+    case "write_note":
+    case "edit_note":
+    case "move_note":
+    case "delete_note":
       if (command.args.project !== FIXTURE_PROJECT || command.args.workspace !== OWNED_WORKSPACE) {
         throw new Error("Only the generated fixture project is allowed");
       }
@@ -421,6 +502,58 @@ export const loadDraft = (identifier: string) => {
   const route = copyFixtureRoute();
   return invokeTyped<{ kind: "draft_loaded" } & DraftResultDto>({
     command: "load_draft",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      identifier,
+    },
+  });
+};
+
+export const writeNote = (identifier: string, title: string, body: string) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "note_written" } & NoteWriteDto>({
+    command: "write_note",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      identifier,
+      title,
+      body,
+    },
+  });
+};
+
+export const editNote = (identifier: string, body: string) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "note_edited" } & NoteEditDto>({
+    command: "edit_note",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      identifier,
+      body,
+    },
+  });
+};
+
+export const moveNote = (identifier: string, destination: string) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "note_moved" } & NoteMoveDto>({
+    command: "move_note",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      identifier,
+      destination,
+    },
+  });
+};
+
+export const deleteNote = (identifier: string) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "note_deleted" } & NoteDeleteDto>({
+    command: "delete_note",
     args: {
       workspace: route.workspace,
       project: route.project,

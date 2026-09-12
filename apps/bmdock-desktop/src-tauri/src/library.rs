@@ -2,7 +2,7 @@
 use std::fs;
 use std::path::Path;
 #[cfg(test)]
-use std::path::PathBuf;
+use std::path::{Component, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
@@ -11,9 +11,23 @@ pub const MAX_PAGE_SIZE: u32 = 64;
 pub const UNSUPPORTED_LIBRARY_UNAVAILABLE: &str = "engine/library unavailable";
 pub const SCHEMA_INVALID_CURSOR: &str = "invalid or repeated pagination cursor";
 pub const SCHEMA_PAGE_SIZE: &str = "page_size must be bounded and greater than 0";
+pub const SCHEMA_NOTE_IDENTIFIER: &str = "note identifier is required";
+pub const SCHEMA_NOTE_TITLE: &str = "note title is required";
+pub const SCHEMA_NOTE_DESTINATION: &str = "move destination is required";
+pub const SCHEMA_MOVE_SAME_IDENTIFIER: &str = "move destination must differ from identifier";
 pub const UNSUPPORTED_TRUNCATED: &str = "truncated inventory is not a success";
+#[cfg(test)]
+pub const UNSUPPORTED_NOTE_MISSING: &str = "note identifier is not present in the fixture library";
+#[cfg(test)]
+pub const UNSUPPORTED_MOVE_DESTINATION_EXISTS: &str =
+    "destination already exists; concurrent overwrite remains UNVERIFIED";
 pub const POLICY_FILESYSTEM_IDENTIFIER: &str =
     "Note identifiers are permalinks, not user vault filesystem paths";
+pub const POLICY_FILESYSTEM_DESTINATION: &str =
+    "Move destinations are permalinks, not user vault filesystem paths";
+#[cfg(test)]
+pub const POLICY_FORBIDDEN_LIBRARY_ROOT: &str =
+    "Note CRUD cannot target user vaults, %APPDATA% Obsidian, or global Basic Memory config";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LibraryError {
@@ -82,10 +96,103 @@ pub struct NoteReadDto {
     pub observation: NoteObservationDto,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum NoteCrudClass {
+    Empty,
+    DiskVerified,
+    AcceptedUnverified,
+    Unclassified,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct NoteCrudObservationDto {
+    pub classified_as: NoteCrudClass,
+    pub disk_verified: bool,
+    pub envelope_is_not_disk_proof: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct NoteWriteDto {
+    pub identifier: String,
+    pub title: String,
+    pub body: String,
+    pub files_written: bool,
+    pub engine_persisted: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub observation: NoteCrudObservationDto,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct NoteEditDto {
+    pub identifier: String,
+    pub body: String,
+    pub files_written: bool,
+    pub engine_persisted: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub observation: NoteCrudObservationDto,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct NoteMoveDto {
+    pub identifier: String,
+    pub destination: String,
+    pub body: String,
+    pub files_written: bool,
+    pub engine_persisted: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub observation: NoteCrudObservationDto,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct NoteDeleteDto {
+    pub identifier: String,
+    pub files_written: bool,
+    pub engine_persisted: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub observation: NoteCrudObservationDto,
+}
+
 pub trait NoteLibrary: Send + Sync {
     fn list_tree(&self, cursor: Option<&str>, page_size: u32) -> Result<TreePageDto, LibraryError>;
 
     fn read_note(&self, identifier: &str) -> Result<NoteReadDto, LibraryError>;
+
+    fn write_note(
+        &self,
+        identifier: &str,
+        title: &str,
+        body: &str,
+    ) -> Result<NoteWriteDto, LibraryError> {
+        let _ = body;
+        reject_note_identifier(identifier)?;
+        reject_empty_title(title)?;
+        Err(LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))
+    }
+
+    fn edit_note(&self, identifier: &str, body: &str) -> Result<NoteEditDto, LibraryError> {
+        let _ = body;
+        reject_note_identifier(identifier)?;
+        Err(LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))
+    }
+
+    fn move_note(&self, identifier: &str, destination: &str) -> Result<NoteMoveDto, LibraryError> {
+        reject_note_identifier(identifier)?;
+        reject_filesystem_destination(destination)?;
+        if identifier == destination {
+            return Err(LibraryError::schema(SCHEMA_MOVE_SAME_IDENTIFIER));
+        }
+        Err(LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))
+    }
+
+    fn delete_note(&self, identifier: &str) -> Result<NoteDeleteDto, LibraryError> {
+        reject_note_identifier(identifier)?;
+        Err(LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))
+    }
 }
 
 #[derive(Debug, Default)]
@@ -106,10 +213,39 @@ impl NoteLibrary for EmptyLibrary {
     }
 
     fn read_note(&self, identifier: &str) -> Result<NoteReadDto, LibraryError> {
-        reject_filesystem_identifier(identifier)?;
-        if identifier.is_empty() {
-            return Err(LibraryError::schema("note identifier is required"));
+        reject_note_identifier(identifier)?;
+        Err(LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))
+    }
+
+    fn write_note(
+        &self,
+        identifier: &str,
+        title: &str,
+        body: &str,
+    ) -> Result<NoteWriteDto, LibraryError> {
+        let _ = body;
+        reject_note_identifier(identifier)?;
+        reject_empty_title(title)?;
+        Err(LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))
+    }
+
+    fn edit_note(&self, identifier: &str, body: &str) -> Result<NoteEditDto, LibraryError> {
+        let _ = body;
+        reject_note_identifier(identifier)?;
+        Err(LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))
+    }
+
+    fn move_note(&self, identifier: &str, destination: &str) -> Result<NoteMoveDto, LibraryError> {
+        reject_note_identifier(identifier)?;
+        reject_filesystem_destination(destination)?;
+        if identifier == destination {
+            return Err(LibraryError::schema(SCHEMA_MOVE_SAME_IDENTIFIER));
         }
+        Err(LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))
+    }
+
+    fn delete_note(&self, identifier: &str) -> Result<NoteDeleteDto, LibraryError> {
+        reject_note_identifier(identifier)?;
         Err(LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))
     }
 }
@@ -166,10 +302,23 @@ impl FixtureLibrary {
     }
 
     fn resolve_note_path(&self, identifier: &str) -> Result<PathBuf, LibraryError> {
-        reject_filesystem_identifier(identifier)?;
-        if identifier.is_empty() {
-            return Err(LibraryError::schema("note identifier is required"));
+        let candidate = self.resolve_create_path(identifier)?;
+        let root = self
+            .root
+            .canonicalize()
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let resolved = candidate
+            .canonicalize()
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_NOTE_MISSING))?;
+        if !resolved.starts_with(&root) {
+            return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
         }
+        Ok(resolved)
+    }
+
+    fn resolve_create_path(&self, identifier: &str) -> Result<PathBuf, LibraryError> {
+        reject_note_identifier(identifier)?;
+        reject_forbidden_library_root(&self.root)?;
         if identifier
             .split('/')
             .any(|part| part.is_empty() || part == "." || part == ".." || part.contains('\\'))
@@ -185,17 +334,32 @@ impl FixtureLibrary {
             return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
         }
         let candidate = self.root.join(relative);
-        let root = self
-            .root
-            .canonicalize()
-            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
-        let resolved = candidate
-            .canonicalize()
-            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
-        if !resolved.starts_with(&root) {
-            return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+        if library_root_is_forbidden(&candidate) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
         }
-        Ok(resolved)
+        Ok(candidate)
+    }
+
+    fn require_crud_root(&self) -> Result<(), LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        if !self.root.to_string_lossy().contains("bmdock-t15") {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        Ok(())
+    }
+
+    fn observe_exact_body(path: &Path, expected: &str) -> (bool, bool, NoteCrudClass) {
+        let exists = path.is_file();
+        let disk = fs::read_to_string(path).ok();
+        let verified = exists && disk.as_deref() == Some(expected);
+        let classified = if verified {
+            NoteCrudClass::DiskVerified
+        } else if exists {
+            NoteCrudClass::Unclassified
+        } else {
+            NoteCrudClass::AcceptedUnverified
+        };
+        (exists, verified, classified)
     }
 }
 
@@ -234,6 +398,207 @@ impl NoteLibrary for FixtureLibrary {
             identifier: identifier.to_owned(),
             body: disk.clone(),
             observation: observation_from_disk(&disk, &disk),
+        })
+    }
+
+    fn write_note(
+        &self,
+        identifier: &str,
+        title: &str,
+        body: &str,
+    ) -> Result<NoteWriteDto, LibraryError> {
+        self.require_crud_root()?;
+        reject_note_identifier(identifier)?;
+        reject_empty_title(title)?;
+        let dest = self.resolve_create_path(identifier)?;
+        if let Some(parent) = dest.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        }
+        fs::write(&dest, body)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let (exists, verified, classified) = Self::observe_exact_body(&dest, body);
+        Ok(NoteWriteDto {
+            identifier: identifier.to_owned(),
+            title: title.to_owned(),
+            body: body.to_owned(),
+            files_written: exists,
+            engine_persisted: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            observation: crud_observation(classified, verified),
+        })
+    }
+
+    fn edit_note(&self, identifier: &str, body: &str) -> Result<NoteEditDto, LibraryError> {
+        self.require_crud_root()?;
+        let path = self.resolve_note_path(identifier)?;
+        fs::write(&path, body)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let (exists, verified, classified) = Self::observe_exact_body(&path, body);
+        Ok(NoteEditDto {
+            identifier: identifier.to_owned(),
+            body: body.to_owned(),
+            files_written: exists,
+            engine_persisted: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            observation: crud_observation(classified, verified),
+        })
+    }
+
+    fn move_note(&self, identifier: &str, destination: &str) -> Result<NoteMoveDto, LibraryError> {
+        self.require_crud_root()?;
+        reject_note_identifier(identifier)?;
+        reject_filesystem_destination(destination)?;
+        if identifier == destination {
+            return Err(LibraryError::schema(SCHEMA_MOVE_SAME_IDENTIFIER));
+        }
+        let source = self.resolve_note_path(identifier)?;
+        let dest = self.resolve_create_path(destination)?;
+        if dest.exists() {
+            return Err(LibraryError::unsupported(
+                UNSUPPORTED_MOVE_DESTINATION_EXISTS,
+            ));
+        }
+        if let Some(parent) = dest.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        }
+        let body = fs::read_to_string(&source)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        fs::rename(&source, &dest)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let old_gone = !source.exists();
+        let (exists, verified, classified) = Self::observe_exact_body(&dest, &body);
+        let disk_verified = old_gone && verified;
+        let classified = if disk_verified {
+            NoteCrudClass::DiskVerified
+        } else if exists {
+            classified
+        } else {
+            NoteCrudClass::AcceptedUnverified
+        };
+        Ok(NoteMoveDto {
+            identifier: identifier.to_owned(),
+            destination: destination.to_owned(),
+            body,
+            files_written: exists && old_gone,
+            engine_persisted: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            observation: crud_observation(classified, disk_verified),
+        })
+    }
+
+    fn delete_note(&self, identifier: &str) -> Result<NoteDeleteDto, LibraryError> {
+        self.require_crud_root()?;
+        reject_note_identifier(identifier)?;
+        let dest = self.resolve_create_path(identifier)?;
+        let was_present = dest.is_file();
+        if dest.exists() {
+            fs::remove_file(&dest)
+                .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        }
+        let missing = !dest.exists();
+        let classified = if missing {
+            NoteCrudClass::DiskVerified
+        } else {
+            NoteCrudClass::AcceptedUnverified
+        };
+        Ok(NoteDeleteDto {
+            identifier: identifier.to_owned(),
+            files_written: was_present && missing,
+            engine_persisted: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            observation: crud_observation(classified, missing),
+        })
+    }
+}
+
+#[cfg(test)]
+#[derive(Debug, Default)]
+pub struct EnvelopeCrudLibrary;
+
+#[cfg(test)]
+impl NoteLibrary for EnvelopeCrudLibrary {
+    fn list_tree(&self, cursor: Option<&str>, page_size: u32) -> Result<TreePageDto, LibraryError> {
+        let _ = (cursor, page_size);
+        Ok(TreePageDto {
+            entries: Vec::new(),
+            next_cursor: None,
+            page: 1,
+            truncated: false,
+        })
+    }
+
+    fn read_note(&self, identifier: &str) -> Result<NoteReadDto, LibraryError> {
+        Ok(NoteReadDto {
+            title: identifier.to_owned(),
+            identifier: identifier.to_owned(),
+            body: "saved".to_owned(),
+            observation: observation_from_envelope_only(),
+        })
+    }
+
+    fn write_note(
+        &self,
+        identifier: &str,
+        title: &str,
+        _body: &str,
+    ) -> Result<NoteWriteDto, LibraryError> {
+        reject_note_identifier(identifier)?;
+        reject_empty_title(title)?;
+        Ok(NoteWriteDto {
+            identifier: identifier.to_owned(),
+            title: title.to_owned(),
+            body: "saved".to_owned(),
+            files_written: false,
+            engine_persisted: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            observation: crud_observation(NoteCrudClass::AcceptedUnverified, false),
+        })
+    }
+
+    fn edit_note(&self, identifier: &str, _body: &str) -> Result<NoteEditDto, LibraryError> {
+        reject_note_identifier(identifier)?;
+        Ok(NoteEditDto {
+            identifier: identifier.to_owned(),
+            body: "saved".to_owned(),
+            files_written: false,
+            engine_persisted: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            observation: crud_observation(NoteCrudClass::AcceptedUnverified, false),
+        })
+    }
+
+    fn move_note(&self, identifier: &str, destination: &str) -> Result<NoteMoveDto, LibraryError> {
+        reject_note_identifier(identifier)?;
+        reject_filesystem_destination(destination)?;
+        Ok(NoteMoveDto {
+            identifier: identifier.to_owned(),
+            destination: destination.to_owned(),
+            body: "saved".to_owned(),
+            files_written: false,
+            engine_persisted: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            observation: crud_observation(NoteCrudClass::AcceptedUnverified, false),
+        })
+    }
+
+    fn delete_note(&self, identifier: &str) -> Result<NoteDeleteDto, LibraryError> {
+        reject_note_identifier(identifier)?;
+        Ok(NoteDeleteDto {
+            identifier: identifier.to_owned(),
+            files_written: false,
+            engine_persisted: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            observation: crud_observation(NoteCrudClass::AcceptedUnverified, false),
         })
     }
 }
@@ -279,6 +644,32 @@ pub fn accept_tree_page(
 pub fn reject_filesystem_identifier(identifier: &str) -> Result<(), LibraryError> {
     if looks_like_filesystem_path(identifier) {
         Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER))
+    } else {
+        Ok(())
+    }
+}
+
+pub fn reject_note_identifier(identifier: &str) -> Result<(), LibraryError> {
+    if identifier.trim().is_empty() {
+        return Err(LibraryError::schema(SCHEMA_NOTE_IDENTIFIER));
+    }
+    reject_filesystem_identifier(identifier)
+}
+
+pub fn reject_empty_title(title: &str) -> Result<(), LibraryError> {
+    if title.trim().is_empty() {
+        Err(LibraryError::schema(SCHEMA_NOTE_TITLE))
+    } else {
+        Ok(())
+    }
+}
+
+pub fn reject_filesystem_destination(destination: &str) -> Result<(), LibraryError> {
+    if destination.trim().is_empty() {
+        return Err(LibraryError::schema(SCHEMA_NOTE_DESTINATION));
+    }
+    if looks_like_filesystem_path(destination) {
+        Err(LibraryError::policy(POLICY_FILESYSTEM_DESTINATION))
     } else {
         Ok(())
     }
@@ -343,6 +734,42 @@ pub fn looks_like_filesystem_path(value: &str) -> bool {
         || value.contains("%USERPROFILE%")
         || value.contains(".obsidian")
         || value.contains(".basic-memory")
+}
+
+#[cfg(test)]
+fn crud_observation(classified_as: NoteCrudClass, disk_verified: bool) -> NoteCrudObservationDto {
+    NoteCrudObservationDto {
+        classified_as,
+        disk_verified,
+        envelope_is_not_disk_proof: true,
+    }
+}
+
+#[cfg(test)]
+pub fn library_root_is_forbidden(path: &Path) -> bool {
+    let text = path.to_string_lossy();
+    if text.contains("%APPDATA%") || text.contains("%USERPROFILE%") {
+        return true;
+    }
+    path.components().any(|component| match component {
+        Component::Normal(name) => {
+            let lower = name.to_string_lossy().to_ascii_lowercase();
+            lower == ".obsidian"
+                || lower == "obsidian"
+                || lower == ".basic-memory"
+                || lower == "basic-memory"
+        }
+        _ => false,
+    })
+}
+
+#[cfg(test)]
+pub fn reject_forbidden_library_root(path: &Path) -> Result<(), LibraryError> {
+    if library_root_is_forbidden(path) {
+        Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT))
+    } else {
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -661,5 +1088,299 @@ mod tests {
         }
         assert!(!looks_like_filesystem_path("welcome"));
         assert!(!looks_like_filesystem_path("folder/welcome"));
+    }
+
+    struct TempCrud {
+        dir: PathBuf,
+    }
+
+    impl TempCrud {
+        fn create() -> Self {
+            let nanos = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|duration| duration.as_nanos())
+                .unwrap_or(0);
+            let seq = FIXTURE_SEQ.fetch_add(1, Ordering::Relaxed);
+            let dir = std::env::temp_dir().join(format!("bmdock-t15-{nanos}-{seq}"));
+            fs::create_dir_all(&dir).unwrap();
+            Self { dir }
+        }
+    }
+
+    impl Drop for TempCrud {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.dir);
+        }
+    }
+
+    fn chinese_body() -> &'static str {
+        "# 中文夹具笔记\n\n这是 BMDock 自有夹具正文。参见 [[欢迎]]。\n"
+    }
+
+    #[test]
+    fn empty_library_crud_is_unsupported() {
+        let library = EmptyLibrary;
+        let body = chinese_body();
+        let write = library
+            .write_note("welcome", "中文夹具笔记", body)
+            .unwrap_err();
+        assert_eq!(
+            write,
+            LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE)
+        );
+        let edit = library.edit_note("welcome", body).unwrap_err();
+        assert_eq!(
+            edit,
+            LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE)
+        );
+        let moved = library.move_note("welcome", "renamed").unwrap_err();
+        assert_eq!(
+            moved,
+            LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE)
+        );
+        let deleted = library.delete_note("welcome").unwrap_err();
+        assert_eq!(
+            deleted,
+            LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE)
+        );
+    }
+
+    #[test]
+    fn fixture_write_observes_physical_markdown_not_envelope() {
+        let fixture = TempCrud::create();
+        let library = FixtureLibrary::new(fixture.dir.clone());
+        let body = chinese_body();
+        let written = library.write_note("welcome", "中文夹具笔记", body).unwrap();
+        let dest = fixture.dir.join("welcome.md");
+        assert!(dest.is_file(), "write must observe a physical owned file");
+        let disk = fs::read_to_string(&dest).unwrap();
+        assert_eq!(disk, body);
+        assert!(disk.contains("[[欢迎]]"));
+        assert_eq!(written.body, body);
+        assert_eq!(written.title, "中文夹具笔记");
+        assert!(written.files_written);
+        assert!(!written.engine_persisted);
+        assert!(written.observation.disk_verified);
+        assert!(written.observation.envelope_is_not_disk_proof);
+        assert_eq!(
+            written.observation.classified_as,
+            NoteCrudClass::DiskVerified
+        );
+        assert!(!written.scanned_user_obsidian_vault);
+        assert!(!written.scanned_user_basic_memory_home);
+        let read = library.read_note("welcome").unwrap();
+        assert_eq!(read.body, disk);
+        assert_eq!(
+            read.observation.classified_as,
+            ObservationClass::BodyMatchesDisk
+        );
+    }
+
+    #[test]
+    fn edit_overwrites_existing_identifier_on_disk() {
+        let fixture = TempCrud::create();
+        let library = FixtureLibrary::new(fixture.dir.clone());
+        let original = chinese_body();
+        library
+            .write_note("welcome", "中文夹具笔记", original)
+            .unwrap();
+        let replacement = "# 覆盖后的笔记\n\n替换后的中文正文 [[欢迎]]。\n";
+        let edited = library.edit_note("welcome", replacement).unwrap();
+        let disk = fs::read_to_string(fixture.dir.join("welcome.md")).unwrap();
+        assert_eq!(disk, replacement);
+        assert_ne!(disk, original);
+        assert_eq!(edited.body, replacement);
+        assert!(edited.files_written);
+        assert!(!edited.engine_persisted);
+        assert!(edited.observation.disk_verified);
+        assert_eq!(
+            edited.observation.classified_as,
+            NoteCrudClass::DiskVerified
+        );
+        let missing = library.edit_note("missing", replacement).unwrap_err();
+        assert_eq!(missing, LibraryError::unsupported(UNSUPPORTED_NOTE_MISSING));
+    }
+
+    #[test]
+    fn move_renames_identifier_within_owned_library() {
+        let fixture = TempCrud::create();
+        let library = FixtureLibrary::new(fixture.dir.clone());
+        let body = chinese_body();
+        library.write_note("welcome", "中文夹具笔记", body).unwrap();
+        let moved = library.move_note("welcome", "renamed").unwrap();
+        let old_path = fixture.dir.join("welcome.md");
+        let new_path = fixture.dir.join("renamed.md");
+        assert!(!old_path.exists(), "old path must be gone after move");
+        assert!(new_path.is_file(), "new path must exist after move");
+        let disk = fs::read_to_string(&new_path).unwrap();
+        assert_eq!(disk, body);
+        assert_eq!(moved.body, body);
+        assert_eq!(moved.identifier, "welcome");
+        assert_eq!(moved.destination, "renamed");
+        assert!(moved.files_written);
+        assert!(!moved.engine_persisted);
+        assert!(moved.observation.disk_verified);
+        assert_eq!(moved.observation.classified_as, NoteCrudClass::DiskVerified);
+        let filesystem = library
+            .move_note("renamed", r"C:\Users\someone\vault\note.md")
+            .unwrap_err();
+        assert_eq!(
+            filesystem,
+            LibraryError::policy(POLICY_FILESYSTEM_DESTINATION)
+        );
+        assert!(new_path.is_file());
+    }
+
+    #[test]
+    fn sequential_move_onto_existing_destination_is_unsupported() {
+        let fixture = TempCrud::create();
+        let library = FixtureLibrary::new(fixture.dir.clone());
+        let body = chinese_body();
+        library.write_note("welcome", "中文夹具笔记", body).unwrap();
+        library
+            .write_note("renamed", "已有目标", "other body\n")
+            .unwrap();
+        let error = library.move_note("welcome", "renamed").unwrap_err();
+        assert_eq!(
+            error,
+            LibraryError::unsupported(UNSUPPORTED_MOVE_DESTINATION_EXISTS)
+        );
+        let old_path = fixture.dir.join("welcome.md");
+        let dest_path = fixture.dir.join("renamed.md");
+        assert!(
+            old_path.is_file(),
+            "source must remain after sequential reject"
+        );
+        assert!(dest_path.is_file(), "existing destination must remain");
+        assert_eq!(fs::read_to_string(&old_path).unwrap(), body);
+        assert_eq!(fs::read_to_string(&dest_path).unwrap(), "other body\n");
+    }
+
+    #[test]
+    fn delete_removes_physical_file_missing_is_observation() {
+        let fixture = TempCrud::create();
+        let library = FixtureLibrary::new(fixture.dir.clone());
+        let body = chinese_body();
+        library.write_note("welcome", "中文夹具笔记", body).unwrap();
+        let dest = fixture.dir.join("welcome.md");
+        assert!(dest.is_file());
+        let deleted = library.delete_note("welcome").unwrap();
+        assert!(!dest.exists(), "delete must remove the physical file");
+        assert!(deleted.files_written);
+        assert!(!deleted.engine_persisted);
+        assert!(deleted.observation.disk_verified);
+        assert!(deleted.observation.envelope_is_not_disk_proof);
+        assert_eq!(
+            deleted.observation.classified_as,
+            NoteCrudClass::DiskVerified
+        );
+        let missing = library.delete_note("welcome").unwrap();
+        assert!(!dest.exists());
+        assert!(!missing.files_written);
+        assert!(missing.observation.disk_verified);
+        assert_eq!(
+            missing.observation.classified_as,
+            NoteCrudClass::DiskVerified
+        );
+        assert!(!missing.scanned_user_obsidian_vault);
+    }
+
+    #[test]
+    fn envelope_crud_saved_text_is_not_disk_proof() {
+        let library = EnvelopeCrudLibrary;
+        let written = library
+            .write_note("welcome", "中文夹具笔记", chinese_body())
+            .unwrap();
+        assert_eq!(written.body, "saved");
+        assert!(!written.files_written);
+        assert!(!written.engine_persisted);
+        assert!(!written.observation.disk_verified);
+        assert_eq!(
+            written.observation.classified_as,
+            NoteCrudClass::AcceptedUnverified
+        );
+        let edited = library.edit_note("welcome", chinese_body()).unwrap();
+        assert!(!edited.observation.disk_verified);
+        assert_eq!(
+            edited.observation.classified_as,
+            NoteCrudClass::AcceptedUnverified
+        );
+        let moved = library.move_note("welcome", "renamed").unwrap();
+        assert!(!moved.observation.disk_verified);
+        let deleted = library.delete_note("welcome").unwrap();
+        assert!(!deleted.files_written);
+        assert!(!deleted.observation.disk_verified);
+        assert_eq!(
+            deleted.observation.classified_as,
+            NoteCrudClass::AcceptedUnverified
+        );
+    }
+
+    #[test]
+    fn filesystem_identifier_and_destination_are_policy() {
+        let library = EmptyLibrary;
+        for identifier in [
+            r"C:\Users\someone\vault\note.md",
+            r"%APPDATA%\Obsidian\vault",
+            "/home/someone/.basic-memory/note",
+            "../secret",
+        ] {
+            assert_eq!(
+                library.write_note(identifier, "title", "body").unwrap_err(),
+                LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER)
+            );
+            assert_eq!(
+                library.edit_note(identifier, "body").unwrap_err(),
+                LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER)
+            );
+            assert_eq!(
+                library.delete_note(identifier).unwrap_err(),
+                LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER)
+            );
+            assert_eq!(
+                library.move_note("welcome", identifier).unwrap_err(),
+                LibraryError::policy(POLICY_FILESYSTEM_DESTINATION)
+            );
+        }
+        assert_eq!(
+            reject_note_identifier(""),
+            Err(LibraryError::schema(SCHEMA_NOTE_IDENTIFIER))
+        );
+        assert_eq!(
+            reject_empty_title("  "),
+            Err(LibraryError::schema(SCHEMA_NOTE_TITLE))
+        );
+        assert_eq!(
+            EmptyLibrary.move_note("welcome", "welcome").unwrap_err(),
+            LibraryError::schema(SCHEMA_MOVE_SAME_IDENTIFIER)
+        );
+    }
+
+    #[test]
+    fn forbidden_crud_roots_and_t11_roots_are_policy() {
+        for path in [
+            Path::new(r"C:\Users\someone\AppData\Roaming\Obsidian"),
+            Path::new(r"C:\Users\someone\.basic-memory"),
+            Path::new("/home/someone/.basic-memory"),
+            Path::new("%APPDATA%\\Obsidian"),
+        ] {
+            assert!(library_root_is_forbidden(path));
+            assert_eq!(
+                reject_forbidden_library_root(path).unwrap_err(),
+                LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT)
+            );
+        }
+        let t11 = TempFixture::create();
+        t11.write_note("welcome", "笔记", "body");
+        let t11_library = FixtureLibrary::new(t11.dir.clone());
+        let denied = t11_library
+            .write_note("welcome", "中文夹具笔记", chinese_body())
+            .unwrap_err();
+        assert_eq!(denied, LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        let unmarked = FixtureLibrary::new(std::env::temp_dir().join("other-notes"));
+        assert_eq!(
+            unmarked.write_note("welcome", "title", "body").unwrap_err(),
+            LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT)
+        );
     }
 }
