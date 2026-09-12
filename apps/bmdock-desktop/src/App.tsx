@@ -17,6 +17,7 @@ import {
   type RestoreResultDto,
   type RuntimeStateDto,
   type TreeEntryDto,
+  type WindowsRuntimeDto,
 } from "./ipc";
 import { t } from "./i18n";
 import {
@@ -138,7 +139,12 @@ function SectionBody({
     case "workbench":
       return <WorkbenchPanel load={load} onRefresh={onRefresh} />;
     case "runtime":
-      return <RuntimePanel load={load} onRefresh={onRefresh} />;
+      return (
+        <div className="stack">
+          <RuntimePanel load={load} onRefresh={onRefresh} />
+          <WindowsRuntimeCard />
+        </div>
+      );
     case "projects":
       return <ProjectPanel load={load} onRefresh={onRefresh} />;
     case "preflight":
@@ -255,6 +261,7 @@ function WorkbenchLibrary({ onRefresh }: { onRefresh: () => void }) {
           case "note_read":
           case "backup_catalog":
           case "fixture_restored":
+          case "windows_runtime":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
             return;
@@ -401,6 +408,7 @@ async function openNote(
       case "tree_page":
       case "backup_catalog":
       case "fixture_restored":
+      case "windows_runtime":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
         return;
@@ -461,6 +469,7 @@ async function loadMoreTree(
       case "note_read":
       case "backup_catalog":
       case "fixture_restored":
+      case "windows_runtime":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
         return;
@@ -719,6 +728,7 @@ function ProjectPanel({
                 case "note_read":
                 case "backup_catalog":
                 case "fixture_restored":
+                case "windows_runtime":
                   setSelectError({
                     category: "schema",
                     message: t("unexpectedCatalog"),
@@ -1028,6 +1038,7 @@ function BackupPanel() {
           case "tree_page":
           case "note_read":
           case "fixture_restored":
+          case "windows_runtime":
             setError(unexpectedBackupResponse());
             setPhase("error");
             return;
@@ -1196,6 +1207,7 @@ async function restoreNamedFixture(
       case "tree_page":
       case "note_read":
       case "backup_catalog":
+      case "windows_runtime":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
       default: {
@@ -1257,6 +1269,215 @@ function RestoreObservation({ result }: { result: RestoreResultDto | null }) {
           ))}
         </ul>
       )}
+    </section>
+  );
+}
+
+type WindowsError = {
+  category: "policy" | "schema" | "unsupported" | "invoke";
+  message: string;
+};
+
+function unexpectedWindowsResponse(): WindowsError {
+  return { category: "schema", message: t("unexpectedWindowsRuntime") };
+}
+
+function hostOsLabel(os: WindowsRuntimeDto["host_os"]): string {
+  switch (os) {
+    case "windows":
+      return t("windowsHostWindows");
+    case "other":
+      return t("windowsHostOther");
+    default: {
+      const exhaustive: never = os;
+      return exhaustive;
+    }
+  }
+}
+
+function observedFlag(value: boolean): string {
+  return value ? t("windowsYes") : t("windowsNo");
+}
+
+function unverifiedFlag(verified: boolean): string {
+  return verified ? t("windowsVerified") : t("windowsUnverified");
+}
+
+function WindowsRuntimeCard() {
+  const [reloadToken, setReloadToken] = useState(0);
+  const [phase, setPhase] = useState<"loading" | "ready" | "empty" | "error">("loading");
+  const [dto, setDto] = useState<WindowsRuntimeDto | null>(null);
+  const [error, setError] = useState<WindowsError | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPhase("loading");
+    setDto(null);
+    setError(null);
+    void (async () => {
+      try {
+        const response = await invokeTyped<IpcResponse>({
+          command: "inspect_windows_runtime",
+          args: {},
+        });
+        if (cancelled) {
+          return;
+        }
+        switch (response.kind) {
+          case "error":
+            setError({ category: response.category, message: response.message });
+            setPhase("error");
+            return;
+          case "windows_runtime":
+            setDto({
+              host_os: response.host_os,
+              webview2_files_present: response.webview2_files_present,
+              webview2_session_verified: response.webview2_session_verified,
+              job_object_assigned: response.job_object_assigned,
+              job_object_api_documented: response.job_object_api_documented,
+              installer_bundle_active: response.installer_bundle_active,
+              files_written: response.files_written,
+              scanned_user_obsidian_vault: response.scanned_user_obsidian_vault,
+              scanned_user_basic_memory_home: response.scanned_user_basic_memory_home,
+            });
+            setPhase(response.host_os === "windows" ? "ready" : "empty");
+            return;
+          case "capabilities":
+          case "runtime_state":
+          case "project_selected":
+          case "project_catalog":
+          case "preflight":
+          case "config_discovery":
+          case "tree_page":
+          case "note_read":
+          case "backup_catalog":
+          case "fixture_restored":
+            setError(unexpectedWindowsResponse());
+            setPhase("error");
+            return;
+          default: {
+            const exhaustive: never = response;
+            return exhaustive;
+          }
+        }
+      } catch (cause) {
+        if (!cancelled) {
+          setError({
+            category: "invoke",
+            message: cause instanceof Error ? cause.message : String(cause),
+          });
+          setPhase("error");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadToken]);
+
+  const refresh = (
+    <button type="button" className="action" onClick={() => setReloadToken((token) => token + 1)}>
+      {t("windowsRefresh")}
+    </button>
+  );
+
+  if (phase === "loading") {
+    return (
+      <section className="panel" data-state="status" aria-labelledby="windows-runtime-title" aria-busy="true">
+        <p className="state-badge">{t("statusBadge")}</p>
+        <h2 id="windows-runtime-title">{t("windowsTitle")}</h2>
+        <p role="status">{t("windowsLoading")}</p>
+      </section>
+    );
+  }
+
+  if (phase === "error" && error) {
+    return (
+      <section className="panel" data-state="error" aria-labelledby="windows-runtime-error-title" role="alert">
+        <p className="state-badge">{t("errorBadge")}</p>
+        <h2 id="windows-runtime-error-title">{t("windowsErrorTitle")}</h2>
+        <p>
+          {errorCategoryLabel(error.category)}：{error.message}
+        </p>
+        <p>{t("windowsErrorBody")}</p>
+        {refresh}
+      </section>
+    );
+  }
+
+  if (!dto) {
+    return (
+      <section className="panel" data-state="empty" aria-labelledby="windows-runtime-title">
+        <p className="state-badge">{t("emptyBadge")}</p>
+        <h2 id="windows-runtime-title">{t("windowsEmptyTitle")}</h2>
+        <p>{t("windowsEmptyBody")}</p>
+        {refresh}
+      </section>
+    );
+  }
+
+  const empty = phase === "empty" || dto.host_os !== "windows";
+  return (
+    <section
+      className="panel"
+      data-state={empty ? "empty" : "status"}
+      aria-labelledby="windows-runtime-title"
+    >
+      <p className="state-badge">{empty ? t("emptyBadge") : t("statusBadge")}</p>
+      <h2 id="windows-runtime-title">{empty ? t("windowsEmptyTitle") : t("windowsReadyTitle")}</h2>
+      <p>{empty ? t("windowsEmptyBody") : t("windowsReadyBody")}</p>
+      <h3>{t("windowsObservedTitle")}</h3>
+      <dl className="facts wide">
+        <div>
+          <dt>{t("windowsHostLabel")}</dt>
+          <dd>{hostOsLabel(dto.host_os)}</dd>
+        </div>
+        <div>
+          <dt>{t("windowsWebview2FilesLabel")}</dt>
+          <dd>{observedFlag(dto.webview2_files_present)}</dd>
+        </div>
+        <div>
+          <dt>{t("windowsJobApiLabel")}</dt>
+          <dd>{observedFlag(dto.job_object_api_documented)}</dd>
+        </div>
+        <div>
+          <dt>{t("windowsBundleLabel")}</dt>
+          <dd>{observedFlag(dto.installer_bundle_active)}</dd>
+        </div>
+        <div>
+          <dt>{t("windowsFilesWrittenLabel")}</dt>
+          <dd>{observedFlag(dto.files_written)}</dd>
+        </div>
+        <div>
+          <dt>{t("windowsScannedVaultLabel")}</dt>
+          <dd>{observedFlag(dto.scanned_user_obsidian_vault)}</dd>
+        </div>
+        <div>
+          <dt>{t("windowsScannedHomeLabel")}</dt>
+          <dd>{observedFlag(dto.scanned_user_basic_memory_home)}</dd>
+        </div>
+      </dl>
+      <h3>{t("windowsUnverifiedTitle")}</h3>
+      <dl className="facts wide unverified-facts">
+        <div>
+          <dt>{t("windowsWebview2SessionLabel")}</dt>
+          <dd>{unverifiedFlag(dto.webview2_session_verified)}</dd>
+        </div>
+        <div>
+          <dt>{t("windowsJobAssignedLabel")}</dt>
+          <dd>{unverifiedFlag(dto.job_object_assigned)}</dd>
+        </div>
+      </dl>
+      <h3>{t("windowsTaxonomyTitle")}</h3>
+      <ul className="policy-list">
+        <li>{t("windowsTaxonomyCompiled")}</li>
+        <li>{t("windowsTaxonomyWebview2")}</li>
+        <li>{t("windowsTaxonomyJob")}</li>
+        <li>{t("windowsTaxonomyContract")}</li>
+        <li>{t("windowsTaxonomyRestore")}</li>
+      </ul>
+      <p>{t("windowsUnsignedNote")}</p>
+      {refresh}
     </section>
   );
 }

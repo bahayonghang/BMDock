@@ -5,6 +5,7 @@ use crate::library::{self, NoteLibrary, NoteReadDto, TreePageDto};
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
 use crate::supervisor::{FailureKind, RuntimeSnapshot, ShutdownReceipt};
+use crate::windows_runtime::{self, WindowsRuntimeDto};
 
 pub const FIXTURE_PROJECT: &str = "bmdock-fixture";
 
@@ -21,6 +22,7 @@ pub enum IpcCommandName {
     ReadNote,
     ListBackups,
     RestoreFixture,
+    InspectWindowsRuntime,
 }
 
 pub fn allowed_commands() -> Vec<IpcCommandName> {
@@ -35,6 +37,7 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::ReadNote,
         IpcCommandName::ListBackups,
         IpcCommandName::RestoreFixture,
+        IpcCommandName::InspectWindowsRuntime,
     ]
 }
 
@@ -127,6 +130,7 @@ pub enum IpcCommand {
     ReadNote(ReadNoteArgs),
     ListBackups(ExplicitRouteArgs),
     RestoreFixture(RestoreFixtureArgs),
+    InspectWindowsRuntime(EmptyArgs),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -179,6 +183,7 @@ pub enum IpcResponse {
     NoteRead(NoteReadDto),
     BackupCatalog(BackupCatalogDto),
     FixtureRestored(RestoreResultDto),
+    WindowsRuntime(WindowsRuntimeDto),
     Error(IpcError),
 }
 
@@ -300,6 +305,9 @@ pub fn dispatch_with_library(
                 backups.restore_fixture(&args.backup_id)?,
             ))
         }
+        IpcCommand::InspectWindowsRuntime(_) => Ok(IpcResponse::WindowsRuntime(
+            windows_runtime::inspect_windows_runtime(),
+        )),
     }
 }
 
@@ -351,22 +359,26 @@ mod tests {
                 IpcCommandName::ReadNote,
                 IpcCommandName::ListBackups,
                 IpcCommandName::RestoreFixture,
+                IpcCommandName::InspectWindowsRuntime,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 10);
+        assert_eq!(capabilities.commands.len(), 11);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 10);
+        assert_eq!(commands.len(), 11);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
         assert!(commands.iter().any(|command| command == "read_note"));
         assert!(commands.iter().any(|command| command == "list_backups"));
         assert!(commands.iter().any(|command| command == "restore_fixture"));
+        assert!(commands
+            .iter()
+            .any(|command| command == "inspect_windows_runtime"));
         assert!(!commands.iter().any(|command| {
             command == "search_notes"
                 || command == "call_tool"
@@ -616,6 +628,18 @@ mod tests {
             r#"{"command":"restore_fixture","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","backup_id":"fixture-welcome"}}"#,
         );
         assert!(well_formed_restore.is_ok());
+        let path_on_windows_runtime = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_windows_runtime","args":{"path":"C:\\vault"}}"#,
+        );
+        assert!(path_on_windows_runtime.is_err());
+        let root_on_windows_runtime = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_windows_runtime","args":{"root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(root_on_windows_runtime.is_err());
+        let well_formed_windows_runtime = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_windows_runtime","args":{}}"#,
+        );
+        assert!(well_formed_windows_runtime.is_ok());
     }
 
     #[test]
@@ -1365,5 +1389,86 @@ mod tests {
         assert!(json.get("profile").is_none());
         assert!(json.get("tools").is_none());
         assert_eq!(json["backups"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn inspect_windows_runtime_does_not_spawn_write_or_open_stores() {
+        let snapshot = idle_snapshot();
+        let before = snapshot.clone();
+        let mut route = RouteState::default();
+        let IpcResponse::WindowsRuntime(dto) = dispatch_with_library(
+            IpcCommand::InspectWindowsRuntime(EmptyArgs {}),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &PanicBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(snapshot, before);
+        assert_eq!(route.project, None);
+        assert!(!dto.files_written);
+        assert!(!dto.webview2_session_verified);
+        assert!(!dto.job_object_assigned);
+        assert!(!dto.scanned_user_obsidian_vault);
+        assert!(!dto.scanned_user_basic_memory_home);
+        assert!(!dto.installer_bundle_active);
+        let json = serde_json::to_value(&IpcResponse::WindowsRuntime(dto)).unwrap();
+        assert_eq!(json["kind"], "windows_runtime");
+        assert_eq!(json["webview2_session_verified"], false);
+        assert_eq!(json["job_object_assigned"], false);
+        assert_eq!(json["installer_bundle_active"], false);
+        assert_eq!(json["files_written"], false);
+        assert!(json.get("expected_tools").is_none());
+        assert!(json.get("profile").is_none());
+        assert!(json.get("child_pid").is_none());
+        assert!(json.get("path").is_none());
+        assert!(json.get("backup_id").is_none());
+    }
+
+    #[test]
+    fn inspect_windows_runtime_taxonomy_stays_unverified() {
+        let mut route = RouteState::default();
+        let IpcResponse::WindowsRuntime(dto) = dispatch_with_library(
+            IpcCommand::InspectWindowsRuntime(EmptyArgs {}),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &PanicBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(
+            !dto.webview2_session_verified,
+            "compiled exe / npm build / cargo test are not native GUI"
+        );
+        if dto.webview2_files_present {
+            assert!(
+                !dto.webview2_session_verified,
+                "WebView2 files present is not a WebView2 session"
+            );
+        }
+        if dto.job_object_api_documented {
+            assert!(
+                !dto.job_object_assigned,
+                "Job Object API/docs is not Job Object assignment"
+            );
+        }
+        assert!(
+            !dto.job_object_assigned,
+            "T12 fixture restore is not Windows recovery"
+        );
+        let json = serde_json::to_value(&IpcResponse::WindowsRuntime(dto)).unwrap();
+        assert!(json.get("expected_tools").is_none());
+        assert!(json.get("protocolVersion").is_none());
+        let release = crate::supervisor::EngineProfile::Release;
+        let preview = crate::supervisor::EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(preview.commit(), "3452c821d76c083823d020984d71e06904a1ff1e");
+        assert_eq!(release.expected_tools(), 21);
+        assert_eq!(preview.expected_tools(), 27);
+        assert_ne!(release.expected_tools(), preview.expected_tools());
     }
 }

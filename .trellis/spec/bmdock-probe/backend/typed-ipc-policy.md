@@ -4,13 +4,15 @@ This contract describes the T06 Tauri command boundary, the T07
 `get_runtime_state` snapshot projection, the T09 read-only
 `run_preflight` / `discover_config` commands, the T10 explicit
 project/workspace route, the T11 paginated `list_tree` /
-`read_note` commands, and the T12 `list_backups` /
-`restore_fixture` baseline. It applies to
+`read_note` commands, the T12 `list_backups` /
+`restore_fixture` baseline, and the T13
+`inspect_windows_runtime` Windows host prototype. It applies to
 `apps/bmdock-desktop/src-tauri/src/ipc.rs`,
 `apps/bmdock-desktop/src-tauri/src/library.rs`,
 `apps/bmdock-desktop/src-tauri/src/backups.rs`,
 `apps/bmdock-desktop/src-tauri/src/preflight.rs`,
-`apps/bmdock-desktop/src-tauri/src/routing.rs`, and
+`apps/bmdock-desktop/src-tauri/src/routing.rs`,
+`apps/bmdock-desktop/src-tauri/src/windows_runtime.rs`, and
 `apps/bmdock-desktop/src/ipc.ts`; the P0 `bmdock-probe` and `just contract*`
 interfaces remain separate. Lifecycle ownership lives in
 [supervisor-state.md](./supervisor-state.md).
@@ -22,8 +24,9 @@ interfaces remain separate. Lifecycle ownership lives in
   fixture-only project policy, read-only projection of Supervisor
   runtime state, side-effect-free preflight / config discovery,
   BMDock-owned project/workspace listing with explicit routing,
-  T11 paginated fixture-backed tree listing plus note read, and
-  T12 BMDock-owned generated backup listing plus fixture restore.
+  T11 paginated fixture-backed tree listing plus note read,
+  T12 BMDock-owned generated backup listing plus fixture restore,
+  and T13 Windows host runtime prototype observation.
 - The boundary does not start or stop the Supervisor, call the official
   engine over rmcp, access a user vault, expose note write/edit/move/delete,
   or expose raw `callTool`.
@@ -36,6 +39,15 @@ interfaces remain separate. Lifecycle ownership lives in
   current project. T15 CRUD remains out of scope. T12 restores generated
   markdown into a generated owned target only; it is not user-vault
   restore and not T17/T37/T38 recovery.
+- T13 `inspect_windows_runtime` takes `EmptyArgs`. It observes host OS,
+  well-known WebView2 install-dir/loader files, Job Object API documentation,
+  and `tauri.conf.json` `bundle.active`. It does not launch a WebView2/Tauri
+  window, create or assign a Job Object, enable installer bundling, spawn
+  an engine, or scan user Obsidian / Basic Memory home. Compiled exe / npm
+  build / cargo test are not native GUI. WebView2 files present is not a
+  WebView2 session. Job Object API/docs is not Job Object assignment.
+  `just contract` is not Windows runtime evidence. T12 fixture restore is
+  not Windows recovery. Signing remains T37.
 
 ## 2. Signatures
 
@@ -59,6 +71,7 @@ list_tree: { workspace, project, cursor?, page_size? }
 read_note: { workspace, project, identifier }
 list_backups: { workspace, project }
 restore_fixture: { workspace, project, backup_id }
+inspect_windows_runtime: {}
 ```
 
 The renderer uses the matching `IpcCommand` union through:
@@ -91,7 +104,7 @@ uses a note identifier/permalink/title field, not a user-vault filesystem
 
 ### Request and response fields
 
-- `get_capabilities` returns `kind: "capabilities"`, the ten command names,
+- `get_capabilities` returns `kind: "capabilities"`, the eleven command names,
   the two event names, and a policy DTO.
 - `get_runtime_state` returns `kind: "runtime_state"` projected from the
   managed `Supervisor` snapshot plus T10 `RouteState`:
@@ -169,9 +182,36 @@ uses a note identifier/permalink/title field, not a user-vault filesystem
   (`envelope_is_not_disk_proof=true`). Classify `disk_verified` vs
   `accepted_unverified`. Do not restore into `%APPDATA%`, user Obsidian,
   or global Basic Memory config. Production default without an installed
-  backup store returns `unsupported`. Forced-kill, Job Object,
+  backup store returns `unsupported`.   Forced-kill, Job Object,
   sleep-resume, and disk-failure remain UNVERIFIED; a successful fixture
   restore is not T17/T37/T38 evidence.
+- `inspect_windows_runtime` returns `kind: "windows_runtime"` with a DTO
+  that separates observed facts from UNVERIFIED claims. Args are
+  `EmptyArgs`. Extra `path` / `root` fail closed as `schema`. Required
+  snake_case fields, mirrored in `ipc.ts`:
+  - `host_os`: `windows` / `other`
+  - `webview2_files_present`: Evergreen/loader file or well-known
+    EdgeWebView install-dir observation only
+  - `webview2_session_verified`: false unless a WebView2/Tauri window was
+    actually launched and interacted with
+  - `job_object_assigned`: false unless a real Job Object was created AND
+    a child assigned
+  - `job_object_api_documented`: Windows Job Object is the intended
+    process-tree mechanism; API presence/docs is not assignment proof
+  - `installer_bundle_active`: must match `tauri.conf.json` `bundle.active`
+    (currently false). T13 does not enable bundling or signing
+  - `files_written`: false
+  - `scanned_user_obsidian_vault`: false
+  - `scanned_user_basic_memory_home`: false
+  The command does not spawn engines, mix release/main-preview tool
+  counts, open user vaults, start or stop Supervisor, or produce an
+  installer. Evidence taxonomy that must stay encoded in tests and
+  evidence JSON:
+  - compiled exe / npm build / cargo test ≠ native GUI
+  - WebView2 files present ≠ WebView2 session
+  - Job Object API/docs ≠ Job Object assigned
+  - `just contract` ≠ Windows runtime
+  - T12 fixture restore ≠ Windows recovery
 - Error responses use `kind: "error"` and `category` in `policy`, `schema`, or
   `unsupported`, plus a human-readable `message`. Do not add `timeout_unknown`,
   `transport`, or `process` to this IPC error union; those belong on the
@@ -193,7 +233,7 @@ The capability policy must report:
 `RestoreFixtureArgs`, and `EmptyArgs` use `#[serde(deny_unknown_fields)]`.
 There is no path field on `list_projects` / `run_preflight` /
 `discover_config` / `list_tree` / `read_note` / `list_backups` /
-`restore_fixture` and no raw `callTool`, search, or note write DTO or
+`restore_fixture` / `inspect_windows_runtime` and no raw `callTool`, search, or note write DTO or
 handler. The renderer must not send arbitrary project paths or forward a
 tool name and arguments through this boundary.
 
@@ -216,7 +256,8 @@ snapshot fields, but it still does not start the engine from the renderer.
 T09 reports readiness from that snapshot without taking lifecycle ownership.
 T10 `RouteState` records the explicit fixture selection for projection only;
 T11 reads and T12 backup/restore still send `ExplicitRouteArgs` and must
-not use the stored route as an implicit target.
+not use the stored route as an implicit target. T13 inspects the Windows
+host prototype without taking Supervisor start/stop ownership.
 
 ## 4. Validation & Error Matrix
 
@@ -225,7 +266,7 @@ not use the stored route as an implicit target.
 | Known command with its exact DTO | Dispatch the typed response | — |
 | Unknown `command`, including `call_tool`, `search_notes`, `write_note` | Serde deserialization fails closed | `schema` at the boundary |
 | Extra field in `args` | `deny_unknown_fields` rejects the DTO | `schema` |
-| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_backups`, or `restore_fixture` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_backups`, `restore_fixture`, or `inspect_windows_runtime` | `deny_unknown_fields` rejects the DTO | `schema` |
 | Extra top-level field such as `path` beside `command`/`args` | `deny_unknown_fields` on `IpcCommand` | `schema` |
 | `select_project` for any value other than `bmdock-fixture` | Dispatcher rejects without filesystem access | `policy` |
 | `ExplicitRouteArgs` missing `project`/`workspace` or carrying an extra `path` | `deny_unknown_fields` rejects the DTO | `schema` |
@@ -245,6 +286,7 @@ not use the stored route as an implicit target.
 | Cross-project search or implicit current-project write | Keep it absent; catalog flags stay false | `unsupported` |
 | Capability outside the current allowlist | Keep it absent and do not infer support | `unsupported` |
 | Supervisor mutex is poisoned | Return an error response; do not panic | `unsupported` |
+| `inspect_windows_runtime` on this host | Return observed host OS / WebView2 files / Job Object API docs / `bundle.active`; keep session and Job Object assignment false unless proven | — |
 
 ## 5. Good / Base / Bad Cases
 
@@ -283,6 +325,13 @@ not use the stored route as an implicit target.
   generated owned target, and observe the physical markdown file (Chinese
   body and wiki link). Classify `disk_verified` with `files_written=true`.
   Envelope-only `"restored"` is `accepted_unverified` and not disk proof.
+- Good: invoke `inspect_windows_runtime` with empty args and receive
+  `host_os` plus observed WebView2 files / Job Object API docs /
+  `installer_bundle_active` matching `tauri.conf.json`. `webview2_session_verified`
+  and `job_object_assigned` stay false unless a native window was actually
+  interacted with and a Job Object was created and assigned. Compiled exe,
+  npm build, cargo test, `just contract`, and T12 fixture restore are not
+  those proofs.
 - Bad: send `{"command":"select_project","args":{"project":"bmdock-fixture","path":"C:\\vault"}}`; deserialization fails because the extra path is denied.
 - Bad: send `{"command":"list_projects","args":{"path":"C:\\vault"}}` or
   `{"command":"list_projects","args":{"root":"/home/user/.basic-memory"}}`;
@@ -298,6 +347,9 @@ not use the stored route as an implicit target.
   or `restore_fixture` with an extra `path` / `root`; extra fields fail closed.
 - Bad: send `{"command":"restore_fixture","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","backup_id":"%APPDATA%\\\\Obsidian"}}`;
   policy rejects the filesystem backup id without opening the store.
+- Bad: send `{"command":"inspect_windows_runtime","args":{"path":"C:\\vault"}}` or
+  `{"command":"inspect_windows_runtime","args":{"root":"/home/user/.basic-memory"}}`;
+  extra fields fail closed.
 - Bad: send `{"command":"call_tool","args":{"name":"read_note"}}` or
   `{"command":"search_notes","args":{"query":"..."}}` or
   `{"command":"write_note","args":{"project":"bmdock-fixture"}}`;
@@ -305,15 +357,17 @@ not use the stored route as an implicit target.
 
 ## 6. Tests Required
 
-- Rust unit test: capability response lists exactly ten commands and two
+- Rust unit test: capability response lists exactly eleven commands and two
   events, and both arbitrary-path and raw-callTool policy flags are false.
-  `list_tree`, `read_note`, `list_backups`, and `restore_fixture` are
+  `list_tree`, `read_note`, `list_backups`, `restore_fixture`, and
+  `inspect_windows_runtime` are
   present; `call_tool`, `search_notes`, and `write_note` are absent.
 - Rust unit test: a non-fixture project returns `ErrorCategory::Policy`.
 - Rust unit test: unknown command including `call_tool`, extra project path,
   extra runtime-state path, extra `list_projects` path/root, extra preflight
   path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_backups`
-  path/root, and extra `restore_fixture` path all fail
+  path/root, extra `restore_fixture` path, and extra
+  `inspect_windows_runtime` path/root all fail
   `serde_json::from_str::<IpcCommand>`. Incomplete
   `read_note` args (missing workspace/identifier) and incomplete
   `restore_fixture` args (missing backup_id) also fail closed.
@@ -350,9 +404,22 @@ not use the stored route as an implicit target.
   (`%APPDATA%`, Obsidian, `.basic-memory`) are `policy` and do not open the
   store. Empty-store restore is `unsupported`. Forced-kill, Job Object,
   sleep-resume, and disk-failure stay UNVERIFIED.
+- Rust unit test: `inspect_windows_runtime` uses `EmptyArgs`, does not spawn,
+  does not write, does not open the library or backup store, and does not
+  start Supervisor. The DTO separates observed facts from UNVERIFIED
+  claims. `webview2_session_verified` and `job_object_assigned` stay false
+  unless proven. `installer_bundle_active` matches committed
+  `tauri.conf.json` `bundle.active` (false). Taxonomy encoded in tests:
+  compiled exe / npm build / cargo test ≠ native GUI; WebView2 files ≠
+  session; Job Object API/docs ≠ assigned; `just contract` ≠ Windows
+  runtime (no `expected_tools`); T12 fixture restore ≠ Windows recovery.
+  Dual profiles stay isolated (21 vs 27, distinct commits). On Windows,
+  `webview2_files_present` may follow a real well-known install-dir
+  observation; that still does not verify a session.
 - TypeScript `RuntimeStateDto` / `FailureKind` / `ShutdownReceipt` /
   `PreflightDto` / `ConfigDiscoveryDto` / `ProjectCatalogDto` /
-  `TreePageDto` / `NoteReadDto` / `BackupCatalogDto` / `RestoreResultDto`
+  `TreePageDto` / `NoteReadDto` / `BackupCatalogDto` / `RestoreResultDto` /
+  `WindowsRuntimeDto`
   stay aligned with that JSON shape through
   `npm run build`.
 - Validation checks: `task.py validate`, `cargo fmt --all -- --check`,
@@ -406,6 +473,7 @@ await invokeTyped({
     backup_id: "fixture-welcome",
   },
 });
+await inspectWindowsRuntime();
 await listenTyped("runtime_state", (state) => renderState(state));
 ```
 
@@ -418,6 +486,10 @@ call and must not treat `runtime.project` as an implicit target.
 target; it does not restore a user vault. Preflight reports
 `supervisor_status` and `engine_spawned` from the snapshot without taking
 start/stop ownership; listing backups does not set `files_written`.
+`inspect_windows_runtime` takes empty args, does not start Supervisor, and
+must not treat compiled binaries, WebView2 files, Job Object docs,
+`just contract`, or T12 fixture restore as native GUI / session /
+assignment / installer / recovery proof.
 
 ### Wrong
 

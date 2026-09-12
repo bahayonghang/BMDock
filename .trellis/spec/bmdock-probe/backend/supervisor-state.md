@@ -18,6 +18,9 @@ a separate developer tool.
 - Real Basic Memory engine handshake, native GUI behavior, and cross-platform
   job-object / process-tree evidence remain `UNVERIFIED` until directly
   exercised. `Drop` kill is host-handle cleanup, not that evidence.
+  T13 `inspect_windows_runtime` may record `job_object_api_documented` from
+  Windows API/docs. That is not Job Object assignment, not a WebView2 session,
+  and not T17/T37/T38 recovery.
 
 ## 2. Signatures
 

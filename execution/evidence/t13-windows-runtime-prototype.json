@@ -1,0 +1,196 @@
+{
+  "task": "T13",
+  "title": "提前验证干净Windows运行时原型",
+  "status": "accepted_with_limits",
+  "date": "2026-09-12",
+  "host_boundary": "T13 owns typed inspect_windows_runtime on the existing ipc_invoke union. EmptyArgs with deny_unknown_fields. Extra path/root is schema. The DTO separates observed facts from UNVERIFIED claims. T13 does not start/stop Supervisor, spawn engines, open user vaults, mix release/main-preview tool counts, enable bundle.active, create an installer, create a Job Object, assign a child, or launch a WebView2/Tauri window. P0 bmdock-probe and just contract/contract-main stay independent. just build stays the G0 probe. just tauri-dev/tauri-build stay desktop. just dev remains the T08 Tauri shell.",
+  "prototype": {
+    "host_os": "windows",
+    "webview2_files_present": false,
+    "webview2_files_observation": "Well-known Microsoft/EdgeWebView/Application directories under Program Files and LOCALAPPDATA were not present. This is install-dir observation only.",
+    "webview2_session_verified": false,
+    "job_object_assigned": false,
+    "job_object_api_documented": true,
+    "installer_bundle_active": false,
+    "tauri_conf_bundle_active": false,
+    "unsigned_prototype": true,
+    "files_written": false,
+    "scanned_user_obsidian_vault": false,
+    "scanned_user_basic_memory_home": false
+  },
+  "acceptance": {
+    "AC49": {
+      "status": "host_os_observed_native_session_unverified",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/windows_runtime.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "cargo test --workspace --locked --offline",
+        "npm run build"
+      ],
+      "claim": "This Windows host was observed as host_os=windows. The prototype DTO is returned by inspect_windows_runtime. Native GUI session remains UNVERIFIED: no WebView2/Tauri window was launched or interacted with. Compiled exe, npm build, and cargo test are not native GUI. webview2_files_present was independently compared to well-known EdgeWebView Application directories and is not a WebView2 session.",
+      "unverified": [
+        "native_gui_session",
+        "webview2_session_verified",
+        "job_object_assigned"
+      ]
+    },
+    "AC51": {
+      "status": "unsigned_prototype_bundle_inactive",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/tauri.conf.json",
+        "apps/bmdock-desktop/src-tauri/src/windows_runtime.rs",
+        "tests/test_desktop_shell.py",
+        "execution/evidence/t13-windows-runtime-prototype.json"
+      ],
+      "claim": "T13 did not enable installer bundling or signing. installer_bundle_active matches tauri.conf.json bundle.active=false. This is an unsigned prototype. Signing remains T37. No installer was produced.",
+      "unverified": [
+        "installer",
+        "code_signing",
+        "T37 install/upgrade/signing",
+        "T38 native installer regression"
+      ]
+    },
+    "AC55": {
+      "status": "independent_entrypoints_preserved",
+      "evidence": [
+        "justfile",
+        "tests/test_desktop_shell.py",
+        "python -m unittest tests.test_desktop_shell -v"
+      ],
+      "claim": "just build stays the G0 probe. just tauri-dev and just tauri-build stay desktop. just contract and just contract-main stay probe. just contract was not run as T13 Windows-runtime proof."
+    }
+  },
+  "taxonomy": {
+    "compiled_exe_npm_build_cargo_test_is_not_native_gui": true,
+    "webview2_files_present_is_not_webview2_session": true,
+    "job_object_api_docs_is_not_assignment": true,
+    "just_contract_is_not_windows_runtime": true,
+    "t12_fixture_restore_is_not_windows_recovery": true
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t13-windows-runtime-prototype",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 70 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 7 passed"
+    },
+    {
+      "cmd": "python -m unittest discover -s tests -v",
+      "exit": 1,
+      "result": "67 tests: 66 ok, 1 ERROR test_repository_phase_order via check_source because G0 is in_progress while T05+ are completed. DesktopShellTests 7 passed. T05-T12 were not reverted."
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T13 Windows runtime proof. Probe entries remain independent."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window, WebView2 session, or Job Object assignment was exercised."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_75_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_discover": "66_ok_1_error_phase_order",
+    "python_unittest_desktop_shell": "7_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "bundle_active": false,
+    "installer": "not_created",
+    "signing": "UNVERIFIED_remains_T37",
+    "native_gui_session": "UNVERIFIED",
+    "webview2_session_verified": false,
+    "job_object_assigned": false,
+    "job_object_api_documented": true,
+    "webview2_files_present": false,
+    "real_vault": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "t17_crash_recovery": "UNVERIFIED",
+    "rmcp_live_client": "not_added_in_t13"
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false,
+    "present_on_windows_runtime_dto": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed_unchanged",
+    "T10": "completed_unchanged",
+    "T11": "completed_unchanged",
+    "T12": "completed_unchanged",
+    "T13": "completed"
+  },
+  "scope_limits": [
+    "inspect_windows_runtime takes EmptyArgs. Extra path/root is schema. It does not start Supervisor or spawn engines.",
+    "Capabilities advertise eleven commands. call_tool, search_notes, and write_note remain absent.",
+    "list_backups and restore_fixture still require ExplicitRouteArgs on every call.",
+    "webview2_files_present is well-known EdgeWebView install-dir/loader observation only. It is not a WebView2 session.",
+    "job_object_api_documented on Windows is not Job Object assignment.",
+    "installer_bundle_active matches tauri.conf.json bundle.active=false. T13 did not produce an installer. Signing remains T37.",
+    "IPC error union stays policy/schema/unsupported. Runtime failure kinds stay on RuntimeStateDto.",
+    "just build stays scripts.tasks build. just contract* stay probe. just tauri-dev/tauri-build stay desktop.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "UI copy, tool lists, compiled exe, cargo test, npm build, and just contract are not native GUI / WebView2 session / Job Object assignment / installer / Windows recovery proof."
+  ],
+  "rollback": "Remove inspect_windows_runtime from the IpcCommand union, restore the ten-command allowlist, drop windows_runtime.rs, and remove the 运行时 card. Do not revert T05-T12 status to make unit green."
+}

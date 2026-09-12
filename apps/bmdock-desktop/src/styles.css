@@ -192,6 +192,15 @@ main {
   gap: 0.75rem;
 }
 
+.facts.wide div {
+  grid-template-columns: 11rem 1fr;
+}
+
+.facts.unverified-facts {
+  border-left: 3px dashed #fde68a;
+  padding-left: 0.85rem;
+}
+
 .facts dt {
   margin: 0;
   color: #93a0b5;
@@ -221,6 +230,15 @@ main {
 
 .subpanel[data-state="status"] {
   border: 2px solid #86efac;
+}
+
+.subpanel[data-state="error"] {
+  border: 3px solid #fca5a5;
+}
+
+.stack {
+  display: grid;
+  gap: 1.25rem;
 }
 
 .subpanel h3 {

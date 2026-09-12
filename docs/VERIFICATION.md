@@ -174,3 +174,23 @@ renderer 增加 zh-CN「维护」分区，区分空态 / 错误 / 就绪；恢�
 本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t12-backup-fixture-recovery` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 59 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 6 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。`python -m unittest discover -s tests -v` 跑 66 项：65 ok，1 ERROR `test_repository_phase_order`（同一 `check_source`）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / WebView2 / Job Object / 真实 vault / hosted CI / 安装器恢复证据；这些仍为 `UNVERIFIED`。
 
 T12 证据与验收映射见 [t12-backup-fixture-recovery.json](../execution/evidence/t12-backup-fixture-recovery.json)。`execution/status.json` 仅将 T12 标为 `completed`；未改 T05–T11/G0。
+
+## T13：提前验证干净 Windows 运行时原型
+
+T13 在现有 `ipc_invoke` 上增加 typed `inspect_windows_runtime`（`EmptyArgs`，`deny_unknown_fields`）。额外 `path`/`root` 为 schema。capabilities 精确允许列为 11 个命令；未知 `call_tool` / `write_note` 仍失败。`list_backups` / `restore_fixture` 仍每次携带 `ExplicitRouteArgs`。不 start/stop Supervisor，不拉起官方引擎，不混合 release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）。
+
+DTO 把已观察事实与未验证主张分开：`host_os`、`webview2_files_present`（仅 Evergreen/loader 或已知安装目录）、`job_object_api_documented`、`installer_bundle_active`（必须匹配 `tauri.conf.json` `bundle.active`）、`files_written=false`、`scanned_user_obsidian_vault=false`、`scanned_user_basic_memory_home=false`。`webview2_session_verified` 与 `job_object_assigned` 仅在真正打开并交互 WebView2/Tauri 窗口、以及真正创建 Job Object 并分配子进程时可为 true；本轮均为 false。
+
+证据分类（写进测试与证据 JSON）：编译 exe / npm build / cargo test ≠ native GUI；WebView2 文件存在 ≠ WebView2 会话；Job Object API/文档 ≠ Job Object 已分配；`just contract` ≠ Windows 运行时；T12 夹具恢复 ≠ Windows 恢复。
+
+AC49：本机 Windows 观察到 `host_os=windows`，并返回原型 DTO。已知 EdgeWebView `Application` 目录不存在，故 `webview2_files_present=false`。native GUI 会话仍为 `UNVERIFIED`。
+
+AC51：未启用安装器打包或签名。`installer_bundle_active=false` 与 `bundle.active=false` 一致。这是未签名原型；签名仍属 T37。未制作安装器。
+
+AC55：`just build` 仍为 G0 探针；`just tauri-dev` / `just tauri-build` 仍为桌面入口；`just contract*` 仍为探针。未运行 `just contract` 作为 T13 证明。
+
+renderer 在 zh-CN「运行状态」下增加「运行时」卡片（空态 / 错误 / 就绪），已观察与未验证分区分开。无 `dangerouslySetInnerHTML`。
+
+本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t13-windows-runtime-prototype` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 70 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 7 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。`python -m unittest discover -s tests -v` 跑 67 项：66 ok，1 ERROR `test_repository_phase_order`（同一 `check_source`）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / WebView2 会话 / Job Object 分配 / 安装器 / Windows 恢复证据；这些仍为 `UNVERIFIED`。
+
+T13 证据与验收映射见 [t13-windows-runtime-prototype.json](../execution/evidence/t13-windows-runtime-prototype.json)。`execution/status.json` 仅将 T13 标为 `completed`；未改 T05–T12/G0。

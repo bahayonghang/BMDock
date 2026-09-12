@@ -16,7 +16,7 @@
 {"id":"T10","title":"项目、工作区与显式路由","phase":"P2","depends_on":["T09","T08"],"acceptance_ids":["AC06","AC14","AC25","AC38"],"status":"completed"},
 {"id":"T11","title":"分页文件树与笔记读取","phase":"P2","depends_on":["T10","T06"],"acceptance_ids":["AC19","AC22","AC33","AC46"],"status":"completed"},
 {"id":"T12","title":"备份清单与fixture恢复基线","phase":"P2","depends_on":["T09","T03"],"acceptance_ids":["AC18","AC40","AC52","AC53"],"status":"completed"},
-{"id":"T13","title":"提前验证干净Windows运行时原型","phase":"P2","depends_on":["T05","T07","T12"],"acceptance_ids":["AC49","AC51","AC55"],"status":"planned"},
+{"id":"T13","title":"提前验证干净Windows运行时原型","phase":"P2","depends_on":["T05","T07","T12"],"acceptance_ids":["AC49","AC51","AC55"],"status":"completed"},
 {"id":"T14","title":"草稿持久化与编辑器会话","phase":"P3","depends_on":["T11","T12"],"acceptance_ids":["AC09","AC10","AC21","AC57"],"status":"planned"},
 {"id":"T15","title":"完整笔记写入编辑移动删除","phase":"P3","depends_on":["T14","T03","T06"],"acceptance_ids":["AC08","AC10","AC11","AC12","AC13","AC14"],"status":"planned"},
 {"id":"T16","title":"并发冲突与未知结果协调","phase":"P3","depends_on":["T15","T07"],"acceptance_ids":["AC15","AC16","AC20","AC52"],"status":"planned"},

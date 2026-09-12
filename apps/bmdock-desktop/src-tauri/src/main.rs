@@ -14,6 +14,7 @@ mod library;
 mod preflight;
 mod routing;
 mod supervisor;
+mod windows_runtime;
 
 struct AppState {
     supervisor: supervisor::Supervisor,

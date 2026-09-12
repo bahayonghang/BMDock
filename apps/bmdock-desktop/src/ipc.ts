@@ -38,7 +38,8 @@ export type IpcCommand =
   | { command: "list_tree"; args: ListTreeArgs }
   | { command: "read_note"; args: ReadNoteArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
-  | { command: "restore_fixture"; args: RestoreFixtureArgs };
+  | { command: "restore_fixture"; args: RestoreFixtureArgs }
+  | { command: "inspect_windows_runtime"; args: Record<string, never> };
 
 export type IpcCommandName = IpcCommand["command"];
 export type IpcEventName = "runtime_state" | "policy";
@@ -202,6 +203,20 @@ export interface RestoreResultDto {
   observation: RestoreObservationDto;
 }
 
+export type HostOs = "windows" | "other";
+
+export interface WindowsRuntimeDto {
+  host_os: HostOs;
+  webview2_files_present: boolean;
+  webview2_session_verified: boolean;
+  job_object_assigned: boolean;
+  job_object_api_documented: boolean;
+  installer_bundle_active: boolean;
+  files_written: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+}
+
 export type IpcResponse =
   | { kind: "capabilities"; commands: IpcCommandName[]; events: IpcEventName[]; policy: PolicyDto }
   | { kind: "runtime_state" } & RuntimeStateDto
@@ -213,6 +228,7 @@ export type IpcResponse =
   | { kind: "note_read" } & NoteReadDto
   | { kind: "backup_catalog" } & BackupCatalogDto
   | { kind: "fixture_restored" } & RestoreResultDto
+  | { kind: "windows_runtime" } & WindowsRuntimeDto
   | { kind: "error"; category: ErrorCategory; message: string };
 
 export interface RuntimeStateEvent {
@@ -253,6 +269,7 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "list_projects":
     case "run_preflight":
     case "discover_config":
+    case "inspect_windows_runtime":
       return;
     default: {
       const exhaustive: never = command;
@@ -347,3 +364,9 @@ export const restoreFixture = (backup_id: string) => {
     },
   });
 };
+
+export const inspectWindowsRuntime = () =>
+  invokeTyped<{ kind: "windows_runtime" } & WindowsRuntimeDto>({
+    command: "inspect_windows_runtime",
+    args: {},
+  });
