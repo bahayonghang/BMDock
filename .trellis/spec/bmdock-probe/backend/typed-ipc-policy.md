@@ -16,7 +16,8 @@ editor content safety (textarea/`<pre>` text, exact-byte CRLF,
 `unsafe_html_present` vs `executed=false`), and T19
 `list_relations` observation/relation semantics (fixture
 wiki-links, not a second note index and not official engine
-graph MCP). It applies to
+graph MCP), and T20 `expand_graph` local one-hop neighborhood
+plus bounded progressive expansion. It applies to
 `apps/bmdock-desktop/src-tauri/src/ipc.rs`,
 `apps/bmdock-desktop/src-tauri/src/library.rs`,
 `apps/bmdock-desktop/src-tauri/src/conflict.rs`,
@@ -49,7 +50,9 @@ interfaces remain separate. Lifecycle ownership lives in
   `begin_shutdown`, T18 editor content safety for note/draft
   bodies (never execute HTML; exact-byte CRLF on Fixture stores),
   and T19 fixture wiki-link `list_relations` plus observation
-  classified_as distinct from the relation list.
+  classified_as distinct from the relation list, and T20
+  `expand_graph` one-hop fixture neighborhood plus bounded
+  `next_cursor` expansion.
 - The boundary does not start or stop the Supervisor, call the official
   engine over rmcp, access a user vault, or expose raw `callTool`. T14
   drafts are BMDock-owned session artifacts, not a second note index and
@@ -66,13 +69,26 @@ interfaces remain separate. Lifecycle ownership lives in
   wiki-links. It is not a second note index and not official graph MCP.
   Production `EmptyLibrary` relations are empty state, not user-vault
   success. Official `recent_activity` / `build_context` remain UNVERIFIED.
+  T20 `expand_graph` derives a BMDock-owned one-hop neighborhood from the
+  same fixture wiki-links. It is not a second database, not official
+  engine graph MCP, and not a vis.js/npm graph library. Production
+  `EmptyLibrary` graph pages are empty nodes/edges (empty observation),
+  not user-vault success. Tests inject `FixtureLibrary` and observe that
+  1-hop neighbors equal wiki-links in the physical source file; expanding
+  a neighbor observes THAT file's wiki-links. Missing targets are empty
+  nodes, not user-vault. Permalinks/identifiers only. One hop per call
+  (`depth` 1). `next_cursor` or an explicit expand of a returned node
+  identifier loads the next bounded page. Do not dump the entire fixture
+  library. `page_size` default 20, max 64. Truncated inventory is
+  unsupported, not success. Native GUI / installer / hosted CI remain
+  UNVERIFIED; cargo test / npm build / UI copy are not AC56 native proof.
 - T09 preflight and discovery inspect BMDock-owned in-repo or explicitly
   generated fixture paths only. T10 lists only generated BMDock-owned
   workspace/project records. T07 remains the owner of start/stop.
 - T11 `list_tree` and `read_note`, T12 `list_backups` /
   `restore_fixture`, T14 `save_draft` / `load_draft`, T15
-  `write_note` / `edit_note` / `move_note` / `delete_note`, and T19
-  `list_relations` must carry an
+  `write_note` / `edit_note` / `move_note` / `delete_note`, T19
+  `list_relations`, and T20 `expand_graph` must carry an
   explicit `ExplicitRouteArgs` (`workspace` + `project`) on every call and
   must not inherit an implicit current project. T16 coordinates overlapping
   same-identifier inflight writes on those CRUD commands: the second
@@ -124,6 +140,7 @@ discover_config: {}
 list_tree: { workspace, project, cursor?, page_size? }
 read_note: { workspace, project, identifier }
 list_relations: { workspace, project, identifier }
+expand_graph: { workspace, project, identifier, cursor?, page_size? }
 list_backups: { workspace, project }
 restore_fixture: { workspace, project, backup_id }
 inspect_windows_runtime: {}
@@ -161,7 +178,9 @@ uses a note identifier/permalink/title field, not a user-vault filesystem
 `path`. T19 `list_relations` consumes this struct plus a note `identifier`
 (permalink, not a filesystem `path`). Extra `path` / `root` fail closed as
 `schema`. Non-fixture routes and filesystem identifiers are `policy` and do
-not open the library. T12 `list_backups` consumes this struct on every call.
+not open the library. T20 `expand_graph` consumes this struct plus a note
+`identifier` and optional `cursor` / `page_size` (same bounds as T11). Extra
+`path` / `root` fail closed as `schema`. T12 `list_backups` consumes this struct on every call.
 `restore_fixture` adds a generated `backup_id` (not a filesystem `path` or
 `root`). T14 `save_draft` and `load_draft` consume this struct on every call
 plus a draft `identifier` (permalink, not a filesystem `path`) and, for
@@ -176,7 +195,7 @@ fail closed as `schema`.
 
 ### Request and response fields
 
-- `get_capabilities` returns `kind: "capabilities"`, the nineteen command names,
+- `get_capabilities` returns `kind: "capabilities"`, the twenty command names,
   the two event names, and a policy DTO.
 - `get_runtime_state` returns `kind: "runtime_state"` projected from the
   managed `Supervisor` snapshot plus T10 `RouteState`:
@@ -251,6 +270,28 @@ fail closed as `schema`.
   user-vault. Official `recent_activity` / `build_context` MCP remain
   UNVERIFIED. Do not add rmcp. Observation is distinct from the
   relation list.
+- `expand_graph` returns `kind: "graph_page"` with source `identifier`,
+  `nodes[]` / `edges[]` of permalink/identifier values (never filesystem
+  paths), `next_cursor` (null on the last page), `page`, `truncated=false`,
+  `depth=1`, an observation DTO (`classified_as`: `disk_verified` /
+  `accepted_unverified` / `conflict` / `empty` / `unclassified`) distinct
+  from nodes/edges, `engine_graph=false`, and vault-scan flags false.
+  Args are `ExplicitRouteArgs` plus `identifier` plus optional `cursor`
+  and bounded `page_size` (default 20, reject 0 / greater than 64 as
+  `schema`). Invalid cursor, empty cursor, repeated next-cursor loops,
+  and truncated/partial inventory fail closed as `schema` or
+  `unsupported`; never return a silent partial success or an unbounded
+  full-library dump. One hop per call. Following `next_cursor` pages
+  the current identifier's neighbors; expanding a returned node
+  identifier reads THAT neighbor's physical wiki-links. Chinese
+  identifiers such as `欢迎` remain permalinks and are not dropped.
+  Missing targets are empty nodes, not user-vault. Production
+  `EmptyLibrary` returns empty `nodes[]` / `edges[]` with
+  `classified_as: empty`, not user-vault. Conflict remains the CRUD
+  observation class, not a graph node class. Official engine graph MCP
+  remains UNVERIFIED. Do not add rmcp. Native GUI / installer / hosted CI
+  remain UNVERIFIED; cargo test / npm build / UI copy are not native
+  proof.
 - `list_backups` returns `kind: "backup_catalog"` with BMDock-owned
   generated fixture backup records only. Args are `ExplicitRouteArgs`.
   Flags: `scanned_user_obsidian_vault=false`,
@@ -402,11 +443,11 @@ The capability policy must report:
 ```
 
 `SelectProjectArgs`, `ExplicitRouteArgs`, `ListTreeArgs`, `ReadNoteArgs`,
-`ListRelationsArgs`, `RestoreFixtureArgs`, `SaveDraftArgs`, `LoadDraftArgs`, `WriteNoteArgs`,
+`ListRelationsArgs`, `ExpandGraphArgs`, `RestoreFixtureArgs`, `SaveDraftArgs`, `LoadDraftArgs`, `WriteNoteArgs`,
 `EditNoteArgs`, `MoveNoteArgs`, `DeleteNoteArgs`, and `EmptyArgs`
 use `#[serde(deny_unknown_fields)]`.
 There is no path field on `list_projects` / `run_preflight` /
-`discover_config` / `list_tree` / `read_note` / `list_relations` / `list_backups` /
+`discover_config` / `list_tree` / `read_note` / `list_relations` / `expand_graph` / `list_backups` /
 `restore_fixture` / `inspect_windows_runtime` / `save_draft` /
 `load_draft` / `write_note` / `edit_note` / `move_note` /
 `delete_note` / `begin_shutdown` and no raw `callTool` or search DTO or handler. Typed
@@ -453,6 +494,16 @@ match wiki-links in the physical file. Missing targets are
 empty/unsupported, not user-vault. Official `recent_activity` /
 `build_context` MCP remain UNVERIFIED. T19 does not start Supervisor or
 add rmcp.
+T20 adds `expand_graph` on the same `ipc_invoke` union. The graph is a
+BMDock-owned one-hop neighborhood from the same fixture wiki-links. It is
+not a second database, not official engine graph MCP, and not a vis.js
+graph. Production `EmptyLibrary` returns empty nodes/edges (empty
+state). Tests inject `FixtureLibrary` and observe 1-hop neighbors equal
+wiki-links in the physical source file; expanding a neighbor observes THAT
+file. Missing targets are empty nodes. Permalinks only. Bounded
+`page_size` (default 20, max 64). Truncated inventory is unsupported.
+Chinese identifiers such as `欢迎` are kept. Native GUI remains
+UNVERIFIED. T20 does not start Supervisor or add rmcp.
 
 ## 4. Validation & Error Matrix
 
@@ -462,7 +513,7 @@ add rmcp.
 | Unknown `command`, including `call_tool` and `search_notes` | Serde deserialization fails closed | `schema` at the boundary |
 | Incomplete `write_note` args (for example only `project`) | `deny_unknown_fields` / missing fields | `schema` |
 | Extra field in `args` | `deny_unknown_fields` rejects the DTO | `schema` |
-| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_relations`, `expand_graph`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`, `edit_note`, `move_note`, `delete_note`, or `begin_shutdown` | `deny_unknown_fields` rejects the DTO | `schema` |
 | Extra top-level field such as `path` beside `command`/`args` | `deny_unknown_fields` on `IpcCommand` | `schema` |
 | `select_project` for any value other than `bmdock-fixture` | Dispatcher rejects without filesystem access | `policy` |
 | `ExplicitRouteArgs` missing `project`/`workspace` or carrying an extra `path` | `deny_unknown_fields` rejects the DTO | `schema` |
@@ -475,6 +526,13 @@ add rmcp.
 | Non-fixture `list_relations` | Reject without opening the library | `policy` |
 | Empty library `list_relations` | Empty `relations[]`, `classified_as: empty`, `engine_graph=false` | empty state |
 | Missing wiki-link target in fixture `list_relations` | Relation entry is empty/unsupported, not user-vault | empty state |
+| `expand_graph` identifier that looks like a user vault filesystem path | Reject without opening the library | `policy` |
+| Non-fixture `expand_graph` | Reject without opening the library | `policy` |
+| `expand_graph` `page_size` 0 or greater than 64 | Reject without expanding | `schema` |
+| `expand_graph` invalid cursor, empty cursor, or next-cursor loop | Reject; do not return a partial neighborhood | `schema` |
+| Truncated or partial graph inventory | Reject; `truncated=true` is not a success | `unsupported` |
+| Empty library `expand_graph` | Empty `nodes[]` / `edges[]`, `classified_as: empty`, `engine_graph=false`, `depth=1` | empty state |
+| Missing wiki-link target in fixture `expand_graph` | Node is empty, not user-vault | empty state |
 | `save_draft` / `load_draft` identifier that looks like a user vault filesystem path | Reject without opening the draft store | `policy` |
 | `write_note` / `edit_note` / `delete_note` identifier that looks like a user vault filesystem path | Reject without opening the library | `policy` |
 | `move_note` destination that looks like a filesystem path | Reject without opening the library | `policy` |
@@ -593,6 +651,10 @@ add rmcp.
   or `list_relations` with an extra `root`; extra fields fail closed.
 - Bad: send `{"command":"list_relations","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"C:\\\\Users\\\\someone\\\\vault\\\\note.md"}}`;
   policy rejects the filesystem identifier without opening the library.
+- Bad: send `{"command":"expand_graph","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","path":"C:\\vault"}}`
+  or `expand_graph` with an extra `root`; extra fields fail closed.
+- Bad: send `{"command":"expand_graph","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"C:\\\\Users\\\\someone\\\\vault\\\\note.md"}}`;
+  policy rejects the filesystem identifier without opening the library.
 - Bad: send `{"command":"list_backups","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","path":"C:\\vault"}}`
   or `restore_fixture` with an extra `path` / `root`; extra fields fail closed.
 - Bad: send `{"command":"restore_fixture","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","backup_id":"%APPDATA%\\\\Obsidian"}}`;
@@ -621,16 +683,16 @@ add rmcp.
 
 ## 6. Tests Required
 
-- Rust unit test: capability response lists exactly nineteen commands and two
+- Rust unit test: capability response lists exactly twenty commands and two
   events, and both arbitrary-path and raw-callTool policy flags are false.
-  `list_tree`, `read_note`, `list_relations`, `list_backups`, `restore_fixture`,
+  `list_tree`, `read_note`, `list_relations`, `expand_graph`, `list_backups`, `restore_fixture`,
   `inspect_windows_runtime`, `save_draft`, `load_draft`, `write_note`,
   `edit_note`, `move_note`, `delete_note`, and `begin_shutdown` are present; `call_tool` and
   `search_notes` are absent. Incomplete `write_note` args remain schema.
 - Rust unit test: a non-fixture project returns `ErrorCategory::Policy`.
 - Rust unit test: unknown command including `call_tool`, extra project path,
   extra runtime-state path, extra `list_projects` path/root, extra preflight
-  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `list_backups`
+  path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_relations` path/root, extra `expand_graph` path/root, extra `list_backups`
   path/root, extra `restore_fixture` path, extra
   `inspect_windows_runtime` path/root, extra `save_draft` path/root, extra
   `load_draft` path/root, and extra `begin_shutdown` path/root all fail
@@ -648,7 +710,7 @@ add rmcp.
   scan user vaults, and keeps `cross_project_search_allowed` and
   `implicit_current_project_writes` false.   `ExplicitRouteArgs` requires both
   fields, rejects extra paths as schema, and rejects non-fixture routes as
-  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `list_backups` /
+  policy. Non-fixture `list_tree` / `read_note` / `list_relations` / `expand_graph` / `list_backups` /
   `restore_fixture` / `save_draft` / `load_draft` / `write_note` /
   `edit_note` / `move_note` / `delete_note` must not open the library,
   backup store, or draft store.
@@ -675,6 +737,20 @@ add rmcp.
   `accepted_unverified` / `conflict` / `empty`) is distinct from the
   relation list. `engine_graph=false`. Official `recent_activity` /
   `build_context` remain UNVERIFIED. Dual profiles stay isolated.
+- Rust unit test: `expand_graph` requires `ExplicitRouteArgs` plus
+  `identifier` plus optional `cursor` / `page_size`. Extra `path` /
+  `root` fail closed as `schema`. Non-fixture routes and filesystem
+  identifiers are `policy` and do not open the library. `page_size` 0 or
+  huge, invalid/repeated cursor fail closed as `schema`. Truncated
+  inventory is `unsupported`, not success. Empty library graph is empty
+  `nodes[]` / `edges[]` with `classified_as: empty`, not user-vault.
+  Fixture 1-hop neighbors match wiki-links in the physical source file.
+  Expanding a neighbor observes THAT file's wiki-links. Chinese
+  identifiers such as `欢迎` appear as permalinks. Missing targets are
+  empty nodes. Observation `classified_as` is distinct from nodes/edges.
+  Conflict is not a graph node class. `engine_graph=false`. `depth=1`.
+  Dual profiles stay isolated. Native GUI / installer / hosted CI remain
+  UNVERIFIED.
 - Rust unit test: `list_backups` returns only BMDock-owned generated backup
   ids, does not scan user vaults, and keeps `files_written` false until a
   restore actually writes owned files. Empty catalog is empty state, not a
@@ -766,6 +842,7 @@ add rmcp.
   `WindowsRuntimeDto` / `DraftResultDto` / `NoteWriteDto` / `NoteEditDto` /
   `NoteMoveDto` / `NoteDeleteDto` / `NoteCrudClass` (`conflict` included) /
   `RelationListDto` / `RelationDto` / `RelationTargetClass` /
+  `GraphPageDto` / `GraphNodeDto` / `GraphEdgeDto` / `GraphNodeClass` /
   `DrainResultDto` / `DrainPhase` stay aligned with that JSON shape through
   `npm run build`.
 - Validation checks: `task.py validate`, `cargo fmt --all -- --check`,
@@ -812,6 +889,10 @@ await invokeTyped({
 await invokeTyped({
   command: "list_relations",
   args: { workspace: route.workspace, project: route.project, identifier },
+});
+await invokeTyped({
+  command: "expand_graph",
+  args: { workspace: route.workspace, project: route.project, identifier, page_size: 20 },
 });
 await invokeTyped({
   command: "list_backups",
@@ -876,7 +957,7 @@ await listenTyped("runtime_state", (state) => renderState(state));
 These calls use the shared DTOs and the explicit fixture/event allowlist.
 `list_projects`, `run_preflight`, and `discover_config` take empty args.
 `select_project` remains fixture-only. `list_tree`, `read_note`,
-`list_relations`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
+`list_relations`, `expand_graph`, `list_backups`, `restore_fixture`, `save_draft`, `load_draft`,
 `write_note`, `edit_note`, `move_note`, and `delete_note` copy
 `ExplicitRouteArgs` on every call and must not treat `runtime.project` as
 an implicit target.

@@ -28,6 +28,12 @@ export type ListRelationsArgs = ExplicitRouteArgs & {
   identifier: string;
 };
 
+export type ExpandGraphArgs = ExplicitRouteArgs & {
+  identifier: string;
+  cursor?: string;
+  page_size?: number;
+};
+
 export type RestoreFixtureArgs = ExplicitRouteArgs & {
   backup_id: string;
 };
@@ -71,6 +77,7 @@ export type IpcCommand =
   | { command: "list_tree"; args: ListTreeArgs }
   | { command: "read_note"; args: ReadNoteArgs }
   | { command: "list_relations"; args: ListRelationsArgs }
+  | { command: "expand_graph"; args: ExpandGraphArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
   | { command: "restore_fixture"; args: RestoreFixtureArgs }
   | { command: "inspect_windows_runtime"; args: Record<string, never> }
@@ -244,6 +251,33 @@ export interface RelationListDto {
   files_written: boolean;
 }
 
+export type GraphNodeClass = "present" | "empty";
+
+export interface GraphNodeDto {
+  identifier: string;
+  classified_as: GraphNodeClass;
+}
+
+export interface GraphEdgeDto {
+  source: string;
+  target: string;
+}
+
+export interface GraphPageDto {
+  identifier: string;
+  nodes: GraphNodeDto[];
+  edges: GraphEdgeDto[];
+  next_cursor: string | null;
+  page: number;
+  truncated: boolean;
+  observation: NoteCrudObservationDto;
+  engine_graph: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  files_written: boolean;
+  depth: 1;
+}
+
 export interface BackupRecordDto {
   id: string;
   kind: typeof OWNED_KIND;
@@ -374,6 +408,7 @@ export type IpcResponse =
   | { kind: "tree_page" } & TreePageDto
   | { kind: "note_read" } & NoteReadDto
   | { kind: "relation_list" } & RelationListDto
+  | { kind: "graph_page" } & GraphPageDto
   | { kind: "backup_catalog" } & BackupCatalogDto
   | { kind: "fixture_restored" } & RestoreResultDto
   | { kind: "windows_runtime" } & WindowsRuntimeDto
@@ -415,6 +450,7 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "list_tree":
     case "read_note":
     case "list_relations":
+    case "expand_graph":
     case "list_backups":
     case "restore_fixture":
     case "save_draft":
@@ -514,6 +550,20 @@ export const listRelations = (identifier: string) => {
       workspace: route.workspace,
       project: route.project,
       identifier,
+    },
+  });
+};
+
+export const expandGraph = (args: { identifier: string; cursor?: string; page_size?: number }) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "graph_page" } & GraphPageDto>({
+    command: "expand_graph",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      identifier: args.identifier,
+      ...(args.cursor ? { cursor: args.cursor } : {}),
+      page_size: args.page_size ?? TREE_PAGE_SIZE,
     },
   });
 };

@@ -16,6 +16,13 @@ pub const SCHEMA_NOTE_TITLE: &str = "note title is required";
 pub const SCHEMA_NOTE_DESTINATION: &str = "move destination is required";
 pub const SCHEMA_MOVE_SAME_IDENTIFIER: &str = "move destination must differ from identifier";
 pub const UNSUPPORTED_TRUNCATED: &str = "truncated inventory is not a success";
+pub const GRAPH_DEPTH: u32 = 1;
+#[cfg(test)]
+pub const NATIVE_GUI_UNVERIFIED: &str =
+    "native window freeze, WebView2 session, installer, and hosted CI remain UNVERIFIED";
+#[cfg(test)]
+pub const BOUNDED_HOST_EXPANSION: &str =
+    "T20 proves bounded host expansion only; cargo test / npm build / UI copy are not native GUI";
 #[cfg(test)]
 pub const UNSUPPORTED_NOTE_MISSING: &str = "note identifier is not present in the fixture library";
 #[cfg(test)]
@@ -206,6 +213,62 @@ pub fn empty_relation_list(identifier: &str) -> RelationListDto {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum GraphNodeClass {
+    Present,
+    Empty,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct GraphNodeDto {
+    pub identifier: String,
+    pub classified_as: GraphNodeClass,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct GraphEdgeDto {
+    pub source: String,
+    pub target: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct GraphPageDto {
+    pub identifier: String,
+    pub nodes: Vec<GraphNodeDto>,
+    pub edges: Vec<GraphEdgeDto>,
+    pub next_cursor: Option<String>,
+    pub page: u32,
+    pub truncated: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_graph: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub files_written: bool,
+    pub depth: u32,
+}
+
+pub fn empty_graph_page(identifier: &str) -> GraphPageDto {
+    GraphPageDto {
+        identifier: identifier.to_owned(),
+        nodes: Vec::new(),
+        edges: Vec::new(),
+        next_cursor: None,
+        page: 1,
+        truncated: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_graph: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        files_written: false,
+        depth: GRAPH_DEPTH,
+    }
+}
+
 #[cfg(test)]
 pub fn extract_wiki_link_identifiers(body: &str) -> Vec<String> {
     let mut out = Vec::new();
@@ -238,6 +301,20 @@ pub trait NoteLibrary: Send + Sync {
     fn list_relations(&self, identifier: &str) -> Result<RelationListDto, LibraryError> {
         reject_note_identifier(identifier)?;
         Ok(empty_relation_list(identifier))
+    }
+
+    fn expand_graph(
+        &self,
+        identifier: &str,
+        cursor: Option<&str>,
+        page_size: u32,
+    ) -> Result<GraphPageDto, LibraryError> {
+        reject_note_identifier(identifier)?;
+        let _ = bound_page_size(Some(page_size))?;
+        if cursor.is_some() {
+            return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        }
+        Ok(empty_graph_page(identifier))
     }
 
     fn write_note(
@@ -521,6 +598,70 @@ impl NoteLibrary for FixtureLibrary {
         })
     }
 
+    fn expand_graph(
+        &self,
+        identifier: &str,
+        cursor: Option<&str>,
+        page_size: u32,
+    ) -> Result<GraphPageDto, LibraryError> {
+        let page_size = bound_page_size(Some(page_size))?;
+        let path = self.resolve_note_path(identifier)?;
+        let disk = crate::content_safety::read_exact_text(&path)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let neighbors = extract_wiki_link_identifiers(&disk);
+        let offset = parse_offset(cursor, neighbors.len())?;
+        let size = page_size as usize;
+        let end = offset.saturating_add(size).min(neighbors.len());
+        let page_neighbors = &neighbors[offset..end];
+        let next_cursor = if end < neighbors.len() {
+            Some(end.to_string())
+        } else {
+            None
+        };
+        let page = u32::try_from(offset / size)
+            .map_err(|_| LibraryError::schema(SCHEMA_INVALID_CURSOR))?
+            .saturating_add(1);
+        let mut nodes = vec![GraphNodeDto {
+            identifier: identifier.to_owned(),
+            classified_as: GraphNodeClass::Present,
+        }];
+        let mut edges = Vec::new();
+        for target in page_neighbors {
+            if let Some(relation) = self.relation_for_target(target) {
+                let classified = match relation.classified_as {
+                    RelationTargetClass::Present => GraphNodeClass::Present,
+                    RelationTargetClass::Empty | RelationTargetClass::Unsupported => {
+                        GraphNodeClass::Empty
+                    }
+                };
+                if !nodes.iter().any(|node| node.identifier == *target) {
+                    nodes.push(GraphNodeDto {
+                        identifier: target.clone(),
+                        classified_as: classified,
+                    });
+                }
+                edges.push(GraphEdgeDto {
+                    source: identifier.to_owned(),
+                    target: target.clone(),
+                });
+            }
+        }
+        Ok(GraphPageDto {
+            identifier: identifier.to_owned(),
+            nodes,
+            edges,
+            next_cursor,
+            page,
+            truncated: false,
+            observation: crud_observation(NoteCrudClass::DiskVerified, true),
+            engine_graph: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            files_written: false,
+            depth: GRAPH_DEPTH,
+        })
+    }
+
     fn write_note(
         &self,
         identifier: &str,
@@ -761,6 +902,33 @@ pub fn accept_tree_page(
     Ok(page)
 }
 
+pub fn accept_graph_page(
+    request_cursor: Option<&str>,
+    page: GraphPageDto,
+) -> Result<GraphPageDto, LibraryError> {
+    if page.truncated {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if page.depth != GRAPH_DEPTH {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if page.page == 0 {
+        return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+    }
+    if page.edges.len() > MAX_PAGE_SIZE as usize {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if let Some(next) = page.next_cursor.as_deref() {
+        if next.is_empty() {
+            return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        }
+        if request_cursor == Some(next) {
+            return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        }
+    }
+    Ok(page)
+}
+
 pub fn reject_filesystem_identifier(identifier: &str) -> Result<(), LibraryError> {
     if looks_like_filesystem_path(identifier) {
         Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER))
@@ -948,6 +1116,37 @@ pub fn follow_tree_pages(
 }
 
 #[cfg(test)]
+pub fn follow_graph_pages(
+    library: &dyn NoteLibrary,
+    identifier: &str,
+    page_size: u32,
+) -> Result<(Vec<GraphEdgeDto>, u32), LibraryError> {
+    use std::collections::HashSet;
+
+    let mut edges = Vec::new();
+    let mut cursor: Option<String> = None;
+    let mut seen = HashSet::new();
+    for page in 1..=128u32 {
+        let listed = library.expand_graph(identifier, cursor.as_deref(), page_size)?;
+        let listed = accept_graph_page(cursor.as_deref(), listed)?;
+        edges.extend(listed.edges);
+        match listed.next_cursor {
+            None => return Ok((edges, page)),
+            Some(next) => {
+                if seen.contains(&next) {
+                    return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+                }
+                seen.insert(next.clone());
+                cursor = Some(next);
+            }
+        }
+    }
+    Err(LibraryError::unsupported(
+        "exceeded 128 pages; refusing partial inventory",
+    ))
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicU64, Ordering};
@@ -1040,6 +1239,28 @@ mod tests {
         fn read_note(&self, _identifier: &str) -> Result<NoteReadDto, LibraryError> {
             Err(LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))
         }
+
+        fn expand_graph(
+            &self,
+            identifier: &str,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<GraphPageDto, LibraryError> {
+            Ok(GraphPageDto {
+                identifier: identifier.to_owned(),
+                nodes: Vec::new(),
+                edges: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: true,
+                observation: crud_observation(NoteCrudClass::Unclassified, false),
+                engine_graph: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+                depth: GRAPH_DEPTH,
+            })
+        }
     }
 
     struct LoopingLibrary;
@@ -1089,10 +1310,23 @@ mod tests {
         assert_eq!(relations.observation.classified_as, NoteCrudClass::Empty);
         assert!(!relations.observation.disk_verified);
         assert!(relations.observation.envelope_is_not_disk_proof);
+        let graph = library
+            .expand_graph("welcome", None, DEFAULT_PAGE_SIZE)
+            .unwrap();
+        assert!(graph.nodes.is_empty());
+        assert!(graph.edges.is_empty());
+        assert_eq!(graph.next_cursor, None);
+        assert!(!graph.truncated);
+        assert_eq!(graph.depth, GRAPH_DEPTH);
+        assert!(!graph.engine_graph);
+        assert_eq!(graph.observation.classified_as, NoteCrudClass::Empty);
+        assert!(!graph.observation.disk_verified);
         let _ = (
             ENGINE_GRAPH_NOT_OWNED,
             RECENT_ACTIVITY_MCP_UNVERIFIED,
             BUILD_CONTEXT_MCP_UNVERIFIED,
+            NATIVE_GUI_UNVERIFIED,
+            BOUNDED_HOST_EXPANSION,
         );
     }
 
@@ -1102,6 +1336,10 @@ mod tests {
             .list_tree(Some("1"), DEFAULT_PAGE_SIZE)
             .unwrap_err();
         assert_eq!(error, LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        let graph_cursor = EmptyLibrary
+            .expand_graph("welcome", Some("1"), DEFAULT_PAGE_SIZE)
+            .unwrap_err();
+        assert_eq!(graph_cursor, LibraryError::schema(SCHEMA_INVALID_CURSOR));
     }
 
     #[test]
@@ -1638,5 +1876,127 @@ mod tests {
             RECENT_ACTIVITY_MCP_UNVERIFIED,
             BUILD_CONTEXT_MCP_UNVERIFIED,
         );
+    }
+
+    #[test]
+    fn fixture_graph_one_hop_matches_physical_wiki_links_and_second_hop_reads_neighbor() {
+        let fixture = TempFixture::create();
+        fixture.write_note(
+            "welcome",
+            "中文夹具笔记",
+            "这是 BMDock 自有夹具正文。参见 [[欢迎]] 与 [[alpha]] [[beta]] [[gamma]] [[delta]] 与 [[missing-target]]。",
+        );
+        fixture.write_note(
+            "欢迎",
+            "欢迎",
+            "第二跳正文。参见 [[second-hop]] 与 [[missing-second]]。",
+        );
+        fixture.write_note("second-hop", "second-hop", "第三层正文");
+        let library = FixtureLibrary::new(fixture.dir.clone());
+        let first = library.expand_graph("welcome", None, 2).unwrap();
+        let disk = fs::read_to_string(fixture.dir.join("welcome.md")).unwrap();
+        let expected = extract_wiki_link_identifiers(&disk);
+        assert_eq!(
+            first
+                .edges
+                .iter()
+                .map(|edge| edge.target.clone())
+                .collect::<Vec<_>>(),
+            expected[..2]
+        );
+        assert_eq!(first.edges.len(), 2);
+        assert_eq!(first.next_cursor.as_deref(), Some("2"));
+        assert_eq!(first.page, 1);
+        assert_eq!(first.depth, GRAPH_DEPTH);
+        assert!(!first.truncated);
+        assert!(!first.engine_graph);
+        assert_eq!(first.nodes[0].identifier, "welcome");
+        assert_eq!(first.nodes[0].classified_as, GraphNodeClass::Present);
+        assert_eq!(first.nodes[1].identifier, "欢迎");
+        assert_eq!(first.nodes[1].classified_as, GraphNodeClass::Present);
+        assert_eq!(first.nodes[2].identifier, "alpha");
+        assert_eq!(first.nodes[2].classified_as, GraphNodeClass::Empty);
+        assert!(!first.nodes.iter().any(|node| {
+            node.identifier.contains('\\')
+                || node.identifier.contains(':')
+                || node.identifier.contains('/')
+        }));
+        assert_eq!(first.observation.classified_as, NoteCrudClass::DiskVerified);
+        assert_ne!(first.observation.classified_as, NoteCrudClass::Conflict);
+        assert!(first.observation.disk_verified);
+        assert!(first.nodes.len() <= 3);
+        assert!(!first
+            .nodes
+            .iter()
+            .any(|node| node.identifier == "second-hop"));
+        let second = library
+            .expand_graph("welcome", first.next_cursor.as_deref(), 2)
+            .unwrap();
+        assert_eq!(second.page, 2);
+        assert_eq!(
+            second
+                .edges
+                .iter()
+                .map(|edge| edge.target.clone())
+                .collect::<Vec<_>>(),
+            expected[2..4]
+        );
+        assert!(!second
+            .nodes
+            .iter()
+            .any(|node| node.identifier == "second-hop"));
+        let rejected = accept_graph_page(
+            first.next_cursor.as_deref(),
+            GraphPageDto {
+                next_cursor: first.next_cursor.clone(),
+                ..second.clone()
+            },
+        );
+        assert_eq!(
+            rejected.unwrap_err(),
+            LibraryError::schema(SCHEMA_INVALID_CURSOR)
+        );
+        let (all_edges, pages) = follow_graph_pages(&library, "welcome", 2).unwrap();
+        assert_eq!(all_edges.len(), expected.len());
+        assert_eq!(pages, 3);
+        assert!(all_edges.len() < 20);
+        let hop = library
+            .expand_graph("欢迎", None, DEFAULT_PAGE_SIZE)
+            .unwrap();
+        let neighbor_disk = fs::read_to_string(fixture.dir.join("欢迎.md")).unwrap();
+        assert_eq!(
+            hop.edges
+                .iter()
+                .map(|edge| edge.target.clone())
+                .collect::<Vec<_>>(),
+            extract_wiki_link_identifiers(&neighbor_disk)
+        );
+        assert_eq!(hop.identifier, "欢迎");
+        assert_eq!(hop.nodes[0].identifier, "欢迎");
+        assert!(hop.nodes.iter().any(|node| node.identifier == "second-hop"));
+        assert_eq!(
+            hop.nodes
+                .iter()
+                .find(|node| node.identifier == "missing-second")
+                .unwrap()
+                .classified_as,
+            GraphNodeClass::Empty
+        );
+        assert!(!hop.nodes.iter().any(|node| node.identifier == "alpha"));
+        assert!(!hop.nodes.iter().any(|node| node.identifier == "welcome"));
+        assert_eq!(hop.observation.classified_as, NoteCrudClass::DiskVerified);
+        assert_eq!(hop.depth, GRAPH_DEPTH);
+        let truncated = accept_graph_page(
+            None,
+            TruncatingLibrary.expand_graph("welcome", None, 2).unwrap(),
+        )
+        .unwrap_err();
+        assert_eq!(truncated, LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+        let missing_source = library.expand_graph("absent", None, 2).unwrap_err();
+        assert_eq!(
+            missing_source,
+            LibraryError::unsupported(UNSUPPORTED_NOTE_MISSING)
+        );
+        let _ = (NATIVE_GUI_UNVERIFIED, BOUNDED_HOST_EXPANSION);
     }
 }

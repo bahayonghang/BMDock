@@ -5,8 +5,8 @@ use crate::conflict::{self, ConflictCoordinator};
 use crate::drafts::{self, DraftResultDto, DraftStore};
 use crate::drain::{self, DrainPhase, DrainResultDto, HostDrain};
 use crate::library::{
-    self, NoteDeleteDto, NoteEditDto, NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto,
-    RelationListDto, TreePageDto,
+    self, GraphPageDto, NoteDeleteDto, NoteEditDto, NoteLibrary, NoteMoveDto, NoteReadDto,
+    NoteWriteDto, RelationListDto, TreePageDto,
 };
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
@@ -27,6 +27,7 @@ pub enum IpcCommandName {
     ListTree,
     ReadNote,
     ListRelations,
+    ExpandGraph,
     ListBackups,
     RestoreFixture,
     InspectWindowsRuntime,
@@ -50,6 +51,7 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::ListTree,
         IpcCommandName::ReadNote,
         IpcCommandName::ListRelations,
+        IpcCommandName::ExpandGraph,
         IpcCommandName::ListBackups,
         IpcCommandName::RestoreFixture,
         IpcCommandName::InspectWindowsRuntime,
@@ -126,6 +128,27 @@ pub struct ListRelationsArgs {
 }
 
 impl ListRelationsArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ExpandGraphArgs {
+    pub workspace: String,
+    pub project: String,
+    pub identifier: String,
+    #[serde(default)]
+    pub cursor: Option<String>,
+    #[serde(default)]
+    pub page_size: Option<u32>,
+}
+
+impl ExpandGraphArgs {
     fn route(&self) -> ExplicitRouteArgs {
         ExplicitRouteArgs {
             workspace: self.workspace.clone(),
@@ -275,6 +298,7 @@ pub enum IpcCommand {
     ListTree(ListTreeArgs),
     ReadNote(ReadNoteArgs),
     ListRelations(ListRelationsArgs),
+    ExpandGraph(ExpandGraphArgs),
     ListBackups(ExplicitRouteArgs),
     RestoreFixture(RestoreFixtureArgs),
     InspectWindowsRuntime(EmptyArgs),
@@ -337,6 +361,7 @@ pub enum IpcResponse {
     TreePage(TreePageDto),
     NoteRead(NoteReadDto),
     RelationList(RelationListDto),
+    GraphPage(GraphPageDto),
     BackupCatalog(BackupCatalogDto),
     FixtureRestored(RestoreResultDto),
     WindowsRuntime(WindowsRuntimeDto),
@@ -517,6 +542,15 @@ pub fn dispatch_with_drain(
                 library.list_relations(&args.identifier)?,
             ))
         }
+        IpcCommand::ExpandGraph(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            library::reject_note_identifier(&args.identifier)?;
+            let page_size = library::bound_page_size(args.page_size)?;
+            let cursor = library::validate_request_cursor(args.cursor.as_deref())?;
+            let page = library.expand_graph(&args.identifier, cursor, page_size)?;
+            let page = library::accept_graph_page(cursor, page)?;
+            Ok(IpcResponse::GraphPage(page))
+        }
         IpcCommand::ListBackups(route_args) => {
             require_explicit_fixture_route(&route_args)?;
             Ok(IpcResponse::BackupCatalog(backups.list_backups()?))
@@ -686,6 +720,7 @@ mod tests {
                 IpcCommandName::ListTree,
                 IpcCommandName::ReadNote,
                 IpcCommandName::ListRelations,
+                IpcCommandName::ExpandGraph,
                 IpcCommandName::ListBackups,
                 IpcCommandName::RestoreFixture,
                 IpcCommandName::InspectWindowsRuntime,
@@ -698,19 +733,20 @@ mod tests {
                 IpcCommandName::BeginShutdown,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 19);
+        assert_eq!(capabilities.commands.len(), 20);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 19);
+        assert_eq!(commands.len(), 20);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
         assert!(commands.iter().any(|command| command == "read_note"));
         assert!(commands.iter().any(|command| command == "list_relations"));
+        assert!(commands.iter().any(|command| command == "expand_graph"));
         assert!(commands.iter().any(|command| command == "list_backups"));
         assert!(commands.iter().any(|command| command == "restore_fixture"));
         assert!(commands
@@ -945,6 +981,18 @@ mod tests {
             r#"{"command":"list_relations","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
         );
         assert!(incomplete_relations.is_err());
+        let extra_path_on_graph = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"expand_graph","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","path":"C:\\vault\\note.md"}}"#,
+        );
+        assert!(extra_path_on_graph.is_err());
+        let extra_root_on_graph = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"expand_graph","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_graph.is_err());
+        let incomplete_graph = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"expand_graph","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(incomplete_graph.is_err());
         let extra_path_on_tree = serde_json::from_str::<IpcCommand>(
             r#"{"command":"list_tree","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","path":"C:\\vault"}}"#,
         );
@@ -981,6 +1029,10 @@ mod tests {
             r#"{"command":"list_relations","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome"}}"#,
         );
         assert!(well_formed_relations.is_ok());
+        let well_formed_graph = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"expand_graph","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","page_size":2}}"#,
+        );
+        assert!(well_formed_graph.is_ok());
         let well_formed_tree = serde_json::from_str::<IpcCommand>(
             r#"{"command":"list_tree","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","page_size":2}}"#,
         );
@@ -1320,6 +1372,15 @@ mod tests {
             panic!("policy rejection must not open the library")
         }
 
+        fn expand_graph(
+            &self,
+            _identifier: &str,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::GraphPageDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
         fn write_note(
             &self,
             _identifier: &str,
@@ -1377,6 +1438,32 @@ mod tests {
                 library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
             ))
         }
+
+        fn expand_graph(
+            &self,
+            identifier: &str,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::GraphPageDto, library::LibraryError> {
+            Ok(library::GraphPageDto {
+                identifier: identifier.to_owned(),
+                nodes: Vec::new(),
+                edges: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: true,
+                observation: library::NoteCrudObservationDto {
+                    classified_as: library::NoteCrudClass::Unclassified,
+                    disk_verified: false,
+                    envelope_is_not_disk_proof: true,
+                },
+                engine_graph: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+                depth: library::GRAPH_DEPTH,
+            })
+        }
     }
 
     fn idle_snapshot() -> RuntimeSnapshot {
@@ -1411,6 +1498,20 @@ mod tests {
             workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
             project: FIXTURE_PROJECT.to_owned(),
             identifier: identifier.to_owned(),
+        }
+    }
+
+    fn fixture_graph_args(
+        identifier: &str,
+        cursor: Option<&str>,
+        page_size: Option<u32>,
+    ) -> ExpandGraphArgs {
+        ExpandGraphArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            identifier: identifier.to_owned(),
+            cursor: cursor.map(ToOwned::to_owned),
+            page_size,
         }
     }
 
@@ -1517,13 +1618,43 @@ mod tests {
                 project: FIXTURE_PROJECT.to_owned(),
                 identifier: r"C:\Users\someone\vault\note.md".to_owned(),
             }),
-            snapshot,
+            snapshot.clone(),
             &mut route,
             &PanicLibrary,
             &backups::EmptyBackupStore,
         )
         .unwrap_err();
         assert_eq!(relations_path.category, ErrorCategory::Policy);
+        let graph_route = dispatch_with_library(
+            IpcCommand::ExpandGraph(ExpandGraphArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+                identifier: "welcome".to_owned(),
+                cursor: None,
+                page_size: Some(2),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(graph_route.category, ErrorCategory::Policy);
+        let graph_path = dispatch_with_library(
+            IpcCommand::ExpandGraph(ExpandGraphArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                identifier: r"C:\Users\someone\vault\note.md".to_owned(),
+                cursor: None,
+                page_size: Some(2),
+            }),
+            snapshot,
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(graph_path.category, ErrorCategory::Policy);
         assert_eq!(route.project, None);
     }
 
@@ -1566,6 +1697,46 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(truncated.category, ErrorCategory::Unsupported);
+        let graph_zero = dispatch_with_library(
+            IpcCommand::ExpandGraph(fixture_graph_args("welcome", None, Some(0))),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(graph_zero.category, ErrorCategory::Schema);
+        let graph_huge = dispatch_with_library(
+            IpcCommand::ExpandGraph(fixture_graph_args(
+                "welcome",
+                None,
+                Some(library::MAX_PAGE_SIZE + 1),
+            )),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(graph_huge.category, ErrorCategory::Schema);
+        let graph_empty_cursor = dispatch_with_library(
+            IpcCommand::ExpandGraph(fixture_graph_args("welcome", Some(""), Some(2))),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(graph_empty_cursor.category, ErrorCategory::Schema);
+        let graph_truncated = dispatch_with_library(
+            IpcCommand::ExpandGraph(fixture_graph_args("welcome", None, Some(2))),
+            idle_snapshot(),
+            &mut route,
+            &TruncatingLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(graph_truncated.category, ErrorCategory::Unsupported);
     }
 
     #[test]
@@ -3648,6 +3819,233 @@ mod tests {
         let _ = (
             library::RECENT_ACTIVITY_MCP_UNVERIFIED,
             library::BUILD_CONTEXT_MCP_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn expand_graph_empty_library_is_empty_not_user_vault() {
+        let mut route = RouteState::default();
+        let IpcResponse::GraphPage(page) = dispatch_with_library(
+            IpcCommand::ExpandGraph(fixture_graph_args(
+                "welcome",
+                None,
+                Some(library::DEFAULT_PAGE_SIZE),
+            )),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(page.nodes.is_empty());
+        assert!(page.edges.is_empty());
+        assert_eq!(page.identifier, "welcome");
+        assert_eq!(page.next_cursor, None);
+        assert!(!page.truncated);
+        assert_eq!(page.depth, library::GRAPH_DEPTH);
+        assert!(!page.engine_graph);
+        assert!(!page.files_written);
+        assert!(!page.scanned_user_obsidian_vault);
+        assert!(!page.scanned_user_basic_memory_home);
+        assert_eq!(
+            page.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        assert!(!page.observation.disk_verified);
+        let json = serde_json::to_value(&IpcResponse::GraphPage(page)).unwrap();
+        assert_eq!(json["kind"], "graph_page");
+        assert_eq!(json["engine_graph"], false);
+        assert_eq!(json["depth"], 1);
+        assert!(json.get("path").is_none());
+        assert!(json.get("expected_tools").is_none());
+        assert_eq!(json["observation"]["classified_as"], "empty");
+        let _ = (
+            library::ENGINE_GRAPH_NOT_OWNED,
+            library::NATIVE_GUI_UNVERIFIED,
+            library::BOUNDED_HOST_EXPANSION,
+        );
+    }
+
+    #[test]
+    fn expand_graph_fixture_is_one_hop_wiki_links_with_chinese_permalink() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t20-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            dir.join("welcome.md"),
+            "# 中文夹具笔记\n\n这是 BMDock 自有夹具正文。参见 [[欢迎]] 与 [[alpha]] [[beta]] [[gamma]] [[delta]] 与 [[missing-target]]。\n",
+        )
+        .unwrap();
+        std::fs::write(
+            dir.join("欢迎.md"),
+            "# 欢迎\n\n第二跳正文。参见 [[second-hop]] 与 [[missing-second]]。\n",
+        )
+        .unwrap();
+        std::fs::write(dir.join("second-hop.md"), "# second-hop\n\n第三层正文\n").unwrap();
+        let library = library::FixtureLibrary::new(dir.clone());
+        let mut route = RouteState::default();
+        let IpcResponse::GraphPage(first) = dispatch_with_library(
+            IpcCommand::ExpandGraph(fixture_graph_args("welcome", None, Some(2))),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let disk = std::fs::read_to_string(dir.join("welcome.md")).unwrap();
+        let expected = library::extract_wiki_link_identifiers(&disk);
+        assert_eq!(
+            first
+                .edges
+                .iter()
+                .map(|edge| edge.target.clone())
+                .collect::<Vec<_>>(),
+            expected[..2]
+        );
+        assert_eq!(first.edges.len(), 2);
+        assert_eq!(first.next_cursor.as_deref(), Some("2"));
+        assert!(!first.truncated);
+        assert_eq!(first.depth, 1);
+        assert_eq!(first.nodes[1].identifier, "欢迎");
+        assert_eq!(
+            first.nodes[1].classified_as,
+            library::GraphNodeClass::Present
+        );
+        assert_eq!(first.nodes[2].classified_as, library::GraphNodeClass::Empty);
+        assert!(!first
+            .nodes
+            .iter()
+            .any(|node| node.identifier == "second-hop"));
+        assert_eq!(
+            first.observation.classified_as,
+            library::NoteCrudClass::DiskVerified
+        );
+        assert_ne!(
+            first.observation.classified_as,
+            library::NoteCrudClass::Conflict
+        );
+        assert!(first.observation.disk_verified);
+        assert!(!first.engine_graph);
+        let json = serde_json::to_value(&IpcResponse::GraphPage(first.clone())).unwrap();
+        assert_eq!(json["kind"], "graph_page");
+        assert_eq!(json["nodes"][1]["identifier"], "欢迎");
+        assert_eq!(json["observation"]["classified_as"], "disk_verified");
+        assert!(json.get("path").is_none());
+        let IpcResponse::GraphPage(second) = dispatch_with_library(
+            IpcCommand::ExpandGraph(fixture_graph_args(
+                "welcome",
+                first.next_cursor.as_deref(),
+                Some(2),
+            )),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(second.page, 2);
+        assert!(!second
+            .nodes
+            .iter()
+            .any(|node| node.identifier == "second-hop"));
+        let repeated = dispatch_with_library(
+            IpcCommand::ExpandGraph(fixture_graph_args(
+                "welcome",
+                first.next_cursor.as_deref(),
+                Some(2),
+            )),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap();
+        let IpcResponse::GraphPage(repeated) = repeated else {
+            panic!("wrong response variant")
+        };
+        let looped = library::accept_graph_page(
+            first.next_cursor.as_deref(),
+            library::GraphPageDto {
+                next_cursor: first.next_cursor.clone(),
+                ..repeated
+            },
+        );
+        assert_eq!(
+            looped.unwrap_err(),
+            library::LibraryError::schema(library::SCHEMA_INVALID_CURSOR)
+        );
+        let IpcResponse::GraphPage(hop) = dispatch_with_library(
+            IpcCommand::ExpandGraph(fixture_graph_args("欢迎", None, Some(20))),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let neighbor_disk = std::fs::read_to_string(dir.join("欢迎.md")).unwrap();
+        assert_eq!(
+            hop.edges
+                .iter()
+                .map(|edge| edge.target.clone())
+                .collect::<Vec<_>>(),
+            library::extract_wiki_link_identifiers(&neighbor_disk)
+        );
+        assert!(hop.nodes.iter().any(|node| node.identifier == "second-hop"));
+        assert!(!hop.nodes.iter().any(|node| node.identifier == "alpha"));
+        assert_eq!(
+            hop.observation.classified_as,
+            library::NoteCrudClass::DiskVerified
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn expand_graph_does_not_merge_engine_profiles_or_claim_native_gui() {
+        let release = crate::supervisor::EngineProfile::Release;
+        let preview = crate::supervisor::EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(preview.commit(), "3452c821d76c083823d020984d71e06904a1ff1e");
+        assert_eq!(release.expected_tools(), 21);
+        assert_eq!(preview.expected_tools(), 27);
+        let mut route = RouteState::default();
+        let IpcResponse::GraphPage(page) = dispatch_with_library(
+            IpcCommand::ExpandGraph(fixture_graph_args("welcome", None, Some(2))),
+            RuntimeSnapshot {
+                state: ConnectionState::Connected,
+                profile: Some(release),
+                child_pid: Some(7),
+                failure: None,
+                shutdown: None,
+            },
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let json = serde_json::to_value(&IpcResponse::GraphPage(page)).unwrap();
+        assert!(json.get("expected_tools").is_none());
+        assert!(json.get("profile").is_none());
+        assert!(json.get("tools").is_none());
+        assert_eq!(json["engine_graph"], false);
+        assert_eq!(json["kind"], "graph_page");
+        let _ = (
+            library::RECENT_ACTIVITY_MCP_UNVERIFIED,
+            library::BUILD_CONTEXT_MCP_UNVERIFIED,
+            library::NATIVE_GUI_UNVERIFIED,
+            library::BOUNDED_HOST_EXPANSION,
         );
     }
 }

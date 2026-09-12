@@ -1,0 +1,191 @@
+{
+  "task": "T20",
+  "title": "局部图谱与渐进展开",
+  "status": "accepted_with_limits",
+  "date": "2026-09-12",
+  "host_boundary": "T20 adds typed expand_graph with ExplicitRouteArgs plus identifier plus optional cursor and page_size. deny_unknown_fields. Extra path/root is schema. Non-fixture routes and filesystem identifiers are policy and do not open the library. page_size 0/huge and invalid/repeated cursor are schema. Truncated inventory is unsupported, not success. The graph is a BMDock-owned one-hop neighborhood derived from T19 fixture markdown wiki-links [[...]] via FixtureLibrary. It is not a second database, not official engine graph MCP, and not a vis.js/npm graph library. Production EmptyLibrary returns empty nodes/edges with classified_as empty, not user-vault success. Tests inject FixtureLibrary and observe that 1-hop neighbors equal wiki-links in the physical source file; expanding a neighbor observes THAT file's wiki-links. Missing targets are empty nodes, not user-vault. Permalinks/identifiers only. One hop per call (depth 1). next_cursor pages the current identifier; expanding a returned node identifier loads that neighbor. page_size default 20, max 64. Observation classified_as stays on the graph DTO and is distinct from nodes/edges. Conflict remains the CRUD class, not a graph node class. Chinese identifiers such as 欢迎 remain permalinks. Native GUI / WebView2 session / installer / hosted CI remain UNVERIFIED. cargo test / npm build / UI copy are not AC56 native proof. T20 does not start Supervisor, add rmcp, or expose raw callTool. Dual profiles stay isolated. just build stays the G0 probe. just contract was not run as T20 proof.",
+  "acceptance": {
+    "AC27": {
+      "status": "observation_classified_as_distinct_from_graph_nodes_edges",
+      "evidence": [
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "The graph DTO keeps classified_as (disk_verified / accepted_unverified / conflict / empty) distinct from nodes/edges. Fixture expand after reading the physical file is disk_verified. EmptyLibrary is empty. Conflict remains the CRUD observation class and is not a graph node class. The zh-CN 图谱 panel shows empty/error/ready. UI copy, cargo test, and npm build are not a native GUI session."
+    },
+    "AC29": {
+      "status": "fixture_chinese_permalink_kept_on_graph",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Chinese identifiers such as 欢迎 appear as permalinks when present in physical wiki-links. Expansion does not drop CJK. This is fixture-local Chinese graph identity, not T24 recall benchmark and not official search MCP.",
+      "unverified": [
+        "T24 Chinese recall benchmark",
+        "official search MCP",
+        "official engine graph MCP",
+        "native GUI session",
+        "real user vault"
+      ]
+    },
+    "AC56": {
+      "status": "bounded_host_expansion_native_gui_unverified",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "execution/evidence/t20-local-graph-expansion.json",
+        "docs/VERIFICATION.md"
+      ],
+      "claim": "Bounded page_size (default 20, max 64) plus truncated fail-closed so T20 does not claim full-vault / native-GUI / installer performance. Native window freeze, WebView2 session, installer, and hosted CI remain UNVERIFIED. cargo test / npm build / UI copy are not AC56 native proof.",
+      "unverified": [
+        "native window freeze",
+        "WebView2 session",
+        "installer",
+        "hosted CI",
+        "full-vault performance"
+      ]
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t20-local-graph-expansion",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 134 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 14 passed"
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T20 local-graph proof. Probe entries remain independent. Official engine graph remains UNVERIFIED."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window was launched. Graph proof is source plus unit tests on FixtureLibrary. AC56 is bounded-host-expansion only."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_139_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_desktop_shell": "14_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "typed_command_count": 20,
+    "raw_call_tool": "absent",
+    "dangerouslySetInnerHTML": "absent",
+    "supervisor_started_by_t20": false,
+    "rmcp_live_client": "not_added_in_t20",
+    "engine_graph": false,
+    "official_engine_graph": "UNVERIFIED",
+    "native_gui_session": "UNVERIFIED",
+    "webview2_session": "UNVERIFIED",
+    "installer": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "one_hop_matches_physical_wiki_links": true,
+    "second_hop_reads_neighbor_file": true,
+    "chinese_permalink_kept": true,
+    "missing_target_is_empty_node_not_user_vault": true,
+    "empty_library_graph_is_empty_state": true,
+    "truncated_inventory_unsupported": true,
+    "t21_search": "not_implemented",
+    "t24_recall_benchmark": "not_implemented"
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed_unchanged",
+    "T10": "completed_unchanged",
+    "T11": "completed_unchanged",
+    "T12": "completed_unchanged",
+    "T13": "completed_unchanged",
+    "T14": "completed_unchanged",
+    "T15": "completed_unchanged",
+    "T16": "completed_unchanged",
+    "T17": "completed_unchanged",
+    "T18": "completed_unchanged",
+    "T19": "completed_unchanged",
+    "T20": "completed"
+  },
+  "scope_limits": [
+    "Graph is a BMDock-owned one-hop neighborhood from fixture markdown wiki-links, not a second database and not official engine graph MCP.",
+    "EmptyLibrary empty nodes/edges is empty state, not user-vault success.",
+    "Missing wiki-link targets are empty nodes, not user-vault.",
+    "Graph identifiers are permalinks, not filesystem paths.",
+    "Observation classified_as is distinct from nodes/edges. Conflict is not a graph node class.",
+    "One hop per call. Bounded page_size. Truncated inventory is unsupported.",
+    "Chinese identifiers such as 欢迎 are fixture-local graph identity, not T24 recall.",
+    "Native GUI / WebView2 session / installer / hosted CI remain UNVERIFIED. AC56 is bounded-host-expansion.",
+    "IPC error union stays policy/schema/unsupported. Dual profiles stay isolated (21 vs 27).",
+    "just build stays scripts.tasks build. just contract* stay probe. just tauri-dev/tauri-build stay desktop.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "UI copy, tool lists, compiled exe, cargo test, npm build, and just contract are not native GUI / user-vault / engine-graph proof."
+  ],
+  "rollback": "Remove expand_graph from the ipc_invoke union, drop GraphPanel, restore the 19-command allowlist, and leave T19 list_relations in place. Do not revert T05-T19 status to make unit green."
+}

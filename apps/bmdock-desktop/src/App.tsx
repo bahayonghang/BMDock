@@ -15,6 +15,8 @@ import {
   type NoteReadDto,
   type RelationListDto,
   type RelationDto,
+  type GraphPageDto,
+  type GraphNodeDto,
   type PreflightDto,
   type ProjectCatalogDto,
   type RestoreResultDto,
@@ -237,6 +239,8 @@ function WorkbenchLibrary({
   const [note, setNote] = useState<NoteReadDto | null>(null);
   const [relations, setRelations] = useState<RelationListDto | null>(null);
   const [relationsError, setRelationsError] = useState<WorkbenchError | null>(null);
+  const [graph, setGraph] = useState<GraphPageDto | null>(null);
+  const [graphError, setGraphError] = useState<WorkbenchError | null>(null);
   const [crudObservation, setCrudObservation] = useState<{
     identifier: string;
     classified_as: NoteCrudClass;
@@ -251,6 +255,8 @@ function WorkbenchLibrary({
     setNote(null);
     setRelations(null);
     setRelationsError(null);
+    setGraph(null);
+    setGraphError(null);
     setCrudObservation(null);
     setError(null);
     void (async () => {
@@ -299,6 +305,7 @@ function WorkbenchLibrary({
           case "note_moved":
           case "note_deleted":
           case "relation_list":
+      case "graph_page":
       case "shutdown_begun":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
@@ -385,6 +392,8 @@ function WorkbenchLibrary({
                       setNote,
                       setRelations,
                       setRelationsError,
+                      setGraph,
+                      setGraphError,
                       setError,
                       setPhase,
                     );
@@ -414,8 +423,21 @@ function WorkbenchLibrary({
         relations={relations}
         relationsError={relationsError}
         crudObservation={crudObservation}
+        graph={graph}
       />
       <RelationPanel relations={relations} error={relationsError} />
+      <GraphPanel
+        graph={graph}
+        error={graphError}
+        onLoadMore={() => {
+          if (graph?.next_cursor) {
+            void loadMoreGraph(graph, setGraph, setGraphError);
+          }
+        }}
+        onExpand={(identifier) => {
+          void loadGraph(identifier, setGraph, setGraphError);
+        }}
+      />
       <NoteCrudPanel
         seedIdentifier={note?.identifier ?? null}
         seedTitle={note?.title ?? null}
@@ -437,6 +459,8 @@ async function openNote(
   setNote: (note: NoteReadDto | null) => void,
   setRelations: (relations: RelationListDto | null) => void,
   setRelationsError: (error: WorkbenchError | null) => void,
+  setGraph: (graph: GraphPageDto | null) => void,
+  setGraphError: (error: WorkbenchError | null) => void,
   setError: (error: WorkbenchError | null) => void,
   setPhase: (phase: "loading" | "ready" | "empty" | "error") => void,
 ): Promise<void> {
@@ -464,6 +488,7 @@ async function openNote(
           observation: response.observation,
         });
         await loadRelations(identifier, setRelations, setRelationsError);
+        await loadGraph(identifier, setGraph, setGraphError);
         return;
       case "capabilities":
       case "runtime_state":
@@ -482,6 +507,7 @@ async function openNote(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "graph_page":
       case "shutdown_begun":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
@@ -549,6 +575,7 @@ async function loadRelations(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "graph_page":
       case "shutdown_begun":
         setRelations(null);
         setRelationsError({ category: "schema", message: t("unexpectedRelations") });
@@ -561,6 +588,173 @@ async function loadRelations(
   } catch (cause) {
     setRelations(null);
     setRelationsError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+function unexpectedGraphResponse(): WorkbenchError {
+  return { category: "schema", message: t("unexpectedGraph") };
+}
+
+function asGraphPage(response: Extract<IpcResponse, { kind: "graph_page" }>): GraphPageDto {
+  return {
+    identifier: response.identifier,
+    nodes: response.nodes,
+    edges: response.edges,
+    next_cursor: response.next_cursor,
+    page: response.page,
+    truncated: response.truncated,
+    observation: response.observation,
+    engine_graph: false,
+    scanned_user_obsidian_vault: false,
+    scanned_user_basic_memory_home: false,
+    files_written: response.files_written,
+    depth: 1,
+  };
+}
+
+function mergeGraphPage(current: GraphPageDto, next: GraphPageDto): GraphPageDto {
+  const nodes = [...current.nodes];
+  for (const node of next.nodes) {
+    if (!nodes.some((existing) => existing.identifier === node.identifier)) {
+      nodes.push(node);
+    }
+  }
+  return {
+    ...next,
+    nodes,
+    edges: [...current.edges, ...next.edges],
+  };
+}
+
+async function loadGraph(
+  identifier: string,
+  setGraph: (graph: GraphPageDto | null) => void,
+  setGraphError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "expand_graph",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        identifier,
+        page_size: TREE_PAGE_SIZE,
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setGraph(null);
+        setGraphError({ category: response.category, message: response.message });
+        return;
+      case "graph_page":
+        if (response.truncated) {
+          setGraph(null);
+          setGraphError(unexpectedGraphResponse());
+          return;
+        }
+        setGraphError(null);
+        setGraph(asGraphPage(response));
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "relation_list":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
+      case "shutdown_begun":
+        setGraph(null);
+        setGraphError(unexpectedGraphResponse());
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setGraph(null);
+    setGraphError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+async function loadMoreGraph(
+  current: GraphPageDto,
+  setGraph: (graph: GraphPageDto | null) => void,
+  setGraphError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  if (!current.next_cursor) {
+    return;
+  }
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "expand_graph",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        identifier: current.identifier,
+        cursor: current.next_cursor,
+        page_size: TREE_PAGE_SIZE,
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setGraphError({ category: response.category, message: response.message });
+        return;
+      case "graph_page":
+        if (response.truncated) {
+          setGraphError(unexpectedGraphResponse());
+          return;
+        }
+        setGraphError(null);
+        setGraph(mergeGraphPage(current, asGraphPage(response)));
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "relation_list":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
+      case "shutdown_begun":
+        setGraphError(unexpectedGraphResponse());
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setGraphError({
       category: "invoke",
       message: cause instanceof Error ? cause.message : String(cause),
     });
@@ -618,6 +812,7 @@ async function loadMoreTree(
       case "note_moved":
       case "note_deleted":
       case "relation_list":
+      case "graph_page":
       case "shutdown_begun":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
@@ -765,22 +960,31 @@ function ObservationPanel({
   relations,
   relationsError,
   crudObservation,
+  graph,
 }: {
   note: NoteReadDto | null;
   relations: RelationListDto | null;
   relationsError: WorkbenchError | null;
   crudObservation: { identifier: string; classified_as: NoteCrudClass } | null;
+  graph: GraphPageDto | null;
 }) {
-  const currentId = note?.identifier ?? relations?.identifier ?? crudObservation?.identifier ?? null;
+  const currentId =
+    note?.identifier ??
+    relations?.identifier ??
+    graph?.identifier ??
+    crudObservation?.identifier ??
+    null;
   let classified: NoteCrudClass = "empty";
   if (crudObservation && (currentId === null || crudObservation.identifier === currentId)) {
     classified = crudObservation.classified_as;
+  } else if (graph) {
+    classified = graph.observation.classified_as;
   } else if (relations) {
     classified = relations.observation.classified_as;
   } else if (note) {
     classified = mapReadObservation(note);
   }
-  if (relationsError && !note && !relations && !crudObservation) {
+  if (relationsError && !note && !relations && !crudObservation && !graph) {
     return (
       <section className="subpanel" data-state="error" aria-labelledby="observation-title" role="alert">
         <p className="state-badge">{t("errorBadge")}</p>
@@ -791,7 +995,7 @@ function ObservationPanel({
       </section>
     );
   }
-  const empty = classified === "empty" && !note && !relations && !crudObservation;
+  const empty = classified === "empty" && !note && !relations && !crudObservation && !graph;
   return (
     <section
       className="subpanel"
@@ -877,6 +1081,113 @@ function RelationPanel({
             </li>
           ))}
         </ul>
+      ) : null}
+    </section>
+  );
+}
+
+function graphNodeLabel(classified: GraphNodeDto["classified_as"]): string {
+  switch (classified) {
+    case "present":
+      return t("graphNodePresent");
+    case "empty":
+      return t("graphNodeEmpty");
+    default: {
+      const exhaustive: never = classified;
+      return exhaustive;
+    }
+  }
+}
+
+function GraphPanel({
+  graph,
+  error,
+  onLoadMore,
+  onExpand,
+}: {
+  graph: GraphPageDto | null;
+  error: WorkbenchError | null;
+  onLoadMore: () => void;
+  onExpand: (identifier: string) => void;
+}) {
+  if (error) {
+    return (
+      <section className="subpanel" data-state="error" aria-labelledby="graph-title" role="alert">
+        <p className="state-badge">{t("errorBadge")}</p>
+        <h3 id="graph-title">{t("graphErrorTitle")}</h3>
+        <p>
+          {errorCategoryLabel(error.category)}：{error.message}
+        </p>
+      </section>
+    );
+  }
+  const empty = graph === null || (graph.nodes.length === 0 && graph.edges.length === 0);
+  return (
+    <section
+      className="subpanel"
+      data-state={empty ? "empty" : "status"}
+      aria-labelledby="graph-title"
+    >
+      <p className="state-badge">{empty ? t("emptyBadge") : t("statusBadge")}</p>
+      <h3 id="graph-title">{empty ? t("graphEmptyTitle") : t("graphReadyTitle")}</h3>
+      <p>{empty ? t("graphEmptyBody") : t("graphReadyBody")}</p>
+      <p>{t("graphObservationDistinct")}</p>
+      <p>{t("graphNotEngineGraph")}</p>
+      <p>{t("graphChineseKept")}</p>
+      <p>{t("graphBounded")}</p>
+      <p>{t("graphDepthOne")}</p>
+      {graph ? (
+        <dl className="facts">
+          <div>
+            <dt>{t("workbenchIdentifierLabel")}</dt>
+            <dd>{graph.identifier}</dd>
+          </div>
+          <div>
+            <dt>classified_as</dt>
+            <dd data-observation={graph.observation.classified_as}>
+              {observationClassLabel(graph.observation.classified_as)}
+            </dd>
+          </div>
+        </dl>
+      ) : null}
+      {graph && graph.nodes.length > 0 ? (
+        <>
+          <h4>{t("graphNodesTitle")}</h4>
+          <ul className="graph-list">
+            {graph.nodes.map((node) => (
+              <li key={node.identifier} data-graph-node={node.classified_as}>
+                <span>{node.identifier}</span>
+                <span>{graphNodeLabel(node.classified_as)}</span>
+                {node.identifier === graph.identifier ? null : (
+                  <button type="button" className="action" onClick={() => onExpand(node.identifier)}>
+                    {t("graphExpand")}
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+      {graph && graph.edges.length > 0 ? (
+        <>
+          <h4>{t("graphEdgesTitle")}</h4>
+          <ul className="graph-list">
+            {graph.edges.map((edge) => (
+              <li key={`${edge.source}->${edge.target}`}>
+                <span>
+                  {edge.source} → {edge.target}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+      {graph?.next_cursor ? (
+        <div className="graph-actions">
+          <button type="button" className="action" onClick={onLoadMore}>
+            {t("graphLoadMore")}
+          </button>
+        </div>
       ) : null}
     </section>
   );
@@ -1224,6 +1535,7 @@ async function applyCrudResponse(
     case "draft_saved":
     case "draft_loaded":
     case "relation_list":
+      case "graph_page":
       case "shutdown_begun":
       setError(unexpectedCrudResponse());
       return;
@@ -1546,6 +1858,7 @@ async function persistDraft(
       case "note_moved":
       case "note_deleted":
       case "relation_list":
+      case "graph_page":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -1618,6 +1931,7 @@ async function reloadDraft(
       case "note_moved":
       case "note_deleted":
       case "relation_list":
+      case "graph_page":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -1947,6 +2261,7 @@ function ProjectPanel({
                 case "note_moved":
                 case "note_deleted":
                 case "relation_list":
+      case "graph_page":
       case "shutdown_begun":
                   setSelectError({
                     category: "schema",
@@ -2265,6 +2580,7 @@ function BackupPanel() {
           case "note_moved":
           case "note_deleted":
           case "relation_list":
+      case "graph_page":
       case "shutdown_begun":
             setError(unexpectedBackupResponse());
             setPhase("error");
@@ -2442,6 +2758,7 @@ async function restoreNamedFixture(
       case "note_moved":
       case "note_deleted":
       case "relation_list":
+      case "graph_page":
       case "shutdown_begun":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
@@ -2594,6 +2911,7 @@ function WindowsRuntimeCard() {
           case "note_moved":
           case "note_deleted":
           case "relation_list":
+      case "graph_page":
       case "shutdown_begun":
             setError(unexpectedWindowsResponse());
             setPhase("error");
