@@ -98,8 +98,34 @@ export const messages = {
     "词法分数与语义分数分开显示。当前语义检索关闭，官方语义/模型仍为未验证。",
   searchPermalinkNotPath: "命中标识是 permalink，不是文件系统路径",
   searchMcpUnverified:
-    "官方 search / fetch MCP 仍为未验证。未加入 rmcp，也未把 just contract 当作本任务证明。未实现 T23 Inspector。",
+    "官方 search / fetch MCP 仍为未验证。未加入 rmcp，也未把 just contract 当作本任务证明。检索 Inspector 解释词法命中与关闭的语义模型状态，不是官方语义。",
   unexpectedSearch: "检索分页响应格式不符合预期",
+  inspectorEmptyTitle: "还没有 Inspector 结果",
+  inspectorEmptyBody:
+    "空 Inspector 表示夹具库中没有可解释的词法命中，也不是已打开用户 vault。生产空库是空态（model_loaded=false），不是用户 vault 成功。",
+  inspectorReadyTitle: "检索 Inspector",
+  inspectorReadyBody:
+    "Inspector 解释 BMDock 自有夹具词法检索：查询、命中 permalink、词法分数与语义分数。语义检索关闭，模型未加载，没有嵌入后端。这不是官方引擎语义，也不是 T24 召回基准。",
+  inspectorErrorTitle: "无法解释检索",
+  inspectorQueryLabel: "查询",
+  inspectorIdentifierLabel: "可选标识",
+  inspectorSubmit: "解释检索",
+  inspectorModelLoadedLabel: "模型已加载",
+  inspectorModelLoadedTrue: "已加载",
+  inspectorModelLoadedFalse: "未加载（model_loaded=false）",
+  inspectorModelIdLabel: "模型标识",
+  inspectorModelNone: "无",
+  inspectorEmbeddingLabel: "嵌入后端",
+  inspectorEmbeddingNone: "无（embedding_backend=none）",
+  inspectorModelClassLabel: "模型分类",
+  inspectorModelUnclassified: "未分类/未验证（不是已加载模型）",
+  inspectorLexicalNotSemantic:
+    "词法分数与语义分数分开显示。semantic_enabled=false。官方语义/模型仍为未验证。",
+  inspectorModelUnavailable:
+    "缺失或不可用的语义能力必须显式标为关闭：semantic_enabled=false，model_loaded=false。未知模型是未分类，不是已加载成功。",
+  inspectorReadOnly: "Inspector 只读（files_written=false），不会启动 Supervisor、不会拉起引擎、也不会写文件。",
+  inspectorNotT24: "这不是 T24 中文召回基准，也不是 T30 extras 或 T34 provider。",
+  unexpectedInspector: "检索 Inspector 响应格式不符合预期",
   previewEmptyTitle: "还没有上下文预览",
   previewEmptyBody:
     "空预览表示当前没有可显示的夹具 Markdown 片段，也不是已打开用户 vault。生产空库是空态，不是用户 vault 成功。检索命中预览复用 preview_context，不是第二套索引。",
@@ -169,6 +195,7 @@ export const messages = {
   runtimeShutdownUnknownLabel: "超时未知",
   runtimeDrainUnknownKeysLabel: "排空时未完成的 inflight",
   runtimeEngineSpawnedLabel: "是否已拉起引擎",
+  runtimeSemanticModelLoadedLabel: "语义模型已加载",
   runtimeChildKilledLabel: "是否强杀子进程",
   runtimeYes: "是",
   runtimeNo: "否",
@@ -369,9 +396,9 @@ export const messages = {
     "native GUI / IME 会话仍为未验证。cargo test 与 npm build 不是原生窗口输入。",
   contentSafetyHelpNotT39: "帮助与无障碍完备性仍属 T39，本任务不关闭。",
   aboutIntro:
-    "这是桌面布局壳加只读预检、显式项目路由、分页目录、笔记预览、观察与关系语义面板、局部图谱渐进展开、夹具全文词法检索、上下文预览与近期活动、草稿编辑器会话、夹具笔记写入编辑移动删除、同目标冲突与超时未知协调、宿主正常退出排空、夹具备份恢复基线、Windows 运行时原型观察，以及编辑器内容安全与 CRLF 精确字节往返。默认界面语言为简体中文。帮助与无障碍完备性也不在本任务关闭。",
+    "这是桌面布局壳加只读预检、显式项目路由、分页目录、笔记预览、观察与关系语义面板、局部图谱渐进展开、夹具全文词法检索、检索 Inspector 与模型状态、上下文预览与近期活动、草稿编辑器会话、夹具笔记写入编辑移动删除、同目标冲突与超时未知协调、宿主正常退出排空、夹具备份恢复基线、Windows 运行时原型观察，以及编辑器内容安全与 CRLF 精确字节往返。默认界面语言为简体中文。帮助与无障碍完备性也不在本任务关闭。",
   aboutSafety:
-    "调用 get_capabilities、get_runtime_state、list_projects、run_preflight、discover_config、list_tree、read_note、list_relations、expand_graph、search_notes、preview_context、list_activity、list_backups、restore_fixture、inspect_windows_runtime、save_draft、load_draft、write_note、edit_note、move_note、delete_note 与 begin_shutdown。选择项目仅允许 bmdock-fixture。list_tree、read_note、list_relations、expand_graph、search_notes、preview_context、list_activity、list_backups、restore_fixture、save_draft、load_draft、write_note、edit_note、move_note 与 delete_note 每次都携带显式 workspace 与 project。关系与局部图谱来自夹具 Markdown 的 wiki-link，一次只展开一跳，不是第二套笔记索引，也不是官方引擎图谱。检索是夹具 Markdown 的词法命中，不是官方 search / fetch，也没有嵌入后端。上下文预览是夹具 Markdown 的纯文本片段，近期活动是夹具文件 mtime 顺序，都不是官方 recent_activity / build_context。Markdown 与 HTML 以 labeled textarea 和 pre 纯文本往返，不使用 dangerouslySetInnerHTML，也不执行 script 或 onerror。CRLF 按精确字节落盘；行尾丢失不得标为 disk_verified。不会 raw callTool、不会写入用户 vault、不会启动 Supervisor。save_draft 与 write_note 保持区分。超时未知留在运行状态 DTO，不进入 IPC 错误联合体。同目标冲突不是 policy-for-path。begin_shutdown 在未启动时记录空闲排空收据，不是活动引擎寿命，也不会强杀子进程。native GUI / IME 会话未验证。官方 recent_activity / build_context / search / fetch 仍为未验证。",
+    "调用 get_capabilities、get_runtime_state、list_projects、run_preflight、discover_config、list_tree、read_note、list_relations、expand_graph、search_notes、inspect_search、preview_context、list_activity、list_backups、restore_fixture、inspect_windows_runtime、save_draft、load_draft、write_note、edit_note、move_note、delete_note 与 begin_shutdown。选择项目仅允许 bmdock-fixture。list_tree、read_note、list_relations、expand_graph、search_notes、inspect_search、preview_context、list_activity、list_backups、restore_fixture、save_draft、load_draft、write_note、edit_note、move_note 与 delete_note 每次都携带显式 workspace 与 project。关系与局部图谱来自夹具 Markdown 的 wiki-link，一次只展开一跳，不是第二套笔记索引，也不是官方引擎图谱。检索是夹具 Markdown 的词法命中，不是官方 search / fetch，也没有嵌入后端。检索 Inspector 解释词法命中与关闭的语义模型状态，不是官方语义。上下文预览是夹具 Markdown 的纯文本片段，近期活动是夹具文件 mtime 顺序，都不是官方 recent_activity / build_context。Markdown 与 HTML 以 labeled textarea 和 pre 纯文本往返，不使用 dangerouslySetInnerHTML，也不执行 script 或 onerror。CRLF 按精确字节落盘；行尾丢失不得标为 disk_verified。不会 raw callTool、不会写入用户 vault、不会启动 Supervisor。save_draft 与 write_note 保持区分。超时未知留在运行状态 DTO，不进入 IPC 错误联合体。同目标冲突不是 policy-for-path。begin_shutdown 在未启动时记录空闲排空收据，不是活动引擎寿命，也不会强杀子进程。native GUI / IME 会话未验证。官方 recent_activity / build_context / search / fetch 仍为未验证。",
   aboutProfiles:
     "release（c0bd87c6，21 个工具）与 main-preview（3452c821，27 个工具）保持隔离。本界面不把工具清单或 just contract 当作功能验收。",
   aboutCommands:

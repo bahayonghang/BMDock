@@ -101,6 +101,7 @@ export async function readShellSnapshot(): Promise<Exclude<ShellLoadState, { pha
         failure: runtimeResponse.failure,
         shutdown: runtimeResponse.shutdown,
         host_drain: runtimeResponse.host_drain,
+        semantic_model_loaded: false,
       },
       catalog: {
         workspaces: catalogResponse.workspaces,

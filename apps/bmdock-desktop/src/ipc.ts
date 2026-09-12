@@ -40,6 +40,11 @@ export type SearchNotesArgs = ExplicitRouteArgs & {
   page_size?: number;
 };
 
+export type InspectSearchArgs = ExplicitRouteArgs & {
+  query: string;
+  identifier?: string;
+};
+
 export type PreviewContextArgs = ExplicitRouteArgs & {
   identifier: string;
   query?: string;
@@ -95,6 +100,7 @@ export type IpcCommand =
   | { command: "list_relations"; args: ListRelationsArgs }
   | { command: "expand_graph"; args: ExpandGraphArgs }
   | { command: "search_notes"; args: SearchNotesArgs }
+  | { command: "inspect_search"; args: InspectSearchArgs }
   | { command: "preview_context"; args: PreviewContextArgs }
   | { command: "list_activity"; args: ListActivityArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
@@ -136,6 +142,7 @@ export interface RuntimeStateDto {
   failure: FailureKind | null;
   shutdown: ShutdownReceipt | null;
   host_drain: DrainPhase;
+  semantic_model_loaded: false;
 }
 
 export type DrainPhase = "idle" | "draining" | "drained";
@@ -317,6 +324,26 @@ export interface SearchPageDto {
   files_written: boolean;
 }
 
+export type EmbeddingBackend = "none";
+export type ModelClass = "unclassified";
+
+export interface SearchInspectorDto {
+  query: string;
+  identifier: string | null;
+  hits: SearchHitDto[];
+  observation: NoteCrudObservationDto;
+  semantic_enabled: false;
+  model_id: null;
+  model_loaded: false;
+  embedding_backend: EmbeddingBackend;
+  model_class: ModelClass;
+  engine_search: false;
+  files_written: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  semantic_disabled_reason: string;
+}
+
 export interface ContextPreviewDto {
   identifier: string;
   query: string | null;
@@ -479,6 +506,7 @@ export type IpcResponse =
   | { kind: "relation_list" } & RelationListDto
   | { kind: "graph_page" } & GraphPageDto
   | { kind: "search_page" } & SearchPageDto
+  | { kind: "search_inspector" } & SearchInspectorDto
   | { kind: "context_preview" } & ContextPreviewDto
   | { kind: "activity_page" } & ActivityPageDto
   | { kind: "backup_catalog" } & BackupCatalogDto
@@ -500,6 +528,7 @@ export interface RuntimeStateEvent {
   failure: FailureKind | null;
   shutdown: ShutdownReceipt | null;
   host_drain: DrainPhase;
+  semantic_model_loaded: false;
 }
 
 export interface PolicyEvent {
@@ -524,6 +553,7 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "list_relations":
     case "expand_graph":
     case "search_notes":
+    case "inspect_search":
     case "preview_context":
     case "list_activity":
     case "list_backups":
@@ -653,6 +683,19 @@ export const searchNotes = (args: { query: string; cursor?: string; page_size?: 
       query: args.query,
       ...(args.cursor ? { cursor: args.cursor } : {}),
       page_size: args.page_size ?? TREE_PAGE_SIZE,
+    },
+  });
+};
+
+export const inspectSearch = (args: { query: string; identifier?: string }) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "search_inspector" } & SearchInspectorDto>({
+    command: "inspect_search",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      query: args.query,
+      ...(args.identifier ? { identifier: args.identifier } : {}),
     },
   });
 };

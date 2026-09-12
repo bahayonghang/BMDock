@@ -1,0 +1,206 @@
+{
+  "task": "T23",
+  "title": "检索Inspector与模型状态",
+  "status": "accepted_with_limits",
+  "date": "2026-09-13",
+  "host_boundary": "T23 adds typed inspect_search with ExplicitRouteArgs plus required query and optional identifier. deny_unknown_fields. Extra path/root is schema. Extra id (fetch identity swap) is schema. Missing or empty query is schema. Empty identifier is schema. Non-fixture routes, filesystem query-as-path, and filesystem identifier are policy and do not open the library. Inspector explains a BMDock-owned T21 fixture lexical search: query, hit permalinks, distinct lexical_score vs semantic_score, semantic_enabled=false, model_id none, model_loaded=false, embedding_backend=none, model_class=unclassified. It is not official engine semantic, not an embedding backend, and not T24 recall. Production EmptyLibrary returns empty inspector hits with model_loaded=false, not user-vault success. Tests inject FixtureLibrary and observe that inspector hits match physical UTF-8 files containing the query, including Chinese, with lexical_score > 0 and semantic_score=0. Envelope text is not disk proof. classified_as is disk_verified after reading physical files. Dual profiles stay isolated and are not mixed into the inspector DTO. MCP identity search and call_tool stay denied. get_runtime_state projects semantic_model_loaded=false without claiming a loaded model. T23 does not start Supervisor, add rmcp, or run just contract as proof. just build stays the G0 probe.",
+  "acceptance": {
+    "AC24": {
+      "status": "fixture_inspector_lexical_scores_distinct",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Inspector DTO keeps lexical_score distinct from semantic_score. semantic_enabled=false. model_id empty/none. model_loaded=false. embedding_backend=none. Fixture inspector hits match physical UTF-8 files containing the query, including Chinese. lexical_score > 0 and semantic_score=0. Official semantic/model remain UNVERIFIED.",
+      "unverified": [
+        "official engine semantic search",
+        "embedding backend",
+        "official MCP search/fetch",
+        "native GUI session",
+        "real user vault",
+        "T24 Chinese recall"
+      ]
+    },
+    "AC38": {
+      "status": "inspector_read_only_no_supervisor",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src/App.tsx",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Inspector is read-only. files_written=false. Does not start Supervisor, spawn engine, or write files. Dual profiles stay isolated (21 vs 27) and are not mixed into the inspector DTO. timeout_unknown stays on RuntimeStateDto, not the IPC error union.",
+      "unverified": [
+        "native GUI session",
+        "live engine lifespan",
+        "official semantic/model"
+      ]
+    },
+    "AC41": {
+      "status": "missing_semantic_explicit_not_enabled",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Missing or unavailable semantic capability is explicit: semantic_enabled=false, model_loaded=false. Unknown model is unclassified/unverified, not a loaded model. Claiming semantic_enabled or model_loaded is unsupported. get_runtime_state projects semantic_model_loaded=false. T30 extras and T34 providers were not implemented.",
+      "unverified": [
+        "official semantic/model",
+        "T30 extras",
+        "T34 providers"
+      ]
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t23-search-inspector-model-state",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 148 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 17 passed"
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T23 inspector/model proof. Probe entries remain independent. Official semantic/model remain UNVERIFIED."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window was launched. Inspector proof is source plus unit tests on FixtureLibrary."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_153_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_desktop_shell": "17_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "typed_command_count": 24,
+    "typed_inspect_search": "allowed",
+    "raw_call_tool": "absent",
+    "mcp_identity_search": "absent",
+    "dangerouslySetInnerHTML": "absent",
+    "supervisor_started_by_t23": false,
+    "rmcp_live_client": "not_added_in_t23",
+    "engine_search": false,
+    "files_written": false,
+    "semantic_enabled": false,
+    "model_loaded": false,
+    "embedding_backend": "none",
+    "semantic_model_loaded": false,
+    "timeout_unknown_on_ipc_error_union": false,
+    "official_semantic_model": "UNVERIFIED",
+    "official_search_mcp": "UNVERIFIED",
+    "official_fetch_mcp": "UNVERIFIED",
+    "native_gui_session": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "t24_chinese_recall": "not_implemented",
+    "t30_extras": "not_implemented",
+    "t34_providers": "not_implemented",
+    "fixture_inspector_hits_match_physical_utf8": true,
+    "chinese_inspector_query": true,
+    "empty_library_inspector_is_empty_state": true,
+    "lexical_score_distinct_from_semantic_score": true,
+    "unknown_model_is_unclassified": true
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed_unchanged",
+    "T10": "completed_unchanged",
+    "T11": "completed_unchanged",
+    "T12": "completed_unchanged",
+    "T13": "completed_unchanged",
+    "T14": "completed_unchanged",
+    "T15": "completed_unchanged",
+    "T16": "completed_unchanged",
+    "T17": "completed_unchanged",
+    "T18": "completed_unchanged",
+    "T19": "completed_unchanged",
+    "T20": "completed_unchanged",
+    "T21": "completed_unchanged",
+    "T22": "completed_unchanged",
+    "T23": "completed"
+  },
+  "scope_limits": [
+    "Inspector explains BMDock-owned fixture lexical search, not official engine semantic search.",
+    "EmptyLibrary empty inspector is empty state, not user-vault success.",
+    "Identifiers are permalinks, not filesystem paths.",
+    "Envelope text is not disk proof. classified_as is disk_verified only after physical UTF-8 confirmation.",
+    "semantic_enabled=false. model_loaded=false. embedding_backend=none. Unknown model is unclassified, not loaded.",
+    "files_written=false. Inspector does not start Supervisor, spawn engine, or write files.",
+    "Official semantic/model remain UNVERIFIED. MCP identity search and call_tool stay denied.",
+    "T24 recall, T30 extras, and T34 providers are not implemented.",
+    "IPC error union stays policy/schema/unsupported. Dual profiles stay isolated (21 vs 27).",
+    "just build stays scripts.tasks build. just contract* stay probe. just tauri-dev/tauri-build stay desktop.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "UI copy, tool lists, compiled exe, cargo test, npm build, and just contract are not native GUI / user-vault / official-semantic proof."
+  ],
+  "rollback": "Remove inspect_search from the ipc_invoke union, drop SearchInspectorPanel, restore the 23-command allowlist, and leave T21 search_notes plus T07 get_runtime_state in place. Do not revert T05-T22 status to make unit green."
+}

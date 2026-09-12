@@ -364,3 +364,23 @@ zh-CN 工作台「预览」/「近期活动」区分空态 / 错误 / 就绪。�
 本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t22-context-activity-preview` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 145 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 16 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方 recent_activity / build_context / hosted CI 证据；这些仍为 `UNVERIFIED`。
 
 T22 证据与验收映射见 [t22-context-activity-preview.json](../execution/evidence/t22-context-activity-preview.json)。`execution/status.json` 仅将 T22 标为 `completed`；未改 T05–T21/G0。
+
+## T23：检索Inspector与模型状态
+
+T23 在现有 `ipc_invoke` 上增加 typed `inspect_search`（`ExplicitRouteArgs` + 必填 `query` + optional `identifier`，`deny_unknown_fields`）。额外 `path`/`root` 为 schema。额外 `id`（fetch 身份对调）为 schema。缺/空 query 为 schema。空 identifier 为 schema。非 fixture 路由、把 query 当成文件系统路径、或文件系统 identifier 为 policy，且不打开库。capabilities 精确允许列为 24 个命令。typed `inspect_search` 允许；MCP identity `search` 与 `call_tool` 仍拒绝。
+
+Inspector 解释 BMDock 自有 T21 夹具词法检索：查询、命中 permalink、分开的 `lexical_score` 与 `semantic_score`，以及语义关闭原因。不是官方引擎语义，不是嵌入后端，也不是 T24 召回。测试注入 `FixtureLibrary`，并观察命中标识对应的物理 UTF-8 文件包含查询（含中文），且分数保持区分（lexical > 0，semantic=0）。生产 `EmptyLibrary` 返回空 Inspector（无 hits，`model_loaded=false`），不是用户 vault 成功。信封文案不是磁盘证明。
+
+AC24：Inspector DTO 分开 `lexical_score` 与 `semantic_score`。`semantic_enabled=false`。`model_id` 为空/none。`model_loaded=false`。`embedding_backend=none`。官方语义/模型仍为 `UNVERIFIED`。未把 release/main-preview 工具数写入 Inspector DTO。
+
+AC38：Inspector 只读。`files_written=false`。不启动 Supervisor、不拉起引擎、不写文件。双 profile 隔离（21 vs 27），不混入 Inspector DTO。`timeout_unknown` 留在 `RuntimeStateDto`，不进入 IPC 错误联合体。
+
+AC41：缺失/不可用的语义能力显式标为关闭（`semantic_enabled=false`，`model_loaded=false`），从不静默当成已启用成功。未知模型是 unclassified/unverified，不是已加载模型。未实现 T30 extras 或 T34 providers。`get_runtime_state` 投影 `semantic_model_loaded=false`，不宣称模型已加载。未加入 rmcp。
+
+zh-CN 工作台「检索 Inspector」区分空态 / 错误 / 就绪，显示查询、命中 permalink、分数、`semantic_enabled=false`、`model_loaded=false`。无 `dangerouslySetInnerHTML`。不启动 Supervisor。无新 npm 依赖。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T23 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令（2026-09-13）：`python ./.trellis/scripts/task.py validate 09-12-t23-search-inspector-model-state` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 148 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 17 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方语义模型 / hosted CI 证据；这些仍为 `UNVERIFIED`。
+
+T23 证据与验收映射见 [t23-search-inspector-model-state.json](../execution/evidence/t23-search-inspector-model-state.json)。`execution/status.json` 仅将 T23 标为 `completed`；未改 T05–T22/G0。

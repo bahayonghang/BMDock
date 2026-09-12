@@ -19,6 +19,7 @@ import {
   type GraphNodeDto,
   type SearchPageDto,
   type SearchHitDto,
+  type SearchInspectorDto,
   type ContextPreviewDto,
   type ActivityPageDto,
   type ActivityEntryDto,
@@ -248,6 +249,8 @@ function WorkbenchLibrary({
   const [graphError, setGraphError] = useState<WorkbenchError | null>(null);
   const [search, setSearch] = useState<SearchPageDto | null>(null);
   const [searchError, setSearchError] = useState<WorkbenchError | null>(null);
+  const [inspector, setInspector] = useState<SearchInspectorDto | null>(null);
+  const [inspectorError, setInspectorError] = useState<WorkbenchError | null>(null);
   const [preview, setPreview] = useState<ContextPreviewDto | null>(null);
   const [previewError, setPreviewError] = useState<WorkbenchError | null>(null);
   const [activity, setActivity] = useState<ActivityPageDto | null>(null);
@@ -270,6 +273,8 @@ function WorkbenchLibrary({
     setGraphError(null);
     setSearch(null);
     setSearchError(null);
+    setInspector(null);
+    setInspectorError(null);
     setPreview(null);
     setPreviewError(null);
     setActivity(null);
@@ -327,6 +332,7 @@ function WorkbenchLibrary({
       case "search_page":
       case "context_preview":
       case "activity_page":
+      case "search_inspector":
       case "shutdown_begun":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
@@ -466,14 +472,23 @@ function WorkbenchLibrary({
         error={searchError}
         onSearch={(query) => {
           void runSearch(query, setSearch, setSearchError);
+          void runInspectSearch(query, null, setInspector, setInspectorError);
         }}
         onPreview={(identifier, query) => {
           void loadContextPreview(identifier, query, setPreview, setPreviewError);
+          void runInspectSearch(query, identifier, setInspector, setInspectorError);
         }}
         onLoadMore={() => {
           if (search?.next_cursor) {
             void loadMoreSearch(search, setSearch, setSearchError);
           }
+        }}
+      />
+      <SearchInspectorPanel
+        inspector={inspector}
+        error={inspectorError}
+        onInspect={(query, identifier) => {
+          void runInspectSearch(query, identifier, setInspector, setInspectorError);
         }}
       />
       <ContextPreviewPanel preview={preview} error={previewError} />
@@ -562,6 +577,7 @@ async function openNote(
       case "search_page":
       case "context_preview":
       case "activity_page":
+      case "search_inspector":
       case "shutdown_begun":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
@@ -633,6 +649,7 @@ async function loadRelations(
       case "search_page":
       case "context_preview":
       case "activity_page":
+      case "search_inspector":
       case "shutdown_begun":
         setRelations(null);
         setRelationsError({ category: "schema", message: t("unexpectedRelations") });
@@ -737,6 +754,7 @@ async function loadGraph(
       case "search_page":
       case "context_preview":
       case "activity_page":
+      case "search_inspector":
       case "shutdown_begun":
         setGraph(null);
         setGraphError(unexpectedGraphResponse());
@@ -808,6 +826,7 @@ async function loadMoreGraph(
       case "search_page":
       case "context_preview":
       case "activity_page":
+      case "search_inspector":
       case "shutdown_begun":
         setGraphError(unexpectedGraphResponse());
         return;
@@ -879,6 +898,7 @@ async function loadMoreTree(
       case "search_page":
       case "context_preview":
       case "activity_page":
+      case "search_inspector":
       case "shutdown_begun":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
@@ -1343,6 +1363,7 @@ async function runSearch(
       case "note_deleted":
       case "context_preview":
       case "activity_page":
+      case "search_inspector":
       case "shutdown_begun":
         setSearch(null);
         setSearchError(unexpectedSearchResponse());
@@ -1414,6 +1435,7 @@ async function loadMoreSearch(
       case "note_deleted":
       case "context_preview":
       case "activity_page":
+      case "search_inspector":
       case "shutdown_begun":
         setSearchError(unexpectedSearchResponse());
         return;
@@ -1537,6 +1559,232 @@ function SearchPanel({
   );
 }
 
+function unexpectedInspectorResponse(): WorkbenchError {
+  return { category: "schema", message: t("unexpectedInspector") };
+}
+
+function asSearchInspector(
+  response: Extract<IpcResponse, { kind: "search_inspector" }>,
+): SearchInspectorDto {
+  return {
+    query: response.query,
+    identifier: response.identifier,
+    hits: response.hits,
+    observation: response.observation,
+    semantic_enabled: false,
+    model_id: null,
+    model_loaded: false,
+    embedding_backend: "none",
+    model_class: "unclassified",
+    engine_search: false,
+    files_written: false,
+    scanned_user_obsidian_vault: false,
+    scanned_user_basic_memory_home: false,
+    semantic_disabled_reason: response.semantic_disabled_reason,
+  };
+}
+
+async function runInspectSearch(
+  query: string,
+  identifier: string | null,
+  setInspector: (inspector: SearchInspectorDto | null) => void,
+  setInspectorError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "inspect_search",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        query,
+        ...(identifier ? { identifier } : {}),
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setInspector(null);
+        setInspectorError({ category: response.category, message: response.message });
+        return;
+      case "search_inspector":
+        setInspectorError(null);
+        setInspector(asSearchInspector(response));
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "relation_list":
+      case "graph_page":
+      case "search_page":
+      case "context_preview":
+      case "activity_page":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
+      case "shutdown_begun":
+        setInspector(null);
+        setInspectorError(unexpectedInspectorResponse());
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setInspector(null);
+    setInspectorError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+function SearchInspectorPanel({
+  inspector,
+  error,
+  onInspect,
+}: {
+  inspector: SearchInspectorDto | null;
+  error: WorkbenchError | null;
+  onInspect: (query: string, identifier: string | null) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [identifier, setIdentifier] = useState("");
+  const empty = inspector === null || inspector.hits.length === 0;
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error
+    ? t("inspectorErrorTitle")
+    : empty
+      ? t("inspectorEmptyTitle")
+      : t("inspectorReadyTitle");
+  return (
+    <section
+      className="subpanel"
+      data-state={state}
+      aria-labelledby="search-inspector-title"
+      role={error ? "alert" : undefined}
+    >
+      <p className="state-badge">{badge}</p>
+      <h3 id="search-inspector-title">{heading}</h3>
+      <p>
+        {error
+          ? `${errorCategoryLabel(error.category)}：${error.message}`
+          : empty
+            ? t("inspectorEmptyBody")
+            : t("inspectorReadyBody")}
+      </p>
+      <p>{t("inspectorLexicalNotSemantic")}</p>
+      <p>{t("inspectorModelUnavailable")}</p>
+      <p>{t("inspectorReadOnly")}</p>
+      <p>{t("inspectorNotT24")}</p>
+      <form
+        className="search-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const nextQuery = query.trim();
+          if (nextQuery === "") {
+            return;
+          }
+          const nextIdentifier = identifier.trim();
+          onInspect(nextQuery, nextIdentifier === "" ? null : nextIdentifier);
+        }}
+      >
+        <label htmlFor="inspector-query">{t("inspectorQueryLabel")}</label>
+        <input
+          id="inspector-query"
+          type="text"
+          value={query}
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        <label htmlFor="inspector-identifier">{t("inspectorIdentifierLabel")}</label>
+        <input
+          id="inspector-identifier"
+          type="text"
+          value={identifier}
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(event) => setIdentifier(event.target.value)}
+        />
+        <button type="submit" className="action">
+          {t("inspectorSubmit")}
+        </button>
+      </form>
+      {inspector ? (
+        <dl className="facts">
+          <div>
+            <dt>{t("inspectorQueryLabel")}</dt>
+            <dd>{inspector.query}</dd>
+          </div>
+          <div>
+            <dt>{t("inspectorIdentifierLabel")}</dt>
+            <dd>{inspector.identifier ?? t("runtimeNone")}</dd>
+          </div>
+          <div>
+            <dt>classified_as</dt>
+            <dd data-observation={inspector.observation.classified_as}>
+              {observationClassLabel(inspector.observation.classified_as)}
+            </dd>
+          </div>
+          <div>
+            <dt>{t("searchSemanticEnabledLabel")}</dt>
+            <dd>
+              {inspector.semantic_enabled ? t("searchSemanticOn") : t("searchSemanticOff")}
+            </dd>
+          </div>
+          <div>
+            <dt>{t("inspectorModelLoadedLabel")}</dt>
+            <dd>
+              {inspector.model_loaded ? t("inspectorModelLoadedTrue") : t("inspectorModelLoadedFalse")}
+            </dd>
+          </div>
+          <div>
+            <dt>{t("inspectorModelIdLabel")}</dt>
+            <dd>{inspector.model_id ?? t("inspectorModelNone")}</dd>
+          </div>
+          <div>
+            <dt>{t("inspectorEmbeddingLabel")}</dt>
+            <dd>{t("inspectorEmbeddingNone")}</dd>
+          </div>
+          <div>
+            <dt>{t("inspectorModelClassLabel")}</dt>
+            <dd>{t("inspectorModelUnclassified")}</dd>
+          </div>
+        </dl>
+      ) : null}
+      {inspector ? <p>{inspector.semantic_disabled_reason}</p> : null}
+      {inspector && inspector.hits.length > 0 ? (
+        <ul className="inspector-list">
+          {inspector.hits.map((hit: SearchHitDto) => (
+            <li key={hit.identifier}>
+              <span>{hit.identifier}</span>
+              <span>
+                {t("searchLexicalScore")}: {hit.lexical_score}
+              </span>
+              <span>
+                {t("searchSemanticScore")}: {hit.semantic_score}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  );
+}
+
 function unexpectedPreviewResponse(): WorkbenchError {
   return { category: "schema", message: t("unexpectedPreview") };
 }
@@ -1605,6 +1853,7 @@ async function loadContextPreview(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "search_inspector":
       case "shutdown_begun":
         setPreview(null);
         setPreviewError(unexpectedPreviewResponse());
@@ -1768,6 +2017,7 @@ async function loadActivity(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "search_inspector":
       case "shutdown_begun":
         setActivity(null);
         setActivityError(unexpectedActivityResponse());
@@ -1838,6 +2088,7 @@ async function loadMoreActivity(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "search_inspector":
       case "shutdown_begun":
         setActivityError(unexpectedActivityResponse());
         return;
@@ -2258,6 +2509,7 @@ async function applyCrudResponse(
       case "search_page":
       case "context_preview":
       case "activity_page":
+      case "search_inspector":
       case "shutdown_begun":
       setError(unexpectedCrudResponse());
       return;
@@ -2584,6 +2836,7 @@ async function persistDraft(
       case "search_page":
       case "context_preview":
       case "activity_page":
+      case "search_inspector":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -2660,6 +2913,7 @@ async function reloadDraft(
       case "search_page":
       case "context_preview":
       case "activity_page":
+      case "search_inspector":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -2809,6 +3063,10 @@ function ReadyRuntime({
         <div>
           <dt>{t("runtimeEngineSpawnedLabel")}</dt>
           <dd>{drainResult?.engine_spawned ? t("runtimeYes") : t("runtimeNo")}</dd>
+        </div>
+        <div>
+          <dt>{t("runtimeSemanticModelLoadedLabel")}</dt>
+          <dd>{runtime.semantic_model_loaded ? t("runtimeYes") : t("runtimeNo")}</dd>
         </div>
         <div>
           <dt>{t("runtimeChildKilledLabel")}</dt>
@@ -2993,6 +3251,7 @@ function ProjectPanel({
       case "search_page":
       case "context_preview":
       case "activity_page":
+      case "search_inspector":
       case "shutdown_begun":
                   setSelectError({
                     category: "schema",
@@ -3315,6 +3574,7 @@ function BackupPanel() {
       case "search_page":
       case "context_preview":
       case "activity_page":
+      case "search_inspector":
       case "shutdown_begun":
             setError(unexpectedBackupResponse());
             setPhase("error");
@@ -3496,6 +3756,7 @@ async function restoreNamedFixture(
       case "search_page":
       case "context_preview":
       case "activity_page":
+      case "search_inspector":
       case "shutdown_begun":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
@@ -3652,6 +3913,7 @@ function WindowsRuntimeCard() {
       case "search_page":
       case "context_preview":
       case "activity_page":
+      case "search_inspector":
       case "shutdown_begun":
             setError(unexpectedWindowsResponse());
             setPhase("error");

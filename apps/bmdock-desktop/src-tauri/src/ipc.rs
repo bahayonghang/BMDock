@@ -6,8 +6,8 @@ use crate::drafts::{self, DraftResultDto, DraftStore};
 use crate::drain::{self, DrainPhase, DrainResultDto, HostDrain};
 use crate::library::{
     self, ActivityPageDto, ContextPreviewDto, GraphPageDto, NoteDeleteDto, NoteEditDto,
-    NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto, RelationListDto, SearchPageDto,
-    TreePageDto,
+    NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto, RelationListDto, SearchInspectorDto,
+    SearchPageDto, TreePageDto,
 };
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
@@ -30,6 +30,7 @@ pub enum IpcCommandName {
     ListRelations,
     ExpandGraph,
     SearchNotes,
+    InspectSearch,
     PreviewContext,
     ListActivity,
     ListBackups,
@@ -57,6 +58,7 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::ListRelations,
         IpcCommandName::ExpandGraph,
         IpcCommandName::SearchNotes,
+        IpcCommandName::InspectSearch,
         IpcCommandName::PreviewContext,
         IpcCommandName::ListActivity,
         IpcCommandName::ListBackups,
@@ -177,6 +179,25 @@ pub struct SearchNotesArgs {
 }
 
 impl SearchNotesArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct InspectSearchArgs {
+    pub workspace: String,
+    pub project: String,
+    pub query: String,
+    #[serde(default)]
+    pub identifier: Option<String>,
+}
+
+impl InspectSearchArgs {
     fn route(&self) -> ExplicitRouteArgs {
         ExplicitRouteArgs {
             workspace: self.workspace.clone(),
@@ -367,6 +388,7 @@ pub enum IpcCommand {
     ListRelations(ListRelationsArgs),
     ExpandGraph(ExpandGraphArgs),
     SearchNotes(SearchNotesArgs),
+    InspectSearch(InspectSearchArgs),
     PreviewContext(PreviewContextArgs),
     ListActivity(ListActivityArgs),
     ListBackups(ExplicitRouteArgs),
@@ -417,6 +439,7 @@ pub struct RuntimeStateDto {
     pub failure: Option<FailureKind>,
     pub shutdown: Option<ShutdownReceipt>,
     pub host_drain: DrainPhase,
+    pub semantic_model_loaded: bool,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -433,6 +456,7 @@ pub enum IpcResponse {
     RelationList(RelationListDto),
     GraphPage(GraphPageDto),
     SearchPage(SearchPageDto),
+    SearchInspector(SearchInspectorDto),
     ContextPreview(ContextPreviewDto),
     ActivityPage(ActivityPageDto),
     BackupCatalog(BackupCatalogDto),
@@ -633,6 +657,15 @@ pub fn dispatch_with_drain(
             let page = library::accept_search_page(cursor, page)?;
             Ok(IpcResponse::SearchPage(page))
         }
+        IpcCommand::InspectSearch(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            library::reject_search_query(&args.query)?;
+            let identifier = library::reject_inspect_identifier(args.identifier.as_deref())?;
+            let inspector = library.inspect_search(&args.query, identifier)?;
+            Ok(IpcResponse::SearchInspector(
+                library::accept_search_inspector(inspector)?,
+            ))
+        }
         IpcCommand::PreviewContext(args) => {
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
@@ -783,6 +816,7 @@ fn runtime_state(
         failure: snapshot.failure,
         shutdown: snapshot.shutdown.or_else(|| drain.last_shutdown()),
         host_drain: drain.phase(),
+        semantic_model_loaded: false,
     }
 }
 
@@ -820,6 +854,7 @@ mod tests {
                 IpcCommandName::ListRelations,
                 IpcCommandName::ExpandGraph,
                 IpcCommandName::SearchNotes,
+                IpcCommandName::InspectSearch,
                 IpcCommandName::PreviewContext,
                 IpcCommandName::ListActivity,
                 IpcCommandName::ListBackups,
@@ -834,14 +869,14 @@ mod tests {
                 IpcCommandName::BeginShutdown,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 23);
+        assert_eq!(capabilities.commands.len(), 24);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 23);
+        assert_eq!(commands.len(), 24);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
@@ -849,6 +884,7 @@ mod tests {
         assert!(commands.iter().any(|command| command == "list_relations"));
         assert!(commands.iter().any(|command| command == "expand_graph"));
         assert!(commands.iter().any(|command| command == "search_notes"));
+        assert!(commands.iter().any(|command| command == "inspect_search"));
         assert!(commands.iter().any(|command| command == "preview_context"));
         assert!(commands.iter().any(|command| command == "list_activity"));
         assert!(commands.iter().any(|command| command == "list_backups"));
@@ -955,9 +991,11 @@ mod tests {
         assert_eq!(state.failure, None);
         assert_eq!(state.shutdown, None);
         assert_eq!(state.host_drain, DrainPhase::Idle);
+        assert!(!state.semantic_model_loaded);
         let json = serde_json::to_value(&IpcResponse::RuntimeState(state)).unwrap();
         assert!(json.get("child_pid").is_none());
         assert_eq!(json["host_drain"], "idle");
+        assert_eq!(json["semantic_model_loaded"], false);
     }
 
     #[test]
@@ -982,6 +1020,7 @@ mod tests {
         assert_eq!(state.failure, None);
         assert_eq!(state.shutdown, None);
         assert_eq!(state.host_drain, DrainPhase::Idle);
+        assert!(!state.semantic_model_loaded);
     }
 
     #[test]
@@ -1016,6 +1055,7 @@ mod tests {
         assert_eq!(json["shutdown"]["timeout_unknown"], true);
         assert!(json["shutdown"]["exit_code"].is_null());
         assert_eq!(json["host_drain"], "idle");
+        assert_eq!(json["semantic_model_loaded"], false);
     }
 
     #[test]
@@ -1084,6 +1124,30 @@ mod tests {
             r#"{"command":"search_notes","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","query":"欢迎","page_size":2}}"#,
         );
         assert!(well_formed_search.is_ok());
+        let extra_id_on_inspect = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_search","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","query":"欢迎","id":"welcome"}}"#,
+        );
+        assert!(extra_id_on_inspect.is_err());
+        let extra_path_on_inspect = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_search","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","query":"欢迎","path":"C:\\vault\\note.md"}}"#,
+        );
+        assert!(extra_path_on_inspect.is_err());
+        let extra_root_on_inspect = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_search","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","query":"欢迎","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_inspect.is_err());
+        let missing_query_inspect = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_search","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(missing_query_inspect.is_err());
+        let inspect_without_route = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_search","args":{"query":"欢迎"}}"#,
+        );
+        assert!(inspect_without_route.is_err());
+        let well_formed_inspect = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_search","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","query":"欢迎","identifier":"welcome"}}"#,
+        );
+        assert!(well_formed_inspect.is_ok());
         let extra_path_on_preview = serde_json::from_str::<IpcCommand>(
             r#"{"command":"preview_context","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","path":"C:\\vault\\note.md"}}"#,
         );
@@ -1557,6 +1621,14 @@ mod tests {
             panic!("policy rejection must not open the library")
         }
 
+        fn inspect_search(
+            &self,
+            _query: &str,
+            _identifier: Option<&str>,
+        ) -> Result<library::SearchInspectorDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
         fn preview_context(
             &self,
             _identifier: &str,
@@ -1768,6 +1840,15 @@ mod tests {
         }
     }
 
+    fn fixture_inspect_args(query: &str, identifier: Option<&str>) -> InspectSearchArgs {
+        InspectSearchArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            query: query.to_owned(),
+            identifier: identifier.map(ToOwned::to_owned),
+        }
+    }
+
     fn fixture_preview_args(identifier: &str, query: Option<&str>) -> PreviewContextArgs {
         PreviewContextArgs {
             workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
@@ -1956,6 +2037,48 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(search_query_path.category, ErrorCategory::Policy);
+        let inspect_route = dispatch_with_library(
+            IpcCommand::InspectSearch(InspectSearchArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+                query: "欢迎".to_owned(),
+                identifier: None,
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(inspect_route.category, ErrorCategory::Policy);
+        let inspect_query_path = dispatch_with_library(
+            IpcCommand::InspectSearch(InspectSearchArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                query: r"C:\Users\someone\vault\note.md".to_owned(),
+                identifier: None,
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(inspect_query_path.category, ErrorCategory::Policy);
+        let inspect_identifier_path = dispatch_with_library(
+            IpcCommand::InspectSearch(InspectSearchArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                query: "欢迎".to_owned(),
+                identifier: Some(r"C:\Users\someone\vault\note.md".to_owned()),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(inspect_identifier_path.category, ErrorCategory::Policy);
         let preview_route = dispatch_with_library(
             IpcCommand::PreviewContext(PreviewContextArgs {
                 workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
@@ -2134,6 +2257,24 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(search_empty_query.category, ErrorCategory::Schema);
+        let inspect_empty_query = dispatch_with_library(
+            IpcCommand::InspectSearch(fixture_inspect_args("", None)),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(inspect_empty_query.category, ErrorCategory::Schema);
+        let inspect_empty_identifier = dispatch_with_library(
+            IpcCommand::InspectSearch(fixture_inspect_args("欢迎", Some(""))),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(inspect_empty_identifier.category, ErrorCategory::Schema);
         let search_truncated = dispatch_with_library(
             IpcCommand::SearchNotes(fixture_search_args("欢迎", None, Some(2))),
             idle_snapshot(),
@@ -4741,6 +4882,284 @@ mod tests {
             library::SEMANTIC_SEARCH_UNVERIFIED,
             library::OFFICIAL_SEARCH_MCP_UNVERIFIED,
             library::OFFICIAL_FETCH_MCP_UNVERIFIED,
+        );
+    }
+
+    struct EnvelopeInspectorLibrary;
+
+    impl NoteLibrary for EnvelopeInspectorLibrary {
+        fn list_tree(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            Ok(library::TreePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: false,
+            })
+        }
+
+        fn read_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            Err(library::LibraryError::unsupported(
+                library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
+            ))
+        }
+
+        fn inspect_search(
+            &self,
+            query: &str,
+            identifier: Option<&str>,
+        ) -> Result<library::SearchInspectorDto, library::LibraryError> {
+            Ok(library::SearchInspectorDto {
+                query: query.to_owned(),
+                identifier: identifier.map(ToOwned::to_owned),
+                hits: vec![library::SearchHitDto {
+                    identifier: "welcome".to_owned(),
+                    lexical_score: library::LEXICAL_SCORE_BODY,
+                    semantic_score: library::SEMANTIC_SCORE_DISABLED,
+                }],
+                observation: library::NoteCrudObservationDto {
+                    classified_as: library::NoteCrudClass::AcceptedUnverified,
+                    disk_verified: false,
+                    envelope_is_not_disk_proof: true,
+                },
+                semantic_enabled: false,
+                model_id: None,
+                model_loaded: false,
+                embedding_backend: library::EmbeddingBackend::None,
+                model_class: library::ModelClass::Unclassified,
+                engine_search: false,
+                files_written: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                semantic_disabled_reason: library::SEMANTIC_DISABLED_REASON.to_owned(),
+            })
+        }
+    }
+
+    #[test]
+    fn inspect_search_empty_library_is_empty_not_user_vault() {
+        let mut route = RouteState::default();
+        let IpcResponse::SearchInspector(inspector) = dispatch_with_library(
+            IpcCommand::InspectSearch(fixture_inspect_args("欢迎", None)),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(inspector.hits.is_empty());
+        assert_eq!(inspector.query, "欢迎");
+        assert!(inspector.identifier.is_none());
+        assert!(!inspector.semantic_enabled);
+        assert!(!inspector.model_loaded);
+        assert!(inspector.model_id.is_none());
+        assert_eq!(inspector.embedding_backend, library::EmbeddingBackend::None);
+        assert_eq!(inspector.model_class, library::ModelClass::Unclassified);
+        assert!(!inspector.engine_search);
+        assert!(!inspector.files_written);
+        assert!(!inspector.scanned_user_obsidian_vault);
+        assert!(!inspector.scanned_user_basic_memory_home);
+        assert_eq!(
+            inspector.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        assert!(!inspector.observation.disk_verified);
+        assert_eq!(
+            inspector.semantic_disabled_reason,
+            library::SEMANTIC_DISABLED_REASON
+        );
+        let json = serde_json::to_value(&IpcResponse::SearchInspector(inspector)).unwrap();
+        assert_eq!(json["kind"], "search_inspector");
+        assert_eq!(json["semantic_enabled"], false);
+        assert_eq!(json["model_loaded"], false);
+        assert!(json["model_id"].is_null());
+        assert_eq!(json["embedding_backend"], "none");
+        assert_eq!(json["model_class"], "unclassified");
+        assert_eq!(json["files_written"], false);
+        assert!(json.get("path").is_none());
+        assert!(json.get("expected_tools").is_none());
+        assert_eq!(json["observation"]["classified_as"], "empty");
+        let _ = (
+            library::ENGINE_INSPECTOR_NOT_OWNED,
+            library::INSPECTOR_READ_ONLY,
+            library::INSPECTOR_MODEL_UNVERIFIED,
+            library::SEMANTIC_SEARCH_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn inspect_search_fixture_lexical_hits_match_physical_utf8() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t23-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            dir.join("welcome.md"),
+            "# 中文夹具笔记\n\n这是 BMDock 自有夹具正文。参见 [[欢迎]]。\n",
+        )
+        .unwrap();
+        std::fs::write(dir.join("欢迎.md"), "# 欢迎\n\n第二篇夹具正文。\n").unwrap();
+        std::fs::write(
+            dir.join("alpha.md"),
+            "# alpha\n\nEnglish body without CJK.\n",
+        )
+        .unwrap();
+        let library = library::FixtureLibrary::new(dir.clone());
+        let mut route = RouteState::default();
+        let IpcResponse::SearchInspector(inspector) = dispatch_with_library(
+            IpcCommand::InspectSearch(fixture_inspect_args("欢迎", None)),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(!inspector.hits.is_empty());
+        assert!(!inspector.semantic_enabled);
+        assert!(!inspector.model_loaded);
+        assert!(inspector.model_id.is_none());
+        assert_eq!(inspector.embedding_backend, library::EmbeddingBackend::None);
+        assert_eq!(inspector.model_class, library::ModelClass::Unclassified);
+        assert!(!inspector.files_written);
+        assert_eq!(
+            inspector.observation.classified_as,
+            library::NoteCrudClass::DiskVerified
+        );
+        assert!(inspector.observation.disk_verified);
+        assert!(inspector.observation.envelope_is_not_disk_proof);
+        for hit in &inspector.hits {
+            assert_ne!(hit.lexical_score, hit.semantic_score);
+            assert_eq!(hit.semantic_score, library::SEMANTIC_SCORE_DISABLED);
+            assert!(hit.lexical_score > library::SEMANTIC_SCORE_DISABLED);
+            assert!(!hit.identifier.contains('\\'));
+            assert!(!hit.identifier.contains(':'));
+            let path = dir.join(format!("{}.md", hit.identifier));
+            let disk = std::fs::read_to_string(&path).unwrap();
+            assert!(disk.contains("欢迎"));
+        }
+        assert!(inspector.hits.iter().any(|hit| hit.identifier == "welcome"));
+        assert!(inspector.hits.iter().any(|hit| hit.identifier == "欢迎"));
+        assert!(!inspector.hits.iter().any(|hit| hit.identifier == "alpha"));
+        let json = serde_json::to_value(&IpcResponse::SearchInspector(inspector.clone())).unwrap();
+        assert_eq!(json["kind"], "search_inspector");
+        assert_eq!(json["semantic_enabled"], false);
+        assert_eq!(json["model_loaded"], false);
+        assert_eq!(json["embedding_backend"], "none");
+        assert!(json.get("path").is_none());
+        assert!(json.get("expected_tools").is_none());
+        let IpcResponse::SearchInspector(focused) = dispatch_with_library(
+            IpcCommand::InspectSearch(fixture_inspect_args("欢迎", Some("欢迎"))),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(focused.identifier.as_deref(), Some("欢迎"));
+        assert_eq!(focused.hits.len(), 1);
+        assert_eq!(focused.hits[0].identifier, "欢迎");
+        assert!(!focused.model_loaded);
+        let IpcResponse::SearchInspector(envelope) = dispatch_with_library(
+            IpcCommand::InspectSearch(fixture_inspect_args("欢迎", None)),
+            idle_snapshot(),
+            &mut route,
+            &EnvelopeInspectorLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(
+            envelope.observation.classified_as,
+            library::NoteCrudClass::AcceptedUnverified
+        );
+        assert!(!envelope.observation.disk_verified);
+        assert!(!envelope.model_loaded);
+        assert!(envelope.observation.envelope_is_not_disk_proof);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn inspect_search_does_not_merge_engine_profiles_or_claim_loaded_model() {
+        let release = crate::supervisor::EngineProfile::Release;
+        let preview = crate::supervisor::EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(preview.commit(), "3452c821d76c083823d020984d71e06904a1ff1e");
+        assert_eq!(release.expected_tools(), 21);
+        assert_eq!(preview.expected_tools(), 27);
+        let mut route = RouteState::default();
+        let IpcResponse::SearchInspector(inspector) = dispatch_with_library(
+            IpcCommand::InspectSearch(fixture_inspect_args("欢迎", None)),
+            RuntimeSnapshot {
+                state: ConnectionState::Connected,
+                profile: Some(release),
+                child_pid: Some(7),
+                failure: None,
+                shutdown: None,
+            },
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let json = serde_json::to_value(&IpcResponse::SearchInspector(inspector)).unwrap();
+        assert!(json.get("expected_tools").is_none());
+        assert!(json.get("profile").is_none());
+        assert!(json.get("tools").is_none());
+        assert_eq!(json["semantic_enabled"], false);
+        assert_eq!(json["model_loaded"], false);
+        assert_eq!(json["embedding_backend"], "none");
+        assert_eq!(json["kind"], "search_inspector");
+        let IpcResponse::RuntimeState(state) = dispatch_with_library(
+            IpcCommand::GetRuntimeState(EmptyArgs {}),
+            RuntimeSnapshot {
+                state: ConnectionState::Connected,
+                profile: Some(preview),
+                child_pid: Some(9),
+                failure: None,
+                shutdown: None,
+            },
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(!state.semantic_model_loaded);
+        let runtime_json = serde_json::to_value(&IpcResponse::RuntimeState(state)).unwrap();
+        assert_eq!(runtime_json["semantic_model_loaded"], false);
+        assert!(runtime_json.get("child_pid").is_none());
+        let claimed = library::SearchInspectorDto {
+            semantic_enabled: true,
+            model_loaded: true,
+            model_id: Some("unknown-model".to_owned()),
+            ..library::empty_search_inspector("欢迎", None)
+        };
+        assert_eq!(
+            library::accept_search_inspector(claimed).unwrap_err(),
+            library::LibraryError::unsupported(library::UNSUPPORTED_TRUNCATED)
+        );
+        let _ = (
+            library::ENGINE_INSPECTOR_NOT_OWNED,
+            library::INSPECTOR_READ_ONLY,
+            library::INSPECTOR_MODEL_UNVERIFIED,
         );
     }
 

@@ -18,6 +18,8 @@ pub const SCHEMA_NOTE_TITLE: &str = "note title is required";
 pub const SCHEMA_NOTE_DESTINATION: &str = "move destination is required";
 pub const SCHEMA_MOVE_SAME_IDENTIFIER: &str = "move destination must differ from identifier";
 pub const SCHEMA_SEARCH_QUERY: &str = "search query is required";
+pub const SEMANTIC_DISABLED_REASON: &str =
+    "semantic search is unavailable; semantic_enabled=false; no embedding backend; official semantic/model remain UNVERIFIED";
 pub const UNSUPPORTED_TRUNCATED: &str = "truncated inventory is not a success";
 pub const GRAPH_DEPTH: u32 = 1;
 #[cfg(test)]
@@ -53,6 +55,14 @@ pub const ENGINE_GRAPH_NOT_OWNED: &str =
 #[cfg(test)]
 pub const ENGINE_SEARCH_NOT_OWNED: &str =
     "search is BMDock-owned fixture lexical matching, not a second database and not official engine search MCP";
+#[cfg(test)]
+pub const ENGINE_INSPECTOR_NOT_OWNED: &str =
+    "inspect_search explains BMDock-owned fixture lexical search, not official engine semantic search, not an embedding backend, and not T24 recall";
+#[cfg(test)]
+pub const INSPECTOR_READ_ONLY: &str = "inspect_search is read-only; files_written=false";
+#[cfg(test)]
+pub const INSPECTOR_MODEL_UNVERIFIED: &str =
+    "unknown or unavailable semantic model stays unclassified/unverified; model_loaded=false; never treat missing semantic as enabled success";
 #[cfg(test)]
 pub const ENGINE_CONTEXT_NOT_OWNED: &str =
     "context preview is BMDock-owned fixture markdown snippet, not official build_context MCP";
@@ -342,6 +352,62 @@ pub fn empty_search_page(query: &str) -> SearchPageDto {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum EmbeddingBackend {
+    None,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ModelClass {
+    Unclassified,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SearchInspectorDto {
+    pub query: String,
+    pub identifier: Option<String>,
+    pub hits: Vec<SearchHitDto>,
+    pub observation: NoteCrudObservationDto,
+    pub semantic_enabled: bool,
+    pub model_id: Option<String>,
+    pub model_loaded: bool,
+    pub embedding_backend: EmbeddingBackend,
+    pub model_class: ModelClass,
+    pub engine_search: bool,
+    pub files_written: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub semantic_disabled_reason: String,
+}
+
+pub fn empty_search_inspector(query: &str, identifier: Option<&str>) -> SearchInspectorDto {
+    SearchInspectorDto {
+        query: query.to_owned(),
+        identifier: identifier
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(ToOwned::to_owned),
+        hits: Vec::new(),
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        semantic_enabled: false,
+        model_id: None,
+        model_loaded: false,
+        embedding_backend: EmbeddingBackend::None,
+        model_class: ModelClass::Unclassified,
+        engine_search: false,
+        files_written: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        semantic_disabled_reason: SEMANTIC_DISABLED_REASON.to_owned(),
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ContextPreviewDto {
     pub identifier: String,
@@ -521,6 +587,16 @@ pub trait NoteLibrary: Send + Sync {
             return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
         }
         Ok(empty_search_page(query))
+    }
+
+    fn inspect_search(
+        &self,
+        query: &str,
+        identifier: Option<&str>,
+    ) -> Result<SearchInspectorDto, LibraryError> {
+        reject_search_query(query)?;
+        let identifier = reject_inspect_identifier(identifier)?;
+        Ok(empty_search_inspector(query, identifier))
     }
 
     fn preview_context(
@@ -1018,6 +1094,49 @@ impl NoteLibrary for FixtureLibrary {
         })
     }
 
+    fn inspect_search(
+        &self,
+        query: &str,
+        identifier: Option<&str>,
+    ) -> Result<SearchInspectorDto, LibraryError> {
+        reject_search_query(query)?;
+        let identifier = reject_inspect_identifier(identifier)?;
+        let mut hits = self.collect_lexical_hits(query)?;
+        if let Some(target) = identifier {
+            hits.retain(|hit| hit.identifier == target);
+        }
+        if hits.len() > MAX_PAGE_SIZE as usize {
+            return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+        }
+        let (classified, disk_verified) = if hits.is_empty() {
+            (NoteCrudClass::Empty, false)
+        } else if hits.iter().all(|hit| {
+            hit.lexical_score > SEMANTIC_SCORE_DISABLED
+                && hit.semantic_score == SEMANTIC_SCORE_DISABLED
+                && !looks_like_filesystem_path(&hit.identifier)
+        }) {
+            (NoteCrudClass::DiskVerified, true)
+        } else {
+            (NoteCrudClass::AcceptedUnverified, false)
+        };
+        Ok(SearchInspectorDto {
+            query: query.to_owned(),
+            identifier: identifier.map(ToOwned::to_owned),
+            hits,
+            observation: crud_observation(classified, disk_verified),
+            semantic_enabled: false,
+            model_id: None,
+            model_loaded: false,
+            embedding_backend: EmbeddingBackend::None,
+            model_class: ModelClass::Unclassified,
+            engine_search: false,
+            files_written: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            semantic_disabled_reason: SEMANTIC_DISABLED_REASON.to_owned(),
+        })
+    }
+
     fn preview_context(
         &self,
         identifier: &str,
@@ -1443,6 +1562,31 @@ pub fn accept_activity_page(
     Ok(page)
 }
 
+pub fn accept_search_inspector(
+    inspector: SearchInspectorDto,
+) -> Result<SearchInspectorDto, LibraryError> {
+    if inspector.semantic_enabled
+        || inspector.engine_search
+        || inspector.model_loaded
+        || inspector.files_written
+        || inspector.embedding_backend != EmbeddingBackend::None
+        || inspector.model_id.is_some()
+    {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if inspector.hits.len() > MAX_PAGE_SIZE as usize {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if inspector
+        .hits
+        .iter()
+        .any(|hit| looks_like_filesystem_path(&hit.identifier))
+    {
+        return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+    }
+    Ok(inspector)
+}
+
 pub fn reject_filesystem_identifier(identifier: &str) -> Result<(), LibraryError> {
     if looks_like_filesystem_path(identifier) {
         Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER))
@@ -1485,6 +1629,16 @@ pub fn reject_search_query(query: &str) -> Result<(), LibraryError> {
         Err(LibraryError::policy(POLICY_FILESYSTEM_QUERY))
     } else {
         Ok(())
+    }
+}
+
+pub fn reject_inspect_identifier(identifier: Option<&str>) -> Result<Option<&str>, LibraryError> {
+    match identifier {
+        None => Ok(None),
+        Some(value) => {
+            reject_note_identifier(value)?;
+            Ok(Some(value.trim()))
+        }
     }
 }
 
@@ -1961,6 +2115,19 @@ mod tests {
         assert_eq!(search.observation.classified_as, NoteCrudClass::Empty);
         assert!(!search.observation.disk_verified);
         assert!(search.observation.envelope_is_not_disk_proof);
+        let inspector = library.inspect_search("欢迎", None).unwrap();
+        assert!(inspector.hits.is_empty());
+        assert!(inspector.identifier.is_none());
+        assert!(!inspector.semantic_enabled);
+        assert!(!inspector.model_loaded);
+        assert!(inspector.model_id.is_none());
+        assert_eq!(inspector.embedding_backend, EmbeddingBackend::None);
+        assert_eq!(inspector.model_class, ModelClass::Unclassified);
+        assert!(!inspector.engine_search);
+        assert!(!inspector.files_written);
+        assert_eq!(inspector.observation.classified_as, NoteCrudClass::Empty);
+        assert!(!inspector.observation.disk_verified);
+        assert_eq!(inspector.semantic_disabled_reason, SEMANTIC_DISABLED_REASON);
         let preview = library.preview_context("welcome", None).unwrap();
         assert!(preview.snippet.is_empty());
         assert!(!preview.executed);
@@ -1976,6 +2143,9 @@ mod tests {
         let _ = (
             ENGINE_GRAPH_NOT_OWNED,
             ENGINE_SEARCH_NOT_OWNED,
+            ENGINE_INSPECTOR_NOT_OWNED,
+            INSPECTOR_READ_ONLY,
+            INSPECTOR_MODEL_UNVERIFIED,
             ENGINE_CONTEXT_NOT_OWNED,
             ENGINE_ACTIVITY_NOT_OWNED,
             SEMANTIC_SEARCH_UNVERIFIED,
@@ -2017,6 +2187,26 @@ mod tests {
                 .search_notes(r"C:\Users\someone\vault\note.md", None, DEFAULT_PAGE_SIZE)
                 .unwrap_err(),
             LibraryError::policy(POLICY_FILESYSTEM_QUERY)
+        );
+        assert_eq!(
+            EmptyLibrary.inspect_search("", None).unwrap_err(),
+            LibraryError::schema(SCHEMA_SEARCH_QUERY)
+        );
+        assert_eq!(
+            EmptyLibrary
+                .inspect_search(r"C:\Users\someone\vault\note.md", None)
+                .unwrap_err(),
+            LibraryError::policy(POLICY_FILESYSTEM_QUERY)
+        );
+        assert_eq!(
+            EmptyLibrary
+                .inspect_search("欢迎", Some(r"C:\Users\someone\vault\note.md"))
+                .unwrap_err(),
+            LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER)
+        );
+        assert_eq!(
+            EmptyLibrary.inspect_search("欢迎", Some("")).unwrap_err(),
+            LibraryError::schema(SCHEMA_NOTE_IDENTIFIER)
         );
     }
 
@@ -2170,6 +2360,39 @@ mod tests {
         assert!(missed.hits.is_empty());
         assert_eq!(missed.observation.classified_as, NoteCrudClass::Empty);
         assert!(!missed.semantic_enabled);
+        let inspector = library.inspect_search("欢迎", None).unwrap();
+        assert!(!inspector.hits.is_empty());
+        assert!(!inspector.semantic_enabled);
+        assert!(!inspector.model_loaded);
+        assert!(inspector.model_id.is_none());
+        assert_eq!(inspector.embedding_backend, EmbeddingBackend::None);
+        assert_eq!(inspector.model_class, ModelClass::Unclassified);
+        assert!(!inspector.files_written);
+        assert_eq!(
+            inspector.observation.classified_as,
+            NoteCrudClass::DiskVerified
+        );
+        for hit in &inspector.hits {
+            assert_ne!(hit.lexical_score, hit.semantic_score);
+            assert_eq!(hit.semantic_score, SEMANTIC_SCORE_DISABLED);
+            assert!(hit.lexical_score > SEMANTIC_SCORE_DISABLED);
+            let path = fixture.dir.join(format!("{}.md", hit.identifier));
+            let disk = fs::read_to_string(&path).unwrap();
+            assert!(disk.contains("欢迎"));
+        }
+        let focused = library.inspect_search("欢迎", Some("欢迎")).unwrap();
+        assert_eq!(focused.hits.len(), 1);
+        assert_eq!(focused.hits[0].identifier, "欢迎");
+        assert!(!focused.model_loaded);
+        let claimed = SearchInspectorDto {
+            model_loaded: true,
+            model_id: Some("unknown-model".to_owned()),
+            ..inspector
+        };
+        assert_eq!(
+            accept_search_inspector(claimed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_TRUNCATED)
+        );
     }
 
     #[test]
