@@ -7,11 +7,14 @@ project/workspace route, the T11 paginated `list_tree` /
 `read_note` commands, the T12 `list_backups` /
 `restore_fixture` baseline, the T13
 `inspect_windows_runtime` Windows host prototype, the T14
-`save_draft` / `load_draft` editor session, and the T15
+`save_draft` / `load_draft` editor session, the T15
 typed `write_note` / `edit_note` / `move_note` /
-`delete_note` fixture note CRUD. It applies to
+`delete_note` fixture note CRUD, and the T16 in-process
+same-target conflict coordinator plus unknown-result no-retry
+gate. It applies to
 `apps/bmdock-desktop/src-tauri/src/ipc.rs`,
 `apps/bmdock-desktop/src-tauri/src/library.rs`,
+`apps/bmdock-desktop/src-tauri/src/conflict.rs`,
 `apps/bmdock-desktop/src-tauri/src/backups.rs`,
 `apps/bmdock-desktop/src-tauri/src/drafts.rs`,
 `apps/bmdock-desktop/src-tauri/src/preflight.rs`,
@@ -31,8 +34,10 @@ interfaces remain separate. Lifecycle ownership lives in
   T11 paginated fixture-backed tree listing plus note read,
   T12 BMDock-owned generated backup listing plus fixture restore,
   T13 Windows host runtime prototype observation, T14
-  BMDock-owned draft persistence plus editor session, and T15
-  fixture-backed typed note write/edit/move/delete.
+  BMDock-owned draft persistence plus editor session, T15
+  fixture-backed typed note write/edit/move/delete, and T16
+  in-process same-identifier inflight conflict coordination
+  plus timeout_unknown no-retry.
 - The boundary does not start or stop the Supervisor, call the official
   engine over rmcp, access a user vault, or expose raw `callTool`. T14
   drafts are BMDock-owned session artifacts, not a second note index and
@@ -40,7 +45,9 @@ interfaces remain separate. Lifecycle ownership lives in
   `move_note` / `delete_note` are host commands on `NoteLibrary`, not
   raw MCP `callTool`. Production `EmptyLibrary` CRUD is unsupported
   (`engine/library unavailable`). Tests inject `FixtureLibrary` over
-  generated owned temp `{temp}/bmdock-t15-*`.
+  generated owned temp `{temp}/bmdock-t15-*`. T16 wraps those same typed
+  CRUD commands with `ConflictCoordinator`; it does not add a new IPC
+  command or rmcp.
 - T09 preflight and discovery inspect BMDock-owned in-repo or explicitly
   generated fixture paths only. T10 lists only generated BMDock-owned
   workspace/project records. T07 remains the owner of start/stop.
@@ -48,8 +55,13 @@ interfaces remain separate. Lifecycle ownership lives in
   `restore_fixture`, T14 `save_draft` / `load_draft`, and T15
   `write_note` / `edit_note` / `move_note` / `delete_note` must carry an
   explicit `ExplicitRouteArgs` (`workspace` + `project`) on every call and
-  must not inherit an implicit current project. T16 same-target conflict
-  / unknown result remain UNVERIFIED. T12 restores generated markdown into a generated owned target
+  must not inherit an implicit current project. T16 coordinates overlapping
+  same-identifier inflight writes on those CRUD commands: the second
+  overlapping same-target call returns `classified_as: conflict` (not
+  `disk_verified`, not `timeout_unknown`, not policy-for-path). Sequential
+  dest-exists remains `unsupported` and is not T16 atomicity. True
+  concurrent OS-thread filesystem races remain UNVERIFIED; in-process
+  inflight is host coordination, not an OS file lock. T12 restores generated markdown into a generated owned target
   only; it is not user-vault restore and not T17/T37/T38 recovery.
   T14 writes generated draft bytes into a generated owned temp root
   `{temp}/bmdock-t14-*/` in tests only. T15 writes generated note markdown
@@ -282,19 +294,35 @@ fail closed as `schema`.
   `destination`, `body`, `files_written`, `engine_persisted=false`, and
   observation. Destination is a permalink/identifier, not a filesystem
   path. After a fixture move, the old path is gone and the new path exists
-  with the same body. Filesystem destination is `policy` and does not open
+  with   the same body. Filesystem destination is `policy` and does not open
   the library. Sequential move onto an existing destination is
-  `unsupported`; T16 same-target conflict / unknown result remain
-  UNVERIFIED. Do not claim atomic concurrent overwrite.
+  `unsupported` and is not T16 same-target conflict or atomic
+  concurrent overwrite. Overlapping same-target inflight (including a
+  move whose source or destination is already inflight) is
+  `classified_as: conflict` on the CRUD DTO.
 - `delete_note` returns `kind: "note_deleted"` with `identifier`,
   `files_written`, `engine_persisted=false`, and observation. Missing after
   delete is success-with-observation (`disk_verified` when the file is
   confirmed absent), not user-vault success. Envelope-only delete is
   `accepted_unverified`.
+- Overlapping same-target `write_note` / `edit_note` / `move_note` /
+  `delete_note` returns the matching CRUD DTO with
+  `observation.classified_as: conflict`, `disk_verified=false`,
+  `files_written=false`. Conflict is not an IPC error category, not
+  `timeout_unknown`, and not policy-for-path. Distinct-target sequential
+  success stays `disk_verified` and is not same-target atomicity.
+- After `timeout_unknown` on `RuntimeStateDto` / `ShutdownReceipt`, do
+  not auto-retry non-idempotent writes. `ConflictCoordinator` /
+  `auto_retry_non_idempotent_write` must not invoke the retry helper.
+  `timeout_unknown` stays on the runtime snapshot; the IPC error union
+  stays `policy` / `schema` / `unsupported`. T16 records conflict and
+  unknown results; it is not T17/T37 recovery. Forced-kill, Job Object,
+  and disk-failure remain UNVERIFIED.
 - Error responses use `kind: "error"` and `category` in `policy`, `schema`, or
   `unsupported`, plus a human-readable `message`. Do not add `timeout_unknown`,
-  `transport`, or `process` to this IPC error union; those belong on the
-  runtime-state DTO.
+  `transport`, `process`, or `conflict` to this IPC error union; runtime
+  failure kinds belong on the runtime-state DTO, and same-target conflict
+  belongs on the CRUD observation class.
 
 ### Policy fields
 
@@ -347,6 +375,9 @@ target. T13 inspects the Windows host prototype without taking Supervisor
 start/stop ownership. T14 editor session does not start or stop Supervisor.
 T15 CRUD also sends `ExplicitRouteArgs` on every call; `RouteState.project`
 is not an implicit write target. T15 does not start Supervisor or add rmcp.
+T16 wraps those CRUD commands with `ConflictCoordinator` and refuses
+auto-retry after `timeout_unknown`. It does not add a command, start
+Supervisor, or add rmcp.
 
 ## 4. Validation & Error Matrix
 
@@ -371,7 +402,10 @@ is not an implicit write target. T15 does not start Supervisor or add rmcp.
 | Non-fixture `write_note` / `edit_note` / `move_note` / `delete_note` | Reject without opening the library | `policy` |
 | Empty library `write_note` / `edit_note` / `move_note` / `delete_note` | Engine/library unavailable | `unsupported` |
 | Envelope-only `"saved"` write/edit/move/delete | Classify `accepted_unverified`; not disk proof | — |
-| Sequential move onto an existing destination | Reject; T16 concurrent overwrite remains UNVERIFIED | `unsupported` |
+| Sequential move onto an existing destination | Reject; not T16 same-target conflict or atomic concurrent overwrite | `unsupported` |
+| Overlapping same-target inflight write/edit/move/delete | Return CRUD DTO `classified_as: conflict`; do not write; not policy-for-path | — |
+| Distinct-target sequential writes | Each may be `disk_verified`; this is not same-target atomicity | — |
+| `timeout_unknown` on Supervisor snapshot / shutdown receipt | Stay on `RuntimeStateDto`; do not auto-retry non-idempotent writes; do not add to IPC error union | — |
 | `restore_fixture` `backup_id` that looks like a user vault / `%APPDATA%` / `.basic-memory` path | Reject without opening the backup store | `policy` |
 | Inspect an arbitrary user path or real vault | Reject without opening the path | `policy` |
 | Empty library `list_tree` | Empty `entries`, `next_cursor=null`, `truncated=false` | empty state |
@@ -446,7 +480,16 @@ is not an implicit write target. T15 does not start Supervisor or add rmcp.
   physical file, then `edit_note` overwrite, `move_note` within the owned
   library, and `delete_note` until the file is missing. Classify
   `disk_verified`. Envelope-only `"saved"` is `accepted_unverified`.
-  `engine_persisted` stays false. T16 concurrent overwrite stays UNVERIFIED.
+  `engine_persisted` stays false. Overlapping same-target inflight is
+  `conflict`. Sequential dest-exists stays `unsupported`. Dual
+  profiles stay isolated.
+- Good: two overlapping same-identifier typed writes; the second
+  returns `classified_as: conflict` with `files_written=false`. A
+  sequential write to a distinct identifier remains `disk_verified`
+  and is not same-target atomicity. After a `timeout_unknown`
+  runtime snapshot, `auto_retry_non_idempotent_write` does not
+  invoke the retry helper. Forced-kill / Job Object / disk-failure
+  stay UNVERIFIED and are not T17/T37 recovery.
 - Bad: send `{"command":"select_project","args":{"project":"bmdock-fixture","path":"C:\\vault"}}`; deserialization fails because the extra path is denied.
 - Bad: send `{"command":"list_projects","args":{"path":"C:\\vault"}}` or
   `{"command":"list_projects","args":{"root":"/home/user/.basic-memory"}}`;
@@ -559,8 +602,8 @@ is not an implicit write target. T15 does not start Supervisor or add rmcp.
   `engine_persisted=false`. Envelope-only `"saved"` is
   `accepted_unverified`. Dual profiles stay isolated. T15 CRUD is a
   separate typed host path; `save_draft` is not `write_note`.
-- Rust unit test: `write_note` / `edit_note` / `move_note` / `delete_note`
-  require `ExplicitRouteArgs`. Extra `path` / `root` fail closed as
+- Rust unit test: `write_note` / `edit_note` / `move_note` /
+  `delete_note` require `ExplicitRouteArgs`. Extra `path` / `root` fail closed as
   `schema`. Non-fixture routes and filesystem identifiers/destinations are
   `policy` and do not open the library. Empty library CRUD is
   `unsupported` with `"engine/library unavailable"`. Fixture library write
@@ -569,13 +612,29 @@ is not an implicit write target. T15 does not start Supervisor or add rmcp.
   Move leaves the old path gone and the new path present with the same
   body. Delete observes the file missing. `classified_as=disk_verified`,
   `engine_persisted=false`. Envelope-only `"saved"` is
-  `accepted_unverified`. T16 concurrent overwrite stays UNVERIFIED. Dual
+  `accepted_unverified`. Sequential dest-exists stays `unsupported` and
+  is not T16. Dual
   profiles stay isolated.
+- Rust unit test: `ConflictCoordinator` rejects a second overlapping
+  same-identifier inflight write/edit/move/delete as
+  `classified_as: conflict` (not `disk_verified`, not
+  `timeout_unknown`, not `policy`). Distinct-target sequential writes
+  succeed and must not be recorded as same-target atomicity. Two
+  overlapping OS threads against the inflight guard observe a conflict
+  class; that is host coordination, not an OS file lock. True
+  concurrent OS filesystem races stay UNVERIFIED.
+- Rust unit test: `timeout_unknown` remains on `RuntimeStateDto` /
+  `ShutdownReceipt`. The IPC error union stays `policy` / `schema` /
+  `unsupported`. After `timeout_unknown`, `auto_retry_non_idempotent_write`
+  does not invoke the retry helper. A user-initiated typed write after
+  that snapshot is not an auto-retry and must not add `timeout_unknown`
+  to the CRUD error category. Forced-kill, Job Object, and disk-failure
+  stay UNVERIFIED; T16 is not T17/T37 recovery.
 - TypeScript `RuntimeStateDto` / `FailureKind` / `ShutdownReceipt` /
   `PreflightDto` / `ConfigDiscoveryDto` / `ProjectCatalogDto` /
   `TreePageDto` / `NoteReadDto` / `BackupCatalogDto` / `RestoreResultDto` /
   `WindowsRuntimeDto` / `DraftResultDto` / `NoteWriteDto` / `NoteEditDto` /
-  `NoteMoveDto` / `NoteDeleteDto`
+  `NoteMoveDto` / `NoteDeleteDto` / `NoteCrudClass` (`conflict` included)
   stay aligned with that JSON shape through
   `npm run build`.
 - Validation checks: `task.py validate`, `cargo fmt --all -- --check`,
@@ -694,7 +753,11 @@ must not treat compiled binaries, WebView2 files, Job Object docs,
 `just contract`, or T12 fixture restore as native GUI / session /
 assignment / installer / recovery proof.
 T15 does not start Supervisor and does not add rmcp. `save_draft` stays
-distinct from `write_note`. T16 conflict remains UNVERIFIED.
+distinct from `write_note`. T16 same-target overlapping inflight is
+`classified_as: conflict` on the CRUD DTO. `timeout_unknown` stays on
+`RuntimeStateDto`. Sequential dest-exists stays `unsupported`. True OS
+filesystem races, forced-kill, Job Object, and disk-failure stay
+UNVERIFIED and are not T17/T37 recovery.
 
 ### Wrong
 
@@ -727,3 +790,24 @@ fields. `getRuntimeState()` is how the renderer reads the latter. Selected
 reports `supervisor_status` and `engine_spawned` from the snapshot without
 taking start/stop ownership. `files_written` stays false because T09
 writes nothing.
+
+### Wrong
+
+```ts
+type NoteCrudClass = "disk_verified" | "timeout_unknown";
+autoRetryNonIdempotentWrite();
+```
+
+This collapses `timeout_unknown` into the CRUD observation class or retries
+a non-idempotent write after an unknown result.
+
+### Correct
+
+```ts
+type ErrorCategory = "policy" | "schema" | "unsupported";
+type NoteCrudClass = "empty" | "disk_verified" | "accepted_unverified" | "conflict" | "unclassified";
+type FailureKind = "policy" | "transport" | "timeout_unknown" | "process" | "unverified";
+```
+
+Keep `conflict` on the CRUD observation, `timeout_unknown` on
+`RuntimeStateDto`, and never auto-retry the unresolved write.

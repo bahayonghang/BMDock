@@ -24,6 +24,7 @@ import {
   type NoteMoveDto,
   type NoteDeleteDto,
   type NoteCrudClass,
+  type FailureKind,
 } from "./ipc";
 import { t } from "./i18n";
 import {
@@ -197,7 +198,7 @@ function WorkbenchPanel({
         </section>
       );
     case "ready":
-      return <WorkbenchLibrary onRefresh={onRefresh} />;
+      return <WorkbenchLibrary onRefresh={onRefresh} runtimeFailure={load.runtime.failure} />;
     default: {
       const exhaustive: never = load;
       return exhaustive;
@@ -214,7 +215,13 @@ function unexpectedWorkbenchResponse(): WorkbenchError {
   return { category: "schema", message: t("unexpectedTree") };
 }
 
-function WorkbenchLibrary({ onRefresh }: { onRefresh: () => void }) {
+function WorkbenchLibrary({
+  onRefresh,
+  runtimeFailure,
+}: {
+  onRefresh: () => void;
+  runtimeFailure: FailureKind | null;
+}) {
   const [reloadToken, setReloadToken] = useState(0);
   const [phase, setPhase] = useState<"loading" | "ready" | "empty" | "error">("loading");
   const [entries, setEntries] = useState<TreeEntryDto[]>([]);
@@ -380,6 +387,7 @@ function WorkbenchLibrary({ onRefresh }: { onRefresh: () => void }) {
         seedIdentifier={note?.identifier ?? null}
         seedTitle={note?.title ?? null}
         seedBody={note?.body ?? null}
+        runtimeFailure={runtimeFailure}
         onMutated={() => setReloadToken((token) => token + 1)}
       />
       <DraftEditor seedIdentifier={note?.identifier ?? null} seedBody={note?.body ?? null} />
@@ -584,6 +592,8 @@ function crudObservationLabel(classified: NoteCrudClass): string {
       return t("crudObservationDisk");
     case "accepted_unverified":
       return t("crudObservationUnverified");
+    case "conflict":
+      return t("crudObservationConflict");
     case "empty":
       return t("crudObservationEmpty");
     case "unclassified":
@@ -605,11 +615,13 @@ function NoteCrudPanel({
   seedIdentifier,
   seedTitle,
   seedBody,
+  runtimeFailure,
   onMutated,
 }: {
   seedIdentifier: string | null;
   seedTitle: string | null;
   seedBody: string | null;
+  runtimeFailure: FailureKind | null;
   onMutated: () => void;
 }) {
   const [identifier, setIdentifier] = useState("");
@@ -645,6 +657,23 @@ function NoteCrudPanel({
       <p className="state-badge">{badge}</p>
       <h3 id="note-crud-title">{heading}</h3>
       <p>{error ? `${errorCategoryLabel(error.category)}：${error.message}` : empty ? t("crudEmptyBody") : t("crudReadyBody")}</p>
+      <p>{t("crudCoordinationTitle")}</p>
+      <ul className="coordination-legend">
+        <li>{t("crudObservationConflict")}</li>
+        <li>{t("failureTimeoutUnknown")}</li>
+        <li>{t("crudObservationDisk")}</li>
+        <li>{t("crudObservationUnverified")}</li>
+      </ul>
+      <dl className="facts">
+        <div>
+          <dt>{t("crudTimeoutUnknownLabel")}</dt>
+          <dd>{runtimeFailure === "timeout_unknown" ? t("failureTimeoutUnknown") : t("runtimeNone")}</dd>
+        </div>
+        <div>
+          <dt>{t("crudRecoveryNoteLabel")}</dt>
+          <dd>{t("crudRecoveryNotT17")}</dd>
+        </div>
+      </dl>
       <div className="crud-editor">
         <label htmlFor="crud-identifier">{t("crudIdentifierLabel")}</label>
         <input
@@ -705,7 +734,11 @@ function NoteCrudPanel({
           <dd>{result?.files_written ? t("crudWroteFiles") : t("crudNoWrite")}</dd>
         </div>
       </dl>
-      {result ? <p>{crudObservationLabel(result.observation.classified_as)}</p> : null}
+      {result ? (
+        <p data-observation={result.observation.classified_as}>
+          {crudObservationLabel(result.observation.classified_as)}
+        </p>
+      ) : null}
       {!fixtureOk && identifier.trim() !== "" ? <p>{t("crudFixtureOnly")}</p> : null}
       {!destinationOk ? <p>{t("crudFixtureOnly")}</p> : null}
       <button

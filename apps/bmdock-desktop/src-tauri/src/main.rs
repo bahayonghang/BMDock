@@ -9,6 +9,7 @@ use std::sync::Mutex;
 use tauri::State;
 
 mod backups;
+mod conflict;
 mod drafts;
 mod ipc;
 mod library;
@@ -23,6 +24,7 @@ struct AppState {
     library: Box<dyn library::NoteLibrary>,
     backups: Box<dyn backups::BackupStore>,
     drafts: Box<dyn drafts::DraftStore>,
+    conflicts: conflict::ConflictCoordinator,
 }
 
 #[tauri::command]
@@ -42,15 +44,17 @@ fn ipc_invoke(state: State<'_, Mutex<AppState>>, command: ipc::IpcCommand) -> ip
         library,
         backups,
         drafts,
+        conflicts,
         supervisor: _,
     } = &mut *host;
-    match ipc::dispatch_with_stores(
+    match ipc::dispatch_with_conflicts(
         command,
         snapshot,
         route,
         library.as_ref(),
         backups.as_ref(),
         drafts.as_ref(),
+        conflicts,
     ) {
         Ok(response) => response,
         Err(error) => ipc::IpcResponse::Error(error),
@@ -65,6 +69,7 @@ fn main() {
             library: Box::new(library::EmptyLibrary),
             backups: Box::new(backups::EmptyBackupStore),
             drafts: Box::new(drafts::EmptyDraftStore),
+            conflicts: conflict::ConflictCoordinator::default(),
         }))
         .invoke_handler(tauri::generate_handler![ipc_invoke])
         .run(tauri::generate_context!())

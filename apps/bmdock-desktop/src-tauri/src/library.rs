@@ -20,7 +20,7 @@ pub const UNSUPPORTED_TRUNCATED: &str = "truncated inventory is not a success";
 pub const UNSUPPORTED_NOTE_MISSING: &str = "note identifier is not present in the fixture library";
 #[cfg(test)]
 pub const UNSUPPORTED_MOVE_DESTINATION_EXISTS: &str =
-    "destination already exists; concurrent overwrite remains UNVERIFIED";
+    "destination already exists; sequential dest-exists is unsupported and is not T16 same-target conflict";
 pub const POLICY_FILESYSTEM_IDENTIFIER: &str =
     "Note identifiers are permalinks, not user vault filesystem paths";
 pub const POLICY_FILESYSTEM_DESTINATION: &str =
@@ -96,12 +96,13 @@ pub struct NoteReadDto {
     pub observation: NoteObservationDto,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum NoteCrudClass {
     Empty,
     DiskVerified,
     AcceptedUnverified,
+    Conflict,
     Unclassified,
 }
 

@@ -256,7 +256,12 @@ export interface DraftResultDto {
   observation: DraftObservationDto;
 }
 
-export type NoteCrudClass = "empty" | "disk_verified" | "accepted_unverified" | "unclassified";
+export type NoteCrudClass =
+  | "empty"
+  | "disk_verified"
+  | "accepted_unverified"
+  | "conflict"
+  | "unclassified";
 
 export interface NoteCrudObservationDto {
   classified_as: NoteCrudClass;

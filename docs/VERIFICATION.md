@@ -238,3 +238,21 @@ zh-CN 工作台提供 fixture 标识的写入/编辑/移动/删除控件；删�
 本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t15-note-crud-operations` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 97 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 9 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。`python -m unittest discover -s tests -v` 跑 69 项：68 ok，1 ERROR `test_repository_phase_order`（同一 `check_source`）。顺序移动到已存在目标为 `unsupported`，不主张 T16。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方引擎持久化 / T16 并发覆盖 / hosted CI 证据；这些仍为 `UNVERIFIED`。
 
 T15 证据与验收映射见 [t15-note-crud-operations.json](../execution/evidence/t15-note-crud-operations.json)。`execution/status.json` 仅将 T15 标为 `completed`；未改 T05–T14/G0。
+
+## T16：并发冲突与未知结果协调
+
+T16 在现有 typed `write_note` / `edit_note` / `move_note` / `delete_note` 上增加进程内同标识 inflight 守卫（`ConflictCoordinator`）。未新增 IPC 命令，未添加 rmcp，未 raw `callTool`。第二次重叠同目标调用返回 CRUD DTO `classified_as: conflict`，`files_written=false`，`disk_verified=false`。该分类不是 `disk_verified`、不是 `timeout_unknown`、不是 policy-for-path，也不进入 IPC 错误联合体。`move_note` 同时占用 source 与 destination。顺序移动到已存在目标仍为 `unsupported`，不是 T16 原子覆盖。不同目标的顺序写入可以同为 `disk_verified`，这不是同目标原子性。
+
+AC15：重叠同目标写入分类为 conflict。两个 OS 线程对 inflight 守卫观察到一次占用与一次 conflict。对共享 coordinator 的 scoped-thread IPC `write_note` 观察到第二次为 conflict、第一次落盘。这是宿主协调，不是 OS file lock。真实并发 OS 文件系统竞态仍为 `UNVERIFIED`。不主张 T03 强杀或原子文件系统覆盖。
+
+AC16：`timeout_unknown` 留在 `RuntimeStateDto` / `ShutdownReceipt`。IPC 错误联合体仍为 `policy` / `schema` / `unsupported`。`auto_retry_non_idempotent_write` 在 `timeout_unknown` 之后不调用 retry helper（测试 AtomicBool 保持 false）。该快照之后的用户发起 typed write 只执行一次，不是自动重试。丢失响应、接受后取消、对官方引擎的 timeout_unknown 现场注入仍为 `UNVERIFIED`。
+
+AC20：zh-CN 工作台用独立文案展示 conflict / timeout_unknown / disk_verified / accepted_unverified。运行状态超时未知来自 `get_runtime_state`，不启动 Supervisor。无 `dangerouslySetInnerHTML`。
+
+AC52：conflict 与 timeout_unknown 已记录。这不是 T17/T37 恢复。强杀、Job Object 分配、磁盘故障仍为 `UNVERIFIED`。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T16 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t16-conflict-unknown-result` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 109 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 10 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。`python -m unittest discover -s tests -v` 跑 70 项：69 ok，1 ERROR `test_repository_phase_order`（同一 `check_source`）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / OS file lock / 强杀恢复 / hosted CI 证据；这些仍为 `UNVERIFIED`。
+
+T16 证据与验收映射见 [t16-conflict-unknown-result.json](../execution/evidence/t16-conflict-unknown-result.json)。`execution/status.json` 仅将 T16 标为 `completed`；未改 T05–T15/G0。

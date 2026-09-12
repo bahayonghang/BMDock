@@ -210,7 +210,7 @@ export const messages = {
     "仅允许 fixture 标识。写入、编辑、移动和删除每次都携带显式 workspace 与 project。信封“已保存”不能当作磁盘证据。引擎已持久化始终为否。草稿保存仍使用 save_draft，与 write_note 分开。",
   crudReadyTitle: "笔记写入编辑移动删除",
   crudReadyBody:
-    "write_note 创建或覆盖标识；edit_note 覆盖已有正文；move_note 在自有夹具库内重命名标识；delete_note 删除文件。删除需要确认。物理文件观察与信封成功必须分开。T16 同目标冲突仍为未验证。",
+    "write_note 创建或覆盖标识；edit_note 覆盖已有正文；move_note 在自有夹具库内重命名标识；delete_note 删除文件。删除需要确认。同目标重叠写入分类为冲突，与已核对磁盘、仅信封成功、以及运行状态上的超时未知必须分开。顺序移动到已存在目标仍为不受支持，不是 T16 原子覆盖。",
   crudErrorTitle: "无法完成笔记写入操作",
   crudIdentifierLabel: "笔记标识",
   crudTitleLabel: "标题",
@@ -232,13 +232,18 @@ export const messages = {
   crudNoWrite: "否",
   crudObservationDisk: "观察分类：已核对物理笔记文件",
   crudObservationUnverified: "观察分类：仅信封成功，不能当作磁盘证据",
+  crudObservationConflict: "观察分类：同目标冲突，不是磁盘已核对，也不是超时未知",
   crudObservationEmpty: "观察分类：空库",
   crudObservationUnclassified: "观察分类：未分类",
+  crudCoordinationTitle: "冲突与未知结果分类（必须区分）",
+  crudTimeoutUnknownLabel: "运行状态超时未知",
+  crudRecoveryNoteLabel: "恢复边界",
+  crudRecoveryNotT17: "这不是 T17/T37 恢复。强杀、Job Object 与磁盘故障仍为未验证。",
   aboutTitle: "说明",
   aboutIntro:
-    "这是桌面布局壳加只读预检、显式项目路由、分页目录、笔记预览、草稿编辑器会话、夹具笔记写入编辑移动删除、夹具备份恢复基线和 Windows 运行时原型观察。默认界面语言为简体中文。并发冲突与未知结果属于 T16，帮助与无障碍完备性也不在本任务关闭。",
+    "这是桌面布局壳加只读预检、显式项目路由、分页目录、笔记预览、草稿编辑器会话、夹具笔记写入编辑移动删除、同目标冲突与超时未知协调、夹具备份恢复基线和 Windows 运行时原型观察。默认界面语言为简体中文。帮助与无障碍完备性也不在本任务关闭。",
   aboutSafety:
-    "调用 get_capabilities、get_runtime_state、list_projects、run_preflight、discover_config、list_tree、read_note、list_backups、restore_fixture、inspect_windows_runtime、save_draft、load_draft、write_note、edit_note、move_note 与 delete_note。选择项目仅允许 bmdock-fixture。list_tree、read_note、list_backups、restore_fixture、save_draft、load_draft、write_note、edit_note、move_note 与 delete_note 每次都携带显式 workspace 与 project。Markdown 以纯文本预览，编辑器使用可聚焦的 labeled textarea，不执行 HTML。不会 raw callTool、不会写入用户 vault、不会启动 Supervisor。save_draft 与 write_note 保持区分。",
+    "调用 get_capabilities、get_runtime_state、list_projects、run_preflight、discover_config、list_tree、read_note、list_backups、restore_fixture、inspect_windows_runtime、save_draft、load_draft、write_note、edit_note、move_note 与 delete_note。选择项目仅允许 bmdock-fixture。list_tree、read_note、list_backups、restore_fixture、save_draft、load_draft、write_note、edit_note、move_note 与 delete_note 每次都携带显式 workspace 与 project。Markdown 以纯文本预览，编辑器使用可聚焦的 labeled textarea，不执行 HTML。不会 raw callTool、不会写入用户 vault、不会启动 Supervisor。save_draft 与 write_note 保持区分。超时未知留在运行状态 DTO，不进入 IPC 错误联合体。同目标冲突不是 policy-for-path。",
   aboutProfiles:
     "release（c0bd87c6，21 个工具）与 main-preview（3452c821，27 个工具）保持隔离。本界面不把工具清单或 just contract 当作功能验收。",
   aboutCommands:

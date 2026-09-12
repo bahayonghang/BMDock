@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::backups::{self, BackupCatalogDto, BackupStore, RestoreResultDto};
+use crate::conflict::{self, ConflictCoordinator};
 use crate::drafts::{self, DraftResultDto, DraftStore};
 use crate::library::{
     self, NoteDeleteDto, NoteEditDto, NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto,
@@ -262,7 +263,7 @@ pub enum IpcCommand {
     DeleteNote(DeleteNoteArgs),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ErrorCategory {
     Policy,
@@ -397,6 +398,7 @@ pub fn dispatch_with_library(
     )
 }
 
+#[cfg(test)]
 pub fn dispatch_with_stores(
     command: IpcCommand,
     snapshot: RuntimeSnapshot,
@@ -404,6 +406,21 @@ pub fn dispatch_with_stores(
     library: &dyn NoteLibrary,
     backups: &dyn BackupStore,
     drafts: &dyn DraftStore,
+) -> Result<IpcResponse, IpcError> {
+    let conflicts = ConflictCoordinator::default();
+    dispatch_with_conflicts(
+        command, snapshot, route, library, backups, drafts, &conflicts,
+    )
+}
+
+pub fn dispatch_with_conflicts(
+    command: IpcCommand,
+    snapshot: RuntimeSnapshot,
+    route: &mut RouteState,
+    library: &dyn NoteLibrary,
+    backups: &dyn BackupStore,
+    drafts: &dyn DraftStore,
+    conflicts: &ConflictCoordinator,
 ) -> Result<IpcResponse, IpcError> {
     match command {
         IpcCommand::GetCapabilities(_) => Ok(IpcResponse::Capabilities(CapabilitiesDto {
@@ -480,33 +497,68 @@ pub fn dispatch_with_stores(
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
             library::reject_empty_title(&args.title)?;
-            Ok(IpcResponse::NoteWritten(library.write_note(
-                &args.identifier,
-                &args.title,
-                &args.body,
-            )?))
+            conflict::refuse_auto_retry(&snapshot);
+            match conflicts.try_acquire(conflict::identifier_keys(&args.identifier)) {
+                Err(_) => Ok(IpcResponse::NoteWritten(conflict::write_conflict(
+                    &args.identifier,
+                    &args.title,
+                    &args.body,
+                ))),
+                Ok(guard) => {
+                    let written = library.write_note(&args.identifier, &args.title, &args.body)?;
+                    drop(guard);
+                    Ok(IpcResponse::NoteWritten(written))
+                }
+            }
         }
         IpcCommand::EditNote(args) => {
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
-            Ok(IpcResponse::NoteEdited(
-                library.edit_note(&args.identifier, &args.body)?,
-            ))
+            conflict::refuse_auto_retry(&snapshot);
+            match conflicts.try_acquire(conflict::identifier_keys(&args.identifier)) {
+                Err(_) => Ok(IpcResponse::NoteEdited(conflict::edit_conflict(
+                    &args.identifier,
+                    &args.body,
+                ))),
+                Ok(guard) => {
+                    let edited = library.edit_note(&args.identifier, &args.body)?;
+                    drop(guard);
+                    Ok(IpcResponse::NoteEdited(edited))
+                }
+            }
         }
         IpcCommand::MoveNote(args) => {
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
             library::reject_filesystem_destination(&args.destination)?;
-            Ok(IpcResponse::NoteMoved(
-                library.move_note(&args.identifier, &args.destination)?,
-            ))
+            conflict::refuse_auto_retry(&snapshot);
+            match conflicts.try_acquire(conflict::move_keys(&args.identifier, &args.destination)) {
+                Err(_) => Ok(IpcResponse::NoteMoved(conflict::move_conflict(
+                    &args.identifier,
+                    &args.destination,
+                    "",
+                ))),
+                Ok(guard) => {
+                    let moved = library.move_note(&args.identifier, &args.destination)?;
+                    drop(guard);
+                    Ok(IpcResponse::NoteMoved(moved))
+                }
+            }
         }
         IpcCommand::DeleteNote(args) => {
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
-            Ok(IpcResponse::NoteDeleted(
-                library.delete_note(&args.identifier)?,
-            ))
+            conflict::refuse_auto_retry(&snapshot);
+            match conflicts.try_acquire(conflict::identifier_keys(&args.identifier)) {
+                Err(_) => Ok(IpcResponse::NoteDeleted(conflict::delete_conflict(
+                    &args.identifier,
+                ))),
+                Ok(guard) => {
+                    let deleted = library.delete_note(&args.identifier)?;
+                    drop(guard);
+                    Ok(IpcResponse::NoteDeleted(deleted))
+                }
+            }
         }
     }
 }
@@ -533,6 +585,8 @@ mod tests {
     use super::*;
     use crate::preflight::POLICY_NON_OWNED_PATH;
     use crate::supervisor::ConnectionState;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::{Arc, Barrier};
 
     #[test]
     fn capabilities_are_explicit_and_fail_closed() {
@@ -2387,9 +2441,10 @@ mod tests {
         assert_eq!(error.category, ErrorCategory::Unsupported);
         assert_eq!(error.message, library::UNSUPPORTED_MOVE_DESTINATION_EXISTS);
         assert!(
-            error.message.contains("UNVERIFIED"),
-            "sequential dest-exists must not claim T16 concurrent overwrite"
+            error.message.contains("not T16"),
+            "sequential dest-exists must not claim T16 same-target conflict"
         );
+        assert_ne!(error.category, ErrorCategory::Policy);
         assert!(dir.join("welcome.md").is_file());
         assert!(dir.join("renamed.md").is_file());
         let _ = std::fs::remove_dir_all(&dir);
@@ -2474,5 +2529,412 @@ mod tests {
             .unwrap()
             .get("expected_tools")
             .is_none());
+    }
+
+    struct CountingCrudLibrary {
+        writes: AtomicUsize,
+    }
+
+    impl NoteLibrary for CountingCrudLibrary {
+        fn list_tree(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            Ok(library::TreePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: false,
+            })
+        }
+
+        fn read_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            Err(library::LibraryError::unsupported(
+                library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
+            ))
+        }
+
+        fn write_note(
+            &self,
+            identifier: &str,
+            title: &str,
+            body: &str,
+        ) -> Result<library::NoteWriteDto, library::LibraryError> {
+            self.writes.fetch_add(1, Ordering::SeqCst);
+            Ok(library::NoteWriteDto {
+                identifier: identifier.to_owned(),
+                title: title.to_owned(),
+                body: body.to_owned(),
+                files_written: false,
+                engine_persisted: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                observation: library::NoteCrudObservationDto {
+                    classified_as: library::NoteCrudClass::AcceptedUnverified,
+                    disk_verified: false,
+                    envelope_is_not_disk_proof: true,
+                },
+            })
+        }
+    }
+
+    struct BlockingWriteLibrary {
+        inner: library::FixtureLibrary,
+        entered: Arc<Barrier>,
+        release: Arc<Barrier>,
+        writes: Arc<AtomicUsize>,
+    }
+
+    impl NoteLibrary for BlockingWriteLibrary {
+        fn list_tree(
+            &self,
+            cursor: Option<&str>,
+            page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            self.inner.list_tree(cursor, page_size)
+        }
+
+        fn read_note(
+            &self,
+            identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            self.inner.read_note(identifier)
+        }
+
+        fn write_note(
+            &self,
+            identifier: &str,
+            title: &str,
+            body: &str,
+        ) -> Result<library::NoteWriteDto, library::LibraryError> {
+            self.entered.wait();
+            self.release.wait();
+            self.writes.fetch_add(1, Ordering::SeqCst);
+            self.inner.write_note(identifier, title, body)
+        }
+    }
+
+    fn timeout_unknown_snapshot() -> RuntimeSnapshot {
+        RuntimeSnapshot {
+            state: ConnectionState::Stopped,
+            profile: Some(crate::supervisor::EngineProfile::MainPreview),
+            child_pid: Some(9),
+            failure: Some(FailureKind::TimeoutUnknown),
+            shutdown: Some(ShutdownReceipt {
+                transport_cancelled: false,
+                child_exited: false,
+                forced: true,
+                timeout_unknown: true,
+                exit_code: None,
+            }),
+        }
+    }
+
+    fn assert_ipc_error_excludes_timeout_unknown(category: ErrorCategory) {
+        match category {
+            ErrorCategory::Policy | ErrorCategory::Schema | ErrorCategory::Unsupported => {}
+        }
+    }
+
+    #[test]
+    fn ipc_error_union_excludes_timeout_unknown() {
+        for category in [
+            ErrorCategory::Policy,
+            ErrorCategory::Schema,
+            ErrorCategory::Unsupported,
+        ] {
+            assert_ipc_error_excludes_timeout_unknown(category);
+            let json = serde_json::to_value(&IpcError {
+                category,
+                message: "x".to_owned(),
+            })
+            .unwrap();
+            assert_ne!(json["category"], "timeout_unknown");
+            assert_ne!(json["category"], "transport");
+            assert_ne!(json["category"], "process");
+            assert_ne!(json["category"], "conflict");
+        }
+    }
+
+    #[test]
+    fn overlapping_same_target_write_is_conflict_not_disk_or_timeout() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t15-t16-ipc-overlap-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let entered = Arc::new(Barrier::new(2));
+        let release = Arc::new(Barrier::new(2));
+        let writes = Arc::new(AtomicUsize::new(0));
+        let library = BlockingWriteLibrary {
+            inner: library::FixtureLibrary::new(dir.clone()),
+            entered: Arc::clone(&entered),
+            release: Arc::clone(&release),
+            writes: Arc::clone(&writes),
+        };
+        let conflicts = ConflictCoordinator::default();
+        let body = chinese_note_body();
+        let (first, second) = std::thread::scope(|scope| {
+            let first = scope.spawn(|| {
+                let mut route = RouteState::default();
+                dispatch_with_conflicts(
+                    IpcCommand::WriteNote(fixture_write_args("welcome", "中文夹具笔记", body)),
+                    idle_snapshot(),
+                    &mut route,
+                    &library,
+                    &backups::EmptyBackupStore,
+                    &drafts::EmptyDraftStore,
+                    &conflicts,
+                )
+            });
+            entered.wait();
+            let mut route = RouteState::default();
+            let second = dispatch_with_conflicts(
+                IpcCommand::WriteNote(fixture_write_args(
+                    "welcome",
+                    "中文夹具笔记",
+                    "overlapping body\n",
+                )),
+                idle_snapshot(),
+                &mut route,
+                &library,
+                &backups::EmptyBackupStore,
+                &drafts::EmptyDraftStore,
+                &conflicts,
+            )
+            .unwrap();
+            release.wait();
+            (first.join().unwrap().unwrap(), second)
+        });
+        let IpcResponse::NoteWritten(first) = first else {
+            panic!("first overlapping writer must complete as note_written")
+        };
+        let IpcResponse::NoteWritten(second) = second else {
+            panic!("second overlapping writer must complete as note_written conflict")
+        };
+        assert_eq!(writes.load(Ordering::SeqCst), 1);
+        assert_eq!(
+            first.observation.classified_as,
+            library::NoteCrudClass::DiskVerified
+        );
+        assert_eq!(
+            second.observation.classified_as,
+            library::NoteCrudClass::Conflict
+        );
+        assert!(!second.observation.disk_verified);
+        assert!(!second.files_written);
+        assert!(!second.engine_persisted);
+        let json = serde_json::to_value(&IpcResponse::NoteWritten(second)).unwrap();
+        assert_eq!(json["kind"], "note_written");
+        assert_eq!(json["observation"]["classified_as"], "conflict");
+        assert_ne!(json["observation"]["classified_as"], "disk_verified");
+        assert_ne!(json["observation"]["classified_as"], "timeout_unknown");
+        assert_ne!(json["kind"], "error");
+        assert!(json.get("category").is_none());
+        assert_eq!(
+            std::fs::read_to_string(dir.join("welcome.md")).unwrap(),
+            body
+        );
+        assert!(conflict::OS_FILESYSTEM_RACE_UNVERIFIED.contains("UNVERIFIED"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn preheld_identifier_conflicts_across_crud_ops() {
+        let library = library::EnvelopeCrudLibrary;
+        let conflicts = ConflictCoordinator::default();
+        let guard = conflicts
+            .try_acquire(conflict::identifier_keys("welcome"))
+            .unwrap();
+        let mut route = RouteState::default();
+        let IpcResponse::NoteEdited(edited) = dispatch_with_conflicts(
+            IpcCommand::EditNote(fixture_edit_args("welcome", "body")),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+            &drafts::EmptyDraftStore,
+            &conflicts,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(
+            edited.observation.classified_as,
+            library::NoteCrudClass::Conflict
+        );
+        let IpcResponse::NoteDeleted(deleted) = dispatch_with_conflicts(
+            IpcCommand::DeleteNote(fixture_delete_args("welcome")),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+            &drafts::EmptyDraftStore,
+            &conflicts,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(
+            deleted.observation.classified_as,
+            library::NoteCrudClass::Conflict
+        );
+        let IpcResponse::NoteMoved(moved) = dispatch_with_conflicts(
+            IpcCommand::MoveNote(fixture_move_args("other", "welcome")),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+            &drafts::EmptyDraftStore,
+            &conflicts,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(
+            moved.observation.classified_as,
+            library::NoteCrudClass::Conflict
+        );
+        drop(guard);
+        let IpcResponse::NoteEdited(released) = dispatch_with_conflicts(
+            IpcCommand::EditNote(fixture_edit_args("welcome", "body")),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+            &drafts::EmptyDraftStore,
+            &conflicts,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(
+            released.observation.classified_as,
+            library::NoteCrudClass::AcceptedUnverified
+        );
+    }
+
+    #[test]
+    fn distinct_target_sequential_writes_are_not_same_target_atomicity() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t15-t16-distinct-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let library = library::FixtureLibrary::new(dir.clone());
+        let mut route = RouteState::default();
+        let IpcResponse::NoteWritten(first) = dispatch_with_library(
+            IpcCommand::WriteNote(fixture_write_args(
+                "welcome",
+                "中文夹具笔记",
+                chinese_note_body(),
+            )),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let IpcResponse::NoteWritten(second) = dispatch_with_library(
+            IpcCommand::WriteNote(fixture_write_args(
+                "other",
+                "另一篇",
+                "# 另一篇\n\n[[欢迎]]\n",
+            )),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(
+            first.observation.classified_as,
+            library::NoteCrudClass::DiskVerified
+        );
+        assert_eq!(
+            second.observation.classified_as,
+            library::NoteCrudClass::DiskVerified
+        );
+        assert_ne!(
+            first.observation.classified_as,
+            library::NoteCrudClass::Conflict
+        );
+        assert!(dir.join("welcome.md").is_file());
+        assert!(dir.join("other.md").is_file());
+        assert!(conflict::OS_FILESYSTEM_RACE_UNVERIFIED.contains("not an OS file lock"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn timeout_unknown_write_does_not_auto_retry() {
+        let library = CountingCrudLibrary {
+            writes: AtomicUsize::new(0),
+        };
+        let snapshot = timeout_unknown_snapshot();
+        let retried = std::sync::atomic::AtomicBool::new(false);
+        let invoked = conflict::auto_retry_non_idempotent_write(&snapshot, || {
+            retried.store(true, Ordering::SeqCst);
+        });
+        assert!(!invoked);
+        assert!(!retried.load(Ordering::SeqCst));
+        let mut route = RouteState::default();
+        let IpcResponse::NoteWritten(written) = dispatch_with_conflicts(
+            IpcCommand::WriteNote(fixture_write_args(
+                "welcome",
+                "中文夹具笔记",
+                chinese_note_body(),
+            )),
+            snapshot.clone(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+            &drafts::EmptyDraftStore,
+            &ConflictCoordinator::default(),
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(library.writes.load(Ordering::SeqCst), 1);
+        assert_eq!(
+            written.observation.classified_as,
+            library::NoteCrudClass::AcceptedUnverified
+        );
+        assert_ne!(
+            written.observation.classified_as,
+            library::NoteCrudClass::Conflict
+        );
+        let write_json = serde_json::to_value(&IpcResponse::NoteWritten(written)).unwrap();
+        assert_ne!(write_json["kind"], "error");
+        assert_ne!(
+            write_json["observation"]["classified_as"],
+            "timeout_unknown"
+        );
+        let IpcResponse::RuntimeState(state) =
+            dispatch_with_snapshot(IpcCommand::GetRuntimeState(EmptyArgs {}), snapshot).unwrap()
+        else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(state.failure, Some(FailureKind::TimeoutUnknown));
+        assert_eq!(
+            state
+                .shutdown
+                .as_ref()
+                .map(|receipt| receipt.timeout_unknown),
+            Some(true)
+        );
+        let json = serde_json::to_value(&IpcResponse::RuntimeState(state)).unwrap();
+        assert_eq!(json["failure"], "timeout_unknown");
+        assert_eq!(json["kind"], "runtime_state");
+        assert!(conflict::RECOVERY_NOT_T16.contains("UNVERIFIED"));
     }
 }
