@@ -1,0 +1,26 @@
+{
+  "task": "T05",
+  "title": "初始化代码骨架与真实依赖锁",
+  "status": "accepted_with_limits",
+  "date": "2026-09-12",
+  "acceptance": {
+    "AC49": {
+      "status": "local_build_passed_native_runtime_unverified",
+      "evidence": ["apps/bmdock-desktop/package.json", "apps/bmdock-desktop/package-lock.json", "apps/bmdock-desktop/src-tauri/Cargo.toml", "apps/bmdock-desktop/src-tauri/src/main.rs", "Cargo.lock", "npm run build", "cargo check --workspace --locked --offline", "npm run tauri:build"],
+      "claim": "A minimal Tauri 2 + React/TypeScript application and real npm/Cargo locks compile locally; native window interaction, WebView2 behavior and installer evidence remain UNVERIFIED."
+    },
+    "AC55": {
+      "status": "independent_entrypoints_preserved",
+      "evidence": ["justfile", "apps/bmdock-desktop/src-tauri/tauri.conf.json", "python -m scripts.tasks unit", "cargo test --workspace --locked --offline"],
+      "claim": "The desktop shell has explicit tauri-dev/tauri-build commands while P0 probe build and contract commands remain unchanged and independently addressable."
+    },
+    "AC60": {
+      "status": "documented",
+      "evidence": ["execution/status.json", "docs/VERIFICATION.md", "execution/evidence/t05-tauri-react-skeleton.json", ".trellis/tasks/09-12-t05-tauri-react-skeleton/design.md", ".trellis/tasks/09-12-t05-tauri-react-skeleton/implement.md"],
+      "claim": "T05 files, commands, lock provenance, acceptance mapping, limits and rollback scope are traceable."
+    }
+  },
+  "versions": {"tauri_crate": "2.11.5", "tauri_build": "2.6.3", "tauri_api": "2.11.1", "tauri_cli": "2.11.4", "react": "19.1.1", "vite": "7.1.7", "typescript": "5.9.2"},
+  "scope_limits": ["No typed IPC, Supervisor, note CRUD, real vault, installer, signing or production command is implemented.", "No native GUI interaction, hosted CI or cross-platform runtime result is inferred from local compilation.", "Generated node_modules, dist, Tauri gen schemas and target artifacts remain ignored/untracked."],
+  "rollback": "Remove apps/bmdock-desktop and its workspace/justfile/lockfile additions; preserve crates/bmdock-probe and just contract* semantics."
+}

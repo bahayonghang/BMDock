@@ -47,3 +47,10 @@ contract-main:
 # Strict product gate report: returns nonzero while any G0-G7 gate is unpassed.
 gate:
     from scripts.tasks import main; raise SystemExit(main(["gate"]))
+
+# T05 desktop shell development entrypoint; independent from the P0 probe.
+tauri-dev:
+    import subprocess; raise SystemExit(subprocess.call(["npm", "--prefix", "apps/bmdock-desktop", "run", "tauri:dev"]))
+
+tauri-build:
+    import subprocess; raise SystemExit(subprocess.call(["npm", "--prefix", "apps/bmdock-desktop", "run", "tauri:build"]))

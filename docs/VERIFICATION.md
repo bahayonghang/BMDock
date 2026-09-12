@@ -55,3 +55,11 @@ GitHub Actions：[CI run 34309026376](https://github.com/bahayonghang/BMDock/act
 **完整 G0 仍未通过。** MCP resources/prompts/API/CLI 注册清单不是全部功能验收。完整原文往返、真正并发编辑、取消/丢响应、磁盘故障、强杀与恢复、Windows junction/睡眠恢复仍待验证；没有 Tauri GUI 或原生桌面安装器。具体交接要求见 [G0_HANDOFF.md](G0_HANDOFF.md)。
 
 本批全部操作使用自动生成的 fixture，没有连接用户真实 Obsidian vault、全局 Basic Memory 配置或 Agent 配置。环境过滤不等于 OS 网络沙箱；正常退出后的文件观察也不构成跨 Agent 原子写入保证。`just gate` 返回非零是当前完整产品门禁的真实状态，不能通过跳过测试来消除。
+
+## T05：Tauri + React/TypeScript 桌面骨架
+
+T05 建立了 `apps/bmdock-desktop/` 的静态 React/Vite renderer、Tauri 2 Rust 启动入口和真实依赖锁文件。`bmdock-app` 仅创建默认窗口，不注册 typed IPC、raw `callTool`、文件系统或笔记命令；P0 的 `just build`、`just contract` 和 `just contract-main` 入口保持独立。显式桌面命令为 `just tauri-dev` 与 `just tauri-build`。
+
+本机 Windows 验证：`npm ci --ignore-scripts`、`npm run build`、`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`、`cargo check --workspace --locked --offline` 和 `npm run tauri:build` 均通过；后者生成 `target/release/bmdock-app.exe`。依赖锁是 Cargo/npm 解析产物，未提交 `node_modules/`、`dist/`、Tauri `gen/` 或其他构建目录。
+
+T05 证据与验收映射见 [t05-tauri-react-skeleton.json](../execution/evidence/t05-tauri-react-skeleton.json)。真实窗口交互、WebView2、安装器、签名、hosted CI、真实 vault 和产品 IPC 仍分别属于 T13、T36–T40 或后续任务；本任务不把静态构建当作这些证据。

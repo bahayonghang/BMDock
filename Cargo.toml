@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/bmdock-probe"]
+members = ["crates/bmdock-probe", "apps/bmdock-desktop/src-tauri"]
 resolver = "2"
 
 [workspace.package]

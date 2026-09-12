@@ -19,3 +19,11 @@ __pycache__/
 .claude/
 
 ref/
+
+# T05 frontend build outputs
+apps/bmdock-desktop/node_modules/
+apps/bmdock-desktop/dist/
+apps/bmdock-desktop/src-tauri/gen/
+apps/bmdock-desktop/*.tsbuildinfo
+apps/bmdock-desktop/vite.config.js
+apps/bmdock-desktop/vite.config.d.ts
