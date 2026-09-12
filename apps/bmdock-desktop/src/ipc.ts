@@ -90,6 +90,8 @@ export type IngestDocumentArgs = ExplicitRouteArgs & {
   source_id: string;
 };
 
+export type InspectCloudArgs = ExplicitRouteArgs;
+
 export type PreviewContextArgs = ExplicitRouteArgs & {
   identifier: string;
   query?: string;
@@ -156,6 +158,7 @@ export type IpcCommand =
   | { command: "inspect_api_audit"; args: InspectApiAuditArgs }
   | { command: "inspect_extras"; args: InspectExtrasArgs }
   | { command: "ingest_document"; args: IngestDocumentArgs }
+  | { command: "inspect_cloud"; args: InspectCloudArgs }
   | { command: "preview_context"; args: PreviewContextArgs }
   | { command: "list_activity"; args: ListActivityArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
@@ -188,6 +191,7 @@ export interface CapabilitiesDto {
   commands: IpcCommandName[];
   events: IpcEventName[];
   policy: PolicyDto;
+  cloud_allowed: false;
 }
 
 export interface RuntimeStateDto {
@@ -689,6 +693,27 @@ export interface IngestResultDto {
   scanned_user_basic_memory_home: false;
 }
 
+export interface CloudInspectionDto {
+  cloud_enabled: false;
+  remote_auth: false;
+  credentials_present: false;
+  cloud_allowed: false;
+  connected: false;
+  authenticated: false;
+  cloud_claimed: false;
+  local_offline: true;
+  live_official_cloud_session: false;
+  remote_hosts_contacted: false;
+  secrets_stored: false;
+  env_tokens_read: false;
+  mixed_profiles: false;
+  observation: NoteCrudObservationDto;
+  engine_cloud: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  files_written: false;
+}
+
 export type DraftClass = "empty" | "disk_verified" | "accepted_unverified" | "unclassified";
 
 export interface DraftObservationDto {
@@ -776,7 +801,7 @@ export interface WindowsRuntimeDto {
 }
 
 export type IpcResponse =
-  | { kind: "capabilities"; commands: IpcCommandName[]; events: IpcEventName[]; policy: PolicyDto }
+  | { kind: "capabilities" } & CapabilitiesDto
   | { kind: "runtime_state" } & RuntimeStateDto
   | { kind: "project_selected"; project: typeof FIXTURE_PROJECT }
   | { kind: "project_catalog" } & ProjectCatalogDto
@@ -798,6 +823,7 @@ export type IpcResponse =
   | { kind: "api_audit" } & ApiAuditDto
   | { kind: "extras_catalog" } & ExtrasCatalogDto
   | { kind: "document_ingested" } & IngestResultDto
+  | { kind: "cloud_inspection" } & CloudInspectionDto
   | { kind: "context_preview" } & ContextPreviewDto
   | { kind: "activity_page" } & ActivityPageDto
   | { kind: "backup_catalog" } & BackupCatalogDto
@@ -855,6 +881,7 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "inspect_api_audit":
     case "inspect_extras":
     case "ingest_document":
+    case "inspect_cloud":
     case "preview_context":
     case "list_activity":
     case "list_backups":
@@ -1173,6 +1200,17 @@ export const ingestDocument = (source_id: string) => {
       workspace: route.workspace,
       project: route.project,
       source_id,
+    },
+  });
+};
+
+export const inspectCloud = () => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "cloud_inspection" } & CloudInspectionDto>({
+    command: "inspect_cloud",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
     },
   });
 };

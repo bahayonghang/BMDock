@@ -1,0 +1,212 @@
+{
+  "task": "T31",
+  "title": "Cloud与远程授权连接",
+  "status": "accepted_with_limits",
+  "date": "2026-09-13",
+  "host_boundary": "T31 adds typed inspect_cloud with ExplicitRouteArgs. deny_unknown_fields. Extra path/root is schema. Missing route is schema. Non-fixture is policy and does not open the library. Cloud is FAIL-CLOSED local-only. Production default: cloud_enabled=false, remote_auth=false, credentials_present=false, cloud_allowed=false. Claiming connected/authenticated without a live official cloud session is unsupported. Capabilities advertise cloud_allowed=false. Tests inject FixtureLibrary {temp}/bmdock-t31-* that still reports cloud_enabled=false. A BMDock-owned fixture cloud-claimed flag is unsupported, not connected, and is not live cloud. Unauthorized remote / env token / stored secret / remote host / real vault is policy. Dual profiles stay isolated (21 vs 27). Do not mix profiles into the cloud DTO. T31 does not start Supervisor, add rmcp, spawn engine_worker, store secrets, read user tokens from env, contact remote hosts, or treat just contract as T31 proof. just build stays the G0 probe.",
+  "acceptance": {
+    "AC42": {
+      "status": "fail_closed_local_offline_no_implicit_cloud_route",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "inspect_cloud requires ExplicitRouteArgs. Extra path/root is schema. Missing route is schema. Non-fixture is policy and does not open the library. Production EmptyLibrary is local_offline=true, cloud_enabled=false, classified_as empty. Dual profiles stay isolated (21 vs 27). Cloud DTO does not carry expected_tools or mixed profile fields as success.",
+      "unverified": [
+        "official Basic Memory cloud",
+        "live official cloud session",
+        "native GUI session",
+        "real user vault"
+      ]
+    },
+    "AC45": {
+      "status": "no_cloud_remote_credential_or_real_vault_route_opened",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "apps/bmdock-desktop/src/shell.ts",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Capabilities advertise cloud_allowed=false. inspect_cloud does not store secrets, read user tokens from env, or contact remote hosts. User Obsidian vaults and global Basic Memory homes are not scanned. Production EmptyLibrary and fixture empty roots stay cloud_enabled=false.",
+      "unverified": [
+        "official cloud/remote auth",
+        "live credential store",
+        "native GUI session",
+        "hosted CI"
+      ]
+    },
+    "AC47": {
+      "status": "unauthorized_remote_is_policy_or_unsupported_not_success",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Unauthorized remote / env token / stored secret / remote host / real vault is policy, not success. Claiming connected/authenticated/cloud_enabled without a live official cloud session is unsupported. Fixture {temp}/bmdock-t31-* cloud-claimed flag is unsupported, not connected, and is not live cloud.",
+      "unverified": [
+        "live unauthorized remote against official cloud",
+        "native GUI unauthorized flow",
+        "real user credentials"
+      ]
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t31-cloud-remote-auth",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 179 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 25 passed"
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T31 cloud/remote-auth proof. Probe entries remain independent. Official cloud / remote auth remain UNVERIFIED."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window was launched. AC42/AC45/AC47 proof is typed fail-closed inspect_cloud, not a native GUI session."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_184_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_desktop_shell": "25_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "typed_command_count": 35,
+    "typed_inspect_cloud": "allowed",
+    "extra_path_root_is_schema": true,
+    "missing_route_is_schema": true,
+    "non_fixture_is_policy": true,
+    "cloud_enabled_default": false,
+    "remote_auth_default": false,
+    "credentials_present_default": false,
+    "cloud_allowed": false,
+    "connected_without_live_session_is_unsupported": true,
+    "fixture_cloud_claimed_is_unsupported_not_connected": true,
+    "unauthorized_remote_is_policy_or_unsupported": true,
+    "secrets_stored": false,
+    "env_tokens_read": false,
+    "remote_hosts_contacted": false,
+    "dangerouslySetInnerHTML": "absent",
+    "supervisor_started_by_t31": false,
+    "rmcp_live_client": "not_added_in_t31",
+    "official_cloud_remote_auth": "UNVERIFIED",
+    "live_official_cloud_session": "UNVERIFIED",
+    "native_gui_session": "UNVERIFIED",
+    "webview2_session": "UNVERIFIED",
+    "installer": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "real_vault": "UNVERIFIED"
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed_unchanged",
+    "T10": "completed_unchanged",
+    "T11": "completed_unchanged",
+    "T12": "completed_unchanged",
+    "T13": "completed_unchanged",
+    "T14": "completed_unchanged",
+    "T15": "completed_unchanged",
+    "T16": "completed_unchanged",
+    "T17": "completed_unchanged",
+    "T18": "completed_unchanged",
+    "T19": "completed_unchanged",
+    "T20": "completed_unchanged",
+    "T21": "completed_unchanged",
+    "T22": "completed_unchanged",
+    "T23": "completed_unchanged",
+    "T24": "completed_unchanged",
+    "T25": "completed_unchanged",
+    "T26": "completed_unchanged",
+    "T27": "completed_unchanged",
+    "T28": "completed_unchanged",
+    "T29": "completed_unchanged",
+    "T30": "completed_unchanged",
+    "T31": "completed"
+  },
+  "scope_limits": [
+    "inspect_cloud is FAIL-CLOSED local-only status. It is not a live official cloud session, remote auth, or credential store.",
+    "Production EmptyLibrary stays cloud_enabled=false, remote_auth=false, credentials_present=false, cloud_allowed=false, local_offline=true, classified_as empty.",
+    "Fixture {temp}/bmdock-t31-* still reports cloud_enabled=false. A BMDock-owned cloud-claimed flag is unsupported, not connected, and is not live cloud.",
+    "Unauthorized remote / env token / stored secret / remote host / real vault is policy. Claiming connected/authenticated without a live official cloud session is unsupported.",
+    "Official cloud / remote auth, native GUI, WebView2, installer, hosted CI, and real user vaults remain UNVERIFIED.",
+    "IPC error union stays policy/schema/unsupported. Dual profiles stay isolated (21 vs 27).",
+    "just build stays scripts.tasks build. just contract* stay probe. just tauri-dev/tauri-build stay desktop.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "T32-T40 were not implemented."
+  ],
+  "rollback": "Remove inspect_cloud from the ipc_invoke union, drop CloudPanel, restore the 34-command allowlist and CapabilitiesDto without cloud_allowed, and leave T30 extras ingest in place. Do not revert T05-T30 status to make unit green."
+}

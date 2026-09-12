@@ -44,6 +44,7 @@ import {
   type ExtrasCatalogDto,
   type ExtraEntryDto,
   type IngestResultDto,
+  type CloudInspectionDto,
   type AuditedApiLeafDto,
   type AuditedCliLeafDto,
   type AuditedIpcCommandDto,
@@ -77,7 +78,7 @@ import {
   type ShellLoadState,
 } from "./shell";
 
-const SECTIONS = ["workbench", "runtime", "projects", "preflight", "backups", "import", "extras", "about"] as const;
+const SECTIONS = ["workbench", "runtime", "projects", "preflight", "backups", "import", "extras", "cloud", "about"] as const;
 type SectionId = (typeof SECTIONS)[number];
 
 function sectionLabel(id: SectionId): string {
@@ -96,6 +97,8 @@ function sectionLabel(id: SectionId): string {
       return t("navImport");
     case "extras":
       return t("navExtras");
+    case "cloud":
+      return t("navCloud");
     case "about":
       return t("navAbout");
     default: {
@@ -206,6 +209,8 @@ function SectionBody({
       return <ImportPanel />;
     case "extras":
       return <ExtrasPanel />;
+    case "cloud":
+      return <CloudPanel />;
     case "about":
       return <AboutPanel />;
     default: {
@@ -407,6 +412,7 @@ function WorkbenchLibrary({
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
@@ -724,6 +730,7 @@ async function openNote(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
@@ -806,6 +813,7 @@ async function loadRelations(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setRelations(null);
         setRelationsError({ category: "schema", message: t("unexpectedRelations") });
@@ -921,6 +929,7 @@ async function loadGraph(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setGraph(null);
         setGraphError(unexpectedGraphResponse());
@@ -1003,6 +1012,7 @@ async function loadMoreGraph(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setGraphError(unexpectedGraphResponse());
         return;
@@ -1085,6 +1095,7 @@ async function loadMoreTree(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
@@ -1560,6 +1571,7 @@ async function runSearch(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setSearch(null);
         setSearchError(unexpectedSearchResponse());
@@ -1642,6 +1654,7 @@ async function loadMoreSearch(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setSearchError(unexpectedSearchResponse());
         return;
@@ -1848,6 +1861,7 @@ async function runInspectSearch(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setInspector(null);
         setInspectorError(unexpectedInspectorResponse());
@@ -2083,6 +2097,7 @@ async function runRecallBenchmark(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setRecall(null);
         setRecallError(unexpectedRecallResponse());
@@ -2308,6 +2323,7 @@ async function runSchemaValidate(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setSchema(null);
         setSchemaError(unexpectedSchemaResponse());
@@ -2543,6 +2559,7 @@ async function loadContextPreview(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setPreview(null);
         setPreviewError(unexpectedPreviewResponse());
@@ -2717,6 +2734,7 @@ async function loadActivity(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setActivity(null);
         setActivityError(unexpectedActivityResponse());
@@ -2798,6 +2816,7 @@ async function loadMoreActivity(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setActivityError(unexpectedActivityResponse());
         return;
@@ -2963,6 +2982,7 @@ async function loadResources(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setResources(null);
         setResourcesError(unexpectedResourceResponse());
@@ -3044,6 +3064,7 @@ async function loadMoreResources(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setResourcesError(unexpectedResourceResponse());
         return;
@@ -3210,6 +3231,7 @@ async function loadPrompts(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setPrompts(null);
         setPromptsError(unexpectedPromptResponse());
@@ -3291,6 +3313,7 @@ async function loadMorePrompts(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setPromptsError(unexpectedPromptResponse());
         return;
@@ -3459,6 +3482,7 @@ async function loadTools(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setTools(null);
         setToolsError(unexpectedToolsResponse());
@@ -3647,6 +3671,7 @@ async function loadCli(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setCli(null);
         setCliError(unexpectedCliResponse());
@@ -3730,6 +3755,7 @@ async function loadMoreCli(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setCliError(unexpectedCliResponse());
         return;
@@ -3936,6 +3962,7 @@ async function loadApiAudit(
       case "notes_imported":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setAudit(null);
         setAuditError(unexpectedAuditResponse());
@@ -4441,6 +4468,7 @@ async function applyCrudResponse(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
       setError(unexpectedCrudResponse());
       return;
@@ -4778,6 +4806,7 @@ async function persistDraft(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -4865,6 +4894,7 @@ async function reloadDraft(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -5055,6 +5085,7 @@ function ReadyRuntime({
         </li>
         <li>{t("policyNoPaths")}</li>
         <li>{t("policyNoCallTool")}</li>
+        <li>{t("policyNoCloud")}</li>
       </ul>
       <button
         type="button"
@@ -5213,6 +5244,7 @@ function ProjectPanel({
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
                   setSelectError({
                     category: "schema",
@@ -5573,6 +5605,7 @@ function ImportPanel() {
         case "api_audit":
         case "extras_catalog":
         case "document_ingested":
+        case "cloud_inspection":
         case "shutdown_begun":
           setError(unexpectedImportResponse());
           setResult(null);
@@ -5778,6 +5811,7 @@ function ExtrasPanel() {
         case "notes_imported":
         case "api_audit":
         case "document_ingested":
+        case "cloud_inspection":
         case "shutdown_begun":
           setError(unexpectedExtrasResponse());
           setCatalog(null);
@@ -5880,6 +5914,7 @@ function ExtrasPanel() {
         case "notes_imported":
         case "api_audit":
         case "extras_catalog":
+        case "cloud_inspection":
         case "shutdown_begun":
           setError(unexpectedExtrasResponse());
           setIngested(null);
@@ -5992,6 +6027,217 @@ function ExtrasPanel() {
   );
 }
 
+type CloudError = {
+  category: "policy" | "schema" | "unsupported" | "invoke";
+  message: string;
+};
+
+function unexpectedCloudResponse(): CloudError {
+  return { category: "schema", message: t("unexpectedCloud") };
+}
+
+function CloudPanel() {
+  const [phase, setPhase] = useState<"empty" | "ready" | "error">("empty");
+  const [report, setReport] = useState<CloudInspectionDto | null>(null);
+  const [error, setError] = useState<CloudError | null>(null);
+
+  const loadCloud = async () => {
+    const route = copyFixtureRoute();
+    try {
+      const response = await invokeTyped<IpcResponse>({
+        command: "inspect_cloud",
+        args: {
+          workspace: route.workspace,
+          project: route.project,
+        },
+      });
+      switch (response.kind) {
+        case "error":
+          setError({ category: response.category, message: response.message });
+          setReport(null);
+          setPhase("error");
+          return;
+        case "cloud_inspection":
+          if (
+            response.cloud_enabled ||
+            response.remote_auth ||
+            response.credentials_present ||
+            response.cloud_allowed ||
+            response.connected ||
+            response.authenticated ||
+            response.cloud_claimed ||
+            response.live_official_cloud_session ||
+            response.remote_hosts_contacted ||
+            response.secrets_stored ||
+            response.env_tokens_read ||
+            response.mixed_profiles ||
+            response.engine_cloud ||
+            response.scanned_user_obsidian_vault ||
+            response.files_written ||
+            !response.local_offline
+          ) {
+            setError(unexpectedCloudResponse());
+            setReport(null);
+            setPhase("error");
+            return;
+          }
+          setError(null);
+          setReport({
+            cloud_enabled: false,
+            remote_auth: false,
+            credentials_present: false,
+            cloud_allowed: false,
+            connected: false,
+            authenticated: false,
+            cloud_claimed: false,
+            local_offline: true,
+            live_official_cloud_session: false,
+            remote_hosts_contacted: false,
+            secrets_stored: false,
+            env_tokens_read: false,
+            mixed_profiles: false,
+            observation: response.observation,
+            engine_cloud: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            files_written: false,
+          });
+          setPhase("ready");
+          return;
+        case "capabilities":
+        case "runtime_state":
+        case "project_selected":
+        case "project_catalog":
+        case "preflight":
+        case "config_discovery":
+        case "tree_page":
+        case "note_read":
+        case "backup_catalog":
+        case "fixture_restored":
+        case "windows_runtime":
+        case "draft_saved":
+        case "draft_loaded":
+        case "note_written":
+        case "note_edited":
+        case "note_moved":
+        case "note_deleted":
+        case "relation_list":
+        case "graph_page":
+        case "search_page":
+        case "context_preview":
+        case "activity_page":
+        case "search_inspector":
+        case "recall_benchmark":
+        case "schema_validated":
+        case "resource_page":
+        case "prompt_page":
+        case "tool_inspection":
+        case "cli_inventory":
+        case "notes_imported":
+        case "api_audit":
+        case "extras_catalog":
+        case "document_ingested":
+        case "shutdown_begun":
+          setError(unexpectedCloudResponse());
+          setReport(null);
+          setPhase("error");
+          return;
+        default: {
+          const exhaustive: never = response;
+          return exhaustive;
+        }
+      }
+    } catch (cause) {
+      setError({
+        category: "invoke",
+        message: cause instanceof Error ? cause.message : String(cause),
+      });
+      setReport(null);
+      setPhase("error");
+    }
+  };
+
+  const empty = phase === "empty" && !error;
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error
+    ? t("cloudErrorTitle")
+    : empty
+      ? t("cloudEmptyTitle")
+      : t("cloudReadyTitle");
+  const unauthorized =
+    error?.category === "policy" || error?.category === "unsupported";
+
+  return (
+    <section
+      className="panel"
+      data-state={state}
+      aria-labelledby="cloud-title"
+      role={error ? "alert" : undefined}
+    >
+      <p className="state-badge">{badge}</p>
+      <h2 id="cloud-title">{heading}</h2>
+      <p>
+        {error
+          ? `${errorCategoryLabel(error.category)}：${error.message}`
+          : empty
+            ? t("cloudEmptyBody")
+            : t("cloudReadyBody")}
+      </p>
+      <p>{unauthorized ? t("cloudUnauthorized") : t("cloudNotConnected")}</p>
+      <ul className="policy-list">
+        <li>
+          {t("cloudEnabledLabel")}：{t("cloudEnabledFalse")}
+        </li>
+        <li>
+          {t("cloudRemoteAuthLabel")}：{t("cloudRemoteAuthFalse")}
+        </li>
+        <li>
+          {t("cloudCredentialsLabel")}：{t("cloudCredentialsFalse")}
+        </li>
+        <li>
+          {t("cloudAllowedLabel")}：{t("cloudAllowedFalse")}
+        </li>
+        <li>
+          {t("cloudConnectedLabel")}：{t("cloudNotConnected")}
+        </li>
+        <li>
+          {t("cloudAuthenticatedLabel")}：{t("cloudUnauthorized")}
+        </li>
+      </ul>
+      <button type="button" className="action" onClick={() => void loadCloud()}>
+        {t("cloudInspect")}
+      </button>
+      <ul className="policy-list">
+        <li>{t("cloudNoVault")}</li>
+        <li>{t("cloudNoSecrets")}</li>
+        <li>{t("cloudNoRemote")}</li>
+        <li>{t("cloudNotOfficial")}</li>
+        <li>
+          {t("cloudFilesWrittenLabel")}：
+          {report?.files_written ? t("cloudWroteFiles") : t("cloudNoWrite")}
+        </li>
+      </ul>
+      {report ? (
+        <ul className="cloud-list">
+          <li>
+            <span>{t("cloudLocalOfflineLabel")}</span>
+            <span>{report.local_offline ? t("cloudYes") : t("cloudNo")}</span>
+          </li>
+          <li>
+            <span>{t("cloudObservationLabel")}</span>
+            <span>
+              {report.observation.classified_as === "empty"
+                ? t("cloudObservationEmpty")
+                : t("cloudObservationUnverified")}
+            </span>
+          </li>
+        </ul>
+      ) : null}
+    </section>
+  );
+}
+
 type BackupError = {
   category: "policy" | "schema" | "unsupported" | "invoke";
   message: string;
@@ -6090,6 +6336,7 @@ function BackupPanel() {
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
             setError(unexpectedBackupResponse());
             setPhase("error");
@@ -6282,6 +6529,7 @@ async function restoreNamedFixture(
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
@@ -6449,6 +6697,7 @@ function WindowsRuntimeCard() {
       case "api_audit":
       case "extras_catalog":
       case "document_ingested":
+      case "cloud_inspection":
       case "shutdown_begun":
             setError(unexpectedWindowsResponse());
             setPhase("error");

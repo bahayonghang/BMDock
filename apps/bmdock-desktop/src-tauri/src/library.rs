@@ -128,6 +128,17 @@ pub const OFFICIAL_EXTRAS_UNVERIFIED: &str =
     "official Basic Memory extras / PDF/Office ingest remain UNVERIFIED";
 pub const UNSUPPORTED_EXTRAS_ENABLED_WITHOUT_DISK: &str =
     "extras_enabled=true without fixture extra files on disk is unsupported";
+pub const ENGINE_CLOUD_NOT_OWNED: &str =
+    "inspect_cloud is a BMDock-owned local-only status; it is not a live official cloud session, remote auth, or credential store";
+#[cfg(test)]
+pub const OFFICIAL_CLOUD_UNVERIFIED: &str =
+    "official Basic Memory cloud / remote auth remain UNVERIFIED";
+pub const UNSUPPORTED_CLOUD_CLAIMED_NOT_LIVE: &str =
+    "fixture cloud-claimed flag is unsupported, not connected; claiming connected/authenticated without a live official cloud session is unsupported";
+pub const POLICY_CLOUD_CREDENTIAL_ROUTE: &str =
+    "unauthorized remote, credential, env-token, or real-vault cloud routes are policy and are not opened";
+#[cfg(test)]
+pub const CLOUD_CLAIMED_FLAG: &str = "cloud-claimed";
 pub const CAPABILITY_SEMANTIC: &str = "semantic";
 pub const CAPABILITY_EXTRAS_INGEST: &str = "extras_ingest";
 pub const CAPABILITY_CLOUD: &str = "cloud";
@@ -180,6 +191,7 @@ pub const ALLOWLISTED_IPC_COMMANDS: &[&str] = &[
     "inspect_api_audit",
     "inspect_extras",
     "ingest_document",
+    "inspect_cloud",
     "preview_context",
     "list_activity",
     "list_backups",
@@ -1273,6 +1285,108 @@ pub fn accept_ingest_result(report: IngestResultDto) -> Result<IngestResultDto, 
     Ok(report)
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CloudInspectionDto {
+    pub cloud_enabled: bool,
+    pub remote_auth: bool,
+    pub credentials_present: bool,
+    pub cloud_allowed: bool,
+    pub connected: bool,
+    pub authenticated: bool,
+    pub cloud_claimed: bool,
+    pub local_offline: bool,
+    pub live_official_cloud_session: bool,
+    pub remote_hosts_contacted: bool,
+    pub secrets_stored: bool,
+    pub env_tokens_read: bool,
+    pub mixed_profiles: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_cloud: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub files_written: bool,
+}
+
+pub fn empty_cloud_inspection() -> CloudInspectionDto {
+    CloudInspectionDto {
+        cloud_enabled: false,
+        remote_auth: false,
+        credentials_present: false,
+        cloud_allowed: false,
+        connected: false,
+        authenticated: false,
+        cloud_claimed: false,
+        local_offline: true,
+        live_official_cloud_session: false,
+        remote_hosts_contacted: false,
+        secrets_stored: false,
+        env_tokens_read: false,
+        mixed_profiles: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_cloud: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        files_written: false,
+    }
+}
+
+pub fn accept_cloud_inspection(
+    report: CloudInspectionDto,
+) -> Result<CloudInspectionDto, LibraryError> {
+    if report.scanned_user_obsidian_vault
+        || report.scanned_user_basic_memory_home
+        || report.remote_hosts_contacted
+        || report.secrets_stored
+        || report.env_tokens_read
+    {
+        return Err(LibraryError::policy(POLICY_CLOUD_CREDENTIAL_ROUTE));
+    }
+    if report.engine_cloud {
+        return Err(LibraryError::unsupported(ENGINE_CLOUD_NOT_OWNED));
+    }
+    if report.mixed_profiles {
+        return Err(LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES));
+    }
+    if report.files_written
+        || report.cloud_enabled
+        || report.remote_auth
+        || report.credentials_present
+        || report.cloud_allowed
+        || report.connected
+        || report.authenticated
+        || report.live_official_cloud_session
+        || report.cloud_claimed
+    {
+        return Err(LibraryError::unsupported(
+            UNSUPPORTED_CLOUD_CLAIMED_NOT_LIVE,
+        ));
+    }
+    let mut report = report;
+    report.cloud_enabled = false;
+    report.remote_auth = false;
+    report.credentials_present = false;
+    report.cloud_allowed = false;
+    report.connected = false;
+    report.authenticated = false;
+    report.cloud_claimed = false;
+    report.local_offline = true;
+    report.live_official_cloud_session = false;
+    report.remote_hosts_contacted = false;
+    report.secrets_stored = false;
+    report.env_tokens_read = false;
+    report.mixed_profiles = false;
+    report.engine_cloud = false;
+    report.files_written = false;
+    report.observation.envelope_is_not_disk_proof = true;
+    report.observation.disk_verified = false;
+    report.observation.classified_as = NoteCrudClass::Empty;
+    Ok(report)
+}
+
 pub fn accept_import_result(report: ImportResultDto) -> Result<ImportResultDto, LibraryError> {
     if report.engine_import {
         return Err(LibraryError::unsupported(ENGINE_IMPORT_NOT_OWNED));
@@ -1765,6 +1879,10 @@ pub trait NoteLibrary: Send + Sync {
     fn ingest_document(&self, source_id: &str) -> Result<IngestResultDto, LibraryError> {
         reject_source_id(source_id)?;
         Ok(empty_ingest_result(source_id))
+    }
+
+    fn inspect_cloud(&self) -> Result<CloudInspectionDto, LibraryError> {
+        Ok(empty_cloud_inspection())
     }
 
     fn write_note(
@@ -2381,6 +2499,30 @@ impl FixtureLibrary {
         let path = self.extras_root.join(format!("{extra_id}.{kind}"));
         crate::content_safety::persist_exact_utf8(&path, body)
             .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        Ok(path)
+    }
+
+    fn require_cloud_root(&self) -> Result<(), LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        if !self.root.to_string_lossy().contains("bmdock-t31") {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        Ok(())
+    }
+
+    pub fn seed_cloud_claimed_flag(&self) -> Result<PathBuf, LibraryError> {
+        self.require_cloud_root()?;
+        fs::create_dir_all(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let path = self.root.join(CLOUD_CLAIMED_FLAG);
+        if library_root_is_forbidden(&path) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        crate::content_safety::persist_exact_utf8(
+            &path,
+            "fixture-cloud-claimed-not-live-official-session\n",
+        )
+        .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
         Ok(path)
     }
 
@@ -3192,6 +3334,25 @@ impl NoteLibrary for FixtureLibrary {
             scanned_user_obsidian_vault: false,
             scanned_user_basic_memory_home: false,
         })
+    }
+
+    fn inspect_cloud(&self) -> Result<CloudInspectionDto, LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        let flag = self.root.join(CLOUD_CLAIMED_FLAG);
+        if flag.is_symlink() {
+            return Err(LibraryError::policy(POLICY_CLOUD_CREDENTIAL_ROUTE));
+        }
+        if flag.is_file() {
+            if library_root_is_forbidden(&flag)
+                || !self.root.to_string_lossy().contains("bmdock-t31")
+            {
+                return Err(LibraryError::policy(POLICY_CLOUD_CREDENTIAL_ROUTE));
+            }
+            return Err(LibraryError::unsupported(
+                UNSUPPORTED_CLOUD_CLAIMED_NOT_LIVE,
+            ));
+        }
+        Ok(empty_cloud_inspection())
     }
 
     fn write_note(
@@ -4875,6 +5036,15 @@ mod tests {
             library.ingest_document("").unwrap_err(),
             LibraryError::schema(SCHEMA_SOURCE_ID)
         );
+        let cloud = library.inspect_cloud().unwrap();
+        assert!(!cloud.cloud_enabled);
+        assert!(!cloud.remote_auth);
+        assert!(!cloud.credentials_present);
+        assert!(!cloud.connected);
+        assert!(!cloud.authenticated);
+        assert!(cloud.local_offline);
+        assert!(!cloud.engine_cloud);
+        assert_eq!(cloud.observation.classified_as, NoteCrudClass::Empty);
         let _ = (
             ENGINE_GRAPH_NOT_OWNED,
             ENGINE_SEARCH_NOT_OWNED,
@@ -6399,6 +6569,66 @@ mod tests {
             ENGINE_EXTRAS_NOT_OWNED,
             OFFICIAL_EXTRAS_UNVERIFIED,
             UNSUPPORTED_EXTRAS_ENABLED_WITHOUT_DISK,
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn fixture_cloud_inspection_is_local_offline_and_claimed_flag_is_unsupported() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t31-{nanos}"));
+        fs::create_dir_all(&dir).unwrap();
+        let library = FixtureLibrary::new(dir.clone());
+        let report = library.inspect_cloud().unwrap();
+        assert!(!report.cloud_enabled);
+        assert!(!report.remote_auth);
+        assert!(!report.credentials_present);
+        assert!(!report.cloud_allowed);
+        assert!(!report.connected);
+        assert!(!report.authenticated);
+        assert!(!report.cloud_claimed);
+        assert!(report.local_offline);
+        assert!(!report.live_official_cloud_session);
+        assert!(!report.remote_hosts_contacted);
+        assert!(!report.secrets_stored);
+        assert!(!report.env_tokens_read);
+        assert!(!report.mixed_profiles);
+        assert!(!report.engine_cloud);
+        assert!(!report.files_written);
+        assert_eq!(report.observation.classified_as, NoteCrudClass::Empty);
+        let flag = library.seed_cloud_claimed_flag().unwrap();
+        assert!(flag.is_file());
+        let disk = fs::read_to_string(&flag).unwrap();
+        assert!(disk.contains("fixture-cloud-claimed-not-live"));
+        assert_eq!(
+            library.inspect_cloud().unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_CLOUD_CLAIMED_NOT_LIVE)
+        );
+        let claimed = CloudInspectionDto {
+            connected: true,
+            authenticated: true,
+            cloud_enabled: true,
+            ..empty_cloud_inspection()
+        };
+        assert_eq!(
+            accept_cloud_inspection(claimed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_CLOUD_CLAIMED_NOT_LIVE)
+        );
+        let credentials = CloudInspectionDto {
+            env_tokens_read: true,
+            ..empty_cloud_inspection()
+        };
+        assert_eq!(
+            accept_cloud_inspection(credentials).unwrap_err(),
+            LibraryError::policy(POLICY_CLOUD_CREDENTIAL_ROUTE)
+        );
+        let _ = (
+            ENGINE_CLOUD_NOT_OWNED,
+            OFFICIAL_CLOUD_UNVERIFIED,
+            UNSUPPORTED_CLOUD_CLAIMED_NOT_LIVE,
         );
         let _ = fs::remove_dir_all(&dir);
     }
