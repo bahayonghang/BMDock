@@ -194,3 +194,21 @@ renderer 在 zh-CN「运行状态」下增加「运行时」卡片（空态 / �
 本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t13-windows-runtime-prototype` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 70 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 7 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。`python -m unittest discover -s tests -v` 跑 67 项：66 ok，1 ERROR `test_repository_phase_order`（同一 `check_source`）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / WebView2 会话 / Job Object 分配 / 安装器 / Windows 恢复证据；这些仍为 `UNVERIFIED`。
 
 T13 证据与验收映射见 [t13-windows-runtime-prototype.json](../execution/evidence/t13-windows-runtime-prototype.json)。`execution/status.json` 仅将 T13 标为 `completed`；未改 T05–T12/G0。
+
+## T14：草稿持久化与编辑器会话
+
+T14 在现有 `ipc_invoke` 上增加 typed `save_draft` 与 `load_draft`。两条命令每次都必须携带 `ExplicitRouteArgs`（`workspace` + `project`）和 `identifier`；`save_draft` 另加 `body`。缺少字段或额外 `path`/`root` 为 schema。非 fixture 路由或看起来像用户 vault / `%APPDATA%` / `.basic-memory` 的 identifier 为 policy，且不打开草稿存储。capabilities 精确允许列为 13 个命令；未知 `call_tool` / `write_note` 仍失败。
+
+草稿是 BMDock 自有会话工件，不是第二套笔记索引，也不是官方引擎 `write_note`。生产默认 `EmptyDraftStore`：`load_draft` 为空会话（空态，不是用户 vault 成功）；`save_draft` 为 `unsupported`，文案为 `engine/draft store unavailable`（不是 `engine/library unavailable`）。测试注入 `FixtureDraftStore`，根目录为生成的自有 `{temp}/bmdock-t14-*`。
+
+AC10：测试在保存后观察物理草稿文件。夹具正文含中文与 wiki-link `[[欢迎]]`，往返后正文等于磁盘文件。`envelope_is_not_disk_proof=true`。信封 `"saved"` 分类为 `accepted_unverified`，不是磁盘证据。`files_written` 仅在自有草稿字节存在后为 true。未写入 `%APPDATA%`、用户 Obsidian 或全局 Basic Memory 配置。未调用 MCP `write_note`。
+
+AC09：编辑器会话可对同一标识保存并重新加载草稿。内存未保存、`disk_verified` 与 `engine_persisted` 分开；`engine_persisted` 保持 false。T15 CRUD 仍属后续任务。
+
+AC21 / AC57：zh-CN 工作台编辑器使用带 label 的 textarea，可键盘聚焦，区分空态 / 错误 / 就绪。无 `dangerouslySetInnerHTML`。不 start/stop Supervisor。完整 Windows 编辑器安全仍属 T18；帮助与无障碍完备性仍属 T39。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T14 证明。未启用 `bundle.active`。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t14-draft-persistence-editor-session` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 82 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 8 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。`python -m unittest discover -s tests -v` 跑 68 项：67 ok，1 ERROR `test_repository_phase_order`（同一 `check_source`）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方引擎持久化 / hosted CI 证据；这些仍为 `UNVERIFIED`。
+
+T14 证据与验收映射见 [t14-draft-persistence-editor-session.json](../execution/evidence/t14-draft-persistence-editor-session.json)。`execution/status.json` 仅将 T14 标为 `completed`；未改 T05–T13/G0。

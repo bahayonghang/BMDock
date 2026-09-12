@@ -5,11 +5,13 @@ This contract describes the T06 Tauri command boundary, the T07
 `run_preflight` / `discover_config` commands, the T10 explicit
 project/workspace route, the T11 paginated `list_tree` /
 `read_note` commands, the T12 `list_backups` /
-`restore_fixture` baseline, and the T13
-`inspect_windows_runtime` Windows host prototype. It applies to
+`restore_fixture` baseline, the T13
+`inspect_windows_runtime` Windows host prototype, and the T14
+`save_draft` / `load_draft` editor session. It applies to
 `apps/bmdock-desktop/src-tauri/src/ipc.rs`,
 `apps/bmdock-desktop/src-tauri/src/library.rs`,
 `apps/bmdock-desktop/src-tauri/src/backups.rs`,
+`apps/bmdock-desktop/src-tauri/src/drafts.rs`,
 `apps/bmdock-desktop/src-tauri/src/preflight.rs`,
 `apps/bmdock-desktop/src-tauri/src/routing.rs`,
 `apps/bmdock-desktop/src-tauri/src/windows_runtime.rs`, and
@@ -26,19 +28,23 @@ interfaces remain separate. Lifecycle ownership lives in
   BMDock-owned project/workspace listing with explicit routing,
   T11 paginated fixture-backed tree listing plus note read,
   T12 BMDock-owned generated backup listing plus fixture restore,
-  and T13 Windows host runtime prototype observation.
+  T13 Windows host runtime prototype observation, and T14
+  BMDock-owned draft persistence plus editor session.
 - The boundary does not start or stop the Supervisor, call the official
   engine over rmcp, access a user vault, expose note write/edit/move/delete,
-  or expose raw `callTool`.
+  or expose raw `callTool`. T14 drafts are BMDock-owned session artifacts,
+  not a second note index and not official engine `write_note`.
 - T09 preflight and discovery inspect BMDock-owned in-repo or explicitly
   generated fixture paths only. T10 lists only generated BMDock-owned
   workspace/project records. T07 remains the owner of start/stop.
-- T11 `list_tree` and `read_note` and T12 `list_backups` /
-  `restore_fixture` must carry an explicit `ExplicitRouteArgs`
-  (`workspace` + `project`) on every call and must not inherit an implicit
-  current project. T15 CRUD remains out of scope. T12 restores generated
-  markdown into a generated owned target only; it is not user-vault
-  restore and not T17/T37/T38 recovery.
+- T11 `list_tree` and `read_note`, T12 `list_backups` /
+  `restore_fixture`, and T14 `save_draft` / `load_draft` must carry an
+  explicit `ExplicitRouteArgs` (`workspace` + `project`) on every call and
+  must not inherit an implicit current project. T15 CRUD remains out of
+  scope. T12 restores generated markdown into a generated owned target
+  only; it is not user-vault restore and not T17/T37/T38 recovery.
+  T14 writes generated draft bytes into a generated owned temp root
+  `{temp}/bmdock-t14-*/` in tests only.
 - T13 `inspect_windows_runtime` takes `EmptyArgs`. It observes host OS,
   well-known WebView2 install-dir/loader files, Job Object API documentation,
   and `tauri.conf.json` `bundle.active`. It does not launch a WebView2/Tauri
@@ -72,6 +78,8 @@ read_note: { workspace, project, identifier }
 list_backups: { workspace, project }
 restore_fixture: { workspace, project, backup_id }
 inspect_windows_runtime: {}
+save_draft: { workspace, project, identifier, body }
+load_draft: { workspace, project, identifier }
 ```
 
 The renderer uses the matching `IpcCommand` union through:
@@ -98,13 +106,15 @@ T11 `list_tree` and `read_note` consume this struct on every call. `read_note`
 uses a note identifier/permalink/title field, not a user-vault filesystem
 `path`. T12 `list_backups` consumes this struct on every call.
 `restore_fixture` adds a generated `backup_id` (not a filesystem `path` or
-`root`). Extra `path` / `root` fields fail closed as `schema`.
+`root`). T14 `save_draft` and `load_draft` consume this struct on every call
+plus a draft `identifier` (permalink, not a filesystem `path`) and, for
+save, a `body`. Extra `path` / `root` fields fail closed as `schema`.
 
 ## 3. Contracts
 
 ### Request and response fields
 
-- `get_capabilities` returns `kind: "capabilities"`, the eleven command names,
+- `get_capabilities` returns `kind: "capabilities"`, the thirteen command names,
   the two event names, and a policy DTO.
 - `get_runtime_state` returns `kind: "runtime_state"` projected from the
   managed `Supervisor` snapshot plus T10 `RouteState`:
@@ -212,6 +222,28 @@ uses a note identifier/permalink/title field, not a user-vault filesystem
   - Job Object API/docs ≠ Job Object assigned
   - `just contract` ≠ Windows runtime
   - T12 fixture restore ≠ Windows recovery
+- `save_draft` returns `kind: "draft_saved"` with `identifier`, `body`,
+  `files_written`, `engine_persisted=false`, vault-scan flags false, and an
+  observation DTO. Args are `ExplicitRouteArgs` plus `identifier` and
+  `body`. Drafts are BMDock-owned session artifacts, not official engine
+  writes and not a second note index. Tests must observe physical draft
+  files after save (exact body roundtrip, including Chinese text and
+  wiki-link `[[欢迎]]`). Envelope `"saved"` is not disk proof
+  (`envelope_is_not_disk_proof=true`). Classify `disk_verified` vs
+  `accepted_unverified`. `files_written` is true only after owned draft
+  bytes exist. Do not write into `%APPDATA%`, user Obsidian, or global
+  Basic Memory config. Do not call MCP `write_note`. Production default
+  `EmptyDraftStore` save is `unsupported` with
+  `"engine/draft store unavailable"` (not `"engine/library unavailable"`).
+  Tests inject `FixtureDraftStore` over a generated owned temp root
+  `{temp}/bmdock-t14-*/`.
+- `load_draft` returns `kind: "draft_loaded"` with the same DTO. Args are
+  `ExplicitRouteArgs` plus `identifier`. An empty session (`body=""`,
+  `classified_as: empty`, `files_written=false`, `engine_persisted=false`)
+  is empty state, not a user-vault success. The editor session can save and
+  reload the same identifier. Renderer dirty/in-memory is distinct from
+  `disk_verified` and from `engine_persisted` (which must stay false).
+  T15 CRUD remains out of scope.
 - Error responses use `kind: "error"` and `category` in `policy`, `schema`, or
   `unsupported`, plus a human-readable `message`. Do not add `timeout_unknown`,
   `transport`, or `process` to this IPC error union; those belong on the
@@ -230,10 +262,12 @@ The capability policy must report:
 ```
 
 `SelectProjectArgs`, `ExplicitRouteArgs`, `ListTreeArgs`, `ReadNoteArgs`,
-`RestoreFixtureArgs`, and `EmptyArgs` use `#[serde(deny_unknown_fields)]`.
+`RestoreFixtureArgs`, `SaveDraftArgs`, `LoadDraftArgs`, and `EmptyArgs`
+use `#[serde(deny_unknown_fields)]`.
 There is no path field on `list_projects` / `run_preflight` /
 `discover_config` / `list_tree` / `read_note` / `list_backups` /
-`restore_fixture` / `inspect_windows_runtime` and no raw `callTool`, search, or note write DTO or
+`restore_fixture` / `inspect_windows_runtime` / `save_draft` /
+`load_draft` and no raw `callTool`, search, or note write DTO or
 handler. The renderer must not send arbitrary project paths or forward a
 tool name and arguments through this boundary.
 
@@ -251,13 +285,16 @@ can install a fixture-backed store without starting rmcp or mixing engine
 profiles. Production default is `EmptyLibrary`. T12 injects a
 `BackupStore` trait so tests can install a fixture-backed backup snapshot
 and owned restore target without starting rmcp. Production default is
-`EmptyBackupStore`. T07 may expose Supervisor
-snapshot fields, but it still does not start the engine from the renderer.
-T09 reports readiness from that snapshot without taking lifecycle ownership.
-T10 `RouteState` records the explicit fixture selection for projection only;
-T11 reads and T12 backup/restore still send `ExplicitRouteArgs` and must
-not use the stored route as an implicit target. T13 inspects the Windows
-host prototype without taking Supervisor start/stop ownership.
+`EmptyBackupStore`. T14 injects a `DraftStore` trait so tests can install
+a fixture-backed owned draft root without starting rmcp or calling
+`write_note`. Production default is `EmptyDraftStore`. T07 may expose
+Supervisor snapshot fields, but it still does not start the engine from
+the renderer. T09 reports readiness from that snapshot without taking
+lifecycle ownership. T10 `RouteState` records the explicit fixture selection
+for projection only; T11 reads, T12 backup/restore, and T14 drafts still
+send `ExplicitRouteArgs` and must not use the stored route as an implicit
+target. T13 inspects the Windows host prototype without taking Supervisor
+start/stop ownership. T14 editor session does not start or stop Supervisor.
 
 ## 4. Validation & Error Matrix
 
@@ -266,7 +303,7 @@ host prototype without taking Supervisor start/stop ownership.
 | Known command with its exact DTO | Dispatch the typed response | — |
 | Unknown `command`, including `call_tool`, `search_notes`, `write_note` | Serde deserialization fails closed | `schema` at the boundary |
 | Extra field in `args` | `deny_unknown_fields` rejects the DTO | `schema` |
-| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_backups`, `restore_fixture`, or `inspect_windows_runtime` | `deny_unknown_fields` rejects the DTO | `schema` |
+| Extra `path` / `root` on `list_projects`, `run_preflight`, `discover_config`, `list_tree`, `read_note`, `list_backups`, `restore_fixture`, `inspect_windows_runtime`, `save_draft`, or `load_draft` | `deny_unknown_fields` rejects the DTO | `schema` |
 | Extra top-level field such as `path` beside `command`/`args` | `deny_unknown_fields` on `IpcCommand` | `schema` |
 | `select_project` for any value other than `bmdock-fixture` | Dispatcher rejects without filesystem access | `policy` |
 | `ExplicitRouteArgs` missing `project`/`workspace` or carrying an extra `path` | `deny_unknown_fields` rejects the DTO | `schema` |
@@ -275,12 +312,16 @@ host prototype without taking Supervisor start/stop ownership.
 | `list_tree` invalid cursor, empty cursor, or next-cursor loop | Reject; do not return a partial page | `schema` |
 | Truncated or partial tree inventory | Reject; `truncated=true` is not a success | `unsupported` |
 | `read_note` identifier that looks like a user vault filesystem path | Reject without opening the path | `policy` |
+| `save_draft` / `load_draft` identifier that looks like a user vault filesystem path | Reject without opening the draft store | `policy` |
 | `restore_fixture` `backup_id` that looks like a user vault / `%APPDATA%` / `.basic-memory` path | Reject without opening the backup store | `policy` |
 | Inspect an arbitrary user path or real vault | Reject without opening the path | `policy` |
 | Empty library `list_tree` | Empty `entries`, `next_cursor=null`, `truncated=false` | empty state |
 | Empty library `read_note` | Engine/library unavailable | `unsupported` |
 | Empty backup store `list_backups` | Empty `backups[]`, `files_written=false` | empty state |
 | Empty backup store `restore_fixture` | Engine/backup store unavailable | `unsupported` |
+| Empty draft store `load_draft` | Empty session, `files_written=false`, `engine_persisted=false` | empty state |
+| Empty draft store `save_draft` | Engine/draft store unavailable | `unsupported` |
+| Save draft into `%APPDATA%`, user Obsidian, or global Basic Memory config | Reject without writing | `policy` |
 | Restore into `%APPDATA%`, user Obsidian, or global Basic Memory config | Reject without writing | `policy` |
 | Arbitrary path or raw `callTool` payload | No DTO/handler exists; never forward it | `schema` |
 | Cross-project search or implicit current-project write | Keep it absent; catalog flags stay false | `unsupported` |
@@ -332,6 +373,15 @@ host prototype without taking Supervisor start/stop ownership.
   interacted with and a Job Object was created and assigned. Compiled exe,
   npm build, cargo test, `just contract`, and T12 fixture restore are not
   those proofs.
+- Base: invoke `load_draft` with explicit fixture route and no installed
+  draft store; receive an empty session (`body=""`, `files_written=false`,
+  `engine_persisted=false`). That empty session is not a user-vault success.
+- Good: install a generated owned draft root `{temp}/bmdock-t14-*`, save
+  a draft whose body includes Chinese text and `[[欢迎]]`, observe the
+  physical file, then load the same identifier and round-trip the body.
+  Classify `disk_verified` with `files_written=true`. Envelope-only
+  `"saved"` is `accepted_unverified` and not disk proof. `engine_persisted`
+  stays false.
 - Bad: send `{"command":"select_project","args":{"project":"bmdock-fixture","path":"C:\\vault"}}`; deserialization fails because the extra path is denied.
 - Bad: send `{"command":"list_projects","args":{"path":"C:\\vault"}}` or
   `{"command":"list_projects","args":{"root":"/home/user/.basic-memory"}}`;
@@ -350,6 +400,10 @@ host prototype without taking Supervisor start/stop ownership.
 - Bad: send `{"command":"inspect_windows_runtime","args":{"path":"C:\\vault"}}` or
   `{"command":"inspect_windows_runtime","args":{"root":"/home/user/.basic-memory"}}`;
   extra fields fail closed.
+- Bad: send `{"command":"save_draft","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","body":"x","path":"C:\\vault"}}`
+  or `load_draft` with an extra `path` / `root`; extra fields fail closed.
+- Bad: send `{"command":"save_draft","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"%APPDATA%\\\\Obsidian\\\\note.md","body":"x"}}`;
+  policy rejects the filesystem identifier without opening the store.
 - Bad: send `{"command":"call_tool","args":{"name":"read_note"}}` or
   `{"command":"search_notes","args":{"query":"..."}}` or
   `{"command":"write_note","args":{"project":"bmdock-fixture"}}`;
@@ -357,20 +411,23 @@ host prototype without taking Supervisor start/stop ownership.
 
 ## 6. Tests Required
 
-- Rust unit test: capability response lists exactly eleven commands and two
+- Rust unit test: capability response lists exactly thirteen commands and two
   events, and both arbitrary-path and raw-callTool policy flags are false.
-  `list_tree`, `read_note`, `list_backups`, `restore_fixture`, and
-  `inspect_windows_runtime` are
+  `list_tree`, `read_note`, `list_backups`, `restore_fixture`,
+  `inspect_windows_runtime`, `save_draft`, and `load_draft` are
   present; `call_tool`, `search_notes`, and `write_note` are absent.
 - Rust unit test: a non-fixture project returns `ErrorCategory::Policy`.
 - Rust unit test: unknown command including `call_tool`, extra project path,
   extra runtime-state path, extra `list_projects` path/root, extra preflight
   path, extra discovery path/root,   extra `list_tree` path, extra `read_note` path, extra `list_backups`
-  path/root, extra `restore_fixture` path, and extra
-  `inspect_windows_runtime` path/root all fail
+  path/root, extra `restore_fixture` path, extra
+  `inspect_windows_runtime` path/root, extra `save_draft` path/root, and extra
+  `load_draft` path/root all fail
   `serde_json::from_str::<IpcCommand>`. Incomplete
-  `read_note` args (missing workspace/identifier) and incomplete
-  `restore_fixture` args (missing backup_id) also fail closed.
+  `read_note` args (missing workspace/identifier), incomplete
+  `restore_fixture` args (missing backup_id), incomplete `save_draft`
+  args (missing body), and incomplete `load_draft` args (missing
+  identifier) also fail closed.
 - Rust unit test: a connected snapshot projects `status`/`profile` and keeps
   `project` null until fixture select; after select, `project` is
   `bmdock-fixture` without writing files or starting Supervisor. A stopped
@@ -381,7 +438,8 @@ host prototype without taking Supervisor start/stop ownership.
   `implicit_current_project_writes` false.   `ExplicitRouteArgs` requires both
   fields, rejects extra paths as schema, and rejects non-fixture routes as
   policy. Non-fixture `list_tree` / `read_note` / `list_backups` /
-  `restore_fixture` must not open the library or backup store.
+  `restore_fixture` / `save_draft` / `load_draft` must not open the library,
+  backup store, or draft store.
 - Rust unit test: `run_preflight` does not spawn, does not write, and leaves
   a `not_started` snapshot unchanged. A connected or stopped snapshot reports
   `engine_spawned` from lifecycle and `files_written: false` without
@@ -405,7 +463,7 @@ host prototype without taking Supervisor start/stop ownership.
   store. Empty-store restore is `unsupported`. Forced-kill, Job Object,
   sleep-resume, and disk-failure stay UNVERIFIED.
 - Rust unit test: `inspect_windows_runtime` uses `EmptyArgs`, does not spawn,
-  does not write, does not open the library or backup store, and does not
+  does not write, does not open the library, backup store, or draft store, and does not
   start Supervisor. The DTO separates observed facts from UNVERIFIED
   claims. `webview2_session_verified` and `job_object_assigned` stay false
   unless proven. `installer_bundle_active` matches committed
@@ -416,10 +474,20 @@ host prototype without taking Supervisor start/stop ownership.
   Dual profiles stay isolated (21 vs 27, distinct commits). On Windows,
   `webview2_files_present` may follow a real well-known install-dir
   observation; that still does not verify a session.
+- Rust unit test: `save_draft` / `load_draft` require `ExplicitRouteArgs`.
+  Extra `path` / `root` fail closed as `schema`. Non-fixture routes and
+  filesystem identifiers are `policy` and do not open the store. Empty
+  store load is empty session, not a user-vault success; empty-store save
+  is `unsupported` with `"engine/draft store unavailable"`. Fixture store
+  save writes `{temp}/bmdock-t14-*/welcome.md`; tests observe the physical
+  body including Chinese text and `[[欢迎]]`, then reload the same
+  identifier. `classified_as=disk_verified`, `files_written=true`,
+  `engine_persisted=false`. Envelope-only `"saved"` is
+  `accepted_unverified`. Dual profiles stay isolated. T15 CRUD stays absent.
 - TypeScript `RuntimeStateDto` / `FailureKind` / `ShutdownReceipt` /
   `PreflightDto` / `ConfigDiscoveryDto` / `ProjectCatalogDto` /
   `TreePageDto` / `NoteReadDto` / `BackupCatalogDto` / `RestoreResultDto` /
-  `WindowsRuntimeDto`
+  `WindowsRuntimeDto` / `DraftResultDto`
   stay aligned with that JSON shape through
   `npm run build`.
 - Validation checks: `task.py validate`, `cargo fmt --all -- --check`,
@@ -436,6 +504,7 @@ invoke("select_project", { project: userSuppliedPath });
 invoke("list_projects", { root: userHomeBasicMemory });
 invoke("search_notes", { query: "all projects" });
 invoke("write_note", { title: "x" }); // implicit current project
+invoke("save_draft", { path: userVaultFile });
 invoke("read_note", { path: userVaultFile });
 invoke("restore_fixture", { path: userAppData });
 ```
@@ -474,22 +543,39 @@ await invokeTyped({
   },
 });
 await inspectWindowsRuntime();
+await invokeTyped({
+  command: "save_draft",
+  args: {
+    workspace: route.workspace,
+    project: route.project,
+    identifier,
+    body,
+  },
+});
+await invokeTyped({
+  command: "load_draft",
+  args: { workspace: route.workspace, project: route.project, identifier },
+});
 await listenTyped("runtime_state", (state) => renderState(state));
 ```
 
 These calls use the shared DTOs and the explicit fixture/event allowlist.
 `list_projects`, `run_preflight`, and `discover_config` take empty args.
 `select_project` remains fixture-only. `list_tree`, `read_note`,
-`list_backups`, and `restore_fixture` copy `ExplicitRouteArgs` on every
-call and must not treat `runtime.project` as an implicit target.
+`list_backups`, `restore_fixture`, `save_draft`, and `load_draft` copy
+`ExplicitRouteArgs` on every call and must not treat `runtime.project` as
+an implicit target.
 `restore_fixture` restores generated markdown into a generated owned
-target; it does not restore a user vault. Preflight reports
+target; it does not restore a user vault. `save_draft` / `load_draft`
+persist BMDock-owned session drafts, not official engine notes.
+Preflight reports
 `supervisor_status` and `engine_spawned` from the snapshot without taking
 start/stop ownership; listing backups does not set `files_written`.
 `inspect_windows_runtime` takes empty args, does not start Supervisor, and
 must not treat compiled binaries, WebView2 files, Job Object docs,
 `just contract`, or T12 fixture restore as native GUI / session /
 assignment / installer / recovery proof.
+T14 does not start Supervisor and does not call `write_note`.
 
 ### Wrong
 

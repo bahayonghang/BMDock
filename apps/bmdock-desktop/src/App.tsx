@@ -18,6 +18,7 @@ import {
   type RuntimeStateDto,
   type TreeEntryDto,
   type WindowsRuntimeDto,
+  type DraftResultDto,
 } from "./ipc";
 import { t } from "./i18n";
 import {
@@ -262,6 +263,8 @@ function WorkbenchLibrary({ onRefresh }: { onRefresh: () => void }) {
           case "backup_catalog":
           case "fixture_restored":
           case "windows_runtime":
+          case "draft_saved":
+          case "draft_loaded":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
             return;
@@ -364,6 +367,7 @@ function WorkbenchLibrary({ onRefresh }: { onRefresh: () => void }) {
         </button>
       ) : null}
       <NotePreview note={note} />
+      <DraftEditor seedIdentifier={note?.identifier ?? null} seedBody={note?.body ?? null} />
       {refresh}
     </section>
   );
@@ -409,6 +413,8 @@ async function openNote(
       case "backup_catalog":
       case "fixture_restored":
       case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
         return;
@@ -470,6 +476,8 @@ async function loadMoreTree(
       case "backup_catalog":
       case "fixture_restored":
       case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
         return;
@@ -525,6 +533,268 @@ function NotePreview({ note }: { note: NoteReadDto | null }) {
       <pre className="note-body">{note.body}</pre>
     </section>
   );
+}
+
+function unexpectedDraftResponse(): WorkbenchError {
+  return { category: "schema", message: t("unexpectedDraft") };
+}
+
+function draftObservationLabel(result: DraftResultDto): string {
+  switch (result.observation.classified_as) {
+    case "disk_verified":
+      return t("draftObservationDisk");
+    case "accepted_unverified":
+      return t("draftObservationUnverified");
+    case "empty":
+      return t("draftObservationEmpty");
+    case "unclassified":
+      return t("draftObservationUnclassified");
+    default: {
+      const exhaustive: never = result.observation.classified_as;
+      return exhaustive;
+    }
+  }
+}
+
+function sessionPersistenceLabel(dirty: boolean, result: DraftResultDto | null): string {
+  if (dirty) {
+    return t("draftSessionDirty");
+  }
+  if (result?.observation.disk_verified) {
+    return t("draftSessionDisk");
+  }
+  return t("draftSessionEmpty");
+}
+
+function DraftEditor({
+  seedIdentifier,
+  seedBody,
+}: {
+  seedIdentifier: string | null;
+  seedBody: string | null;
+}) {
+  const [identifier, setIdentifier] = useState("");
+  const [body, setBody] = useState("");
+  const [diskBody, setDiskBody] = useState<string | null>(null);
+  const [result, setResult] = useState<DraftResultDto | null>(null);
+  const [error, setError] = useState<WorkbenchError | null>(null);
+
+  useEffect(() => {
+    if (!seedIdentifier) {
+      return;
+    }
+    setIdentifier(seedIdentifier);
+    setBody(seedBody ?? "");
+    setDiskBody(null);
+    setResult(null);
+    setError(null);
+  }, [seedIdentifier, seedBody]);
+
+  const dirty = diskBody === null || body !== diskBody;
+  const empty = identifier.trim() === "" && body === "" && result === null && error === null;
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const title = error ? t("draftErrorTitle") : empty ? t("draftEmptyTitle") : t("draftReadyTitle");
+
+  return (
+    <section className="subpanel" data-state={state} aria-labelledby="draft-editor-title" role={error ? "alert" : undefined}>
+      <p className="state-badge">{badge}</p>
+      <h3 id="draft-editor-title">{title}</h3>
+      <p>{error ? `${errorCategoryLabel(error.category)}：${error.message}` : empty ? t("draftEmptyBody") : t("draftReadyBody")}</p>
+      <div className="draft-editor">
+        <label htmlFor="draft-identifier">{t("draftIdentifierLabel")}</label>
+        <input
+          id="draft-identifier"
+          type="text"
+          value={identifier}
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(event) => {
+            setIdentifier(event.target.value);
+            setError(null);
+          }}
+        />
+        <label htmlFor="draft-body">{t("draftBodyLabel")}</label>
+        <textarea
+          id="draft-body"
+          className="draft-body"
+          value={body}
+          spellCheck={false}
+          onChange={(event) => {
+            setBody(event.target.value);
+            setError(null);
+          }}
+        />
+      </div>
+      <dl className="facts">
+        <div>
+          <dt>{t("draftSessionLabel")}</dt>
+          <dd>{sessionPersistenceLabel(dirty, result)}</dd>
+        </div>
+        <div>
+          <dt>{t("draftEnginePersistedLabel")}</dt>
+          <dd>{result?.engine_persisted ? t("draftEngineYes") : t("draftEngineNo")}</dd>
+        </div>
+        <div>
+          <dt>{t("draftFilesWrittenLabel")}</dt>
+          <dd>{result?.files_written ? t("draftWroteFiles") : t("draftNoWrite")}</dd>
+        </div>
+      </dl>
+      {result ? <p>{draftObservationLabel(result)}</p> : null}
+      <button
+        type="button"
+        className="action"
+        disabled={identifier.trim() === ""}
+        onClick={() => {
+          void persistDraft(identifier, body, setResult, setDiskBody, setBody, setError);
+        }}
+      >
+        {t("draftSave")}
+      </button>
+      <button
+        type="button"
+        className="action"
+        disabled={identifier.trim() === ""}
+        onClick={() => {
+          void reloadDraft(identifier, setResult, setDiskBody, setBody, setError);
+        }}
+      >
+        {t("draftReload")}
+      </button>
+    </section>
+  );
+}
+
+async function persistDraft(
+  identifier: string,
+  body: string,
+  setResult: (result: DraftResultDto | null) => void,
+  setDiskBody: (body: string | null) => void,
+  setBody: (body: string) => void,
+  setError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "save_draft",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        identifier,
+        body,
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setError({ category: response.category, message: response.message });
+        return;
+      case "draft_saved":
+        setError(null);
+        setResult({
+          identifier: response.identifier,
+          body: response.body,
+          files_written: response.files_written,
+          engine_persisted: false,
+          scanned_user_obsidian_vault: false,
+          scanned_user_basic_memory_home: false,
+          observation: response.observation,
+        });
+        if (response.observation.disk_verified && !response.engine_persisted) {
+          setDiskBody(response.body);
+          setBody(response.body);
+        }
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_loaded":
+        setError(unexpectedDraftResponse());
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+async function reloadDraft(
+  identifier: string,
+  setResult: (result: DraftResultDto | null) => void,
+  setDiskBody: (body: string | null) => void,
+  setBody: (body: string) => void,
+  setError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "load_draft",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        identifier,
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setError({ category: response.category, message: response.message });
+        return;
+      case "draft_loaded":
+        setError(null);
+        setResult({
+          identifier: response.identifier,
+          body: response.body,
+          files_written: response.files_written,
+          engine_persisted: false,
+          scanned_user_obsidian_vault: false,
+          scanned_user_basic_memory_home: false,
+          observation: response.observation,
+        });
+        setBody(response.body);
+        if (response.observation.disk_verified && !response.engine_persisted) {
+          setDiskBody(response.body);
+        } else {
+          setDiskBody(null);
+        }
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_saved":
+        setError(unexpectedDraftResponse());
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
 }
 
 function RuntimePanel({
@@ -729,6 +999,8 @@ function ProjectPanel({
                 case "backup_catalog":
                 case "fixture_restored":
                 case "windows_runtime":
+                case "draft_saved":
+                case "draft_loaded":
                   setSelectError({
                     category: "schema",
                     message: t("unexpectedCatalog"),
@@ -1039,6 +1311,8 @@ function BackupPanel() {
           case "note_read":
           case "fixture_restored":
           case "windows_runtime":
+          case "draft_saved":
+          case "draft_loaded":
             setError(unexpectedBackupResponse());
             setPhase("error");
             return;
@@ -1208,6 +1482,8 @@ async function restoreNamedFixture(
       case "note_read":
       case "backup_catalog":
       case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
       default: {
@@ -1352,6 +1628,8 @@ function WindowsRuntimeCard() {
           case "note_read":
           case "backup_catalog":
           case "fixture_restored":
+          case "draft_saved":
+          case "draft_loaded":
             setError(unexpectedWindowsResponse());
             setPhase("error");
             return;

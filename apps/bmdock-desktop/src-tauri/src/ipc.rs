@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::backups::{self, BackupCatalogDto, BackupStore, RestoreResultDto};
+use crate::drafts::{self, DraftResultDto, DraftStore};
 use crate::library::{self, NoteLibrary, NoteReadDto, TreePageDto};
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
@@ -23,6 +24,8 @@ pub enum IpcCommandName {
     ListBackups,
     RestoreFixture,
     InspectWindowsRuntime,
+    SaveDraft,
+    LoadDraft,
 }
 
 pub fn allowed_commands() -> Vec<IpcCommandName> {
@@ -38,6 +41,8 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::ListBackups,
         IpcCommandName::RestoreFixture,
         IpcCommandName::InspectWindowsRuntime,
+        IpcCommandName::SaveDraft,
+        IpcCommandName::LoadDraft,
     ]
 }
 
@@ -113,6 +118,41 @@ impl RestoreFixtureArgs {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct SaveDraftArgs {
+    pub workspace: String,
+    pub project: String,
+    pub identifier: String,
+    pub body: String,
+}
+
+impl SaveDraftArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct LoadDraftArgs {
+    pub workspace: String,
+    pub project: String,
+    pub identifier: String,
+}
+
+impl LoadDraftArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(
     tag = "command",
     content = "args",
@@ -131,6 +171,8 @@ pub enum IpcCommand {
     ListBackups(ExplicitRouteArgs),
     RestoreFixture(RestoreFixtureArgs),
     InspectWindowsRuntime(EmptyArgs),
+    SaveDraft(SaveDraftArgs),
+    LoadDraft(LoadDraftArgs),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -184,6 +226,8 @@ pub enum IpcResponse {
     BackupCatalog(BackupCatalogDto),
     FixtureRestored(RestoreResultDto),
     WindowsRuntime(WindowsRuntimeDto),
+    DraftSaved(DraftResultDto),
+    DraftLoaded(DraftResultDto),
     Error(IpcError),
 }
 
@@ -244,12 +288,31 @@ pub fn dispatch_with_route(
     )
 }
 
+#[cfg(test)]
 pub fn dispatch_with_library(
     command: IpcCommand,
     snapshot: RuntimeSnapshot,
     route: &mut RouteState,
     library: &dyn NoteLibrary,
     backups: &dyn BackupStore,
+) -> Result<IpcResponse, IpcError> {
+    dispatch_with_stores(
+        command,
+        snapshot,
+        route,
+        library,
+        backups,
+        &drafts::EmptyDraftStore,
+    )
+}
+
+pub fn dispatch_with_stores(
+    command: IpcCommand,
+    snapshot: RuntimeSnapshot,
+    route: &mut RouteState,
+    library: &dyn NoteLibrary,
+    backups: &dyn BackupStore,
+    drafts: &dyn DraftStore,
 ) -> Result<IpcResponse, IpcError> {
     match command {
         IpcCommand::GetCapabilities(_) => Ok(IpcResponse::Capabilities(CapabilitiesDto {
@@ -308,6 +371,20 @@ pub fn dispatch_with_library(
         IpcCommand::InspectWindowsRuntime(_) => Ok(IpcResponse::WindowsRuntime(
             windows_runtime::inspect_windows_runtime(),
         )),
+        IpcCommand::SaveDraft(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            drafts::reject_draft_identifier(&args.identifier).map_err(IpcError::from)?;
+            Ok(IpcResponse::DraftSaved(
+                drafts.save_draft(&args.identifier, &args.body)?,
+            ))
+        }
+        IpcCommand::LoadDraft(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            drafts::reject_draft_identifier(&args.identifier).map_err(IpcError::from)?;
+            Ok(IpcResponse::DraftLoaded(
+                drafts.load_draft(&args.identifier)?,
+            ))
+        }
     }
 }
 
@@ -360,16 +437,18 @@ mod tests {
                 IpcCommandName::ListBackups,
                 IpcCommandName::RestoreFixture,
                 IpcCommandName::InspectWindowsRuntime,
+                IpcCommandName::SaveDraft,
+                IpcCommandName::LoadDraft,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 11);
+        assert_eq!(capabilities.commands.len(), 13);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 11);
+        assert_eq!(commands.len(), 13);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
@@ -379,6 +458,8 @@ mod tests {
         assert!(commands
             .iter()
             .any(|command| command == "inspect_windows_runtime"));
+        assert!(commands.iter().any(|command| command == "save_draft"));
+        assert!(commands.iter().any(|command| command == "load_draft"));
         assert!(!commands.iter().any(|command| {
             command == "search_notes"
                 || command == "call_tool"
@@ -640,6 +721,38 @@ mod tests {
             r#"{"command":"inspect_windows_runtime","args":{}}"#,
         );
         assert!(well_formed_windows_runtime.is_ok());
+        let extra_path_on_save_draft = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"save_draft","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","body":"x","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_save_draft.is_err());
+        let extra_root_on_save_draft = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"save_draft","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","body":"x","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_save_draft.is_err());
+        let extra_path_on_load_draft = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"load_draft","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","path":"%APPDATA%\\\\Obsidian"}}"#,
+        );
+        assert!(extra_path_on_load_draft.is_err());
+        let extra_root_on_load_draft = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"load_draft","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_load_draft.is_err());
+        let incomplete_save_draft = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"save_draft","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome"}}"#,
+        );
+        assert!(incomplete_save_draft.is_err());
+        let incomplete_load_draft = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"load_draft","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(incomplete_load_draft.is_err());
+        let well_formed_save_draft = serde_json::from_str::<IpcCommand>(
+            r##"{"command":"save_draft","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","body":"# 中文草稿\n\n参见 [[欢迎]]。\n"}}"##,
+        );
+        assert!(well_formed_save_draft.is_ok());
+        let well_formed_load_draft = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"load_draft","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome"}}"#,
+        );
+        assert!(well_formed_load_draft.is_ok());
     }
 
     #[test]
@@ -1391,17 +1504,54 @@ mod tests {
         assert_eq!(json["backups"].as_array().unwrap().len(), 0);
     }
 
+    struct PanicDraftStore;
+
+    impl DraftStore for PanicDraftStore {
+        fn save_draft(
+            &self,
+            _identifier: &str,
+            _body: &str,
+        ) -> Result<drafts::DraftResultDto, library::LibraryError> {
+            panic!("policy rejection must not open the draft store")
+        }
+
+        fn load_draft(
+            &self,
+            _identifier: &str,
+        ) -> Result<drafts::DraftResultDto, library::LibraryError> {
+            panic!("policy rejection must not open the draft store")
+        }
+    }
+
+    fn fixture_save_draft_args(identifier: &str, body: &str) -> SaveDraftArgs {
+        SaveDraftArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            identifier: identifier.to_owned(),
+            body: body.to_owned(),
+        }
+    }
+
+    fn fixture_load_draft_args(identifier: &str) -> LoadDraftArgs {
+        LoadDraftArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            identifier: identifier.to_owned(),
+        }
+    }
+
     #[test]
     fn inspect_windows_runtime_does_not_spawn_write_or_open_stores() {
         let snapshot = idle_snapshot();
         let before = snapshot.clone();
         let mut route = RouteState::default();
-        let IpcResponse::WindowsRuntime(dto) = dispatch_with_library(
+        let IpcResponse::WindowsRuntime(dto) = dispatch_with_stores(
             IpcCommand::InspectWindowsRuntime(EmptyArgs {}),
             snapshot.clone(),
             &mut route,
             &PanicLibrary,
             &PanicBackupStore,
+            &PanicDraftStore,
         )
         .unwrap() else {
             panic!("wrong response variant")
@@ -1430,12 +1580,13 @@ mod tests {
     #[test]
     fn inspect_windows_runtime_taxonomy_stays_unverified() {
         let mut route = RouteState::default();
-        let IpcResponse::WindowsRuntime(dto) = dispatch_with_library(
+        let IpcResponse::WindowsRuntime(dto) = dispatch_with_stores(
             IpcCommand::InspectWindowsRuntime(EmptyArgs {}),
             idle_snapshot(),
             &mut route,
             &PanicLibrary,
             &PanicBackupStore,
+            &PanicDraftStore,
         )
         .unwrap() else {
             panic!("wrong response variant")
@@ -1470,5 +1621,249 @@ mod tests {
         assert_eq!(release.expected_tools(), 21);
         assert_eq!(preview.expected_tools(), 27);
         assert_ne!(release.expected_tools(), preview.expected_tools());
+    }
+
+    #[test]
+    fn load_draft_empty_store_is_empty_session_not_user_vault() {
+        let mut route = RouteState::default();
+        let IpcResponse::DraftLoaded(loaded) = dispatch_with_library(
+            IpcCommand::LoadDraft(fixture_load_draft_args("welcome")),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(loaded.body.is_empty());
+        assert!(!loaded.files_written);
+        assert!(!loaded.engine_persisted);
+        assert!(!loaded.scanned_user_obsidian_vault);
+        assert!(!loaded.scanned_user_basic_memory_home);
+        assert_eq!(loaded.observation.classified_as, drafts::DraftClass::Empty);
+        let json = serde_json::to_value(&IpcResponse::DraftLoaded(loaded)).unwrap();
+        assert_eq!(json["kind"], "draft_loaded");
+        assert_eq!(json["engine_persisted"], false);
+        assert_eq!(json["files_written"], false);
+        assert!(json.get("path").is_none());
+        assert!(json.get("expected_tools").is_none());
+    }
+
+    #[test]
+    fn save_draft_without_store_is_unsupported() {
+        let mut route = RouteState::default();
+        let error = dispatch_with_library(
+            IpcCommand::SaveDraft(fixture_save_draft_args(
+                "welcome",
+                "# 中文草稿\n\n参见 [[欢迎]]。\n",
+            )),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(error.category, ErrorCategory::Unsupported);
+        assert_eq!(error.message, drafts::UNSUPPORTED_DRAFT_UNAVAILABLE);
+        assert_ne!(error.message, library::UNSUPPORTED_LIBRARY_UNAVAILABLE);
+        assert_ne!(error.message, backups::UNSUPPORTED_BACKUP_UNAVAILABLE);
+    }
+
+    #[test]
+    fn non_fixture_draft_is_policy_and_does_not_open() {
+        let snapshot = idle_snapshot();
+        let mut route = RouteState::default();
+        let save = dispatch_with_stores(
+            IpcCommand::SaveDraft(SaveDraftArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+                identifier: "welcome".to_owned(),
+                body: "x".to_owned(),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+            &PanicDraftStore,
+        )
+        .unwrap_err();
+        assert_eq!(save.category, ErrorCategory::Policy);
+        let workspace = dispatch_with_stores(
+            IpcCommand::LoadDraft(LoadDraftArgs {
+                workspace: "user-home".to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                identifier: "welcome".to_owned(),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+            &PanicDraftStore,
+        )
+        .unwrap_err();
+        assert_eq!(workspace.category, ErrorCategory::Policy);
+        let identifier = dispatch_with_stores(
+            IpcCommand::SaveDraft(SaveDraftArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                identifier: r"%APPDATA%\Obsidian\welcome.md".to_owned(),
+                body: "x".to_owned(),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+            &PanicDraftStore,
+        )
+        .unwrap_err();
+        assert_eq!(identifier.category, ErrorCategory::Policy);
+        let empty_identifier = dispatch_with_stores(
+            IpcCommand::LoadDraft(LoadDraftArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: FIXTURE_PROJECT.to_owned(),
+                identifier: "".to_owned(),
+            }),
+            snapshot,
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+            &PanicDraftStore,
+        )
+        .unwrap_err();
+        assert_eq!(empty_identifier.category, ErrorCategory::Schema);
+        assert_eq!(route.project, None);
+    }
+
+    #[test]
+    fn fixture_draft_save_reload_observes_physical_files_not_saved_text() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t14-ipc-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let store = drafts::FixtureDraftStore::new(dir.clone()).unwrap();
+        let body = "# 中文草稿\n\n这是 BMDock 自有草稿正文。参见 [[欢迎]]。\n";
+        let mut route = RouteState::default();
+        let snapshot = idle_snapshot();
+        let before = snapshot.clone();
+        let IpcResponse::DraftSaved(saved) = dispatch_with_stores(
+            IpcCommand::SaveDraft(fixture_save_draft_args("welcome", body)),
+            snapshot.clone(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+            &store,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(snapshot, before);
+        let dest = dir.join("welcome.md");
+        assert!(
+            dest.is_file(),
+            "save must observe a physical owned draft file"
+        );
+        let disk = std::fs::read_to_string(&dest).unwrap();
+        assert_eq!(disk, body);
+        assert!(disk.contains("[[欢迎]]"));
+        assert_eq!(saved.body, body);
+        assert!(saved.files_written);
+        assert!(!saved.engine_persisted);
+        assert!(saved.observation.disk_verified);
+        assert!(saved.observation.envelope_is_not_disk_proof);
+        assert_eq!(
+            saved.observation.classified_as,
+            drafts::DraftClass::DiskVerified
+        );
+        let json = serde_json::to_value(&IpcResponse::DraftSaved(saved)).unwrap();
+        assert_eq!(json["kind"], "draft_saved");
+        assert_eq!(json["files_written"], true);
+        assert_eq!(json["engine_persisted"], false);
+        assert_eq!(json["observation"]["disk_verified"], true);
+        assert_ne!(json["observation"]["classified_as"], "saved");
+        assert!(json.get("path").is_none());
+        assert!(json.get("expected_tools").is_none());
+        assert!(json.get("profile").is_none());
+
+        let IpcResponse::DraftLoaded(loaded) = dispatch_with_stores(
+            IpcCommand::LoadDraft(fixture_load_draft_args("welcome")),
+            snapshot,
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+            &store,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(loaded.body, disk);
+        assert_eq!(loaded.body, body);
+        assert!(!loaded.engine_persisted);
+        assert!(loaded.observation.disk_verified);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn envelope_draft_is_accepted_unverified_and_does_not_write() {
+        let store = drafts::EnvelopeDraftStore {
+            body: "saved".to_owned(),
+        };
+        let mut route = RouteState::default();
+        let IpcResponse::DraftSaved(saved) = dispatch_with_stores(
+            IpcCommand::SaveDraft(fixture_save_draft_args("welcome", "ignored")),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+            &store,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(!saved.files_written);
+        assert!(!saved.engine_persisted);
+        assert!(!saved.observation.disk_verified);
+        assert_eq!(
+            saved.observation.classified_as,
+            drafts::DraftClass::AcceptedUnverified
+        );
+        let json = serde_json::to_value(&IpcResponse::DraftSaved(saved)).unwrap();
+        assert_eq!(json["kind"], "draft_saved");
+        assert_eq!(json["files_written"], false);
+        assert_ne!(json["observation"]["classified_as"], "saved");
+    }
+
+    #[test]
+    fn draft_commands_do_not_merge_engine_profiles() {
+        let release = crate::supervisor::EngineProfile::Release;
+        let preview = crate::supervisor::EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(preview.commit(), "3452c821d76c083823d020984d71e06904a1ff1e");
+        assert_eq!(release.expected_tools(), 21);
+        assert_eq!(preview.expected_tools(), 27);
+        let mut route = RouteState::default();
+        let IpcResponse::DraftLoaded(loaded) = dispatch_with_library(
+            IpcCommand::LoadDraft(fixture_load_draft_args("welcome")),
+            RuntimeSnapshot {
+                state: ConnectionState::Connected,
+                profile: Some(release),
+                child_pid: Some(7),
+                failure: None,
+                shutdown: None,
+            },
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let json = serde_json::to_value(&IpcResponse::DraftLoaded(loaded)).unwrap();
+        assert!(json.get("expected_tools").is_none());
+        assert!(json.get("profile").is_none());
+        assert!(json.get("tools").is_none());
+        assert_eq!(json["engine_persisted"], false);
     }
 }

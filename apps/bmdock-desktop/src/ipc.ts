@@ -28,6 +28,15 @@ export type RestoreFixtureArgs = ExplicitRouteArgs & {
   backup_id: string;
 };
 
+export type SaveDraftArgs = ExplicitRouteArgs & {
+  identifier: string;
+  body: string;
+};
+
+export type LoadDraftArgs = ExplicitRouteArgs & {
+  identifier: string;
+};
+
 export type IpcCommand =
   | { command: "get_capabilities"; args: Record<string, never> }
   | { command: "get_runtime_state"; args: Record<string, never> }
@@ -39,7 +48,9 @@ export type IpcCommand =
   | { command: "read_note"; args: ReadNoteArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
   | { command: "restore_fixture"; args: RestoreFixtureArgs }
-  | { command: "inspect_windows_runtime"; args: Record<string, never> };
+  | { command: "inspect_windows_runtime"; args: Record<string, never> }
+  | { command: "save_draft"; args: SaveDraftArgs }
+  | { command: "load_draft"; args: LoadDraftArgs };
 
 export type IpcCommandName = IpcCommand["command"];
 export type IpcEventName = "runtime_state" | "policy";
@@ -203,6 +214,24 @@ export interface RestoreResultDto {
   observation: RestoreObservationDto;
 }
 
+export type DraftClass = "empty" | "disk_verified" | "accepted_unverified" | "unclassified";
+
+export interface DraftObservationDto {
+  classified_as: DraftClass;
+  disk_verified: boolean;
+  envelope_is_not_disk_proof: true;
+}
+
+export interface DraftResultDto {
+  identifier: string;
+  body: string;
+  files_written: boolean;
+  engine_persisted: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  observation: DraftObservationDto;
+}
+
 export type HostOs = "windows" | "other";
 
 export interface WindowsRuntimeDto {
@@ -229,6 +258,8 @@ export type IpcResponse =
   | { kind: "backup_catalog" } & BackupCatalogDto
   | { kind: "fixture_restored" } & RestoreResultDto
   | { kind: "windows_runtime" } & WindowsRuntimeDto
+  | { kind: "draft_saved" } & DraftResultDto
+  | { kind: "draft_loaded" } & DraftResultDto
   | { kind: "error"; category: ErrorCategory; message: string };
 
 export interface RuntimeStateEvent {
@@ -260,6 +291,8 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "read_note":
     case "list_backups":
     case "restore_fixture":
+    case "save_draft":
+    case "load_draft":
       if (command.args.project !== FIXTURE_PROJECT || command.args.workspace !== OWNED_WORKSPACE) {
         throw new Error("Only the generated fixture project is allowed");
       }
@@ -370,3 +403,28 @@ export const inspectWindowsRuntime = () =>
     command: "inspect_windows_runtime",
     args: {},
   });
+
+export const saveDraft = (identifier: string, body: string) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "draft_saved" } & DraftResultDto>({
+    command: "save_draft",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      identifier,
+      body,
+    },
+  });
+};
+
+export const loadDraft = (identifier: string) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "draft_loaded" } & DraftResultDto>({
+    command: "load_draft",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      identifier,
+    },
+  });
+};

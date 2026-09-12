@@ -277,6 +277,37 @@ main {
   font-size: 0.92rem;
 }
 
+.draft-editor {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.75rem 0;
+}
+
+.draft-editor label {
+  font-weight: 600;
+  color: #e7edf7;
+}
+
+.draft-editor input,
+.draft-body {
+  font: inherit;
+  color: inherit;
+  background: #0f1624;
+  border: 1px solid #3b4b66;
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  width: 100%;
+}
+
+.draft-body {
+  min-height: 12rem;
+  resize: vertical;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: "Cascadia Code", "Sarasa Mono SC", ui-monospace, monospace;
+  font-size: 0.92rem;
+}
+
 @media (max-width: 720px) {
   .layout {
     grid-template-columns: 1fr;
