@@ -3,52 +3,138 @@
   "title": "实现typed IPC及权限策略",
   "status": "accepted_with_limits",
   "date": "2026-09-12",
+  "host_boundary": "T06 owns the typed ipc_invoke command union, fixture-only select_project policy, and read-only get_runtime_state projection of the T07 Supervisor snapshot. T06 does not start or stop the engine from IPC. App.tsx remains a static shell and does not call invoke. P0 bmdock-probe and just contract/contract-main stay independent. just dev / just build were not switched to Tauri.",
   "acceptance": {
     "AC06": {
       "status": "typed_fixture_project_boundary",
-      "evidence": ["apps/bmdock-desktop/src-tauri/src/ipc.rs", "apps/bmdock-desktop/src/ipc.ts"],
-      "claim": "Project selection is typed and accepts only bmdock-fixture."
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "cargo test -p bmdock-app --locked --offline"
+      ],
+      "claim": "Project selection is typed and accepts only bmdock-fixture. Non-fixture projects return policy. Extra path fields fail serde deny_unknown_fields."
     },
     "AC07": {
       "status": "preserved",
-      "evidence": ["apps/bmdock-desktop/src-tauri/src/main.rs", "docs/adr/0001-bmdock-boundaries-naming-licensing.md"],
-      "claim": "Renderer receives DTOs only; the official engine remains the future data owner and no direct database or vault access was added."
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/main.rs",
+        "apps/bmdock-desktop/src/App.tsx",
+        "docs/adr/0001-bmdock-boundaries-naming-licensing.md"
+      ],
+      "claim": "Renderer receives DTOs only; the official engine remains the future data owner. No direct database, real vault, or raw callTool access was added."
     },
     "AC20": {
       "status": "policy_rejection_tested",
-      "evidence": ["apps/bmdock-desktop/src-tauri/src/ipc.rs"],
-      "claim": "Unknown commands, arbitrary path fields, non-fixture projects, and raw callTool-shaped DTOs are rejected."
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "cargo test -p bmdock-app --locked --offline"
+      ],
+      "claim": "Unknown commands including call_tool, extra path fields, and non-fixture projects are rejected. IPC error union stays policy/schema/unsupported. Supervisor timeout_unknown/transport/process stay on RuntimeStateDto only."
     },
     "AC37": {
       "status": "typed_command_allowlist",
-      "evidence": ["apps/bmdock-desktop/src-tauri/src/ipc.rs", "apps/bmdock-desktop/src/ipc.ts"],
-      "claim": "The renderer command union and Rust dispatcher expose three explicit T06 commands only."
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts"
+      ],
+      "claim": "The renderer command union and Rust dispatcher expose three explicit T06 commands only: get_capabilities, get_runtime_state, select_project."
     },
     "AC45": {
       "status": "local_boundary_only",
-      "evidence": [".trellis/tasks/09-12-t06-typed-ipc-policy/implement.md"],
-      "claim": "No cloud, remote, credential, or real-vault route is exposed."
+      "evidence": [
+        ".trellis/tasks/09-12-t06-typed-ipc-policy/implement.md",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs"
+      ],
+      "claim": "No cloud, remote, credential, or real-vault route is exposed. Capabilities advertise arbitrary_paths_allowed=false and raw_call_tool_allowed=false."
     },
     "AC58": {
       "status": "explicit_capability_contract",
-      "evidence": ["apps/bmdock-desktop/src-tauri/src/ipc.rs", "apps/bmdock-desktop/src/ipc.ts"],
-      "claim": "Capabilities are enumerated and unknown commands fail closed instead of being forwarded."
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts"
+      ],
+      "claim": "Capabilities enumerate exactly three commands and two events. Unknown commands fail closed instead of being forwarded."
     }
   },
+  "commands": [
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test -p bmdock-app --locked --offline",
+      "exit": 0,
+      "result": "16 passed (7 ipc + 9 supervisor). Added/tightened ipc tests for exact command/event allowlist, fixture select, not_started projection without child_pid."
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 16 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed; remaining dead_code warnings are T07 Supervisor APIs unused by the T06 IPC allowlist (start/stop not exposed)."
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t06-typed-ipc-policy",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest discover -s tests -v",
+      "exit": 1,
+      "result": "60 tests: 59 ok, 1 ERROR test_repository_phase_order via check_source because G0 is in_progress while T06/T07 are completed. T06/T07 were not reverted."
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T06 proof. Probe entries remain independent."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    }
+  ],
   "checks": {
-    "cargo_test_workspace_locked_offline": "passed_7_tests",
+    "cargo_fmt": "passed",
+    "cargo_test_bmdock_app_locked_offline": "passed_16_tests",
+    "cargo_test_workspace_locked_offline": "passed_21_tests",
     "cargo_check_workspace_locked_offline": "passed",
-    "npm_ci_ignore_scripts": "passed",
+    "npm_ci": "not_run_this_session",
     "npm_build": "passed",
     "task_validate": "passed",
-    "python_unit": "passed_43_tests",
-    "cargo_fmt": "passed",
+    "python_unittest_discover": "59_ok_1_error_phase_order",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
     "git_diff_check": "passed",
     "native_gui": "UNVERIFIED",
-    "supervisor_or_real_engine": "out_of_scope"
+    "webview2": "UNVERIFIED",
+    "supervisor_live_start": "UNVERIFIED",
+    "real_engine": "UNVERIFIED",
+    "job_object": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED"
   },
   "scope_limits": [
-    "No Supervisor, note CRUD, real vault, search, installer, or raw MCP callTool is implemented.",
-    "P0 bmdock-probe and just contract/contract-main semantics remain independent."
+    "get_runtime_state is a read-only projection of the T07 Supervisor snapshot. T06 does not start or stop the engine from IPC.",
+    "No note CRUD, real vault, search, installer, or raw MCP callTool is implemented.",
+    "P0 bmdock-probe and just contract/contract-main semantics remain independent.",
+    "just dev / just build were not switched to Tauri.",
+    "execution/status.json T06 remains completed; T05/T07/G0 were not changed.",
+    "UI copy, tool lists, compiled exe, and just contract are not native GUI / Job Object / real vault evidence."
   ]
 }

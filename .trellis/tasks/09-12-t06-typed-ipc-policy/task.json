@@ -21,6 +21,6 @@
   "children": [],
   "parent": "09-12-bmdock-product-completion",
   "relatedFiles": [],
-  "notes": "",
+  "notes": "This-session close: existing IPC already satisfied AC06/AC07/AC20/AC37/AC45/AC58. Tightened ipc unit tests (exact 3 commands/2 events, fixture select, not_started projection without child_pid) and refreshed execution/evidence/t06-typed-ipc-policy.json. python -m scripts.tasks unit fails G0 phase-order by design; T06 stays completed in execution/status.json. Native GUI, WebView2, Supervisor live start, real engine, Job Object, real vault, and hosted CI remain UNVERIFIED.",
   "meta": {}
 }

@@ -83,6 +83,7 @@ pub enum IpcResponse {
     Error(IpcError),
 }
 
+#[cfg(test)]
 pub fn dispatch(command: IpcCommand) -> Result<IpcResponse, IpcError> {
     dispatch_with_snapshot(
         command,
@@ -156,10 +157,35 @@ mod tests {
         else {
             panic!("wrong response variant")
         };
-        assert_eq!(capabilities.policy.project, FIXTURE_PROJECT);
+        assert_eq!(FIXTURE_PROJECT, "bmdock-fixture");
+        assert_eq!(capabilities.policy.project, "bmdock-fixture");
         assert!(!capabilities.policy.arbitrary_paths_allowed);
         assert!(!capabilities.policy.raw_call_tool_allowed);
-        assert_eq!(capabilities.commands.len(), 3);
+        assert_eq!(
+            capabilities.commands,
+            vec![
+                IpcCommandName::GetCapabilities,
+                IpcCommandName::GetRuntimeState,
+                IpcCommandName::SelectProject,
+            ]
+        );
+        assert_eq!(
+            capabilities.events,
+            vec![IpcEventName::RuntimeState, IpcEventName::Policy]
+        );
+    }
+
+    #[test]
+    fn select_project_accepts_fixture() {
+        let IpcResponse::ProjectSelected { project } =
+            dispatch(IpcCommand::SelectProject(SelectProjectArgs {
+                project: FIXTURE_PROJECT.to_owned(),
+            }))
+            .unwrap()
+        else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(project, "bmdock-fixture");
     }
 
     #[test]
@@ -168,6 +194,22 @@ mod tests {
             project: "C:\\Users\\someone\\vault".to_owned(),
         }));
         assert_eq!(result.unwrap_err().category, ErrorCategory::Policy);
+    }
+
+    #[test]
+    fn runtime_state_before_start_is_not_started() {
+        let IpcResponse::RuntimeState(state) =
+            dispatch(IpcCommand::GetRuntimeState(EmptyArgs {})).unwrap()
+        else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(state.status, "not_started");
+        assert_eq!(state.project, None);
+        assert_eq!(state.profile, None);
+        assert_eq!(state.failure, None);
+        assert_eq!(state.shutdown, None);
+        let json = serde_json::to_value(&IpcResponse::RuntimeState(state)).unwrap();
+        assert!(json.get("child_pid").is_none());
     }
 
     #[test]
