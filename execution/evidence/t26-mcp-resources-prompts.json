@@ -1,0 +1,198 @@
+{
+  "task": "T26",
+  "title": "MCP资源与提示词工作台",
+  "status": "accepted_with_limits",
+  "date": "2026-09-13",
+  "host_boundary": "T26 adds typed list_resources and list_prompts with ExplicitRouteArgs plus optional cursor/page_size. deny_unknown_fields. Extra path/root is schema. page_size 0 or greater than 64 is schema. Default page_size 20, max 64. Non-fixture routes are policy and do not open the library. Catalogs are BMDock-owned over FixtureLibrary physical markdown and *.prompt.md sidecars. Not official MCP resources/list, resources/read, prompts/list, or prompts/get. Production EmptyLibrary is empty, classified_as empty, not user-vault success. Tests inject FixtureLibrary over {temp}/bmdock-t26-*. Hits must match physical files. Envelope text is not disk proof. engine_resources=false. engine_prompts=false. Dual profiles stay isolated (21 vs 27) and are not mixed into the DTOs. MCP identities resources/list, resources/read, prompts/list, prompts/get, and call_tool stay denied. T26 does not start Supervisor, add rmcp, or run just contract as proof. just build stays the G0 probe.",
+  "acceptance": {
+    "AC33": {
+      "status": "fixture_disk_resource_catalog",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "The resources workbench lists BMDock-owned resource identifiers observed from fixture disk (or an empty catalog). Hits match physical top-level *.md files excluding *.prompt.md. Envelope text is not disk proof. Production EmptyLibrary is empty, not user-vault success. engine_resources=false. Official resources MCP remains UNVERIFIED.",
+      "unverified": [
+        "official MCP resources/list",
+        "official MCP resources/read",
+        "native GUI session",
+        "real user vault",
+        "user vault resource success"
+      ]
+    },
+    "AC34": {
+      "status": "fixture_disk_prompt_catalog",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "The prompts workbench lists BMDock-owned prompt templates observed from fixture *.prompt.md sidecars (or an empty catalog). Hits match physical sidecar files. Envelope text is not disk proof. Production EmptyLibrary is empty, not user-vault success. engine_prompts=false. Dual profiles stay isolated (21 vs 27) and are not mixed into the DTOs. Official prompts MCP remains UNVERIFIED.",
+      "unverified": [
+        "official MCP prompts/list",
+        "official MCP prompts/get",
+        "native GUI session",
+        "real user vault",
+        "user vault prompt success"
+      ]
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t26-mcp-resources-prompts",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 160 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 20 passed"
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T26 resources/prompts proof. Probe entries remain independent. Official MCP resources/prompts remain UNVERIFIED."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window was launched. AC33/AC34 proof is fixture-disk catalogs, not a native GUI session."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_165_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_desktop_shell": "20_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "typed_command_count": 28,
+    "typed_list_resources": "allowed",
+    "typed_list_prompts": "allowed",
+    "raw_call_tool": "absent",
+    "mcp_identity_resources_list": "absent",
+    "mcp_identity_resources_read": "absent",
+    "mcp_identity_prompts_list": "absent",
+    "mcp_identity_prompts_get": "absent",
+    "dangerouslySetInnerHTML": "absent",
+    "supervisor_started_by_t26": false,
+    "rmcp_live_client": "not_added_in_t26",
+    "engine_resources": false,
+    "engine_prompts": false,
+    "timeout_unknown_on_ipc_error_union": false,
+    "official_resources_list_mcp": "UNVERIFIED",
+    "official_resources_read_mcp": "UNVERIFIED",
+    "official_prompts_list_mcp": "UNVERIFIED",
+    "official_prompts_get_mcp": "UNVERIFIED",
+    "native_gui_session": "UNVERIFIED",
+    "webview2_session": "UNVERIFIED",
+    "installer": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "t27_controlled_tools_cli_center": "not_implemented",
+    "fixture_resource_hits_match_physical_md": true,
+    "prompt_sidecars_excluded_from_resource_catalog": true,
+    "fixture_prompt_hits_match_physical_prompt_md": true,
+    "empty_library_catalogs_are_empty_state": true,
+    "envelope_only_catalog_rejected": true,
+    "page_size_zero_or_over_64_is_schema": true
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed_unchanged",
+    "T10": "completed_unchanged",
+    "T11": "completed_unchanged",
+    "T12": "completed_unchanged",
+    "T13": "completed_unchanged",
+    "T14": "completed_unchanged",
+    "T15": "completed_unchanged",
+    "T16": "completed_unchanged",
+    "T17": "completed_unchanged",
+    "T18": "completed_unchanged",
+    "T19": "completed_unchanged",
+    "T20": "completed_unchanged",
+    "T21": "completed_unchanged",
+    "T22": "completed_unchanged",
+    "T23": "completed_unchanged",
+    "T24": "completed_unchanged",
+    "T25": "completed_unchanged",
+    "T26": "completed",
+    "T27": "planned_unchanged"
+  },
+  "scope_limits": [
+    "list_resources and list_prompts are BMDock-owned fixture markdown/sidecar catalogs, not official MCP resources/list, resources/read, prompts/list, or prompts/get.",
+    "Resource identifiers come from top-level fixture *.md excluding *.prompt.md. Prompt identifiers come from *.prompt.md sidecars. Hits must match physical files.",
+    "Envelope text is not disk proof.",
+    "EmptyLibrary empty catalogs are empty state, not user-vault success.",
+    "engine_resources=false. engine_prompts=false.",
+    "Official MCP resources/prompts remain UNVERIFIED. Native GUI, WebView2, installer, hosted CI, and real user vaults remain UNVERIFIED.",
+    "IPC error union stays policy/schema/unsupported. Dual profiles stay isolated (21 vs 27).",
+    "just build stays scripts.tasks build. just contract* stay probe. just tauri-dev/tauri-build stay desktop.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "T27-T40 were not implemented."
+  ],
+  "rollback": "Remove list_resources and list_prompts from the ipc_invoke union, drop ResourceCatalogPanel and PromptCatalogPanel, restore the 26-command allowlist, and leave T11 tree/read and T25 schema in place. Do not revert T05-T25 status to make unit green."
+}

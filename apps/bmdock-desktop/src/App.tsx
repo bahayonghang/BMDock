@@ -26,6 +26,10 @@ import {
   type ContextPreviewDto,
   type ActivityPageDto,
   type ActivityEntryDto,
+  type ResourcePageDto,
+  type ResourceEntryDto,
+  type PromptPageDto,
+  type PromptEntryDto,
   type PreflightDto,
   type ProjectCatalogDto,
   type RestoreResultDto,
@@ -258,6 +262,10 @@ function WorkbenchLibrary({
   const [recallError, setRecallError] = useState<WorkbenchError | null>(null);
   const [schema, setSchema] = useState<SchemaValidateDto | null>(null);
   const [schemaError, setSchemaError] = useState<WorkbenchError | null>(null);
+  const [resources, setResources] = useState<ResourcePageDto | null>(null);
+  const [resourcesError, setResourcesError] = useState<WorkbenchError | null>(null);
+  const [prompts, setPrompts] = useState<PromptPageDto | null>(null);
+  const [promptsError, setPromptsError] = useState<WorkbenchError | null>(null);
   const [preview, setPreview] = useState<ContextPreviewDto | null>(null);
   const [previewError, setPreviewError] = useState<WorkbenchError | null>(null);
   const [activity, setActivity] = useState<ActivityPageDto | null>(null);
@@ -286,6 +294,10 @@ function WorkbenchLibrary({
     setRecallError(null);
     setSchema(null);
     setSchemaError(null);
+    setResources(null);
+    setResourcesError(null);
+    setPrompts(null);
+    setPromptsError(null);
     setPreview(null);
     setPreviewError(null);
     setActivity(null);
@@ -321,6 +333,8 @@ function WorkbenchLibrary({
             setNextCursor(response.next_cursor);
             setPhase(response.entries.length === 0 ? "empty" : "ready");
             void loadActivity(setActivity, setActivityError);
+            void loadResources(setResources, setResourcesError);
+            void loadPrompts(setPrompts, setPromptsError);
             return;
           case "capabilities":
           case "runtime_state":
@@ -346,6 +360,8 @@ function WorkbenchLibrary({
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "resource_page":
+      case "prompt_page":
       case "shutdown_begun":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
@@ -526,6 +542,24 @@ function WorkbenchLibrary({
           void runSchemaValidate(identifier, schemaId, setSchema, setSchemaError);
         }}
       />
+      <ResourceCatalogPanel
+        resources={resources}
+        error={resourcesError}
+        onLoadMore={() => {
+          if (resources?.next_cursor) {
+            void loadMoreResources(resources, setResources, setResourcesError);
+          }
+        }}
+      />
+      <PromptCatalogPanel
+        prompts={prompts}
+        error={promptsError}
+        onLoadMore={() => {
+          if (prompts?.next_cursor) {
+            void loadMorePrompts(prompts, setPrompts, setPromptsError);
+          }
+        }}
+      />
       <ContextPreviewPanel preview={preview} error={previewError} />
       <ActivityPanel
         activity={activity}
@@ -615,6 +649,8 @@ async function openNote(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "resource_page":
+      case "prompt_page":
       case "shutdown_begun":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
@@ -689,6 +725,8 @@ async function loadRelations(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "resource_page":
+      case "prompt_page":
       case "shutdown_begun":
         setRelations(null);
         setRelationsError({ category: "schema", message: t("unexpectedRelations") });
@@ -796,6 +834,8 @@ async function loadGraph(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "resource_page":
+      case "prompt_page":
       case "shutdown_begun":
         setGraph(null);
         setGraphError(unexpectedGraphResponse());
@@ -870,6 +910,8 @@ async function loadMoreGraph(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "resource_page":
+      case "prompt_page":
       case "shutdown_begun":
         setGraphError(unexpectedGraphResponse());
         return;
@@ -944,6 +986,8 @@ async function loadMoreTree(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "resource_page":
+      case "prompt_page":
       case "shutdown_begun":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
@@ -1411,6 +1455,8 @@ async function runSearch(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "resource_page":
+      case "prompt_page":
       case "shutdown_begun":
         setSearch(null);
         setSearchError(unexpectedSearchResponse());
@@ -1485,6 +1531,8 @@ async function loadMoreSearch(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "resource_page":
+      case "prompt_page":
       case "shutdown_begun":
         setSearchError(unexpectedSearchResponse());
         return;
@@ -1683,6 +1731,8 @@ async function runInspectSearch(
       case "note_deleted":
       case "recall_benchmark":
       case "schema_validated":
+      case "resource_page":
+      case "prompt_page":
       case "shutdown_begun":
         setInspector(null);
         setInspectorError(unexpectedInspectorResponse());
@@ -1910,6 +1960,8 @@ async function runRecallBenchmark(
       case "note_moved":
       case "note_deleted":
       case "schema_validated":
+      case "resource_page":
+      case "prompt_page":
       case "shutdown_begun":
         setRecall(null);
         setRecallError(unexpectedRecallResponse());
@@ -2118,6 +2170,8 @@ async function runSchemaValidate(
       case "recall_benchmark":
       case "context_preview":
       case "activity_page":
+      case "resource_page":
+      case "prompt_page":
       case "backup_catalog":
       case "fixture_restored":
       case "windows_runtime":
@@ -2354,6 +2408,8 @@ async function loadContextPreview(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "resource_page":
+      case "prompt_page":
       case "shutdown_begun":
         setPreview(null);
         setPreviewError(unexpectedPreviewResponse());
@@ -2520,6 +2576,8 @@ async function loadActivity(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "resource_page":
+      case "prompt_page":
       case "shutdown_begun":
         setActivity(null);
         setActivityError(unexpectedActivityResponse());
@@ -2593,6 +2651,8 @@ async function loadMoreActivity(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "resource_page":
+      case "prompt_page":
       case "shutdown_begun":
         setActivityError(unexpectedActivityResponse());
         return;
@@ -2660,6 +2720,476 @@ function ActivityPanel({
         <div className="activity-actions">
           <button type="button" className="action" onClick={onLoadMore}>
             {t("activityLoadMore")}
+          </button>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function unexpectedResourceResponse(): WorkbenchError {
+  return { category: "schema", message: t("unexpectedResources") };
+}
+
+function asResourcePage(response: Extract<IpcResponse, { kind: "resource_page" }>): ResourcePageDto {
+  return {
+    entries: response.entries,
+    next_cursor: response.next_cursor,
+    page: response.page,
+    truncated: response.truncated,
+    observation: response.observation,
+    engine_resources: false,
+    scanned_user_obsidian_vault: false,
+    scanned_user_basic_memory_home: false,
+    files_written: response.files_written,
+  };
+}
+
+function mergeResourcePage(current: ResourcePageDto, next: ResourcePageDto): ResourcePageDto {
+  const entries = [...current.entries];
+  for (const entry of next.entries) {
+    if (!entries.some((existing) => existing.identifier === entry.identifier)) {
+      entries.push(entry);
+    }
+  }
+  return {
+    ...next,
+    entries,
+  };
+}
+
+async function loadResources(
+  setResources: (resources: ResourcePageDto | null) => void,
+  setResourcesError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "list_resources",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        page_size: TREE_PAGE_SIZE,
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setResources(null);
+        setResourcesError({ category: response.category, message: response.message });
+        return;
+      case "resource_page":
+        if (response.truncated) {
+          setResources(null);
+          setResourcesError(unexpectedResourceResponse());
+          return;
+        }
+        setResourcesError(null);
+        setResources(asResourcePage(response));
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "relation_list":
+      case "graph_page":
+      case "search_page":
+      case "context_preview":
+      case "activity_page":
+      case "prompt_page":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
+      case "search_inspector":
+      case "recall_benchmark":
+      case "schema_validated":
+      case "shutdown_begun":
+        setResources(null);
+        setResourcesError(unexpectedResourceResponse());
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setResources(null);
+    setResourcesError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+async function loadMoreResources(
+  current: ResourcePageDto,
+  setResources: (resources: ResourcePageDto | null) => void,
+  setResourcesError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  if (!current.next_cursor) {
+    return;
+  }
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "list_resources",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        cursor: current.next_cursor,
+        page_size: TREE_PAGE_SIZE,
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setResourcesError({ category: response.category, message: response.message });
+        return;
+      case "resource_page":
+        if (response.truncated) {
+          setResourcesError(unexpectedResourceResponse());
+          return;
+        }
+        setResourcesError(null);
+        setResources(mergeResourcePage(current, asResourcePage(response)));
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "relation_list":
+      case "graph_page":
+      case "search_page":
+      case "context_preview":
+      case "activity_page":
+      case "prompt_page":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
+      case "search_inspector":
+      case "recall_benchmark":
+      case "schema_validated":
+      case "shutdown_begun":
+        setResourcesError(unexpectedResourceResponse());
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setResourcesError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+function ResourceCatalogPanel({
+  resources,
+  error,
+  onLoadMore,
+}: {
+  resources: ResourcePageDto | null;
+  error: WorkbenchError | null;
+  onLoadMore: () => void;
+}) {
+  const empty = resources === null || resources.entries.length === 0;
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error
+    ? t("resourcesErrorTitle")
+    : empty
+      ? t("resourcesEmptyTitle")
+      : t("resourcesReadyTitle");
+  return (
+    <section
+      className="subpanel"
+      data-state={state}
+      aria-labelledby="resources-title"
+      role={error ? "alert" : undefined}
+    >
+      <p className="state-badge">{badge}</p>
+      <h3 id="resources-title">{heading}</h3>
+      <p>
+        {error
+          ? `${errorCategoryLabel(error.category)}：${error.message}`
+          : empty
+            ? t("resourcesEmptyBody")
+            : t("resourcesReadyBody")}
+      </p>
+      <p>{t("resourcesPermalinkNotPath")}</p>
+      <p>{t("resourcesNotOfficialMcp")}</p>
+      <p>
+        {t("resourcesEngineLabel")}: {t("resourcesEngineFalse")}
+      </p>
+      {resources && resources.entries.length > 0 ? (
+        <ul className="resource-list">
+          {resources.entries.map((entry: ResourceEntryDto) => (
+            <li key={entry.identifier}>
+              <span>{entry.identifier}</span>
+              <span>{entry.title}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {resources?.next_cursor ? (
+        <div className="activity-actions">
+          <button type="button" className="action" onClick={onLoadMore}>
+            {t("resourcesLoadMore")}
+          </button>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function unexpectedPromptResponse(): WorkbenchError {
+  return { category: "schema", message: t("unexpectedPrompts") };
+}
+
+function asPromptPage(response: Extract<IpcResponse, { kind: "prompt_page" }>): PromptPageDto {
+  return {
+    entries: response.entries,
+    next_cursor: response.next_cursor,
+    page: response.page,
+    truncated: response.truncated,
+    observation: response.observation,
+    engine_prompts: false,
+    scanned_user_obsidian_vault: false,
+    scanned_user_basic_memory_home: false,
+    files_written: response.files_written,
+  };
+}
+
+function mergePromptPage(current: PromptPageDto, next: PromptPageDto): PromptPageDto {
+  const entries = [...current.entries];
+  for (const entry of next.entries) {
+    if (!entries.some((existing) => existing.identifier === entry.identifier)) {
+      entries.push(entry);
+    }
+  }
+  return {
+    ...next,
+    entries,
+  };
+}
+
+async function loadPrompts(
+  setPrompts: (prompts: PromptPageDto | null) => void,
+  setPromptsError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "list_prompts",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        page_size: TREE_PAGE_SIZE,
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setPrompts(null);
+        setPromptsError({ category: response.category, message: response.message });
+        return;
+      case "prompt_page":
+        if (response.truncated) {
+          setPrompts(null);
+          setPromptsError(unexpectedPromptResponse());
+          return;
+        }
+        setPromptsError(null);
+        setPrompts(asPromptPage(response));
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "relation_list":
+      case "graph_page":
+      case "search_page":
+      case "context_preview":
+      case "activity_page":
+      case "resource_page":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
+      case "search_inspector":
+      case "recall_benchmark":
+      case "schema_validated":
+      case "shutdown_begun":
+        setPrompts(null);
+        setPromptsError(unexpectedPromptResponse());
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setPrompts(null);
+    setPromptsError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+async function loadMorePrompts(
+  current: PromptPageDto,
+  setPrompts: (prompts: PromptPageDto | null) => void,
+  setPromptsError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  if (!current.next_cursor) {
+    return;
+  }
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "list_prompts",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        cursor: current.next_cursor,
+        page_size: TREE_PAGE_SIZE,
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setPromptsError({ category: response.category, message: response.message });
+        return;
+      case "prompt_page":
+        if (response.truncated) {
+          setPromptsError(unexpectedPromptResponse());
+          return;
+        }
+        setPromptsError(null);
+        setPrompts(mergePromptPage(current, asPromptPage(response)));
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "relation_list":
+      case "graph_page":
+      case "search_page":
+      case "context_preview":
+      case "activity_page":
+      case "resource_page":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
+      case "search_inspector":
+      case "recall_benchmark":
+      case "schema_validated":
+      case "shutdown_begun":
+        setPromptsError(unexpectedPromptResponse());
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setPromptsError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+function PromptCatalogPanel({
+  prompts,
+  error,
+  onLoadMore,
+}: {
+  prompts: PromptPageDto | null;
+  error: WorkbenchError | null;
+  onLoadMore: () => void;
+}) {
+  const empty = prompts === null || prompts.entries.length === 0;
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error
+    ? t("promptsErrorTitle")
+    : empty
+      ? t("promptsEmptyTitle")
+      : t("promptsReadyTitle");
+  return (
+    <section
+      className="subpanel"
+      data-state={state}
+      aria-labelledby="prompts-title"
+      role={error ? "alert" : undefined}
+    >
+      <p className="state-badge">{badge}</p>
+      <h3 id="prompts-title">{heading}</h3>
+      <p>
+        {error
+          ? `${errorCategoryLabel(error.category)}：${error.message}`
+          : empty
+            ? t("promptsEmptyBody")
+            : t("promptsReadyBody")}
+      </p>
+      <p>{t("promptsPermalinkNotPath")}</p>
+      <p>{t("promptsNotOfficialMcp")}</p>
+      <p>
+        {t("promptsEngineLabel")}: {t("promptsEngineFalse")}
+      </p>
+      {prompts && prompts.entries.length > 0 ? (
+        <ul className="prompt-list">
+          {prompts.entries.map((entry: PromptEntryDto) => (
+            <li key={entry.identifier}>
+              <span>{entry.identifier}</span>
+              <span>{entry.title}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {prompts?.next_cursor ? (
+        <div className="activity-actions">
+          <button type="button" className="action" onClick={onLoadMore}>
+            {t("promptsLoadMore")}
           </button>
         </div>
       ) : null}
@@ -3016,6 +3546,8 @@ async function applyCrudResponse(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "resource_page":
+      case "prompt_page":
       case "shutdown_begun":
       setError(unexpectedCrudResponse());
       return;
@@ -3345,6 +3877,8 @@ async function persistDraft(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "resource_page":
+      case "prompt_page":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -3424,6 +3958,8 @@ async function reloadDraft(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "resource_page":
+      case "prompt_page":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -3764,6 +4300,8 @@ function ProjectPanel({
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "resource_page":
+      case "prompt_page":
       case "shutdown_begun":
                   setSelectError({
                     category: "schema",
@@ -4089,6 +4627,8 @@ function BackupPanel() {
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "resource_page":
+      case "prompt_page":
       case "shutdown_begun":
             setError(unexpectedBackupResponse());
             setPhase("error");
@@ -4273,6 +4813,8 @@ async function restoreNamedFixture(
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "resource_page":
+      case "prompt_page":
       case "shutdown_begun":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
@@ -4432,6 +4974,8 @@ function WindowsRuntimeCard() {
       case "search_inspector":
       case "recall_benchmark":
       case "schema_validated":
+      case "resource_page":
+      case "prompt_page":
       case "shutdown_begun":
             setError(unexpectedWindowsResponse());
             setPhase("error");

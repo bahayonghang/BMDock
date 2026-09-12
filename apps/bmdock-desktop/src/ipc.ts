@@ -54,6 +54,16 @@ export type SchemaValidateArgs = ExplicitRouteArgs & {
   schema_id?: string;
 };
 
+export type ListResourcesArgs = ExplicitRouteArgs & {
+  cursor?: string;
+  page_size?: number;
+};
+
+export type ListPromptsArgs = ExplicitRouteArgs & {
+  cursor?: string;
+  page_size?: number;
+};
+
 export type PreviewContextArgs = ExplicitRouteArgs & {
   identifier: string;
   query?: string;
@@ -112,6 +122,8 @@ export type IpcCommand =
   | { command: "inspect_search"; args: InspectSearchArgs }
   | { command: "run_recall_benchmark"; args: RecallBenchmarkArgs }
   | { command: "schema_validate"; args: SchemaValidateArgs }
+  | { command: "list_resources"; args: ListResourcesArgs }
+  | { command: "list_prompts"; args: ListPromptsArgs }
   | { command: "preview_context"; args: PreviewContextArgs }
   | { command: "list_activity"; args: ListActivityArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
@@ -428,6 +440,40 @@ export interface ActivityPageDto {
   files_written: boolean;
 }
 
+export interface ResourceEntryDto {
+  identifier: string;
+  title: string;
+}
+
+export interface ResourcePageDto {
+  entries: ResourceEntryDto[];
+  next_cursor: string | null;
+  page: number;
+  truncated: boolean;
+  observation: NoteCrudObservationDto;
+  engine_resources: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  files_written: boolean;
+}
+
+export interface PromptEntryDto {
+  identifier: string;
+  title: string;
+}
+
+export interface PromptPageDto {
+  entries: PromptEntryDto[];
+  next_cursor: string | null;
+  page: number;
+  truncated: boolean;
+  observation: NoteCrudObservationDto;
+  engine_prompts: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  files_written: boolean;
+}
+
 export interface BackupRecordDto {
   id: string;
   kind: typeof OWNED_KIND;
@@ -563,6 +609,8 @@ export type IpcResponse =
   | { kind: "search_inspector" } & SearchInspectorDto
   | { kind: "recall_benchmark" } & RecallBenchmarkDto
   | { kind: "schema_validated" } & SchemaValidateDto
+  | { kind: "resource_page" } & ResourcePageDto
+  | { kind: "prompt_page" } & PromptPageDto
   | { kind: "context_preview" } & ContextPreviewDto
   | { kind: "activity_page" } & ActivityPageDto
   | { kind: "backup_catalog" } & BackupCatalogDto
@@ -612,6 +660,8 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "inspect_search":
     case "run_recall_benchmark":
     case "schema_validate":
+    case "list_resources":
+    case "list_prompts":
     case "preview_context":
     case "list_activity":
     case "list_backups":
@@ -779,6 +829,32 @@ export const schemaValidate = (args: { identifier: string; schema_id?: string })
       project: route.project,
       identifier: args.identifier,
       ...(args.schema_id ? { schema_id: args.schema_id } : {}),
+    },
+  });
+};
+
+export const listResources = (args: { cursor?: string; page_size?: number } = {}) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "resource_page" } & ResourcePageDto>({
+    command: "list_resources",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      ...(args.cursor ? { cursor: args.cursor } : {}),
+      page_size: args.page_size ?? TREE_PAGE_SIZE,
+    },
+  });
+};
+
+export const listPrompts = (args: { cursor?: string; page_size?: number } = {}) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "prompt_page" } & PromptPageDto>({
+    command: "list_prompts",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      ...(args.cursor ? { cursor: args.cursor } : {}),
+      page_size: args.page_size ?? TREE_PAGE_SIZE,
     },
   });
 };

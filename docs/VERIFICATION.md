@@ -420,3 +420,21 @@ zh-CN 工作台「Schema 工作台」区分空态 / 错误 / 就绪，显示 ver
 本机 Windows 本轮命令（2026-09-13）：`python ./.trellis/scripts/task.py validate 09-12-t25-schema-workbench` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 156 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 19 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方 schema MCP / hosted CI 证据；这些仍为 `UNVERIFIED`。
 
 T25 证据与验收映射见 [t25-schema-workbench.json](../execution/evidence/t25-schema-workbench.json)。`execution/status.json` 仅将 T25 标为 `completed`；未改 T05–T24/G0。
+
+## T26：MCP 资源与提示词工作台
+
+T26 在现有 `ipc_invoke` 上增加 typed `list_resources` 与 `list_prompts`（`ExplicitRouteArgs` + 可选 `cursor`/`page_size`，`deny_unknown_fields`）。额外 `path`/`root` 为 schema。`page_size` 0 或大于 64 为 schema。默认 `page_size` 20，上限 64。非 fixture 路由为 policy，且不打开库。capabilities 精确允许列为 28 个命令。typed `list_resources` / `list_prompts` 允许；MCP identity `resources/list` / `resources/read` / `prompts/list` / `prompts/get` 与 `call_tool` 仍拒绝。
+
+目录是 BMDock 自有夹具能力：顶层 `*.md`（排除 `*.prompt.md`）给出资源标识；`*.prompt.md` sidecar 给出提示词模板。不是官方 MCP `resources/list` / `resources/read` / `prompts/list` / `prompts/get`。生产 `EmptyLibrary` 返回空目录 / `classified_as: empty`，不是用户 vault 成功。测试注入 `FixtureLibrary`（`{temp}/bmdock-t26-*`），命中必须对应物理文件。信封文案不是磁盘证明。`engine_resources=false`，`engine_prompts=false`。官方 resources/prompts MCP 仍为 `UNVERIFIED`。未把 `just contract` 当作 T26 证明。
+
+AC33：资源工作台列出从夹具磁盘观察到的 BMDock 自有资源标识（或空目录）。命中匹配物理 Markdown 文件。生产空库不是用户 vault 成功。未把 UI 文案或工具清单当作磁盘证明。
+
+AC34：提示词工作台列出夹具 sidecar 上的 BMDock 自有提示词模板（或空目录）。`engine_prompts=false`。双 profile 仍隔离（21 vs 27），不写入 DTO。
+
+zh-CN 工作台「资源」/「提示词」区分空态 / 错误 / 就绪。无 `dangerouslySetInnerHTML`。不启动 Supervisor。无新 npm 依赖。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T26 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令（2026-09-13）：`python ./.trellis/scripts/task.py validate 09-12-t26-mcp-resources-prompts` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 160 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 20 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方 MCP resources/prompts / hosted CI 证据；这些仍为 `UNVERIFIED`。
+
+T26 证据与验收映射见 [t26-mcp-resources-prompts.json](../execution/evidence/t26-mcp-resources-prompts.json)。`execution/status.json` 仅将 T26 标为 `completed`；未改 T05–T25/G0。

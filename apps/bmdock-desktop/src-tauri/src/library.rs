@@ -81,6 +81,20 @@ pub const ENGINE_SCHEMA_NOT_OWNED: &str =
 pub const OFFICIAL_SCHEMA_MCP_UNVERIFIED: &str =
     "official schema_validate / schema_infer / schema_diff MCP remain UNVERIFIED";
 #[cfg(test)]
+pub const ENGINE_RESOURCES_NOT_OWNED: &str =
+    "list_resources is BMDock-owned fixture markdown identifiers, not official MCP resources/list or resources/read";
+#[cfg(test)]
+pub const ENGINE_PROMPTS_NOT_OWNED: &str =
+    "list_prompts is BMDock-owned fixture prompt sidecar templates, not official MCP prompts/list or prompts/get";
+#[cfg(test)]
+pub const OFFICIAL_RESOURCES_MCP_UNVERIFIED: &str =
+    "official resources/list and resources/read MCP remain UNVERIFIED";
+#[cfg(test)]
+pub const OFFICIAL_PROMPTS_MCP_UNVERIFIED: &str =
+    "official prompts/list and prompts/get MCP remain UNVERIFIED";
+#[cfg(test)]
+pub const PROMPT_SIDECAR_SUFFIX: &str = ".prompt.md";
+#[cfg(test)]
 pub const RECALL_NATIVE_UNVERIFIED: &str =
     "T24 records bounded in-process elapsed_ms only; cargo test / npm build / UI copy are not AC56 native proof";
 #[cfg(test)]
@@ -630,6 +644,85 @@ pub fn empty_activity_page() -> ActivityPageDto {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ResourceEntryDto {
+    pub identifier: String,
+    pub title: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ResourcePageDto {
+    pub entries: Vec<ResourceEntryDto>,
+    pub next_cursor: Option<String>,
+    pub page: u32,
+    pub truncated: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_resources: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub files_written: bool,
+}
+
+pub fn empty_resource_page() -> ResourcePageDto {
+    ResourcePageDto {
+        entries: Vec::new(),
+        next_cursor: None,
+        page: 1,
+        truncated: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_resources: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        files_written: false,
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PromptEntryDto {
+    pub identifier: String,
+    pub title: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PromptPageDto {
+    pub entries: Vec<PromptEntryDto>,
+    pub next_cursor: Option<String>,
+    pub page: u32,
+    pub truncated: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_prompts: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub files_written: bool,
+}
+
+pub fn empty_prompt_page() -> PromptPageDto {
+    PromptPageDto {
+        entries: Vec::new(),
+        next_cursor: None,
+        page: 1,
+        truncated: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_prompts: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        files_written: false,
+    }
+}
+
+#[cfg(test)]
+pub fn is_prompt_sidecar_name(name: &str) -> bool {
+    name.ends_with(PROMPT_SIDECAR_SUFFIX)
+}
+
 #[cfg(test)]
 pub fn preview_snippet(body: &str, query: Option<&str>) -> String {
     let query = query.map(str::trim).filter(|value| !value.is_empty());
@@ -786,6 +879,30 @@ pub trait NoteLibrary: Send + Sync {
             return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
         }
         Ok(empty_activity_page())
+    }
+
+    fn list_resources(
+        &self,
+        cursor: Option<&str>,
+        page_size: u32,
+    ) -> Result<ResourcePageDto, LibraryError> {
+        let _ = bound_page_size(Some(page_size))?;
+        if cursor.is_some() {
+            return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        }
+        Ok(empty_resource_page())
+    }
+
+    fn list_prompts(
+        &self,
+        cursor: Option<&str>,
+        page_size: u32,
+    ) -> Result<PromptPageDto, LibraryError> {
+        let _ = bound_page_size(Some(page_size))?;
+        if cursor.is_some() {
+            return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        }
+        Ok(empty_prompt_page())
     }
 
     fn write_note(
@@ -1107,6 +1224,105 @@ impl FixtureLibrary {
                 .then_with(|| left.identifier.cmp(&right.identifier))
         });
         Ok(entries)
+    }
+
+    fn collect_resource_entries(&self) -> Result<Vec<ResourceEntryDto>, LibraryError> {
+        let reader = fs::read_dir(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_TRUNCATED))?;
+        let mut entries = Vec::new();
+        for item in reader {
+            let item = item.map_err(|_| LibraryError::unsupported(UNSUPPORTED_TRUNCATED))?;
+            let file_type = item
+                .file_type()
+                .map_err(|_| LibraryError::unsupported(UNSUPPORTED_TRUNCATED))?;
+            if file_type.is_symlink() {
+                return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+            }
+            if !file_type.is_file() {
+                continue;
+            }
+            let name = item.file_name();
+            let name = name.to_string_lossy();
+            if is_prompt_sidecar_name(&name) || !name.ends_with(".md") {
+                continue;
+            }
+            let identifier = name.strip_suffix(".md").unwrap_or(&name).to_string();
+            if looks_like_filesystem_path(&identifier) {
+                return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+            }
+            let path = item.path();
+            if !path.is_file() {
+                continue;
+            }
+            let title = fs::read_to_string(&path)
+                .ok()
+                .and_then(|body| title_from_markdown(&body))
+                .unwrap_or_else(|| identifier.clone());
+            entries.push(ResourceEntryDto { identifier, title });
+        }
+        entries.sort_by(|left, right| left.identifier.cmp(&right.identifier));
+        Ok(entries)
+    }
+
+    fn collect_prompt_entries(&self) -> Result<Vec<PromptEntryDto>, LibraryError> {
+        let reader = fs::read_dir(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_TRUNCATED))?;
+        let mut entries = Vec::new();
+        for item in reader {
+            let item = item.map_err(|_| LibraryError::unsupported(UNSUPPORTED_TRUNCATED))?;
+            let file_type = item
+                .file_type()
+                .map_err(|_| LibraryError::unsupported(UNSUPPORTED_TRUNCATED))?;
+            if file_type.is_symlink() {
+                return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+            }
+            if !file_type.is_file() {
+                continue;
+            }
+            let name = item.file_name();
+            let name = name.to_string_lossy();
+            if !is_prompt_sidecar_name(&name) {
+                continue;
+            }
+            let identifier = name
+                .strip_suffix(PROMPT_SIDECAR_SUFFIX)
+                .unwrap_or(&name)
+                .to_string();
+            if looks_like_filesystem_path(&identifier) {
+                return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+            }
+            let path = item.path();
+            if !path.is_file() {
+                continue;
+            }
+            let title = fs::read_to_string(&path)
+                .ok()
+                .and_then(|body| title_from_markdown(&body))
+                .unwrap_or_else(|| identifier.clone());
+            entries.push(PromptEntryDto { identifier, title });
+        }
+        entries.sort_by(|left, right| left.identifier.cmp(&right.identifier));
+        Ok(entries)
+    }
+
+    fn resolve_prompt_sidecar_path(&self, identifier: &str) -> Result<PathBuf, LibraryError> {
+        reject_note_identifier(identifier)?;
+        reject_forbidden_library_root(&self.root)?;
+        if identifier.contains('/')
+            || identifier.contains('\\')
+            || identifier
+                .split('/')
+                .any(|part| part == "." || part == "..")
+        {
+            return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+        }
+        let candidate = self
+            .root
+            .join(format!("{identifier}{PROMPT_SIDECAR_SUFFIX}"));
+        if library_root_is_forbidden(&candidate) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        Ok(candidate)
     }
 }
 
@@ -1549,6 +1765,96 @@ impl NoteLibrary for FixtureLibrary {
         })
     }
 
+    fn list_resources(
+        &self,
+        cursor: Option<&str>,
+        page_size: u32,
+    ) -> Result<ResourcePageDto, LibraryError> {
+        let page_size = bound_page_size(Some(page_size))?;
+        let entries = self.collect_resource_entries()?;
+        let offset = parse_offset(cursor, entries.len())?;
+        let size = page_size as usize;
+        let end = offset.saturating_add(size).min(entries.len());
+        let page_entries = entries[offset..end].to_vec();
+        let next_cursor = if end < entries.len() {
+            Some(end.to_string())
+        } else {
+            None
+        };
+        let page = u32::try_from(offset / size)
+            .map_err(|_| LibraryError::schema(SCHEMA_INVALID_CURSOR))?
+            .saturating_add(1);
+        let (classified, disk_verified) = if page_entries.is_empty() {
+            (NoteCrudClass::Empty, false)
+        } else if page_entries.iter().all(|entry| {
+            !looks_like_filesystem_path(&entry.identifier)
+                && self
+                    .resolve_create_path(&entry.identifier)
+                    .ok()
+                    .is_some_and(|path| path.is_file())
+        }) {
+            (NoteCrudClass::DiskVerified, true)
+        } else {
+            (NoteCrudClass::Empty, false)
+        };
+        Ok(ResourcePageDto {
+            entries: page_entries,
+            next_cursor,
+            page,
+            truncated: false,
+            observation: crud_observation(classified, disk_verified),
+            engine_resources: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            files_written: false,
+        })
+    }
+
+    fn list_prompts(
+        &self,
+        cursor: Option<&str>,
+        page_size: u32,
+    ) -> Result<PromptPageDto, LibraryError> {
+        let page_size = bound_page_size(Some(page_size))?;
+        let entries = self.collect_prompt_entries()?;
+        let offset = parse_offset(cursor, entries.len())?;
+        let size = page_size as usize;
+        let end = offset.saturating_add(size).min(entries.len());
+        let page_entries = entries[offset..end].to_vec();
+        let next_cursor = if end < entries.len() {
+            Some(end.to_string())
+        } else {
+            None
+        };
+        let page = u32::try_from(offset / size)
+            .map_err(|_| LibraryError::schema(SCHEMA_INVALID_CURSOR))?
+            .saturating_add(1);
+        let (classified, disk_verified) = if page_entries.is_empty() {
+            (NoteCrudClass::Empty, false)
+        } else if page_entries.iter().all(|entry| {
+            !looks_like_filesystem_path(&entry.identifier)
+                && self
+                    .resolve_prompt_sidecar_path(&entry.identifier)
+                    .ok()
+                    .is_some_and(|path| path.is_file())
+        }) {
+            (NoteCrudClass::DiskVerified, true)
+        } else {
+            (NoteCrudClass::Empty, false)
+        };
+        Ok(PromptPageDto {
+            entries: page_entries,
+            next_cursor,
+            page,
+            truncated: false,
+            observation: crud_observation(classified, disk_verified),
+            engine_prompts: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            files_written: false,
+        })
+    }
+
     fn write_note(
         &self,
         identifier: &str,
@@ -1867,6 +2173,74 @@ pub fn accept_activity_page(
         return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
     }
     if page.engine_activity {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if page.page == 0 {
+        return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+    }
+    if page.entries.len() > MAX_PAGE_SIZE as usize {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if page
+        .entries
+        .iter()
+        .any(|entry| looks_like_filesystem_path(&entry.identifier))
+    {
+        return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+    }
+    if let Some(next) = page.next_cursor.as_deref() {
+        if next.is_empty() {
+            return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        }
+        if request_cursor == Some(next) {
+            return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        }
+    }
+    Ok(page)
+}
+
+pub fn accept_resource_page(
+    request_cursor: Option<&str>,
+    page: ResourcePageDto,
+) -> Result<ResourcePageDto, LibraryError> {
+    if page.truncated {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if page.engine_resources {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if page.page == 0 {
+        return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+    }
+    if page.entries.len() > MAX_PAGE_SIZE as usize {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if page
+        .entries
+        .iter()
+        .any(|entry| looks_like_filesystem_path(&entry.identifier))
+    {
+        return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+    }
+    if let Some(next) = page.next_cursor.as_deref() {
+        if next.is_empty() {
+            return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        }
+        if request_cursor == Some(next) {
+            return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        }
+    }
+    Ok(page)
+}
+
+pub fn accept_prompt_page(
+    request_cursor: Option<&str>,
+    page: PromptPageDto,
+) -> Result<PromptPageDto, LibraryError> {
+    if page.truncated {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if page.engine_prompts {
         return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
     }
     if page.page == 0 {
@@ -2384,6 +2758,14 @@ mod tests {
             fs::write(&path, format!("# {title}\n\n{body}\n")).unwrap();
             path
         }
+
+        fn write_prompt(&self, identifier: &str, title: &str, body: &str) -> PathBuf {
+            let path = self
+                .dir
+                .join(format!("{identifier}{PROMPT_SIDECAR_SUFFIX}"));
+            fs::write(&path, format!("# {title}\n\n{body}\n")).unwrap();
+            path
+        }
     }
 
     fn set_file_mtime(path: &Path, time: SystemTime) {
@@ -2518,6 +2900,42 @@ mod tests {
                 files_written: false,
             })
         }
+
+        fn list_resources(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<ResourcePageDto, LibraryError> {
+            Ok(ResourcePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: true,
+                observation: crud_observation(NoteCrudClass::Unclassified, false),
+                engine_resources: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+            })
+        }
+
+        fn list_prompts(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<PromptPageDto, LibraryError> {
+            Ok(PromptPageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: true,
+                observation: crud_observation(NoteCrudClass::Unclassified, false),
+                engine_prompts: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+            })
+        }
     }
 
     struct LoopingLibrary;
@@ -2584,6 +3002,48 @@ mod tests {
                 truncated: false,
                 observation: crud_observation(NoteCrudClass::Unclassified, false),
                 engine_activity: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+            })
+        }
+
+        fn list_resources(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<ResourcePageDto, LibraryError> {
+            Ok(ResourcePageDto {
+                entries: vec![ResourceEntryDto {
+                    identifier: "loop".to_owned(),
+                    title: "loop".to_owned(),
+                }],
+                next_cursor: Some("same".to_owned()),
+                page: 1,
+                truncated: false,
+                observation: crud_observation(NoteCrudClass::Unclassified, false),
+                engine_resources: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+            })
+        }
+
+        fn list_prompts(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<PromptPageDto, LibraryError> {
+            Ok(PromptPageDto {
+                entries: vec![PromptEntryDto {
+                    identifier: "loop".to_owned(),
+                    title: "loop".to_owned(),
+                }],
+                next_cursor: Some("same".to_owned()),
+                page: 1,
+                truncated: false,
+                observation: crud_observation(NoteCrudClass::Unclassified, false),
+                engine_prompts: false,
                 scanned_user_obsidian_vault: false,
                 scanned_user_basic_memory_home: false,
                 files_written: false,
@@ -2684,6 +3144,21 @@ mod tests {
         assert!(!activity.truncated);
         assert!(!activity.engine_activity);
         assert_eq!(activity.observation.classified_as, NoteCrudClass::Empty);
+        let resources = library.list_resources(None, DEFAULT_PAGE_SIZE).unwrap();
+        assert!(resources.entries.is_empty());
+        assert_eq!(resources.next_cursor, None);
+        assert!(!resources.truncated);
+        assert!(!resources.engine_resources);
+        assert_eq!(resources.observation.classified_as, NoteCrudClass::Empty);
+        assert!(!resources.observation.disk_verified);
+        assert!(resources.observation.envelope_is_not_disk_proof);
+        let prompts = library.list_prompts(None, DEFAULT_PAGE_SIZE).unwrap();
+        assert!(prompts.entries.is_empty());
+        assert_eq!(prompts.next_cursor, None);
+        assert!(!prompts.truncated);
+        assert!(!prompts.engine_prompts);
+        assert_eq!(prompts.observation.classified_as, NoteCrudClass::Empty);
+        assert!(!prompts.observation.disk_verified);
         let _ = (
             ENGINE_GRAPH_NOT_OWNED,
             ENGINE_SEARCH_NOT_OWNED,
@@ -2695,6 +3170,10 @@ mod tests {
             OFFICIAL_CHINESE_RECALL_UNVERIFIED,
             ENGINE_SCHEMA_NOT_OWNED,
             OFFICIAL_SCHEMA_MCP_UNVERIFIED,
+            ENGINE_RESOURCES_NOT_OWNED,
+            ENGINE_PROMPTS_NOT_OWNED,
+            OFFICIAL_RESOURCES_MCP_UNVERIFIED,
+            OFFICIAL_PROMPTS_MCP_UNVERIFIED,
             ENGINE_CONTEXT_NOT_OWNED,
             ENGINE_ACTIVITY_NOT_OWNED,
             SEMANTIC_SEARCH_UNVERIFIED,
@@ -2725,6 +3204,14 @@ mod tests {
             .list_activity(Some("1"), DEFAULT_PAGE_SIZE)
             .unwrap_err();
         assert_eq!(activity_cursor, LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        let resource_cursor = EmptyLibrary
+            .list_resources(Some("1"), DEFAULT_PAGE_SIZE)
+            .unwrap_err();
+        assert_eq!(resource_cursor, LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        let prompt_cursor = EmptyLibrary
+            .list_prompts(Some("1"), DEFAULT_PAGE_SIZE)
+            .unwrap_err();
+        assert_eq!(prompt_cursor, LibraryError::schema(SCHEMA_INVALID_CURSOR));
         assert_eq!(
             EmptyLibrary
                 .search_notes("", None, DEFAULT_PAGE_SIZE)
@@ -2912,6 +3399,41 @@ mod tests {
         assert_eq!(
             accept_activity_page(Some("same"), looping_activity).unwrap_err(),
             LibraryError::schema(SCHEMA_INVALID_CURSOR)
+        );
+        assert_eq!(
+            accept_resource_page(None, TruncatingLibrary.list_resources(None, 2).unwrap())
+                .unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_TRUNCATED)
+        );
+        let looping_resources = LoopingLibrary.list_resources(Some("same"), 2).unwrap();
+        assert_eq!(
+            accept_resource_page(Some("same"), looping_resources).unwrap_err(),
+            LibraryError::schema(SCHEMA_INVALID_CURSOR)
+        );
+        assert_eq!(
+            accept_prompt_page(None, TruncatingLibrary.list_prompts(None, 2).unwrap()).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_TRUNCATED)
+        );
+        let looping_prompts = LoopingLibrary.list_prompts(Some("same"), 2).unwrap();
+        assert_eq!(
+            accept_prompt_page(Some("same"), looping_prompts).unwrap_err(),
+            LibraryError::schema(SCHEMA_INVALID_CURSOR)
+        );
+        let claimed_resources = ResourcePageDto {
+            engine_resources: true,
+            ..empty_resource_page()
+        };
+        assert_eq!(
+            accept_resource_page(None, claimed_resources).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_TRUNCATED)
+        );
+        let claimed_prompts = PromptPageDto {
+            engine_prompts: true,
+            ..empty_prompt_page()
+        };
+        assert_eq!(
+            accept_prompt_page(None, claimed_prompts).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_TRUNCATED)
         );
     }
 
@@ -3260,6 +3782,106 @@ mod tests {
             .unwrap();
         assert!(empty.entries.is_empty());
         assert_eq!(empty.observation.classified_as, NoteCrudClass::Empty);
+    }
+
+    #[test]
+    fn fixture_resources_and_prompts_match_physical_markdown_sidecars() {
+        let fixture = TempFixture::create();
+        fixture.write_note("alpha", "alpha", "resource body");
+        fixture.write_note("欢迎", "欢迎资源", "中文资源正文");
+        fixture.write_note("welcome", "welcome", "middle resource");
+        fixture.write_prompt("summarize", "摘要模板", "请摘要这篇夹具笔记。");
+        fixture.write_prompt("欢迎", "欢迎提示词", "中文提示词模板。");
+        fixture.write_prompt("outline", "outline", "outline the fixture note");
+        let library = FixtureLibrary::new(fixture.dir.clone());
+        let resources = library.list_resources(None, 2).unwrap();
+        assert_eq!(resources.entries.len(), 2);
+        assert_eq!(resources.entries[0].identifier, "alpha");
+        assert_eq!(resources.entries[1].identifier, "welcome");
+        assert!(!resources.engine_resources);
+        assert!(!resources.truncated);
+        assert_eq!(
+            resources.observation.classified_as,
+            NoteCrudClass::DiskVerified
+        );
+        assert!(resources.observation.disk_verified);
+        assert!(resources.observation.envelope_is_not_disk_proof);
+        for entry in &resources.entries {
+            assert!(!looks_like_filesystem_path(&entry.identifier));
+            assert!(fixture
+                .dir
+                .join(format!("{}.md", entry.identifier))
+                .is_file());
+        }
+        let resource_rest = library
+            .list_resources(resources.next_cursor.as_deref(), 2)
+            .unwrap();
+        assert!(resource_rest
+            .entries
+            .iter()
+            .any(|entry| entry.identifier == "欢迎"));
+        assert!(fixture.dir.join("欢迎.md").is_file());
+        let prompts = library.list_prompts(None, 2).unwrap();
+        assert_eq!(prompts.entries.len(), 2);
+        assert_eq!(prompts.entries[0].identifier, "outline");
+        assert_eq!(prompts.entries[1].identifier, "summarize");
+        assert!(!prompts.engine_prompts);
+        assert!(!prompts.truncated);
+        assert_eq!(
+            prompts.observation.classified_as,
+            NoteCrudClass::DiskVerified
+        );
+        assert!(prompts.observation.disk_verified);
+        assert!(prompts.observation.envelope_is_not_disk_proof);
+        for entry in &prompts.entries {
+            assert!(!looks_like_filesystem_path(&entry.identifier));
+            assert!(fixture
+                .dir
+                .join(format!("{}{PROMPT_SIDECAR_SUFFIX}", entry.identifier))
+                .is_file());
+        }
+        let prompt_rest = library
+            .list_prompts(prompts.next_cursor.as_deref(), 2)
+            .unwrap();
+        assert!(prompt_rest
+            .entries
+            .iter()
+            .any(|entry| entry.identifier == "欢迎"));
+        assert!(fixture
+            .dir
+            .join(format!("欢迎{PROMPT_SIDECAR_SUFFIX}"))
+            .is_file());
+        assert!(!resources
+            .entries
+            .iter()
+            .any(|entry| entry.identifier == "summarize"));
+        assert!(!prompts
+            .entries
+            .iter()
+            .any(|entry| entry.identifier == "welcome"));
+        let missing_root = TempFixture::create();
+        let empty_resources = FixtureLibrary::new(missing_root.dir.clone())
+            .list_resources(None, DEFAULT_PAGE_SIZE)
+            .unwrap();
+        assert!(empty_resources.entries.is_empty());
+        assert_eq!(
+            empty_resources.observation.classified_as,
+            NoteCrudClass::Empty
+        );
+        let empty_prompts = FixtureLibrary::new(missing_root.dir.clone())
+            .list_prompts(None, DEFAULT_PAGE_SIZE)
+            .unwrap();
+        assert!(empty_prompts.entries.is_empty());
+        assert_eq!(
+            empty_prompts.observation.classified_as,
+            NoteCrudClass::Empty
+        );
+        let _ = (
+            ENGINE_RESOURCES_NOT_OWNED,
+            ENGINE_PROMPTS_NOT_OWNED,
+            OFFICIAL_RESOURCES_MCP_UNVERIFIED,
+            OFFICIAL_PROMPTS_MCP_UNVERIFIED,
+        );
     }
 
     #[test]

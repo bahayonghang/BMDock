@@ -6,8 +6,9 @@ use crate::drafts::{self, DraftResultDto, DraftStore};
 use crate::drain::{self, DrainPhase, DrainResultDto, HostDrain};
 use crate::library::{
     self, ActivityPageDto, ContextPreviewDto, GraphPageDto, NoteDeleteDto, NoteEditDto,
-    NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto, RecallBenchmarkDto, RelationListDto,
-    SchemaValidateDto, SearchInspectorDto, SearchPageDto, TreePageDto,
+    NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto, PromptPageDto, RecallBenchmarkDto,
+    RelationListDto, ResourcePageDto, SchemaValidateDto, SearchInspectorDto, SearchPageDto,
+    TreePageDto,
 };
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
@@ -33,6 +34,8 @@ pub enum IpcCommandName {
     InspectSearch,
     RunRecallBenchmark,
     SchemaValidate,
+    ListResources,
+    ListPrompts,
     PreviewContext,
     ListActivity,
     ListBackups,
@@ -63,6 +66,8 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::InspectSearch,
         IpcCommandName::RunRecallBenchmark,
         IpcCommandName::SchemaValidate,
+        IpcCommandName::ListResources,
+        IpcCommandName::ListPrompts,
         IpcCommandName::PreviewContext,
         IpcCommandName::ListActivity,
         IpcCommandName::ListBackups,
@@ -239,6 +244,46 @@ pub struct SchemaValidateArgs {
 }
 
 impl SchemaValidateArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ListResourcesArgs {
+    pub workspace: String,
+    pub project: String,
+    #[serde(default)]
+    pub cursor: Option<String>,
+    #[serde(default)]
+    pub page_size: Option<u32>,
+}
+
+impl ListResourcesArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ListPromptsArgs {
+    pub workspace: String,
+    pub project: String,
+    #[serde(default)]
+    pub cursor: Option<String>,
+    #[serde(default)]
+    pub page_size: Option<u32>,
+}
+
+impl ListPromptsArgs {
     fn route(&self) -> ExplicitRouteArgs {
         ExplicitRouteArgs {
             workspace: self.workspace.clone(),
@@ -432,6 +477,8 @@ pub enum IpcCommand {
     InspectSearch(InspectSearchArgs),
     RunRecallBenchmark(RecallBenchmarkArgs),
     SchemaValidate(SchemaValidateArgs),
+    ListResources(ListResourcesArgs),
+    ListPrompts(ListPromptsArgs),
     PreviewContext(PreviewContextArgs),
     ListActivity(ListActivityArgs),
     ListBackups(ExplicitRouteArgs),
@@ -502,6 +549,8 @@ pub enum IpcResponse {
     SearchInspector(SearchInspectorDto),
     RecallBenchmark(RecallBenchmarkDto),
     SchemaValidated(SchemaValidateDto),
+    ResourcePage(ResourcePageDto),
+    PromptPage(PromptPageDto),
     ContextPreview(ContextPreviewDto),
     ActivityPage(ActivityPageDto),
     BackupCatalog(BackupCatalogDto),
@@ -728,6 +777,22 @@ pub fn dispatch_with_drain(
                 report,
             )?))
         }
+        IpcCommand::ListResources(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            let page_size = library::bound_page_size(args.page_size)?;
+            let cursor = library::validate_request_cursor(args.cursor.as_deref())?;
+            let page = library.list_resources(cursor, page_size)?;
+            let page = library::accept_resource_page(cursor, page)?;
+            Ok(IpcResponse::ResourcePage(page))
+        }
+        IpcCommand::ListPrompts(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            let page_size = library::bound_page_size(args.page_size)?;
+            let cursor = library::validate_request_cursor(args.cursor.as_deref())?;
+            let page = library.list_prompts(cursor, page_size)?;
+            let page = library::accept_prompt_page(cursor, page)?;
+            Ok(IpcResponse::PromptPage(page))
+        }
         IpcCommand::PreviewContext(args) => {
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
@@ -919,6 +984,8 @@ mod tests {
                 IpcCommandName::InspectSearch,
                 IpcCommandName::RunRecallBenchmark,
                 IpcCommandName::SchemaValidate,
+                IpcCommandName::ListResources,
+                IpcCommandName::ListPrompts,
                 IpcCommandName::PreviewContext,
                 IpcCommandName::ListActivity,
                 IpcCommandName::ListBackups,
@@ -933,14 +1000,14 @@ mod tests {
                 IpcCommandName::BeginShutdown,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 26);
+        assert_eq!(capabilities.commands.len(), 28);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 26);
+        assert_eq!(commands.len(), 28);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
@@ -953,6 +1020,8 @@ mod tests {
             .iter()
             .any(|command| command == "run_recall_benchmark"));
         assert!(commands.iter().any(|command| command == "schema_validate"));
+        assert!(commands.iter().any(|command| command == "list_resources"));
+        assert!(commands.iter().any(|command| command == "list_prompts"));
         assert!(commands.iter().any(|command| command == "preview_context"));
         assert!(commands.iter().any(|command| command == "list_activity"));
         assert!(commands.iter().any(|command| command == "list_backups"));
@@ -975,6 +1044,10 @@ mod tests {
         assert!(!commands.iter().any(|command| command == "schema_diff"));
         assert!(!commands.iter().any(|command| command == "recent_activity"));
         assert!(!commands.iter().any(|command| command == "build_context"));
+        assert!(!commands.iter().any(|command| command == "resources/list"));
+        assert!(!commands.iter().any(|command| command == "resources/read"));
+        assert!(!commands.iter().any(|command| command == "prompts/list"));
+        assert!(!commands.iter().any(|command| command == "prompts/get"));
     }
 
     #[test]
@@ -1262,6 +1335,46 @@ mod tests {
             r#"{"command":"schema_validate","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","schema_id":"note"}}"#,
         );
         assert!(well_formed_schema.is_ok());
+        let extra_path_on_resources = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_resources","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_resources.is_err());
+        let extra_root_on_resources = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_resources","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_resources.is_err());
+        let well_formed_resources = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_resources","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","page_size":2}}"#,
+        );
+        assert!(well_formed_resources.is_ok());
+        let extra_path_on_prompts = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_prompts","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_prompts.is_err());
+        let extra_root_on_prompts = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_prompts","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_prompts.is_err());
+        let well_formed_prompts = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_prompts","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","page_size":2}}"#,
+        );
+        assert!(well_formed_prompts.is_ok());
+        let mcp_resources_list = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"resources/list","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(mcp_resources_list.is_err());
+        let mcp_resources_read = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"resources/read","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","uri":"memory://welcome"}}"#,
+        );
+        assert!(mcp_resources_read.is_err());
+        let mcp_prompts_list = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"prompts/list","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(mcp_prompts_list.is_err());
+        let mcp_prompts_get = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"prompts/get","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","name":"summarize"}}"#,
+        );
+        assert!(mcp_prompts_get.is_err());
         let extra_path_on_preview = serde_json::from_str::<IpcCommand>(
             r#"{"command":"preview_context","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","identifier":"welcome","path":"C:\\vault\\note.md"}}"#,
         );
@@ -1774,6 +1887,22 @@ mod tests {
             panic!("policy rejection must not open the library")
         }
 
+        fn list_resources(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::ResourcePageDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
+        fn list_prompts(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::PromptPageDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
         fn write_note(
             &self,
             _identifier: &str,
@@ -1904,6 +2033,50 @@ mod tests {
                 files_written: false,
             })
         }
+
+        fn list_resources(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::ResourcePageDto, library::LibraryError> {
+            Ok(library::ResourcePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: true,
+                observation: library::NoteCrudObservationDto {
+                    classified_as: library::NoteCrudClass::Unclassified,
+                    disk_verified: false,
+                    envelope_is_not_disk_proof: true,
+                },
+                engine_resources: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+            })
+        }
+
+        fn list_prompts(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::PromptPageDto, library::LibraryError> {
+            Ok(library::PromptPageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: true,
+                observation: library::NoteCrudObservationDto {
+                    classified_as: library::NoteCrudClass::Unclassified,
+                    disk_verified: false,
+                    envelope_is_not_disk_proof: true,
+                },
+                engine_prompts: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+            })
+        }
     }
 
     fn idle_snapshot() -> RuntimeSnapshot {
@@ -2006,6 +2179,24 @@ mod tests {
 
     fn fixture_activity_args(cursor: Option<&str>, page_size: Option<u32>) -> ListActivityArgs {
         ListActivityArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            cursor: cursor.map(ToOwned::to_owned),
+            page_size,
+        }
+    }
+
+    fn fixture_resource_args(cursor: Option<&str>, page_size: Option<u32>) -> ListResourcesArgs {
+        ListResourcesArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            cursor: cursor.map(ToOwned::to_owned),
+            page_size,
+        }
+    }
+
+    fn fixture_prompt_args(cursor: Option<&str>, page_size: Option<u32>) -> ListPromptsArgs {
+        ListPromptsArgs {
             workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
             project: FIXTURE_PROJECT.to_owned(),
             cursor: cursor.map(ToOwned::to_owned),
@@ -2329,13 +2520,41 @@ mod tests {
                 cursor: None,
                 page_size: Some(2),
             }),
-            snapshot,
+            snapshot.clone(),
             &mut route,
             &PanicLibrary,
             &backups::EmptyBackupStore,
         )
         .unwrap_err();
         assert_eq!(activity_route.category, ErrorCategory::Policy);
+        let resources_route = dispatch_with_library(
+            IpcCommand::ListResources(ListResourcesArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+                cursor: None,
+                page_size: Some(2),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(resources_route.category, ErrorCategory::Policy);
+        let prompts_route = dispatch_with_library(
+            IpcCommand::ListPrompts(ListPromptsArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+                cursor: None,
+                page_size: Some(2),
+            }),
+            snapshot,
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(prompts_route.category, ErrorCategory::Policy);
         assert_eq!(route.project, None);
     }
 
@@ -2560,6 +2779,81 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(activity_truncated.category, ErrorCategory::Unsupported);
+        let resources_zero = dispatch_with_library(
+            IpcCommand::ListResources(fixture_resource_args(None, Some(0))),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(resources_zero.category, ErrorCategory::Schema);
+        let resources_huge = dispatch_with_library(
+            IpcCommand::ListResources(fixture_resource_args(
+                None,
+                Some(library::MAX_PAGE_SIZE + 1),
+            )),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(resources_huge.category, ErrorCategory::Schema);
+        let resources_empty_cursor = dispatch_with_library(
+            IpcCommand::ListResources(fixture_resource_args(Some(""), Some(2))),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(resources_empty_cursor.category, ErrorCategory::Schema);
+        let resources_truncated = dispatch_with_library(
+            IpcCommand::ListResources(fixture_resource_args(None, Some(2))),
+            idle_snapshot(),
+            &mut route,
+            &TruncatingLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(resources_truncated.category, ErrorCategory::Unsupported);
+        let prompts_zero = dispatch_with_library(
+            IpcCommand::ListPrompts(fixture_prompt_args(None, Some(0))),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(prompts_zero.category, ErrorCategory::Schema);
+        let prompts_huge = dispatch_with_library(
+            IpcCommand::ListPrompts(fixture_prompt_args(None, Some(library::MAX_PAGE_SIZE + 1))),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(prompts_huge.category, ErrorCategory::Schema);
+        let prompts_empty_cursor = dispatch_with_library(
+            IpcCommand::ListPrompts(fixture_prompt_args(Some(""), Some(2))),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(prompts_empty_cursor.category, ErrorCategory::Schema);
+        let prompts_truncated = dispatch_with_library(
+            IpcCommand::ListPrompts(fixture_prompt_args(None, Some(2))),
+            idle_snapshot(),
+            &mut route,
+            &TruncatingLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(prompts_truncated.category, ErrorCategory::Unsupported);
     }
 
     #[test]
@@ -6089,6 +6383,281 @@ mod tests {
         let _ = (
             library::ENGINE_SCHEMA_NOT_OWNED,
             library::OFFICIAL_SCHEMA_MCP_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn list_resources_and_prompts_empty_library_is_empty_not_user_vault() {
+        let mut route = RouteState::default();
+        let IpcResponse::ResourcePage(resources) = dispatch_with_library(
+            IpcCommand::ListResources(fixture_resource_args(
+                None,
+                Some(library::DEFAULT_PAGE_SIZE),
+            )),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(resources.entries.is_empty());
+        assert_eq!(resources.next_cursor, None);
+        assert!(!resources.truncated);
+        assert!(!resources.engine_resources);
+        assert!(!resources.files_written);
+        assert!(!resources.scanned_user_obsidian_vault);
+        assert!(!resources.scanned_user_basic_memory_home);
+        assert_eq!(
+            resources.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        assert!(!resources.observation.disk_verified);
+        assert!(resources.observation.envelope_is_not_disk_proof);
+        let json = serde_json::to_value(&IpcResponse::ResourcePage(resources)).unwrap();
+        assert_eq!(json["kind"], "resource_page");
+        assert_eq!(json["engine_resources"], false);
+        assert!(json.get("path").is_none());
+        assert!(json.get("expected_tools").is_none());
+        let IpcResponse::PromptPage(prompts) = dispatch_with_library(
+            IpcCommand::ListPrompts(fixture_prompt_args(None, Some(library::DEFAULT_PAGE_SIZE))),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(prompts.entries.is_empty());
+        assert_eq!(prompts.next_cursor, None);
+        assert!(!prompts.truncated);
+        assert!(!prompts.engine_prompts);
+        assert!(!prompts.files_written);
+        assert_eq!(
+            prompts.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        let prompt_json = serde_json::to_value(&IpcResponse::PromptPage(prompts)).unwrap();
+        assert_eq!(prompt_json["kind"], "prompt_page");
+        assert_eq!(prompt_json["engine_prompts"], false);
+        let _ = (
+            library::ENGINE_RESOURCES_NOT_OWNED,
+            library::ENGINE_PROMPTS_NOT_OWNED,
+            library::OFFICIAL_RESOURCES_MCP_UNVERIFIED,
+            library::OFFICIAL_PROMPTS_MCP_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn list_resources_and_prompts_fixture_matches_physical_files() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t26-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("alpha.md"), "# alpha\n\nresource body\n").unwrap();
+        std::fs::write(dir.join("welcome.md"), "# welcome\n\nmiddle resource\n").unwrap();
+        std::fs::write(dir.join("欢迎.md"), "# 欢迎资源\n\n中文资源正文\n").unwrap();
+        std::fs::write(
+            dir.join(format!("summarize{}", library::PROMPT_SIDECAR_SUFFIX)),
+            "# 摘要模板\n\n请摘要这篇夹具笔记。\n",
+        )
+        .unwrap();
+        std::fs::write(
+            dir.join(format!("outline{}", library::PROMPT_SIDECAR_SUFFIX)),
+            "# outline\n\noutline the fixture note\n",
+        )
+        .unwrap();
+        std::fs::write(
+            dir.join(format!("欢迎{}", library::PROMPT_SIDECAR_SUFFIX)),
+            "# 欢迎提示词\n\n中文提示词模板。\n",
+        )
+        .unwrap();
+        let library = library::FixtureLibrary::new(dir.clone());
+        let mut route = RouteState::default();
+        let IpcResponse::ResourcePage(resources) = dispatch_with_library(
+            IpcCommand::ListResources(fixture_resource_args(None, Some(2))),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(resources.entries.len(), 2);
+        assert_eq!(resources.entries[0].identifier, "alpha");
+        assert_eq!(resources.entries[1].identifier, "welcome");
+        assert!(!resources.engine_resources);
+        assert!(resources.observation.disk_verified);
+        assert_eq!(
+            resources.observation.classified_as,
+            library::NoteCrudClass::DiskVerified
+        );
+        assert!(resources.observation.envelope_is_not_disk_proof);
+        for entry in &resources.entries {
+            assert!(dir.join(format!("{}.md", entry.identifier)).is_file());
+        }
+        let IpcResponse::ResourcePage(resource_rest) = dispatch_with_library(
+            IpcCommand::ListResources(fixture_resource_args(
+                resources.next_cursor.as_deref(),
+                Some(2),
+            )),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(resource_rest
+            .entries
+            .iter()
+            .any(|entry| entry.identifier == "欢迎"));
+        assert!(dir.join("欢迎.md").is_file());
+        assert!(!resources
+            .entries
+            .iter()
+            .any(|entry| entry.identifier == "summarize"));
+        let json = serde_json::to_value(&IpcResponse::ResourcePage(resources)).unwrap();
+        assert_eq!(json["kind"], "resource_page");
+        assert_eq!(json["engine_resources"], false);
+        assert!(json.get("expected_tools").is_none());
+        let IpcResponse::PromptPage(prompts) = dispatch_with_library(
+            IpcCommand::ListPrompts(fixture_prompt_args(None, Some(2))),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(prompts.entries.len(), 2);
+        assert_eq!(prompts.entries[0].identifier, "outline");
+        assert_eq!(prompts.entries[1].identifier, "summarize");
+        assert!(!prompts.engine_prompts);
+        assert!(prompts.observation.disk_verified);
+        assert_eq!(
+            prompts.observation.classified_as,
+            library::NoteCrudClass::DiskVerified
+        );
+        for entry in &prompts.entries {
+            assert!(dir
+                .join(format!(
+                    "{}{}",
+                    entry.identifier,
+                    library::PROMPT_SIDECAR_SUFFIX
+                ))
+                .is_file());
+        }
+        let IpcResponse::PromptPage(prompt_rest) = dispatch_with_library(
+            IpcCommand::ListPrompts(fixture_prompt_args(prompts.next_cursor.as_deref(), Some(2))),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(prompt_rest
+            .entries
+            .iter()
+            .any(|entry| entry.identifier == "欢迎"));
+        assert!(dir
+            .join(format!("欢迎{}", library::PROMPT_SIDECAR_SUFFIX))
+            .is_file());
+        assert!(!prompts
+            .entries
+            .iter()
+            .any(|entry| entry.identifier == "welcome"));
+        let prompt_json = serde_json::to_value(&IpcResponse::PromptPage(prompts)).unwrap();
+        assert_eq!(prompt_json["kind"], "prompt_page");
+        assert_eq!(prompt_json["engine_prompts"], false);
+        assert!(prompt_json.get("expected_tools").is_none());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn list_resources_and_prompts_do_not_merge_engine_profiles_or_claim_official_mcp() {
+        let release = crate::supervisor::EngineProfile::Release;
+        let preview = crate::supervisor::EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(preview.commit(), "3452c821d76c083823d020984d71e06904a1ff1e");
+        assert_eq!(release.expected_tools(), 21);
+        assert_eq!(preview.expected_tools(), 27);
+        let mut route = RouteState::default();
+        let IpcResponse::ResourcePage(resources) = dispatch_with_library(
+            IpcCommand::ListResources(fixture_resource_args(
+                None,
+                Some(library::DEFAULT_PAGE_SIZE),
+            )),
+            RuntimeSnapshot {
+                state: ConnectionState::Connected,
+                profile: Some(release),
+                child_pid: Some(7),
+                failure: None,
+                shutdown: None,
+            },
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let json = serde_json::to_value(&IpcResponse::ResourcePage(resources)).unwrap();
+        assert!(json.get("expected_tools").is_none());
+        assert!(json.get("profile").is_none());
+        assert!(json.get("tools").is_none());
+        assert_eq!(json["engine_resources"], false);
+        assert_eq!(json["kind"], "resource_page");
+        let claimed_resources = library::ResourcePageDto {
+            engine_resources: true,
+            ..library::empty_resource_page()
+        };
+        assert_eq!(
+            library::accept_resource_page(None, claimed_resources).unwrap_err(),
+            library::LibraryError::unsupported(library::UNSUPPORTED_TRUNCATED)
+        );
+        let IpcResponse::PromptPage(prompts) = dispatch_with_library(
+            IpcCommand::ListPrompts(fixture_prompt_args(None, Some(library::DEFAULT_PAGE_SIZE))),
+            RuntimeSnapshot {
+                state: ConnectionState::Connected,
+                profile: Some(preview),
+                child_pid: Some(9),
+                failure: None,
+                shutdown: None,
+            },
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let prompt_json = serde_json::to_value(&IpcResponse::PromptPage(prompts)).unwrap();
+        assert!(prompt_json.get("expected_tools").is_none());
+        assert!(prompt_json.get("profile").is_none());
+        assert_eq!(prompt_json["engine_prompts"], false);
+        let claimed_prompts = library::PromptPageDto {
+            engine_prompts: true,
+            ..library::empty_prompt_page()
+        };
+        assert_eq!(
+            library::accept_prompt_page(None, claimed_prompts).unwrap_err(),
+            library::LibraryError::unsupported(library::UNSUPPORTED_TRUNCATED)
+        );
+        let _ = (
+            library::ENGINE_RESOURCES_NOT_OWNED,
+            library::ENGINE_PROMPTS_NOT_OWNED,
+            library::OFFICIAL_RESOURCES_MCP_UNVERIFIED,
+            library::OFFICIAL_PROMPTS_MCP_UNVERIFIED,
         );
     }
 }
