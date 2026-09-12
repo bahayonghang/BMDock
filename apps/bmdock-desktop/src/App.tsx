@@ -30,6 +30,11 @@ import {
   type ResourceEntryDto,
   type PromptPageDto,
   type PromptEntryDto,
+  type ToolInspectionDto,
+  type InspectedToolDto,
+  type ToolAdmission,
+  type CliInventoryDto,
+  type CliLeafDto,
   type PreflightDto,
   type ProjectCatalogDto,
   type RestoreResultDto,
@@ -266,6 +271,11 @@ function WorkbenchLibrary({
   const [resourcesError, setResourcesError] = useState<WorkbenchError | null>(null);
   const [prompts, setPrompts] = useState<PromptPageDto | null>(null);
   const [promptsError, setPromptsError] = useState<WorkbenchError | null>(null);
+  const [toolProfile, setToolProfile] = useState<EngineProfile>("release");
+  const [tools, setTools] = useState<ToolInspectionDto | null>(null);
+  const [toolsError, setToolsError] = useState<WorkbenchError | null>(null);
+  const [cli, setCli] = useState<CliInventoryDto | null>(null);
+  const [cliError, setCliError] = useState<WorkbenchError | null>(null);
   const [preview, setPreview] = useState<ContextPreviewDto | null>(null);
   const [previewError, setPreviewError] = useState<WorkbenchError | null>(null);
   const [activity, setActivity] = useState<ActivityPageDto | null>(null);
@@ -298,6 +308,10 @@ function WorkbenchLibrary({
     setResourcesError(null);
     setPrompts(null);
     setPromptsError(null);
+    setTools(null);
+    setToolsError(null);
+    setCli(null);
+    setCliError(null);
     setPreview(null);
     setPreviewError(null);
     setActivity(null);
@@ -335,6 +349,8 @@ function WorkbenchLibrary({
             void loadActivity(setActivity, setActivityError);
             void loadResources(setResources, setResourcesError);
             void loadPrompts(setPrompts, setPromptsError);
+            void loadTools(toolProfile, setTools, setToolsError);
+            void loadCli(toolProfile, setCli, setCliError);
             return;
           case "capabilities":
           case "runtime_state":
@@ -362,6 +378,8 @@ function WorkbenchLibrary({
       case "schema_validated":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "shutdown_begun":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
@@ -560,6 +578,26 @@ function WorkbenchLibrary({
           }
         }}
       />
+      <ToolsCenterPanel
+        profile={toolProfile}
+        tools={tools}
+        error={toolsError}
+        onProfile={(profile) => {
+          setToolProfile(profile);
+          void loadTools(profile, setTools, setToolsError);
+          void loadCli(profile, setCli, setCliError);
+        }}
+      />
+      <CliInventoryPanel
+        profile={toolProfile}
+        cli={cli}
+        error={cliError}
+        onLoadMore={() => {
+          if (cli?.next_cursor) {
+            void loadMoreCli(toolProfile, cli, setCli, setCliError);
+          }
+        }}
+      />
       <ContextPreviewPanel preview={preview} error={previewError} />
       <ActivityPanel
         activity={activity}
@@ -651,6 +689,8 @@ async function openNote(
       case "schema_validated":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "shutdown_begun":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
@@ -727,6 +767,8 @@ async function loadRelations(
       case "schema_validated":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "shutdown_begun":
         setRelations(null);
         setRelationsError({ category: "schema", message: t("unexpectedRelations") });
@@ -836,6 +878,8 @@ async function loadGraph(
       case "schema_validated":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "shutdown_begun":
         setGraph(null);
         setGraphError(unexpectedGraphResponse());
@@ -912,6 +956,8 @@ async function loadMoreGraph(
       case "schema_validated":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "shutdown_begun":
         setGraphError(unexpectedGraphResponse());
         return;
@@ -988,6 +1034,8 @@ async function loadMoreTree(
       case "schema_validated":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "shutdown_begun":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
@@ -1457,6 +1505,8 @@ async function runSearch(
       case "schema_validated":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "shutdown_begun":
         setSearch(null);
         setSearchError(unexpectedSearchResponse());
@@ -1533,6 +1583,8 @@ async function loadMoreSearch(
       case "schema_validated":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "shutdown_begun":
         setSearchError(unexpectedSearchResponse());
         return;
@@ -1733,6 +1785,8 @@ async function runInspectSearch(
       case "schema_validated":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "shutdown_begun":
         setInspector(null);
         setInspectorError(unexpectedInspectorResponse());
@@ -1962,6 +2016,8 @@ async function runRecallBenchmark(
       case "schema_validated":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "shutdown_begun":
         setRecall(null);
         setRecallError(unexpectedRecallResponse());
@@ -2172,6 +2228,8 @@ async function runSchemaValidate(
       case "activity_page":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "backup_catalog":
       case "fixture_restored":
       case "windows_runtime":
@@ -2410,6 +2468,8 @@ async function loadContextPreview(
       case "schema_validated":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "shutdown_begun":
         setPreview(null);
         setPreviewError(unexpectedPreviewResponse());
@@ -2578,6 +2638,8 @@ async function loadActivity(
       case "schema_validated":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "shutdown_begun":
         setActivity(null);
         setActivityError(unexpectedActivityResponse());
@@ -2653,6 +2715,8 @@ async function loadMoreActivity(
       case "schema_validated":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "shutdown_begun":
         setActivityError(unexpectedActivityResponse());
         return;
@@ -2800,6 +2864,8 @@ async function loadResources(
       case "context_preview":
       case "activity_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "backup_catalog":
       case "fixture_restored":
       case "windows_runtime":
@@ -2875,6 +2941,8 @@ async function loadMoreResources(
       case "context_preview":
       case "activity_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "backup_catalog":
       case "fixture_restored":
       case "windows_runtime":
@@ -3035,6 +3103,8 @@ async function loadPrompts(
       case "context_preview":
       case "activity_page":
       case "resource_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "backup_catalog":
       case "fixture_restored":
       case "windows_runtime":
@@ -3110,6 +3180,8 @@ async function loadMorePrompts(
       case "context_preview":
       case "activity_page":
       case "resource_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "backup_catalog":
       case "fixture_restored":
       case "windows_runtime":
@@ -3190,6 +3262,435 @@ function PromptCatalogPanel({
         <div className="activity-actions">
           <button type="button" className="action" onClick={onLoadMore}>
             {t("promptsLoadMore")}
+          </button>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function unexpectedToolsResponse(): WorkbenchError {
+  return { category: "schema", message: t("unexpectedTools") };
+}
+
+function asToolInspection(response: Extract<IpcResponse, { kind: "tool_inspection" }>): ToolInspectionDto {
+  return {
+    profile_id: response.profile_id,
+    expected_tool_count: response.expected_tool_count,
+    tools: response.tools,
+    mixed_profiles: false,
+    observation: response.observation,
+    engine_tools: false,
+    call_tool_allowed: false,
+    scanned_user_obsidian_vault: false,
+    scanned_user_basic_memory_home: false,
+    files_written: false,
+  };
+}
+
+function toolAdmissionLabel(admission: ToolAdmission): string {
+  switch (admission) {
+    case "allowlisted":
+      return t("toolsAdmissionAllowlisted");
+    case "denied":
+      return t("toolsAdmissionDenied");
+    default: {
+      const exhaustive: never = admission;
+      return exhaustive;
+    }
+  }
+}
+
+async function loadTools(
+  profile: EngineProfile,
+  setTools: (tools: ToolInspectionDto | null) => void,
+  setToolsError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "inspect_tools",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        profile_id: profile,
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setTools(null);
+        setToolsError({ category: response.category, message: response.message });
+        return;
+      case "tool_inspection":
+        if (response.mixed_profiles || response.engine_tools || response.call_tool_allowed) {
+          setTools(null);
+          setToolsError(unexpectedToolsResponse());
+          return;
+        }
+        setToolsError(null);
+        setTools(asToolInspection(response));
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "relation_list":
+      case "graph_page":
+      case "search_page":
+      case "context_preview":
+      case "activity_page":
+      case "resource_page":
+      case "prompt_page":
+      case "cli_inventory":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
+      case "search_inspector":
+      case "recall_benchmark":
+      case "schema_validated":
+      case "shutdown_begun":
+        setTools(null);
+        setToolsError(unexpectedToolsResponse());
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setTools(null);
+    setToolsError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+function ToolsCenterPanel({
+  profile,
+  tools,
+  error,
+  onProfile,
+}: {
+  profile: EngineProfile;
+  tools: ToolInspectionDto | null;
+  error: WorkbenchError | null;
+  onProfile: (profile: EngineProfile) => void;
+}) {
+  const empty = tools === null || tools.tools.length === 0;
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error
+    ? t("toolsErrorTitle")
+    : empty
+      ? t("toolsEmptyTitle")
+      : t("toolsReadyTitle");
+  return (
+    <section
+      className="subpanel"
+      data-state={state}
+      aria-labelledby="tools-title"
+      role={error ? "alert" : undefined}
+    >
+      <p className="state-badge">{badge}</p>
+      <h3 id="tools-title">{heading}</h3>
+      <p>
+        {error
+          ? `${errorCategoryLabel(error.category)}：${error.message}`
+          : empty
+            ? t("toolsEmptyBody")
+            : t("toolsReadyBody")}
+      </p>
+      <div className="activity-actions">
+        <label htmlFor="tools-profile">{t("toolsProfileLabel")}</label>
+        <select
+          id="tools-profile"
+          value={profile}
+          onChange={(event) => {
+            const next = event.target.value;
+            if (next === "release" || next === "main-preview") {
+              onProfile(next);
+            }
+          }}
+        >
+          <option value="release">{t("profileRelease")}</option>
+          <option value="main-preview">{t("profileMainPreview")}</option>
+        </select>
+      </div>
+      <p>
+        {t("toolsCountLabel")}: {tools?.expected_tool_count ?? 0}
+      </p>
+      <p>{t("toolsIdentityDistinct")}</p>
+      <p>{t("toolsNotOfficialMcp")}</p>
+      <p>
+        {t("toolsEngineLabel")}: {t("toolsEngineFalse")}
+      </p>
+      {tools && tools.tools.length > 0 ? (
+        <ul className="tool-list">
+          {tools.tools.map((entry: InspectedToolDto) => (
+            <li key={`${entry.identity}:${entry.name}`}>
+              <span>{entry.name}</span>
+              <span>{toolAdmissionLabel(entry.admission)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  );
+}
+
+function unexpectedCliResponse(): WorkbenchError {
+  return { category: "schema", message: t("unexpectedCli") };
+}
+
+function asCliInventory(response: Extract<IpcResponse, { kind: "cli_inventory" }>): CliInventoryDto {
+  return {
+    profile_id: response.profile_id,
+    leaves: response.leaves,
+    next_cursor: response.next_cursor,
+    page: response.page,
+    truncated: response.truncated,
+    observation: response.observation,
+    engine_cli: false,
+    executed: false,
+    mixed_profiles: false,
+    scanned_user_obsidian_vault: false,
+    scanned_user_basic_memory_home: false,
+    files_written: response.files_written,
+  };
+}
+
+function mergeCliInventory(current: CliInventoryDto, next: CliInventoryDto): CliInventoryDto {
+  const leaves = [...current.leaves];
+  for (const leaf of next.leaves) {
+    const key = leaf.path.join("/");
+    if (!leaves.some((existing) => existing.path.join("/") === key)) {
+      leaves.push(leaf);
+    }
+  }
+  return {
+    ...next,
+    leaves,
+  };
+}
+
+async function loadCli(
+  profile: EngineProfile,
+  setCli: (cli: CliInventoryDto | null) => void,
+  setCliError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "list_cli_inventory",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        profile_id: profile,
+        page_size: TREE_PAGE_SIZE,
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setCli(null);
+        setCliError({ category: response.category, message: response.message });
+        return;
+      case "cli_inventory":
+        if (response.truncated || response.executed || response.engine_cli) {
+          setCli(null);
+          setCliError(unexpectedCliResponse());
+          return;
+        }
+        setCliError(null);
+        setCli(asCliInventory(response));
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "relation_list":
+      case "graph_page":
+      case "search_page":
+      case "context_preview":
+      case "activity_page":
+      case "resource_page":
+      case "prompt_page":
+      case "tool_inspection":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
+      case "search_inspector":
+      case "recall_benchmark":
+      case "schema_validated":
+      case "shutdown_begun":
+        setCli(null);
+        setCliError(unexpectedCliResponse());
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setCli(null);
+    setCliError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+async function loadMoreCli(
+  profile: EngineProfile,
+  current: CliInventoryDto,
+  setCli: (cli: CliInventoryDto | null) => void,
+  setCliError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  if (!current.next_cursor) {
+    return;
+  }
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "list_cli_inventory",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        profile_id: profile,
+        cursor: current.next_cursor,
+        page_size: TREE_PAGE_SIZE,
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setCliError({ category: response.category, message: response.message });
+        return;
+      case "cli_inventory":
+        if (response.truncated || response.executed || response.engine_cli) {
+          setCliError(unexpectedCliResponse());
+          return;
+        }
+        setCliError(null);
+        setCli(mergeCliInventory(current, asCliInventory(response)));
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "relation_list":
+      case "graph_page":
+      case "search_page":
+      case "context_preview":
+      case "activity_page":
+      case "resource_page":
+      case "prompt_page":
+      case "tool_inspection":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
+      case "search_inspector":
+      case "recall_benchmark":
+      case "schema_validated":
+      case "shutdown_begun":
+        setCliError(unexpectedCliResponse());
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setCliError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+function CliInventoryPanel({
+  profile,
+  cli,
+  error,
+  onLoadMore,
+}: {
+  profile: EngineProfile;
+  cli: CliInventoryDto | null;
+  error: WorkbenchError | null;
+  onLoadMore: () => void;
+}) {
+  const empty = cli === null || cli.leaves.length === 0;
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error ? t("cliErrorTitle") : empty ? t("cliEmptyTitle") : t("cliReadyTitle");
+  return (
+    <section
+      className="subpanel"
+      data-state={state}
+      aria-labelledby="cli-title"
+      role={error ? "alert" : undefined}
+    >
+      <p className="state-badge">{badge}</p>
+      <h3 id="cli-title">{heading}</h3>
+      <p>
+        {error
+          ? `${errorCategoryLabel(error.category)}：${error.message}`
+          : empty
+            ? t("cliEmptyBody")
+            : t("cliReadyBody")}
+      </p>
+      <p>
+        {t("toolsProfileLabel")}: {profile}
+      </p>
+      <p>{t("cliNotExecuted")}</p>
+      <p>{t("cliLeafNotBucket")}</p>
+      <p>{t("cliNotLive")}</p>
+      <p>
+        {t("cliEngineLabel")}: {t("cliEngineFalse")}
+      </p>
+      {cli && cli.leaves.length > 0 ? (
+        <ul className="cli-list">
+          {cli.leaves.map((entry: CliLeafDto) => (
+            <li key={entry.path.join("/")}>
+              <span>{entry.path.join(" ")}</span>
+              <span>{t("cliNotExecuted")}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {cli?.next_cursor ? (
+        <div className="activity-actions">
+          <button type="button" className="action" onClick={onLoadMore}>
+            {t("cliLoadMore")}
           </button>
         </div>
       ) : null}
@@ -3548,6 +4049,8 @@ async function applyCrudResponse(
       case "schema_validated":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "shutdown_begun":
       setError(unexpectedCrudResponse());
       return;
@@ -3879,6 +4382,8 @@ async function persistDraft(
       case "schema_validated":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -3960,6 +4465,8 @@ async function reloadDraft(
       case "schema_validated":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -4302,6 +4809,8 @@ function ProjectPanel({
       case "schema_validated":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "shutdown_begun":
                   setSelectError({
                     category: "schema",
@@ -4629,6 +5138,8 @@ function BackupPanel() {
       case "schema_validated":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "shutdown_begun":
             setError(unexpectedBackupResponse());
             setPhase("error");
@@ -4815,6 +5326,8 @@ async function restoreNamedFixture(
       case "schema_validated":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "shutdown_begun":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
@@ -4976,6 +5489,8 @@ function WindowsRuntimeCard() {
       case "schema_validated":
       case "resource_page":
       case "prompt_page":
+      case "tool_inspection":
+      case "cli_inventory":
       case "shutdown_begun":
             setError(unexpectedWindowsResponse());
             setPhase("error");

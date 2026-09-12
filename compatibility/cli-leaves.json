@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "purpose": "BMDock-owned named CLI leaf catalog for T27 desktop listing; not live official CLI execution and not the full T01 83/104 gitignored trees",
+  "live_official_cli_execution": false,
+  "engine_cli": false,
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "leaves": [
+        ["bm", "cloud", "login"],
+        ["bm", "mcp"],
+        ["bm", "project", "info"],
+        ["bm", "status"]
+      ]
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "leaves": [
+        ["bm", "cloud", "bisync"],
+        ["bm", "cloud", "login"],
+        ["bm", "mcp"],
+        ["bm", "project", "info"],
+        ["bm", "status"]
+      ]
+    }
+  }
+}

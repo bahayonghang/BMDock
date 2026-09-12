@@ -5,14 +5,14 @@ use crate::conflict::{self, ConflictCoordinator};
 use crate::drafts::{self, DraftResultDto, DraftStore};
 use crate::drain::{self, DrainPhase, DrainResultDto, HostDrain};
 use crate::library::{
-    self, ActivityPageDto, ContextPreviewDto, GraphPageDto, NoteDeleteDto, NoteEditDto,
-    NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto, PromptPageDto, RecallBenchmarkDto,
-    RelationListDto, ResourcePageDto, SchemaValidateDto, SearchInspectorDto, SearchPageDto,
-    TreePageDto,
+    self, ActivityPageDto, CliInventoryDto, ContextPreviewDto, GraphPageDto, NoteDeleteDto,
+    NoteEditDto, NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto, PromptPageDto,
+    RecallBenchmarkDto, RelationListDto, ResourcePageDto, SchemaValidateDto, SearchInspectorDto,
+    SearchPageDto, ToolInspectionDto, TreePageDto,
 };
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
-use crate::supervisor::{FailureKind, RuntimeSnapshot, ShutdownReceipt};
+use crate::supervisor::{EngineProfile, FailureKind, RuntimeSnapshot, ShutdownReceipt};
 use crate::windows_runtime::{self, WindowsRuntimeDto};
 
 pub const FIXTURE_PROJECT: &str = "bmdock-fixture";
@@ -36,6 +36,8 @@ pub enum IpcCommandName {
     SchemaValidate,
     ListResources,
     ListPrompts,
+    InspectTools,
+    ListCliInventory,
     PreviewContext,
     ListActivity,
     ListBackups,
@@ -68,6 +70,8 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::SchemaValidate,
         IpcCommandName::ListResources,
         IpcCommandName::ListPrompts,
+        IpcCommandName::InspectTools,
+        IpcCommandName::ListCliInventory,
         IpcCommandName::PreviewContext,
         IpcCommandName::ListActivity,
         IpcCommandName::ListBackups,
@@ -294,6 +298,44 @@ impl ListPromptsArgs {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
+pub struct InspectToolsArgs {
+    pub workspace: String,
+    pub project: String,
+    pub profile_id: EngineProfile,
+}
+
+impl InspectToolsArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ListCliInventoryArgs {
+    pub workspace: String,
+    pub project: String,
+    pub profile_id: EngineProfile,
+    #[serde(default)]
+    pub cursor: Option<String>,
+    #[serde(default)]
+    pub page_size: Option<u32>,
+}
+
+impl ListCliInventoryArgs {
+    fn route(&self) -> ExplicitRouteArgs {
+        ExplicitRouteArgs {
+            workspace: self.workspace.clone(),
+            project: self.project.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct PreviewContextArgs {
     pub workspace: String,
     pub project: String,
@@ -479,6 +521,8 @@ pub enum IpcCommand {
     SchemaValidate(SchemaValidateArgs),
     ListResources(ListResourcesArgs),
     ListPrompts(ListPromptsArgs),
+    InspectTools(InspectToolsArgs),
+    ListCliInventory(ListCliInventoryArgs),
     PreviewContext(PreviewContextArgs),
     ListActivity(ListActivityArgs),
     ListBackups(ExplicitRouteArgs),
@@ -551,6 +595,8 @@ pub enum IpcResponse {
     SchemaValidated(SchemaValidateDto),
     ResourcePage(ResourcePageDto),
     PromptPage(PromptPageDto),
+    ToolInspection(ToolInspectionDto),
+    CliInventory(CliInventoryDto),
     ContextPreview(ContextPreviewDto),
     ActivityPage(ActivityPageDto),
     BackupCatalog(BackupCatalogDto),
@@ -793,6 +839,21 @@ pub fn dispatch_with_drain(
             let page = library::accept_prompt_page(cursor, page)?;
             Ok(IpcResponse::PromptPage(page))
         }
+        IpcCommand::InspectTools(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            let report = library.inspect_tools(args.profile_id.id())?;
+            Ok(IpcResponse::ToolInspection(
+                library::accept_tool_inspection(report)?,
+            ))
+        }
+        IpcCommand::ListCliInventory(args) => {
+            require_explicit_fixture_route(&args.route())?;
+            let page_size = library::bound_page_size(args.page_size)?;
+            let cursor = library::validate_request_cursor(args.cursor.as_deref())?;
+            let page = library.list_cli_inventory(args.profile_id.id(), cursor, page_size)?;
+            let page = library::accept_cli_inventory(cursor, page)?;
+            Ok(IpcResponse::CliInventory(page))
+        }
         IpcCommand::PreviewContext(args) => {
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
@@ -986,6 +1047,8 @@ mod tests {
                 IpcCommandName::SchemaValidate,
                 IpcCommandName::ListResources,
                 IpcCommandName::ListPrompts,
+                IpcCommandName::InspectTools,
+                IpcCommandName::ListCliInventory,
                 IpcCommandName::PreviewContext,
                 IpcCommandName::ListActivity,
                 IpcCommandName::ListBackups,
@@ -1000,14 +1063,14 @@ mod tests {
                 IpcCommandName::BeginShutdown,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 28);
+        assert_eq!(capabilities.commands.len(), 30);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 28);
+        assert_eq!(commands.len(), 30);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
@@ -1022,6 +1085,10 @@ mod tests {
         assert!(commands.iter().any(|command| command == "schema_validate"));
         assert!(commands.iter().any(|command| command == "list_resources"));
         assert!(commands.iter().any(|command| command == "list_prompts"));
+        assert!(commands.iter().any(|command| command == "inspect_tools"));
+        assert!(commands
+            .iter()
+            .any(|command| command == "list_cli_inventory"));
         assert!(commands.iter().any(|command| command == "preview_context"));
         assert!(commands.iter().any(|command| command == "list_activity"));
         assert!(commands.iter().any(|command| command == "list_backups"));
@@ -1040,6 +1107,8 @@ mod tests {
         assert!(commands.iter().any(|command| command == "list_activity"));
         assert!(!commands.iter().any(|command| command == "call_tool"));
         assert!(!commands.iter().any(|command| command == "search"));
+        assert!(!commands.iter().any(|command| command == "fetch"));
+        assert!(!commands.iter().any(|command| command == "tools/call"));
         assert!(!commands.iter().any(|command| command == "schema_infer"));
         assert!(!commands.iter().any(|command| command == "schema_diff"));
         assert!(!commands.iter().any(|command| command == "recent_activity"));
@@ -1359,6 +1428,50 @@ mod tests {
             r#"{"command":"list_prompts","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","page_size":2}}"#,
         );
         assert!(well_formed_prompts.is_ok());
+        let extra_path_on_inspect_tools = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_tools","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","profile_id":"release","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_inspect_tools.is_err());
+        let extra_root_on_inspect_tools = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_tools","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","profile_id":"release","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_inspect_tools.is_err());
+        let missing_profile_inspect_tools = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_tools","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(missing_profile_inspect_tools.is_err());
+        let mixed_profile_inspect_tools = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_tools","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","profile_id":"mixed"}}"#,
+        );
+        assert!(mixed_profile_inspect_tools.is_err());
+        let inspect_tools_without_route = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_tools","args":{"profile_id":"release"}}"#,
+        );
+        assert!(inspect_tools_without_route.is_err());
+        let well_formed_inspect_tools = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_tools","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","profile_id":"release"}}"#,
+        );
+        assert!(well_formed_inspect_tools.is_ok());
+        let extra_path_on_cli = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_cli_inventory","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","profile_id":"release","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_cli.is_err());
+        let extra_root_on_cli = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_cli_inventory","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","profile_id":"main-preview","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_cli.is_err());
+        let missing_profile_cli = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_cli_inventory","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(missing_profile_cli.is_err());
+        let well_formed_cli = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"list_cli_inventory","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","profile_id":"main-preview","page_size":2}}"#,
+        );
+        assert!(well_formed_cli.is_ok());
+        let mcp_tools_call = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"tools/call","args":{"name":"search"}}"#,
+        );
+        assert!(mcp_tools_call.is_err());
         let mcp_resources_list = serde_json::from_str::<IpcCommand>(
             r#"{"command":"resources/list","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
         );
@@ -1903,6 +2016,22 @@ mod tests {
             panic!("policy rejection must not open the library")
         }
 
+        fn inspect_tools(
+            &self,
+            _profile_id: &str,
+        ) -> Result<library::ToolInspectionDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
+        fn list_cli_inventory(
+            &self,
+            _profile_id: &str,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::CliInventoryDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
         fn write_note(
             &self,
             _identifier: &str,
@@ -2077,6 +2206,32 @@ mod tests {
                 files_written: false,
             })
         }
+
+        fn list_cli_inventory(
+            &self,
+            profile_id: &str,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::CliInventoryDto, library::LibraryError> {
+            Ok(library::CliInventoryDto {
+                profile_id: profile_id.to_owned(),
+                leaves: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: true,
+                observation: library::NoteCrudObservationDto {
+                    classified_as: library::NoteCrudClass::Unclassified,
+                    disk_verified: false,
+                    envelope_is_not_disk_proof: true,
+                },
+                engine_cli: false,
+                executed: false,
+                mixed_profiles: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+            })
+        }
     }
 
     fn idle_snapshot() -> RuntimeSnapshot {
@@ -2199,6 +2354,28 @@ mod tests {
         ListPromptsArgs {
             workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
             project: FIXTURE_PROJECT.to_owned(),
+            cursor: cursor.map(ToOwned::to_owned),
+            page_size,
+        }
+    }
+
+    fn fixture_inspect_tools_args(profile: EngineProfile) -> InspectToolsArgs {
+        InspectToolsArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            profile_id: profile,
+        }
+    }
+
+    fn fixture_cli_args(
+        profile: EngineProfile,
+        cursor: Option<&str>,
+        page_size: Option<u32>,
+    ) -> ListCliInventoryArgs {
+        ListCliInventoryArgs {
+            workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+            project: FIXTURE_PROJECT.to_owned(),
+            profile_id: profile,
             cursor: cursor.map(ToOwned::to_owned),
             page_size,
         }
@@ -2541,6 +2718,34 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(resources_route.category, ErrorCategory::Policy);
+        let inspect_tools_route = dispatch_with_library(
+            IpcCommand::InspectTools(InspectToolsArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+                profile_id: EngineProfile::Release,
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(inspect_tools_route.category, ErrorCategory::Policy);
+        let cli_route = dispatch_with_library(
+            IpcCommand::ListCliInventory(ListCliInventoryArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+                profile_id: EngineProfile::MainPreview,
+                cursor: None,
+                page_size: Some(2),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(cli_route.category, ErrorCategory::Policy);
         let prompts_route = dispatch_with_library(
             IpcCommand::ListPrompts(ListPromptsArgs {
                 workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
@@ -2854,6 +3059,50 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(prompts_truncated.category, ErrorCategory::Unsupported);
+        let cli_zero = dispatch_with_library(
+            IpcCommand::ListCliInventory(fixture_cli_args(EngineProfile::Release, None, Some(0))),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(cli_zero.category, ErrorCategory::Schema);
+        let cli_huge = dispatch_with_library(
+            IpcCommand::ListCliInventory(fixture_cli_args(
+                EngineProfile::Release,
+                None,
+                Some(library::MAX_PAGE_SIZE + 1),
+            )),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(cli_huge.category, ErrorCategory::Schema);
+        let cli_empty_cursor = dispatch_with_library(
+            IpcCommand::ListCliInventory(fixture_cli_args(
+                EngineProfile::Release,
+                Some(""),
+                Some(2),
+            )),
+            idle_snapshot(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(cli_empty_cursor.category, ErrorCategory::Schema);
+        let cli_truncated = dispatch_with_library(
+            IpcCommand::ListCliInventory(fixture_cli_args(EngineProfile::Release, None, Some(2))),
+            idle_snapshot(),
+            &mut route,
+            &TruncatingLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(cli_truncated.category, ErrorCategory::Unsupported);
     }
 
     #[test]
@@ -6658,6 +6907,444 @@ mod tests {
             library::ENGINE_PROMPTS_NOT_OWNED,
             library::OFFICIAL_RESOURCES_MCP_UNVERIFIED,
             library::OFFICIAL_PROMPTS_MCP_UNVERIFIED,
+        );
+    }
+
+    fn write_tool_baseline(dir: &std::path::Path, profile: &str, tools: &[&str]) {
+        let payload = serde_json::json!({
+            "profile_id": profile,
+            "expected_tools": tools,
+        });
+        std::fs::write(
+            dir.join(format!("tools-{profile}.json")),
+            serde_json::to_vec_pretty(&payload).unwrap(),
+        )
+        .unwrap();
+    }
+
+    fn write_cli_leaves(dir: &std::path::Path, profile: &str, leaves: &[Vec<&str>]) {
+        let payload = serde_json::json!({
+            "profile_id": profile,
+            "leaves": leaves,
+        });
+        std::fs::write(
+            dir.join(format!("cli-{profile}.json")),
+            serde_json::to_vec_pretty(&payload).unwrap(),
+        )
+        .unwrap();
+    }
+
+    const RELEASE_TOOLS: &[&str] = &[
+        "basic_memory_diagnostics",
+        "build_context",
+        "create_memory_project",
+        "delete_note",
+        "delete_project",
+        "edit_note",
+        "fetch",
+        "list_directory",
+        "list_memory_projects",
+        "list_workspaces",
+        "move_note",
+        "read_content",
+        "read_note",
+        "recent_activity",
+        "schema_diff",
+        "schema_infer",
+        "schema_validate",
+        "search",
+        "search_notes",
+        "view_note",
+        "write_note",
+    ];
+    const MAIN_PREVIEW_TOOLS: &[&str] = &[
+        "basic_memory_diagnostics",
+        "build_context",
+        "cat",
+        "create_memory_project",
+        "delete_note",
+        "delete_project",
+        "edit_note",
+        "fetch",
+        "find",
+        "grep",
+        "list_directory",
+        "list_memory_projects",
+        "list_workspaces",
+        "ls",
+        "man",
+        "move_note",
+        "read_content",
+        "read_note",
+        "recent_activity",
+        "schema_diff",
+        "schema_infer",
+        "schema_validate",
+        "search",
+        "search_notes",
+        "tail",
+        "view_note",
+        "write_note",
+    ];
+
+    #[test]
+    fn inspect_tools_and_cli_empty_library_is_empty_not_user_vault() {
+        let mut route = RouteState::default();
+        let IpcResponse::ToolInspection(tools) = dispatch_with_library(
+            IpcCommand::InspectTools(fixture_inspect_tools_args(EngineProfile::Release)),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(tools.profile_id, "release");
+        assert_eq!(tools.expected_tool_count, 0);
+        assert!(tools.tools.is_empty());
+        assert!(!tools.engine_tools);
+        assert!(!tools.call_tool_allowed);
+        assert!(!tools.mixed_profiles);
+        assert!(!tools.files_written);
+        assert_eq!(
+            tools.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        assert!(!tools.observation.disk_verified);
+        assert!(tools.observation.envelope_is_not_disk_proof);
+        let json = serde_json::to_value(&IpcResponse::ToolInspection(tools)).unwrap();
+        assert_eq!(json["kind"], "tool_inspection");
+        assert_eq!(json["engine_tools"], false);
+        assert_eq!(json["call_tool_allowed"], false);
+        assert!(json.get("expected_tools").is_none() || json["expected_tool_count"] == 0);
+        let IpcResponse::CliInventory(cli) = dispatch_with_library(
+            IpcCommand::ListCliInventory(fixture_cli_args(
+                EngineProfile::MainPreview,
+                None,
+                Some(library::DEFAULT_PAGE_SIZE),
+            )),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(cli.profile_id, "main-preview");
+        assert!(cli.leaves.is_empty());
+        assert!(!cli.engine_cli);
+        assert!(!cli.executed);
+        assert!(!cli.files_written);
+        assert_eq!(cli.observation.classified_as, library::NoteCrudClass::Empty);
+        let cli_json = serde_json::to_value(&IpcResponse::CliInventory(cli)).unwrap();
+        assert_eq!(cli_json["kind"], "cli_inventory");
+        assert_eq!(cli_json["executed"], false);
+        let _ = (
+            library::ENGINE_TOOLS_NOT_OWNED,
+            library::ENGINE_CLI_NOT_OWNED,
+            library::OFFICIAL_TOOLS_MCP_UNVERIFIED,
+            library::OFFICIAL_CLI_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn inspect_tools_and_cli_fixture_keeps_profiles_and_leaves_isolated() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t27-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        write_tool_baseline(&dir, "release", RELEASE_TOOLS);
+        write_tool_baseline(&dir, "main-preview", MAIN_PREVIEW_TOOLS);
+        write_cli_leaves(
+            &dir,
+            "release",
+            &[
+                vec!["bm", "cloud", "login"],
+                vec!["bm", "mcp"],
+                vec!["bm", "project", "info"],
+                vec!["bm", "status"],
+            ],
+        );
+        write_cli_leaves(
+            &dir,
+            "main-preview",
+            &[
+                vec!["bm", "cloud", "bisync"],
+                vec!["bm", "cloud", "login"],
+                vec!["bm", "mcp"],
+                vec!["bm", "project", "info"],
+                vec!["bm", "status"],
+            ],
+        );
+        let library = library::FixtureLibrary::new(dir.clone());
+        let mut route = RouteState::default();
+        let IpcResponse::ToolInspection(release) = dispatch_with_library(
+            IpcCommand::InspectTools(fixture_inspect_tools_args(EngineProfile::Release)),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(release.profile_id, "release");
+        assert_eq!(release.expected_tool_count, 21);
+        assert_eq!(release.tools.len(), 21);
+        assert!(!release.mixed_profiles);
+        assert!(!release.engine_tools);
+        assert!(!release.call_tool_allowed);
+        assert!(!release.files_written);
+        assert!(release.observation.disk_verified);
+        let search = release
+            .tools
+            .iter()
+            .find(|tool| tool.name == library::SEARCH_IDENTITY)
+            .unwrap();
+        let fetch = release
+            .tools
+            .iter()
+            .find(|tool| tool.name == library::FETCH_IDENTITY)
+            .unwrap();
+        assert_ne!(search.identity, fetch.identity);
+        assert_eq!(search.admission, library::ToolAdmission::Denied);
+        assert_eq!(fetch.admission, library::ToolAdmission::Denied);
+        assert!(!search.live_execution);
+        assert!(release.tools.iter().any(|tool| {
+            tool.name == "read_note" && tool.admission == library::ToolAdmission::Allowlisted
+        }));
+        assert!(release.tools.iter().any(|tool| {
+            tool.name == "schema_infer" && tool.admission == library::ToolAdmission::Denied
+        }));
+        assert!(!release.tools.iter().any(|tool| tool.name == "cat"));
+        assert!(!release
+            .tools
+            .iter()
+            .any(|tool| tool.name == library::CALL_TOOL_IDENTITY
+                && tool.admission != library::ToolAdmission::Denied));
+        let IpcResponse::ToolInspection(preview) = dispatch_with_library(
+            IpcCommand::InspectTools(fixture_inspect_tools_args(EngineProfile::MainPreview)),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(preview.profile_id, "main-preview");
+        assert_eq!(preview.expected_tool_count, 27);
+        assert!(preview
+            .tools
+            .iter()
+            .any(|tool| tool.name == "cat" && tool.admission == library::ToolAdmission::Denied));
+        assert_ne!(release.expected_tool_count, preview.expected_tool_count);
+        write_tool_baseline(
+            &dir,
+            "release",
+            &[
+                "basic_memory_diagnostics",
+                "build_context",
+                "create_memory_project",
+                "delete_note",
+                "delete_project",
+                "edit_note",
+                "fetch",
+                "list_directory",
+                "list_memory_projects",
+                "list_workspaces",
+                "move_note",
+                "read_content",
+                "read_note",
+                "recent_activity",
+                "schema_diff",
+                "schema_infer",
+                "schema_validate",
+                "search",
+                "search_notes",
+                "evil_tool",
+                "write_note",
+            ],
+        );
+        let IpcResponse::ToolInspection(drift) = dispatch_with_library(
+            IpcCommand::InspectTools(fixture_inspect_tools_args(EngineProfile::Release)),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let evil = drift
+            .tools
+            .iter()
+            .find(|tool| tool.name == "evil_tool")
+            .unwrap();
+        assert_eq!(evil.admission, library::ToolAdmission::Denied);
+        write_tool_baseline(
+            &dir,
+            "release",
+            &["read_note", "search", "fetch", "cat", "write_note"],
+        );
+        let mixed = dispatch_with_library(
+            IpcCommand::InspectTools(fixture_inspect_tools_args(EngineProfile::Release)),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(mixed.category, ErrorCategory::Unsupported);
+        let IpcResponse::CliInventory(cli) = dispatch_with_library(
+            IpcCommand::ListCliInventory(fixture_cli_args(EngineProfile::Release, None, Some(2))),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert_eq!(cli.leaves.len(), 2);
+        assert_eq!(
+            cli.leaves[0].path,
+            vec!["bm".to_owned(), "cloud".to_owned(), "login".to_owned()]
+        );
+        assert!(!cli.leaves.iter().any(|leaf| leaf.path == ["cloud"]));
+        assert!(!cli.executed);
+        assert!(cli.leaves.iter().all(|leaf| !leaf.executed));
+        assert!(dir.join("cli-release.json").is_file());
+        let IpcResponse::CliInventory(cli_rest) = dispatch_with_library(
+            IpcCommand::ListCliInventory(fixture_cli_args(
+                EngineProfile::Release,
+                cli.next_cursor.as_deref(),
+                Some(2),
+            )),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(cli_rest
+            .leaves
+            .iter()
+            .any(|leaf| leaf.path == ["bm".to_owned(), "status".to_owned()]));
+        write_cli_leaves(
+            &dir,
+            "release",
+            &[vec!["bm", "cloud"], vec!["bm", "cloud", "login"]],
+        );
+        let bucket = dispatch_with_library(
+            IpcCommand::ListCliInventory(fixture_cli_args(
+                EngineProfile::Release,
+                None,
+                Some(library::DEFAULT_PAGE_SIZE),
+            )),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(bucket.category, ErrorCategory::Unsupported);
+        let claimed = library::ToolInspectionDto {
+            engine_tools: true,
+            ..library::empty_tool_inspection("release")
+        };
+        assert_eq!(
+            library::accept_tool_inspection(claimed).unwrap_err(),
+            library::LibraryError::unsupported(library::UNSUPPORTED_TRUNCATED)
+        );
+        let claimed_cli = library::CliInventoryDto {
+            engine_cli: true,
+            ..library::empty_cli_inventory("release")
+        };
+        assert_eq!(
+            library::accept_cli_inventory(None, claimed_cli).unwrap_err(),
+            library::LibraryError::unsupported(library::UNSUPPORTED_TRUNCATED)
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = (
+            library::ENGINE_TOOLS_NOT_OWNED,
+            library::ENGINE_CLI_NOT_OWNED,
+            library::OFFICIAL_TOOLS_MCP_UNVERIFIED,
+            library::OFFICIAL_CLI_UNVERIFIED,
+        );
+    }
+
+    #[test]
+    fn inspect_tools_and_cli_do_not_merge_engine_profiles_or_launch_supervisor() {
+        let release = EngineProfile::Release;
+        let preview = EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(preview.commit(), "3452c821d76c083823d020984d71e06904a1ff1e");
+        assert_eq!(release.expected_tools(), 21);
+        assert_eq!(preview.expected_tools(), 27);
+        let mut route = RouteState::default();
+        let IpcResponse::ToolInspection(tools) = dispatch_with_library(
+            IpcCommand::InspectTools(fixture_inspect_tools_args(EngineProfile::Release)),
+            RuntimeSnapshot {
+                state: ConnectionState::Connected,
+                profile: Some(preview),
+                child_pid: Some(7),
+                failure: None,
+                shutdown: None,
+            },
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let json = serde_json::to_value(&IpcResponse::ToolInspection(tools)).unwrap();
+        assert_eq!(json["profile_id"], "release");
+        assert_eq!(json["engine_tools"], false);
+        assert_eq!(json["mixed_profiles"], false);
+        assert_eq!(json["kind"], "tool_inspection");
+        assert!(!json["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|tool| tool["name"] == "cat"));
+        let IpcResponse::CliInventory(cli) = dispatch_with_library(
+            IpcCommand::ListCliInventory(fixture_cli_args(
+                EngineProfile::Release,
+                None,
+                Some(library::DEFAULT_PAGE_SIZE),
+            )),
+            RuntimeSnapshot {
+                state: ConnectionState::Connected,
+                profile: Some(preview),
+                child_pid: Some(9),
+                failure: None,
+                shutdown: None,
+            },
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        let cli_json = serde_json::to_value(&IpcResponse::CliInventory(cli)).unwrap();
+        assert_eq!(cli_json["profile_id"], "release");
+        assert_eq!(cli_json["engine_cli"], false);
+        assert_eq!(cli_json["executed"], false);
+        assert!(cli_json.get("expected_tools").is_none());
+        let _ = (
+            library::ENGINE_TOOLS_NOT_OWNED,
+            library::ENGINE_CLI_NOT_OWNED,
+            library::OFFICIAL_TOOLS_MCP_UNVERIFIED,
+            library::OFFICIAL_CLI_UNVERIFIED,
         );
     }
 }

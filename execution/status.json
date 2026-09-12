@@ -30,7 +30,7 @@
 {"id":"T24","title":"中文召回与性能基准","phase":"P4","depends_on":["T20","T21","T23"],"acceptance_ids":["AC26","AC29","AC56"],"status":"completed"},
 {"id":"T25","title":"Schema工作台","phase":"P5","depends_on":["T19","T15"],"acceptance_ids":["AC32"],"status":"completed"},
 {"id":"T26","title":"MCP资源与提示词工作台","phase":"P5","depends_on":["T11","T02"],"acceptance_ids":["AC33","AC34"],"status":"completed"},
-{"id":"T27","title":"受控高级工具与CLI任务中心","phase":"P5","depends_on":["T06","T07","T01"],"acceptance_ids":["AC35","AC36","AC37","AC38","AC58"],"status":"planned"},
+{"id":"T27","title":"受控高级工具与CLI任务中心","phase":"P5","depends_on":["T06","T07","T01"],"acceptance_ids":["AC35","AC36","AC37","AC38","AC58"],"status":"completed"},
 {"id":"T28","title":"导入与日常维护界面","phase":"P5","depends_on":["T27","T12"],"acceptance_ids":["AC39","AC40"],"status":"planned"},
 {"id":"T29","title":"公开API与CLI遗漏审计","phase":"P5","depends_on":["T25","T26","T27","T28"],"acceptance_ids":["AC36","AC41","AC58","AC59"],"status":"planned"},
 {"id":"T30","title":"本地可选extra和文档摄取支持","phase":"P5","depends_on":["T13","T23","T29"],"acceptance_ids":["AC39","AC41"],"status":"planned"},

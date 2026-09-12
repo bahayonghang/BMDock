@@ -1,0 +1,236 @@
+{
+  "task": "T27",
+  "title": "受控高级工具与CLI任务中心",
+  "status": "accepted_with_limits",
+  "date": "2026-09-13",
+  "host_boundary": "T27 adds typed inspect_tools and list_cli_inventory with ExplicitRouteArgs plus required profile_id (release | main-preview). list_cli_inventory also takes optional cursor/page_size. deny_unknown_fields. Extra path/root is schema. Missing or invalid profile_id (including mixed) is schema. Non-fixture routes are policy and do not open the library. inspect_tools is a BMDock-owned comparison of the typed official-tool allowlist against one selected profile static baseline. Mixing or averaging 21 and 27 into one DTO is unsupported. search and fetch stay distinct denied identities. Unknown official tools stay denied and are not auto-allowed. Desktop does not expose call_tool. list_cli_inventory is a BMDock-owned named leaf catalog from committed T01 artifacts (compatibility/cli-leaves.json). It does not spawn engine_worker.py or live CLI. Leaves are path segments; coarse prefix buckets that hide child commands are unsupported. Jobs are catalog-only (executed=false). Production EmptyLibrary is empty, classified_as empty, not user-vault or CLI-success. Tests inject FixtureLibrary over {temp}/bmdock-t27-*. engine_tools=false. engine_cli=false. files_written=false. Dual profiles stay isolated (21 vs 27). T27 does not start Supervisor, add rmcp, or run just contract as proof. just build stays the G0 probe.",
+  "acceptance": {
+    "AC35": {
+      "status": "fixture_static_baseline_comparison",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "compatibility/profiles.json",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "inspect_tools compares the typed allowlist against one selected profile static baseline. Fixture inspect of release is 21 tools; main-preview is 27. Mixing or averaging is unsupported. search and fetch stay distinct denied identities. Unknown names such as evil_tool stay denied. call_tool stays denied. Production EmptyLibrary is empty, not user-vault success. Official MCP tool execution remains UNVERIFIED.",
+      "unverified": [
+        "official MCP tool execution",
+        "official MCP tools/list",
+        "native GUI session",
+        "real user vault"
+      ]
+    },
+    "AC36": {
+      "status": "committed_named_leaf_catalog",
+      "evidence": [
+        "compatibility/cli-leaves.json",
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "list_cli_inventory lists named leaf path segments from committed T01 artifacts, not coarse buckets that hide missing commands. Prefix buckets are unsupported. Jobs are catalog-only (executed=false). Production EmptyLibrary is empty, not user-vault or CLI-success. Live official CLI remains UNVERIFIED. The full T01 83/104 named trees remain UNVERIFIED.",
+      "unverified": [
+        "live official CLI execution",
+        "full T01 83/104 named CLI trees",
+        "engine_worker.py inventory at runtime",
+        "native GUI session",
+        "real user vault"
+      ]
+    },
+    "AC37": {
+      "status": "typed_allowlist_only",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        ".trellis/spec/bmdock-probe/backend/typed-ipc-policy.md",
+        "tests/test_desktop_shell.py"
+      ],
+      "claim": "The tools/CLI center uses only typed allowlisted ipc_invoke commands. Raw callTool, MCP identity search/fetch/tools/call, and arbitrary CLI spawn remain denied at serde/policy. Capabilities list exactly 30 commands. raw_call_tool_allowed=false.",
+      "unverified": [
+        "official MCP callTool",
+        "arbitrary official CLI spawn"
+      ]
+    },
+    "AC38": {
+      "status": "read_only_local_offline",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src/App.tsx"
+      ],
+      "claim": "inspect_tools and list_cli_inventory are read-only. files_written=false. T27 does not start Supervisor, spawn engines, or write files. Dual profiles stay isolated and are not mixed into the DTOs. timeout_unknown stays on RuntimeStateDto, not the IPC error union. Local/offline; no user vault or .work/engines access.",
+      "unverified": [
+        "native GUI session",
+        "live engine lifespan"
+      ]
+    },
+    "AC58": {
+      "status": "fail_closed_drift_visible",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "tests/test_desktop_shell.py"
+      ],
+      "claim": "Unknown tool names and extra MCP methods fail closed as schema/policy/unsupported. Drift is visible as denied vs allowlisted. New tools are not auto-admitted. Mixing 21 and 27 is unsupported. Capabilities do not include call_tool, search, fetch, or tools/call.",
+      "unverified": [
+        "hosted CI fixture-registry mutation",
+        "live upstream engine drift against a running desktop"
+      ]
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t27-controlled-tools-cli-center",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 163 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 21 passed"
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T27 tools/CLI proof. Probe entries remain independent. Official MCP tools and live official CLI remain UNVERIFIED."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window was launched. AC35/AC36/AC37/AC38/AC58 proof is typed catalog comparison, not a native GUI session."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_168_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_desktop_shell": "21_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "typed_command_count": 30,
+    "typed_inspect_tools": "allowed",
+    "typed_list_cli_inventory": "allowed",
+    "raw_call_tool": "absent",
+    "mcp_identity_search": "absent",
+    "mcp_identity_fetch": "absent",
+    "mcp_identity_tools_call": "absent",
+    "dangerouslySetInnerHTML": "absent",
+    "supervisor_started_by_t27": false,
+    "rmcp_live_client": "not_added_in_t27",
+    "engine_tools": false,
+    "engine_cli": false,
+    "timeout_unknown_on_ipc_error_union": false,
+    "official_mcp_tool_execution": "UNVERIFIED",
+    "live_official_cli_execution": "UNVERIFIED",
+    "full_t01_cli_trees_83_104": "UNVERIFIED",
+    "native_gui_session": "UNVERIFIED",
+    "webview2_session": "UNVERIFIED",
+    "installer": "UNVERIFIED",
+    "hosted_ci": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "t28_import_maintenance_ui": "not_implemented",
+    "empty_library_catalogs_are_empty_state": true,
+    "search_and_fetch_stay_distinct_denied": true,
+    "unknown_tools_stay_denied": true,
+    "coarse_cli_prefix_buckets_unsupported": true,
+    "page_size_zero_or_over_64_is_schema": true
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed_unchanged",
+    "T10": "completed_unchanged",
+    "T11": "completed_unchanged",
+    "T12": "completed_unchanged",
+    "T13": "completed_unchanged",
+    "T14": "completed_unchanged",
+    "T15": "completed_unchanged",
+    "T16": "completed_unchanged",
+    "T17": "completed_unchanged",
+    "T18": "completed_unchanged",
+    "T19": "completed_unchanged",
+    "T20": "completed_unchanged",
+    "T21": "completed_unchanged",
+    "T22": "completed_unchanged",
+    "T23": "completed_unchanged",
+    "T24": "completed_unchanged",
+    "T25": "completed_unchanged",
+    "T26": "completed_unchanged",
+    "T27": "completed"
+  },
+  "scope_limits": [
+    "inspect_tools is a BMDock-owned allowlist-vs-baseline comparison, not official MCP tools/list or call_tool.",
+    "list_cli_inventory is a BMDock-owned named leaf catalog from committed artifacts, not live official CLI and not the full T01 83/104 trees.",
+    "Envelope text is not disk proof. Production EmptyLibrary empty catalogs are empty state, not user-vault or CLI-success.",
+    "engine_tools=false. engine_cli=false. executed=false. files_written=false.",
+    "Official MCP tool execution and live official CLI remain UNVERIFIED. Native GUI, WebView2, installer, hosted CI, and real user vaults remain UNVERIFIED.",
+    "IPC error union stays policy/schema/unsupported. Dual profiles stay isolated (21 vs 27).",
+    "just build stays scripts.tasks build. just contract* stay probe. just tauri-dev/tauri-build stay desktop.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "T28-T40 were not implemented."
+  ],
+  "rollback": "Remove inspect_tools and list_cli_inventory from the ipc_invoke union, drop ToolsCenterPanel and CliInventoryPanel, restore the 28-command allowlist, and leave T26 resources/prompts in place. Do not revert T05-T26 status to make unit green."
+}

@@ -438,3 +438,29 @@ zh-CN 工作台「资源」/「提示词」区分空态 / 错误 / 就绪。无 
 本机 Windows 本轮命令（2026-09-13）：`python ./.trellis/scripts/task.py validate 09-12-t26-mcp-resources-prompts` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 160 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 20 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方 MCP resources/prompts / hosted CI 证据；这些仍为 `UNVERIFIED`。
 
 T26 证据与验收映射见 [t26-mcp-resources-prompts.json](../execution/evidence/t26-mcp-resources-prompts.json)。`execution/status.json` 仅将 T26 标为 `completed`；未改 T05–T25/G0。
+
+## T27：受控高级工具与 CLI 任务中心
+
+T27 在现有 `ipc_invoke` 上增加 typed `inspect_tools` 与 `list_cli_inventory`（`ExplicitRouteArgs` + 必填 `profile_id`，后者另有可选 `cursor`/`page_size`，`deny_unknown_fields`）。额外 `path`/`root` 为 schema。缺 `profile_id` 为 schema。非 fixture 路由为 policy，且不打开库。capabilities 精确允许列为 30 个命令。typed `inspect_tools` / `list_cli_inventory` 允许；`call_tool` 与 MCP identity `search` / `fetch` / `tools/call` 仍拒绝。
+
+`inspect_tools` 是 BMDock 自有对照：typed 官方工具允许列 vs **单个** profile 的静态基线。不是官方 MCP `tools/list` 或 `call_tool`。每次只对照一个 profile。把 21 与 27 混合/平均为 unsupported。生产 `EmptyLibrary` 返回空 `tools[]` / `classified_as: empty`，不是用户 vault 成功。测试注入 `FixtureLibrary`（`{temp}/bmdock-t27-*`）。`engine_tools=false`。官方工具执行仍为 `UNVERIFIED`。未把 `just contract` 当作 T27 证明。
+
+`list_cli_inventory` 列出已提交的叶子路径段（`compatibility/cli-leaves.json`），不 spawn `engine_worker.py`，不现场执行官方 CLI。会隐藏子命令的粗分组为 unsupported。任务只展示目录（`executed=false`）。生产空库为空态，不是 CLI 成功。`engine_cli=false`。现场官方 CLI 仍为 `UNVERIFIED`。完整 T01 83/104 命名树仍为 `UNVERIFIED`。
+
+AC35：21 vs 27 保持隔离。`search` 与 `fetch` 保持不同身份且为 denied。桌面不暴露 `call_tool`。未知官方工具列为 denied/unverified，不自动放行。
+
+AC36：CLI 目录是叶子名，不是会隐藏遗漏的粗分组。生产空目录是 empty，不是用户 vault / CLI 成功。现场官方 CLI 仍为 UNVERIFIED。
+
+AC37：工具 / CLI 中心只使用 typed 允许列命令。raw `callTool` / 任意 CLI spawn 仍拒绝。
+
+AC38：只读。`files_written=false`。不启动 Supervisor。本地离线。
+
+AC58：未知工具名与额外 MCP 方法以 schema/policy/unsupported 失败关闭。漂移可见为 denied vs allowlisted。不自动接纳新工具。
+
+zh-CN 工作台「工具」/「CLI 任务中心」区分空态 / 错误 / 就绪。无 `dangerouslySetInnerHTML`。不启动 Supervisor。无新 npm 依赖。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T27 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令（2026-09-13）：`python ./.trellis/scripts/task.py validate 09-12-t27-controlled-tools-cli-center` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 163 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 21 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方 MCP 工具执行 / 现场官方 CLI / hosted CI 证据；这些仍为 `UNVERIFIED`。
+
+T27 证据与验收映射见 [t27-controlled-tools-cli-center.json](../execution/evidence/t27-controlled-tools-cli-center.json)。`execution/status.json` 仅将 T27 标为 `completed`；未改 T05–T26/G0。

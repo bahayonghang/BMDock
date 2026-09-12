@@ -64,6 +64,16 @@ export type ListPromptsArgs = ExplicitRouteArgs & {
   page_size?: number;
 };
 
+export type InspectToolsArgs = ExplicitRouteArgs & {
+  profile_id: EngineProfile;
+};
+
+export type ListCliInventoryArgs = ExplicitRouteArgs & {
+  profile_id: EngineProfile;
+  cursor?: string;
+  page_size?: number;
+};
+
 export type PreviewContextArgs = ExplicitRouteArgs & {
   identifier: string;
   query?: string;
@@ -124,6 +134,8 @@ export type IpcCommand =
   | { command: "schema_validate"; args: SchemaValidateArgs }
   | { command: "list_resources"; args: ListResourcesArgs }
   | { command: "list_prompts"; args: ListPromptsArgs }
+  | { command: "inspect_tools"; args: InspectToolsArgs }
+  | { command: "list_cli_inventory"; args: ListCliInventoryArgs }
   | { command: "preview_context"; args: PreviewContextArgs }
   | { command: "list_activity"; args: ListActivityArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
@@ -474,6 +486,48 @@ export interface PromptPageDto {
   files_written: boolean;
 }
 
+export type ToolAdmission = "allowlisted" | "denied";
+
+export interface InspectedToolDto {
+  name: string;
+  identity: string;
+  admission: ToolAdmission;
+  live_execution: false;
+}
+
+export interface ToolInspectionDto {
+  profile_id: EngineProfile;
+  expected_tool_count: number;
+  tools: InspectedToolDto[];
+  mixed_profiles: false;
+  observation: NoteCrudObservationDto;
+  engine_tools: false;
+  call_tool_allowed: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  files_written: false;
+}
+
+export interface CliLeafDto {
+  path: string[];
+  executed: false;
+}
+
+export interface CliInventoryDto {
+  profile_id: EngineProfile;
+  leaves: CliLeafDto[];
+  next_cursor: string | null;
+  page: number;
+  truncated: boolean;
+  observation: NoteCrudObservationDto;
+  engine_cli: false;
+  executed: false;
+  mixed_profiles: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+  files_written: boolean;
+}
+
 export interface BackupRecordDto {
   id: string;
   kind: typeof OWNED_KIND;
@@ -611,6 +665,8 @@ export type IpcResponse =
   | { kind: "schema_validated" } & SchemaValidateDto
   | { kind: "resource_page" } & ResourcePageDto
   | { kind: "prompt_page" } & PromptPageDto
+  | { kind: "tool_inspection" } & ToolInspectionDto
+  | { kind: "cli_inventory" } & CliInventoryDto
   | { kind: "context_preview" } & ContextPreviewDto
   | { kind: "activity_page" } & ActivityPageDto
   | { kind: "backup_catalog" } & BackupCatalogDto
@@ -662,6 +718,8 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "schema_validate":
     case "list_resources":
     case "list_prompts":
+    case "inspect_tools":
+    case "list_cli_inventory":
     case "preview_context":
     case "list_activity":
     case "list_backups":
@@ -853,6 +911,34 @@ export const listPrompts = (args: { cursor?: string; page_size?: number } = {}) 
     args: {
       workspace: route.workspace,
       project: route.project,
+      ...(args.cursor ? { cursor: args.cursor } : {}),
+      page_size: args.page_size ?? TREE_PAGE_SIZE,
+    },
+  });
+};
+
+export const inspectTools = (profile_id: EngineProfile) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "tool_inspection" } & ToolInspectionDto>({
+    command: "inspect_tools",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      profile_id,
+    },
+  });
+};
+
+export const listCliInventory = (
+  args: { profile_id: EngineProfile; cursor?: string; page_size?: number },
+) => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "cli_inventory" } & CliInventoryDto>({
+    command: "list_cli_inventory",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+      profile_id: args.profile_id,
       ...(args.cursor ? { cursor: args.cursor } : {}),
       page_size: args.page_size ?? TREE_PAGE_SIZE,
     },

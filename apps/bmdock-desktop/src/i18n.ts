@@ -200,6 +200,38 @@ export const messages = {
   promptsEngineLabel: "官方 prompts MCP",
   promptsEngineFalse: "未验证（engine_prompts=false）",
   unexpectedPrompts: "提示词分页响应格式不符合预期",
+  toolsEmptyTitle: "还没有受控工具对照",
+  toolsEmptyBody:
+    "空工具对照表示当前没有可列出的 BMDock 自有基线，也不是已打开用户 vault。生产空库是空态，不是用户 vault 成功。每次只对照一个 profile，不会把 21 与 27 混合。",
+  toolsReadyTitle: "工具",
+  toolsReadyBody:
+    "下列名称对照 typed 允许列与所选 profile 的静态基线。search 与 fetch 保持不同身份。未知官方工具列为拒绝/未验证，不会自动放行。不是 raw call_tool。",
+  toolsErrorTitle: "无法读取受控工具对照",
+  toolsProfileLabel: "对照 profile",
+  toolsCountLabel: "基线工具数",
+  toolsAdmissionAllowlisted: "已列入允许列（allowlisted）",
+  toolsAdmissionDenied: "拒绝/未验证（denied）",
+  toolsIdentityDistinct: "search 与 fetch 是不同身份，不会互相顶替。",
+  toolsNotOfficialMcp:
+    "这不是官方 MCP tools/list 或 call_tool。未加入 rmcp，也未把 just contract 当作本任务证明。",
+  toolsEngineLabel: "官方工具执行",
+  toolsEngineFalse: "未验证（engine_tools=false，live_execution=false）",
+  unexpectedTools: "受控工具对照响应格式不符合预期",
+  cliEmptyTitle: "还没有 CLI 叶子任务",
+  cliEmptyBody:
+    "空 CLI 目录表示当前没有可列出的 BMDock 自有叶子命令，也不是已打开用户 vault 或成功执行官方 CLI。生产空库是空态，不是 CLI 成功。任务只展示目录，不会执行。",
+  cliReadyTitle: "CLI 任务中心",
+  cliReadyBody:
+    "下列路径是叶子命令名，不是会隐藏遗漏的粗分组。目录来自已提交的 T01 清单产物。不会现场执行官方 CLI，也不会 spawn engine_worker。",
+  cliErrorTitle: "无法读取 CLI 叶子目录",
+  cliLoadMore: "加载更多",
+  cliNotExecuted: "任务未执行（executed=false）",
+  cliLeafNotBucket: "叶子路径不是会隐藏子命令的粗分组",
+  cliNotLive:
+    "这不是现场官方 CLI 执行。未加入 rmcp，也未把 just contract 当作本任务证明。",
+  cliEngineLabel: "官方 CLI 执行",
+  cliEngineFalse: "未验证（engine_cli=false）",
+  unexpectedCli: "CLI 叶子目录响应格式不符合预期",
   previewEmptyTitle: "还没有上下文预览",
   previewEmptyBody:
     "空预览表示当前没有可显示的夹具 Markdown 片段，也不是已打开用户 vault。生产空库是空态，不是用户 vault 成功。检索命中预览复用 preview_context，不是第二套索引。",
@@ -470,9 +502,9 @@ export const messages = {
     "native GUI / IME 会话仍为未验证。cargo test 与 npm build 不是原生窗口输入。",
   contentSafetyHelpNotT39: "帮助与无障碍完备性仍属 T39，本任务不关闭。",
   aboutIntro:
-    "这是桌面布局壳加只读预检、显式项目路由、分页目录、笔记预览、观察与关系语义面板、局部图谱渐进展开、夹具全文词法检索、检索 Inspector 与模型状态、中文召回与性能基准、Schema 工作台、MCP 资源与提示词工作台、上下文预览与近期活动、草稿编辑器会话、夹具笔记写入编辑移动删除、同目标冲突与超时未知协调、宿主正常退出排空、夹具备份恢复基线、Windows 运行时原型观察，以及编辑器内容安全与 CRLF 精确字节往返。默认界面语言为简体中文。帮助与无障碍完备性也不在本任务关闭。",
+    "这是桌面布局壳加只读预检、显式项目路由、分页目录、笔记预览、观察与关系语义面板、局部图谱渐进展开、夹具全文词法检索、检索 Inspector 与模型状态、中文召回与性能基准、Schema 工作台、MCP 资源与提示词工作台、受控高级工具与 CLI 任务中心、上下文预览与近期活动、草稿编辑器会话、夹具笔记写入编辑移动删除、同目标冲突与超时未知协调、宿主正常退出排空、夹具备份恢复基线、Windows 运行时原型观察，以及编辑器内容安全与 CRLF 精确字节往返。默认界面语言为简体中文。帮助与无障碍完备性也不在本任务关闭。",
   aboutSafety:
-    "调用 get_capabilities、get_runtime_state、list_projects、run_preflight、discover_config、list_tree、read_note、list_relations、expand_graph、search_notes、inspect_search、run_recall_benchmark、schema_validate、list_resources、list_prompts、preview_context、list_activity、list_backups、restore_fixture、inspect_windows_runtime、save_draft、load_draft、write_note、edit_note、move_note、delete_note 与 begin_shutdown。选择项目仅允许 bmdock-fixture。list_tree、read_note、list_relations、expand_graph、search_notes、inspect_search、run_recall_benchmark、schema_validate、list_resources、list_prompts、preview_context、list_activity、list_backups、restore_fixture、save_draft、load_draft、write_note、edit_note、move_note 与 delete_note 每次都携带显式 workspace 与 project。关系与局部图谱来自夹具 Markdown 的 wiki-link，一次只展开一跳，不是第二套笔记索引，也不是官方引擎图谱。检索是夹具 Markdown 的词法命中，不是官方 search / fetch，也没有嵌入后端。检索 Inspector 解释词法命中与关闭的语义模型状态，不是官方语义。中文召回基准在夹具磁盘 gold 上计算 recall@k，并记录进程内 elapsed_ms；官方引擎中文召回与 native GUI 仍为未验证。Schema 工作台按 BMDock 自有夹具 Markdown/JSON-like frontmatter 校验必填 title/body，不是官方 schema_validate / schema_infer / schema_diff。资源与提示词工作台列出夹具磁盘上的 BMDock 自有标识与 sidecar 模板，不是官方 resources/list / resources/read / prompts/list / prompts/get。上下文预览是夹具 Markdown 的纯文本片段，近期活动是夹具文件 mtime 顺序，都不是官方 recent_activity / build_context。Markdown 与 HTML 以 labeled textarea 和 pre 纯文本往返，不使用 dangerouslySetInnerHTML，也不执行 script 或 onerror。CRLF 按精确字节落盘；行尾丢失不得标为 disk_verified。不会 raw callTool、不会写入用户 vault、不会启动 Supervisor。save_draft 与 write_note 保持区分。超时未知留在运行状态 DTO，不进入 IPC 错误联合体。同目标冲突不是 policy-for-path。begin_shutdown 在未启动时记录空闲排空收据，不是活动引擎寿命，也不会强杀子进程。native GUI / IME 会话未验证。官方 recent_activity / build_context / search / fetch / schema / resources / prompts MCP 仍为未验证。",
+    "调用 get_capabilities、get_runtime_state、list_projects、run_preflight、discover_config、list_tree、read_note、list_relations、expand_graph、search_notes、inspect_search、run_recall_benchmark、schema_validate、list_resources、list_prompts、inspect_tools、list_cli_inventory、preview_context、list_activity、list_backups、restore_fixture、inspect_windows_runtime、save_draft、load_draft、write_note、edit_note、move_note、delete_note 与 begin_shutdown。选择项目仅允许 bmdock-fixture。list_tree、read_note、list_relations、expand_graph、search_notes、inspect_search、run_recall_benchmark、schema_validate、list_resources、list_prompts、inspect_tools、list_cli_inventory、preview_context、list_activity、list_backups、restore_fixture、save_draft、load_draft、write_note、edit_note、move_note 与 delete_note 每次都携带显式 workspace 与 project。关系与局部图谱来自夹具 Markdown 的 wiki-link，一次只展开一跳，不是第二套笔记索引，也不是官方引擎图谱。检索是夹具 Markdown 的词法命中，不是官方 search / fetch，也没有嵌入后端。检索 Inspector 解释词法命中与关闭的语义模型状态，不是官方语义。中文召回基准在夹具磁盘 gold 上计算 recall@k，并记录进程内 elapsed_ms；官方引擎中文召回与 native GUI 仍为未验证。Schema 工作台按 BMDock 自有夹具 Markdown/JSON-like frontmatter 校验必填 title/body，不是官方 schema_validate / schema_infer / schema_diff。资源与提示词工作台列出夹具磁盘上的 BMDock 自有标识与 sidecar 模板，不是官方 resources/list / resources/read / prompts/list / prompts/get。受控工具中心对照 typed 允许列与单个 profile 静态基线，未知工具保持拒绝/未验证，search 与 fetch 保持不同身份，桌面不暴露 call_tool。CLI 任务中心列出叶子命令名，不会执行官方 CLI。上下文预览是夹具 Markdown 的纯文本片段，近期活动是夹具文件 mtime 顺序，都不是官方 recent_activity / build_context。Markdown 与 HTML 以 labeled textarea 和 pre 纯文本往返，不使用 dangerouslySetInnerHTML，也不执行 script 或 onerror。CRLF 按精确字节落盘；行尾丢失不得标为 disk_verified。不会 raw callTool、不会写入用户 vault、不会启动 Supervisor。save_draft 与 write_note 保持区分。超时未知留在运行状态 DTO，不进入 IPC 错误联合体。同目标冲突不是 policy-for-path。begin_shutdown 在未启动时记录空闲排空收据，不是活动引擎寿命，也不会强杀子进程。native GUI / IME 会话未验证。官方 recent_activity / build_context / search / fetch / schema / resources / prompts / tools / CLI MCP 仍为未验证。",
   aboutProfiles:
     "release（c0bd87c6，21 个工具）与 main-preview（3452c821，27 个工具）保持隔离。本界面不把工具清单或 just contract 当作功能验收。",
   aboutCommands:

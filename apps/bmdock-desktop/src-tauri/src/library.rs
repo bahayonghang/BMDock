@@ -93,6 +93,45 @@ pub const OFFICIAL_RESOURCES_MCP_UNVERIFIED: &str =
 pub const OFFICIAL_PROMPTS_MCP_UNVERIFIED: &str =
     "official prompts/list and prompts/get MCP remain UNVERIFIED";
 #[cfg(test)]
+pub const ENGINE_TOOLS_NOT_OWNED: &str =
+    "inspect_tools is a BMDock-owned comparison of the typed allowlist against one selected profile baseline, not live MCP tools/list and not call_tool";
+#[cfg(test)]
+pub const ENGINE_CLI_NOT_OWNED: &str =
+    "list_cli_inventory is a BMDock-owned named leaf catalog from committed T01 artifacts, not live official CLI execution";
+#[cfg(test)]
+pub const OFFICIAL_TOOLS_MCP_UNVERIFIED: &str =
+    "official MCP tool execution remains UNVERIFIED; unknown tools stay denied and are not auto-allowed";
+#[cfg(test)]
+pub const OFFICIAL_CLI_UNVERIFIED: &str =
+    "live official CLI execution remains UNVERIFIED; catalog rows are not executed";
+pub const SCHEMA_PROFILE_ID: &str = "profile_id must be release or main-preview";
+pub const POLICY_FILESYSTEM_PROFILE: &str =
+    "profile_id is release or main-preview, not a user vault filesystem path";
+#[cfg(test)]
+pub const SCHEMA_TOOL_NAME: &str = "tool names must be non-empty identifiers";
+#[cfg(test)]
+pub const SCHEMA_TOOL_BASELINE: &str = "tool baseline JSON is invalid";
+pub const SCHEMA_CLI_LEAF: &str = "CLI leaves must be non-empty path segments";
+pub const UNSUPPORTED_MIXED_PROFILES: &str =
+    "release (21) and main-preview (27) must stay isolated; mixing or averaging is forbidden";
+pub const UNSUPPORTED_CLI_BUCKET: &str =
+    "CLI inventory must list leaf names; coarse buckets that hide missing commands are unsupported";
+#[cfg(test)]
+pub const TYPED_OFFICIAL_TOOL_ALLOWLIST: &[&str] = &[
+    "delete_note",
+    "edit_note",
+    "move_note",
+    "read_note",
+    "schema_validate",
+    "search_notes",
+    "write_note",
+];
+#[cfg(test)]
+pub const MAIN_PREVIEW_ONLY_TOOLS: &[&str] = &["cat", "find", "grep", "ls", "man", "tail"];
+pub const SEARCH_IDENTITY: &str = "search";
+pub const FETCH_IDENTITY: &str = "fetch";
+pub const CALL_TOOL_IDENTITY: &str = "call_tool";
+#[cfg(test)]
 pub const PROMPT_SIDECAR_SUFFIX: &str = ".prompt.md";
 #[cfg(test)]
 pub const RECALL_NATIVE_UNVERIFIED: &str =
@@ -718,6 +757,257 @@ pub fn empty_prompt_page() -> PromptPageDto {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ToolAdmission {
+    Allowlisted,
+    Denied,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct InspectedToolDto {
+    pub name: String,
+    pub identity: String,
+    pub admission: ToolAdmission,
+    pub live_execution: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ToolInspectionDto {
+    pub profile_id: String,
+    pub expected_tool_count: u32,
+    pub tools: Vec<InspectedToolDto>,
+    pub mixed_profiles: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_tools: bool,
+    pub call_tool_allowed: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub files_written: bool,
+}
+
+pub fn empty_tool_inspection(profile_id: &str) -> ToolInspectionDto {
+    ToolInspectionDto {
+        profile_id: profile_id.to_owned(),
+        expected_tool_count: 0,
+        tools: Vec::new(),
+        mixed_profiles: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_tools: false,
+        call_tool_allowed: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        files_written: false,
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CliLeafDto {
+    pub path: Vec<String>,
+    pub executed: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CliInventoryDto {
+    pub profile_id: String,
+    pub leaves: Vec<CliLeafDto>,
+    pub next_cursor: Option<String>,
+    pub page: u32,
+    pub truncated: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_cli: bool,
+    pub executed: bool,
+    pub mixed_profiles: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub files_written: bool,
+}
+
+pub fn empty_cli_inventory(profile_id: &str) -> CliInventoryDto {
+    CliInventoryDto {
+        profile_id: profile_id.to_owned(),
+        leaves: Vec::new(),
+        next_cursor: None,
+        page: 1,
+        truncated: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_cli: false,
+        executed: false,
+        mixed_profiles: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        files_written: false,
+    }
+}
+
+pub fn parse_profile_id(value: &str) -> Result<&'static str, LibraryError> {
+    if looks_like_filesystem_path(value) {
+        return Err(LibraryError::policy(POLICY_FILESYSTEM_PROFILE));
+    }
+    match value {
+        "release" => Ok("release"),
+        "main-preview" => Ok("main-preview"),
+        _ => Err(LibraryError::schema(SCHEMA_PROFILE_ID)),
+    }
+}
+
+#[cfg(test)]
+pub fn tool_admission(name: &str) -> ToolAdmission {
+    if name == SEARCH_IDENTITY || name == FETCH_IDENTITY || name == CALL_TOOL_IDENTITY {
+        return ToolAdmission::Denied;
+    }
+    if TYPED_OFFICIAL_TOOL_ALLOWLIST.contains(&name) {
+        ToolAdmission::Allowlisted
+    } else {
+        ToolAdmission::Denied
+    }
+}
+
+#[cfg(test)]
+pub fn inspect_tools_from_names(
+    profile_id: &str,
+    expected_tools: &[String],
+    classified: NoteCrudClass,
+    disk_verified: bool,
+) -> Result<ToolInspectionDto, LibraryError> {
+    let profile_id = parse_profile_id(profile_id)?;
+    if expected_tools.len() >= 48 {
+        return Err(LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES));
+    }
+    let mut seen: Vec<&str> = Vec::new();
+    for name in expected_tools {
+        if name.is_empty() {
+            return Err(LibraryError::schema(SCHEMA_TOOL_NAME));
+        }
+        if looks_like_filesystem_path(name) {
+            return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+        }
+        if seen.contains(&name.as_str()) {
+            return Err(LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES));
+        }
+        seen.push(name);
+    }
+    let has_preview_only = expected_tools
+        .iter()
+        .any(|name| MAIN_PREVIEW_ONLY_TOOLS.contains(&name.as_str()));
+    if profile_id == "release" && has_preview_only {
+        return Err(LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES));
+    }
+    let tools = expected_tools
+        .iter()
+        .map(|name| InspectedToolDto {
+            name: name.clone(),
+            identity: name.clone(),
+            admission: tool_admission(name),
+            live_execution: false,
+        })
+        .collect::<Vec<_>>();
+    let expected_tool_count = u32::try_from(tools.len())
+        .map_err(|_| LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES))?;
+    Ok(ToolInspectionDto {
+        profile_id: profile_id.to_owned(),
+        expected_tool_count,
+        tools,
+        mixed_profiles: false,
+        observation: NoteCrudObservationDto {
+            classified_as: classified,
+            disk_verified,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_tools: false,
+        call_tool_allowed: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        files_written: false,
+    })
+}
+
+pub fn reject_coarse_cli_leaves(leaves: &[Vec<String>]) -> Result<(), LibraryError> {
+    for (index, leaf) in leaves.iter().enumerate() {
+        if leaf.is_empty() || leaf.iter().any(|part| part.is_empty()) {
+            return Err(LibraryError::schema(SCHEMA_CLI_LEAF));
+        }
+        if leaf
+            .iter()
+            .any(|part| looks_like_filesystem_path(part) || part.contains('/'))
+        {
+            return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+        }
+        for (other_index, other) in leaves.iter().enumerate() {
+            if index == other_index {
+                continue;
+            }
+            if other.len() > leaf.len() && other.starts_with(leaf.as_slice()) {
+                return Err(LibraryError::unsupported(UNSUPPORTED_CLI_BUCKET));
+            }
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+pub fn cli_inventory_from_leaves(
+    profile_id: &str,
+    leaves: Vec<Vec<String>>,
+    cursor: Option<&str>,
+    page_size: u32,
+    classified: NoteCrudClass,
+    disk_verified: bool,
+) -> Result<CliInventoryDto, LibraryError> {
+    let profile_id = parse_profile_id(profile_id)?;
+    let page_size = bound_page_size(Some(page_size))?;
+    reject_coarse_cli_leaves(&leaves)?;
+    let offset = parse_offset(cursor, leaves.len())?;
+    let size = page_size as usize;
+    let end = offset.saturating_add(size).min(leaves.len());
+    let page_leaves = leaves[offset..end]
+        .iter()
+        .map(|path| CliLeafDto {
+            path: path.clone(),
+            executed: false,
+        })
+        .collect::<Vec<_>>();
+    let next_cursor = if end < leaves.len() {
+        Some(end.to_string())
+    } else {
+        None
+    };
+    let page = u32::try_from(offset / size)
+        .map_err(|_| LibraryError::schema(SCHEMA_INVALID_CURSOR))?
+        .saturating_add(1);
+    let (classified, disk_verified) = if page_leaves.is_empty() {
+        (NoteCrudClass::Empty, false)
+    } else {
+        (classified, disk_verified)
+    };
+    Ok(CliInventoryDto {
+        profile_id: profile_id.to_owned(),
+        leaves: page_leaves,
+        next_cursor,
+        page,
+        truncated: false,
+        observation: NoteCrudObservationDto {
+            classified_as: classified,
+            disk_verified,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_cli: false,
+        executed: false,
+        mixed_profiles: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        files_written: false,
+    })
+}
+
 #[cfg(test)]
 pub fn is_prompt_sidecar_name(name: &str) -> bool {
     name.ends_with(PROMPT_SIDECAR_SUFFIX)
@@ -905,6 +1195,25 @@ pub trait NoteLibrary: Send + Sync {
         Ok(empty_prompt_page())
     }
 
+    fn inspect_tools(&self, profile_id: &str) -> Result<ToolInspectionDto, LibraryError> {
+        let profile_id = parse_profile_id(profile_id)?;
+        Ok(empty_tool_inspection(profile_id))
+    }
+
+    fn list_cli_inventory(
+        &self,
+        profile_id: &str,
+        cursor: Option<&str>,
+        page_size: u32,
+    ) -> Result<CliInventoryDto, LibraryError> {
+        let profile_id = parse_profile_id(profile_id)?;
+        let _ = bound_page_size(Some(page_size))?;
+        if cursor.is_some() {
+            return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        }
+        Ok(empty_cli_inventory(profile_id))
+    }
+
     fn write_note(
         &self,
         identifier: &str,
@@ -991,6 +1300,20 @@ impl NoteLibrary for EmptyLibrary {
         reject_note_identifier(identifier)?;
         Err(LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))
     }
+}
+
+#[cfg(test)]
+#[derive(Debug, Deserialize)]
+struct ToolBaselineFile {
+    profile_id: String,
+    expected_tools: Vec<String>,
+}
+
+#[cfg(test)]
+#[derive(Debug, Deserialize)]
+struct CliLeafFile {
+    profile_id: String,
+    leaves: Vec<Vec<String>>,
 }
 
 #[cfg(test)]
@@ -1303,6 +1626,47 @@ impl FixtureLibrary {
         }
         entries.sort_by(|left, right| left.identifier.cmp(&right.identifier));
         Ok(entries)
+    }
+
+    fn read_tool_baseline(
+        &self,
+        profile_id: &str,
+    ) -> Result<Option<(String, Vec<String>)>, LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        let path = self.root.join(format!("tools-{profile_id}.json"));
+        if !path.is_file() {
+            return Ok(None);
+        }
+        if library_root_is_forbidden(&path) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        let text = fs::read_to_string(&path)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let parsed: ToolBaselineFile =
+            serde_json::from_str(&text).map_err(|_| LibraryError::schema(SCHEMA_TOOL_BASELINE))?;
+        if parsed.profile_id != profile_id {
+            return Err(LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES));
+        }
+        Ok(Some((parsed.profile_id, parsed.expected_tools)))
+    }
+
+    fn read_cli_leaves(&self, profile_id: &str) -> Result<Option<Vec<Vec<String>>>, LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        let path = self.root.join(format!("cli-{profile_id}.json"));
+        if !path.is_file() {
+            return Ok(None);
+        }
+        if library_root_is_forbidden(&path) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        let text = fs::read_to_string(&path)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let parsed: CliLeafFile =
+            serde_json::from_str(&text).map_err(|_| LibraryError::schema(SCHEMA_CLI_LEAF))?;
+        if parsed.profile_id != profile_id {
+            return Err(LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES));
+        }
+        Ok(Some(parsed.leaves))
     }
 
     fn resolve_prompt_sidecar_path(&self, identifier: &str) -> Result<PathBuf, LibraryError> {
@@ -1855,6 +2219,42 @@ impl NoteLibrary for FixtureLibrary {
         })
     }
 
+    fn inspect_tools(&self, profile_id: &str) -> Result<ToolInspectionDto, LibraryError> {
+        let profile_id = parse_profile_id(profile_id)?;
+        match self.read_tool_baseline(profile_id)? {
+            None => Ok(empty_tool_inspection(profile_id)),
+            Some((_, names)) => {
+                inspect_tools_from_names(profile_id, &names, NoteCrudClass::DiskVerified, true)
+            }
+        }
+    }
+
+    fn list_cli_inventory(
+        &self,
+        profile_id: &str,
+        cursor: Option<&str>,
+        page_size: u32,
+    ) -> Result<CliInventoryDto, LibraryError> {
+        let profile_id = parse_profile_id(profile_id)?;
+        let page_size = bound_page_size(Some(page_size))?;
+        match self.read_cli_leaves(profile_id)? {
+            None => {
+                if cursor.is_some() {
+                    return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+                }
+                Ok(empty_cli_inventory(profile_id))
+            }
+            Some(leaves) => cli_inventory_from_leaves(
+                profile_id,
+                leaves,
+                cursor,
+                page_size,
+                NoteCrudClass::DiskVerified,
+                true,
+            ),
+        }
+    }
+
     fn write_note(
         &self,
         identifier: &str,
@@ -2255,6 +2655,91 @@ pub fn accept_prompt_page(
         .any(|entry| looks_like_filesystem_path(&entry.identifier))
     {
         return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+    }
+    if let Some(next) = page.next_cursor.as_deref() {
+        if next.is_empty() {
+            return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        }
+        if request_cursor == Some(next) {
+            return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        }
+    }
+    Ok(page)
+}
+
+pub fn accept_tool_inspection(
+    report: ToolInspectionDto,
+) -> Result<ToolInspectionDto, LibraryError> {
+    parse_profile_id(&report.profile_id)?;
+    if report.engine_tools
+        || report.mixed_profiles
+        || report.files_written
+        || report.call_tool_allowed
+        || report.tools.iter().any(|tool| tool.live_execution)
+    {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if report.tools.len() >= 48 {
+        return Err(LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES));
+    }
+    if report.expected_tool_count as usize != report.tools.len() {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if report.tools.iter().any(|tool| {
+        looks_like_filesystem_path(&tool.name) || looks_like_filesystem_path(&tool.identity)
+    }) {
+        return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+    }
+    if report
+        .tools
+        .iter()
+        .any(|tool| tool.name == CALL_TOOL_IDENTITY && tool.admission != ToolAdmission::Denied)
+    {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    let search = report
+        .tools
+        .iter()
+        .find(|tool| tool.name == SEARCH_IDENTITY);
+    let fetch = report.tools.iter().find(|tool| tool.name == FETCH_IDENTITY);
+    if let (Some(search), Some(fetch)) = (search, fetch) {
+        if search.identity == fetch.identity {
+            return Err(LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES));
+        }
+        if search.admission != ToolAdmission::Denied || fetch.admission != ToolAdmission::Denied {
+            return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+        }
+    }
+    Ok(report)
+}
+
+pub fn accept_cli_inventory(
+    request_cursor: Option<&str>,
+    page: CliInventoryDto,
+) -> Result<CliInventoryDto, LibraryError> {
+    parse_profile_id(&page.profile_id)?;
+    if page.truncated
+        || page.engine_cli
+        || page.executed
+        || page.mixed_profiles
+        || page.files_written
+    {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if page.page == 0 {
+        return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+    }
+    if page.leaves.len() > MAX_PAGE_SIZE as usize {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    let paths = page
+        .leaves
+        .iter()
+        .map(|leaf| leaf.path.clone())
+        .collect::<Vec<_>>();
+    reject_coarse_cli_leaves(&paths)?;
+    if page.leaves.iter().any(|leaf| leaf.executed) {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
     }
     if let Some(next) = page.next_cursor.as_deref() {
         if next.is_empty() {
@@ -2936,6 +3421,28 @@ mod tests {
                 files_written: false,
             })
         }
+
+        fn list_cli_inventory(
+            &self,
+            profile_id: &str,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<CliInventoryDto, LibraryError> {
+            Ok(CliInventoryDto {
+                profile_id: profile_id.to_owned(),
+                leaves: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: true,
+                observation: crud_observation(NoteCrudClass::Unclassified, false),
+                engine_cli: false,
+                executed: false,
+                mixed_profiles: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+            })
+        }
     }
 
     struct LoopingLibrary;
@@ -3044,6 +3551,31 @@ mod tests {
                 truncated: false,
                 observation: crud_observation(NoteCrudClass::Unclassified, false),
                 engine_prompts: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+            })
+        }
+
+        fn list_cli_inventory(
+            &self,
+            profile_id: &str,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<CliInventoryDto, LibraryError> {
+            Ok(CliInventoryDto {
+                profile_id: profile_id.to_owned(),
+                leaves: vec![CliLeafDto {
+                    path: vec!["bm".to_owned(), "mcp".to_owned()],
+                    executed: false,
+                }],
+                next_cursor: Some("same".to_owned()),
+                page: 1,
+                truncated: false,
+                observation: crud_observation(NoteCrudClass::Unclassified, false),
+                engine_cli: false,
+                executed: false,
+                mixed_profiles: false,
                 scanned_user_obsidian_vault: false,
                 scanned_user_basic_memory_home: false,
                 files_written: false,
@@ -3159,6 +3691,38 @@ mod tests {
         assert!(!prompts.engine_prompts);
         assert_eq!(prompts.observation.classified_as, NoteCrudClass::Empty);
         assert!(!prompts.observation.disk_verified);
+        let tools = library.inspect_tools("release").unwrap();
+        assert!(tools.tools.is_empty());
+        assert_eq!(tools.expected_tool_count, 0);
+        assert_eq!(tools.profile_id, "release");
+        assert!(!tools.engine_tools);
+        assert!(!tools.call_tool_allowed);
+        assert!(!tools.mixed_profiles);
+        assert!(!tools.files_written);
+        assert_eq!(tools.observation.classified_as, NoteCrudClass::Empty);
+        let preview_tools = library.inspect_tools("main-preview").unwrap();
+        assert!(preview_tools.tools.is_empty());
+        assert_eq!(preview_tools.profile_id, "main-preview");
+        assert_eq!(preview_tools.expected_tool_count, 0);
+        assert_eq!(
+            library.inspect_tools("mixed").unwrap_err(),
+            LibraryError::schema(SCHEMA_PROFILE_ID)
+        );
+        assert_eq!(
+            library
+                .inspect_tools(r"C:\Users\someone\vault")
+                .unwrap_err(),
+            LibraryError::policy(POLICY_FILESYSTEM_PROFILE)
+        );
+        let cli = library
+            .list_cli_inventory("release", None, DEFAULT_PAGE_SIZE)
+            .unwrap();
+        assert!(cli.leaves.is_empty());
+        assert_eq!(cli.next_cursor, None);
+        assert!(!cli.truncated);
+        assert!(!cli.engine_cli);
+        assert!(!cli.executed);
+        assert_eq!(cli.observation.classified_as, NoteCrudClass::Empty);
         let _ = (
             ENGINE_GRAPH_NOT_OWNED,
             ENGINE_SEARCH_NOT_OWNED,
@@ -3174,6 +3738,10 @@ mod tests {
             ENGINE_PROMPTS_NOT_OWNED,
             OFFICIAL_RESOURCES_MCP_UNVERIFIED,
             OFFICIAL_PROMPTS_MCP_UNVERIFIED,
+            ENGINE_TOOLS_NOT_OWNED,
+            ENGINE_CLI_NOT_OWNED,
+            OFFICIAL_TOOLS_MCP_UNVERIFIED,
+            OFFICIAL_CLI_UNVERIFIED,
             ENGINE_CONTEXT_NOT_OWNED,
             ENGINE_ACTIVITY_NOT_OWNED,
             SEMANTIC_SEARCH_UNVERIFIED,
@@ -3417,6 +3985,23 @@ mod tests {
         let looping_prompts = LoopingLibrary.list_prompts(Some("same"), 2).unwrap();
         assert_eq!(
             accept_prompt_page(Some("same"), looping_prompts).unwrap_err(),
+            LibraryError::schema(SCHEMA_INVALID_CURSOR)
+        );
+        assert_eq!(
+            accept_cli_inventory(
+                None,
+                TruncatingLibrary
+                    .list_cli_inventory("release", None, 2)
+                    .unwrap()
+            )
+            .unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_TRUNCATED)
+        );
+        let looping_cli = LoopingLibrary
+            .list_cli_inventory("release", Some("same"), 2)
+            .unwrap();
+        assert_eq!(
+            accept_cli_inventory(Some("same"), looping_cli).unwrap_err(),
             LibraryError::schema(SCHEMA_INVALID_CURSOR)
         );
         let claimed_resources = ResourcePageDto {
