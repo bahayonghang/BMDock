@@ -54,6 +54,14 @@ T01 的逐 profile 固定版本、能力数量、验收映射和范围限制汇�
 
 ## 未完成的产品门禁
 
+## T02：rmcp 与官方引擎互操作
+
+T02 在 2026-09-12 使用真实官方引擎、分两次调用 `python -m scripts.tasks contract` 完成双 profile 验证。合约断言协商 `protocolVersion` 为 `2025-11-25`，分页采集 tools/resources/templates/prompts，读取首个 resource 与 prompt，并按 profile 记录 inputSchema 指纹。错误包保持可区分：`logging/setLevel` 为本地 `policy`，畸形 `prompts/get` 为 `schema`，缺失 resource 的 `resources/read` 为上游 `rpc_or_transport`（MCP `-32602`），未知工具为 MCP `isError`。写入先标记 `accepted_unverified`，仅在 fixture `wait_note` 观察后记录物化。`search`（required `query`）与 `fetch`（required `id`）保持独立；互换参数的调用以 `isError` 失败。release 仍为 21 个工具，main-preview 仍为 27 个，未合并能力。
+
+详细验收映射、报告 SHA256 和限制见 [t02-rmcp-interoperability.json](../execution/evidence/t02-rmcp-interoperability.json)，逐次原始 transcript 见 gitignored 的 `artifacts/release.contract.json` 与 `artifacts/main-preview.contract.json`。
+
+本任务不是 native GUI、Job Object 或真实用户 vault 证据。丢响应、取消后接受、`timeout_unknown` 现场注入、强杀恢复和磁盘故障仍属 T03 `UNVERIFIED`；没有把这些缺失证据推断为通过。
+
 **完整 G0 仍未通过。** MCP resources/prompts/API/CLI 注册清单不是全部功能验收。完整原文往返、真正并发编辑、取消/丢响应、磁盘故障、强杀与恢复、Windows junction/睡眠恢复仍待验证；没有 Tauri GUI 或原生桌面安装器。具体交接要求见 [G0_HANDOFF.md](G0_HANDOFF.md)。
 
 本批全部操作使用自动生成的 fixture，没有连接用户真实 Obsidian vault、全局 Basic Memory 配置或 Agent 配置。环境过滤不等于 OS 网络沙箱；正常退出后的文件观察也不构成跨 Agent 原子写入保证。`just gate` 返回非零是当前完整产品门禁的真实状态，不能通过跳过测试来消除。

@@ -250,23 +250,24 @@ BMDock enforces strict runtime separation:
 ### Test Frameworks
 1. **Python Unit Tests (`tests/`)**:
    - Framework: Standard library `unittest`.
-   - 42 tests in `test_core.py` and `test_cli_inventory.py`.
+   - 51 tests in `test_core.py` and `test_cli_inventory.py`.
    - Zero third-party dependencies. Uses lightweight structural fakes rather than importing Click/Typer or mocking engines.
 2. **Rust Unit Tests (`crates/bmdock-probe/src/main.rs`)**:
    - Framework: Standard Rust test runner (`cargo test`).
-   - 4 unit tests validating the probe's request whitelist and project boundary policy.
+   - 5 unit tests validating the probe's request whitelist, fixture write boundary, discovery methods, and distinct `search`/`fetch` tools (raw `callTool` remains denied).
 3. **AST & Phase Order Linter (`scripts/tasks.py:check_source`)**:
    - Uses `ast.parse()` to validate all `scripts/*.py` syntax.
    - Asserts that task phase progression in `execution/status.json` respects gate boundaries.
 4. **Real-Engine Contract Smoke Suite (`scripts/probe.py:run_contract`)**:
-   - Executes 7 verification checks per profile against real upstream processes:
-     1. MCP Handshake & Protocol framing (`event: connected`)
-     2. Static tool and resource discovery drift detection
-     3. Policy rejection for unauthorized tools/methods
-     4. Note write execution to `bmdock-fixture`
-     5. Physical disk observation (`wait_note`) verifying Markdown sentinel
-     6. Note readback and append idempotency
+   - Executes per-profile real-engine checks against official processes (reports are never merged):
+     1. MCP Handshake & Protocol framing (`event: connected`, `protocolVersion` `2025-11-25`)
+     2. Paginated tool/resource/template/prompt discovery and independent 21/27 tool baselines
+     3. Distinguishable `policy` / `schema` / `rpc_or_transport` / MCP `isError` envelopes
+     4. Note write classified `accepted_unverified`, then fixture disk observation (`wait_note`)
+     5. Note readback and append idempotency
+     6. Search/fetch identity (required `query` vs `id`; swapped calls are MCP `isError`)
      7. Clean two-stage shutdown verification
+     Lost-response, cancel-after-accept, `timeout_unknown` injection, forced-kill, and disk-failure remain `UNVERIFIED`.
 
 ### Running Tests
 ```bash

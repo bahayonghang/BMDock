@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Any
 
 from scripts.core import (ROOT, PROJECT, create_sandbox, fingerprint, inventory_delta,
-                          isolated_env, paginate, profile, read_json, run, write_json)
+                          isolated_env, paginate, profile, read_json, run, write_json,
+                          classify_tool_result)
 
 
 class Probe:
@@ -162,6 +163,147 @@ def redact(value: Any, root: Path) -> Any:
     return value
 
 
+def require_protocol_version(connected: dict[str, Any], expected: str = "2025-11-25") -> str:
+    """Fail closed when the negotiated MCP version is missing or mixed."""
+    server = connected.get("server")
+    if not isinstance(server, dict):
+        raise AssertionError(f"Handshake missing server object: {connected}")
+    version = server.get("protocolVersion")
+    if version != expected:
+        raise AssertionError(f"Unexpected protocolVersion: {version!r}")
+    return version
+
+
+def tool_schema_fingerprints(tools: list[Any]) -> dict[str, str]:
+    """Record per-tool inputSchema fingerprints without mixing profiles."""
+    fingerprints: dict[str, str] = {}
+    for tool in tools:
+        if not isinstance(tool, dict):
+            raise AssertionError("tools/list returned a non-object tool")
+        name = tool.get("name")
+        schema = tool.get("inputSchema")
+        if not isinstance(name, str) or not isinstance(schema, dict):
+            raise AssertionError("tools/list returned a tool without name/inputSchema")
+        if schema.get("type") != "object" or not isinstance(schema.get("properties", {}), dict):
+            raise AssertionError(f"{name}: inputSchema is not an object schema")
+        required = schema.get("required", [])
+        if not isinstance(required, list) or not all(isinstance(item, str) for item in required):
+            raise AssertionError(f"{name}: invalid required schema field")
+        if not set(required).issubset(schema.get("properties", {})):
+            raise AssertionError(f"{name}: required field missing from properties")
+        fingerprints[name] = fingerprint(schema)
+    return fingerprints
+
+
+def require_distinct_search_and_fetch(tools: dict[str, Any]) -> dict[str, Any]:
+    """search and fetch stay separate tools; neither may impersonate the other."""
+    search = tools.get("search")
+    fetch = tools.get("fetch")
+    if not isinstance(search, dict) or not isinstance(fetch, dict):
+        raise AssertionError("search and fetch must both be present as distinct runtime tools")
+    if search.get("name") != "search" or fetch.get("name") != "fetch":
+        raise AssertionError("search/fetch names were aliased")
+    search_schema = search.get("inputSchema")
+    fetch_schema = fetch.get("inputSchema")
+    if not isinstance(search_schema, dict) or not isinstance(fetch_schema, dict):
+        raise AssertionError("search/fetch are missing inputSchema objects")
+    if search_schema == fetch_schema:
+        raise AssertionError("search and fetch must not share an identical inputSchema")
+    search_required = set(search_schema.get("required") or [])
+    fetch_required = set(fetch_schema.get("required") or [])
+    if "query" not in search_required or "id" not in fetch_required:
+        raise AssertionError("search/fetch required fields drifted")
+    if search_required == fetch_required:
+        raise AssertionError("search and fetch required fields are not distinct")
+    return {
+        "search_required": sorted(search_required),
+        "fetch_required": sorted(fetch_required),
+    }
+
+
+def require_failed_tool_call(response: dict[str, Any], label: str) -> None:
+    """Cross-identity tool calls must fail as MCP tool isError, not local policy."""
+    if "error" in response:
+        kind = (response.get("error") or {}).get("kind")
+        raise AssertionError(
+            f"{label}: expected MCP tool isError, got control error {kind!r}"
+        )
+    result = response.get("result")
+    if isinstance(result, dict) and result.get("isError") is True:
+        return
+    raise AssertionError(f"{label} did not fail: {response}")
+
+
+def require_control_error(response: dict[str, Any], kind: str, label: str) -> None:
+    if (response.get("error") or {}).get("kind") != kind:
+        raise AssertionError(f"{label}: expected {kind} error envelope, got {response}")
+
+
+def concurrent_fixture_writes(binary: Path, python: Path, profile_id: str, env: dict[str, str], tools: dict[str, Any]) -> dict[str, Any]:
+    """Exercise two independently owned probes writing distinct notes together.
+
+    The control protocol is deliberately request/response ordered, so concurrency
+    is represented by two real engine processes sharing one generated fixture.
+    Each write has a unique title and sentinel; the filesystem is the source of
+    truth for completion.  No retry is performed after a process-level error.
+    """
+    sandbox = create_sandbox(ROOT / ".work/g0", profile_id)
+    local_env = isolated_env(sandbox, env)
+    probes = [Probe(binary, python, sandbox, local_env), Probe(binary, python, sandbox, local_env)]
+    barrier = threading.Barrier(2)
+    outcomes: list[dict[str, Any]] = [{}, {}]
+
+    def worker(index: int) -> None:
+        sentinel = f"BMDock-CONCURRENT-{index}-7f3c1d"
+        title = f"BMDock Concurrent {index}"
+        try:
+            barrier.wait(timeout=10)
+            result = probes[index].request("tools/call", {"name": "write_note", "arguments": tool_arguments(
+                tools["write_note"], {"project": PROJECT, "title": title, "directory": "concurrency",
+                                     "content": f"# {title}\n\n{sentinel}\n\n- [[Concurrent Target]]\n",
+                                     "metadata": {"unknown_frontmatter": {"preserve": True}},
+                                     "overwrite": False, "output_format": "json"})})
+            classification = classify_tool_result(result)
+            note = wait_note(sandbox / "vault", sentinel)
+            text = note.read_text(encoding="utf-8")
+            outcomes[index] = {"classification": classification, "sentinel": sentinel,
+                               "path": note.relative_to(sandbox / "vault").as_posix(),
+                               "frontmatter_preserved": "unknown_frontmatter" in text,
+                               "wiki_link_preserved": "[[Concurrent Target]]" in text}
+        except BaseException as error:
+            outcomes[index] = {"error": f"{type(error).__name__}: {error}"}
+
+    threads = [threading.Thread(target=worker, args=(index,)) for index in range(2)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=45)
+    for probe in probes:
+        probe.close()
+    if any("error" in outcome for outcome in outcomes):
+        raise AssertionError(f"Concurrent fixture write failed: {outcomes}")
+    if any(outcome.get("classification") != "accepted_unverified" for outcome in outcomes):
+        raise AssertionError(f"Concurrent write result classification drifted: {outcomes}")
+    if any(not outcome.get("frontmatter_preserved") or not outcome.get("wiki_link_preserved") for outcome in outcomes):
+        raise AssertionError(f"Concurrent Markdown materialization lost content: {outcomes}")
+    return {"sandbox": str(sandbox), "workers": outcomes, "status": "passed"}
+
+
+def recovery_boundaries() -> dict[str, Any]:
+    """Record failure boundaries that cannot be safely injected by this harness.
+
+    Keeping these explicit prevents a normal shutdown or a successful MCP
+    envelope from being misreported as recovery proof.
+    """
+    return {
+        "lost_response": {"status": "UNVERIFIED", "reason": "No transport fault injector; response loss cannot be inferred from a timeout."},
+        "cancellation_after_acceptance": {"status": "UNVERIFIED", "reason": "The probe has no cancellation control method; non-idempotent writes are never retried."},
+        "rpc_timeout": {"status": "UNVERIFIED", "reason": "No deterministic slow fixture operation is available; timeout_unknown remains fail-closed in Rust."},
+        "forced_kill": {"status": "UNVERIFIED", "reason": "A forced kill would destroy the owned probe before its receipt; no persistence claim is made."},
+        "disk_failure": {"status": "UNVERIFIED", "reason": "Cross-platform read-only or full-disk injection is not safe in the generated fixture."},
+    }
+
+
 def run_contract(profile_id: str) -> Path:
     selected = profile(profile_id)
     python = engine_python(profile_id)
@@ -178,7 +320,7 @@ def run_contract(profile_id: str) -> Path:
         "kind": "g0_contract_smoke", "profile": profile_id, "commit": actual_ref,
         "suite_status": "running", "gate_status": "not_passed", "checks": {},
         "limitations": ["Not the full G0 acceptance gate", "No concurrent production-write guarantee",
-                        "No Windows native desktop acceptance", "No lost-response or disk-failure injection yet"],
+                        "No Windows native desktop acceptance", "Failure-injection boundaries are recorded as UNVERIFIED"],
     }
     output = ROOT / "artifacts" / f"{profile_id}.contract.json"
     process: Probe | None = None
@@ -191,6 +333,8 @@ def run_contract(profile_id: str) -> Path:
         report["checks"]["effective_isolation"] = "passed"
         process = Probe(binary, python, sandbox, env)
         report["handshake"] = process.connected
+        report["protocol_version"] = require_protocol_version(process.connected)
+        report["checks"]["handshake"] = "passed"
         registry: dict[str, Any] = {}
         for method, key in [("tools/list", "tools"), ("resources/list", "resources"),
                             ("resources/templates/list", "resourceTemplates"), ("prompts/list", "prompts")]:
@@ -204,10 +348,72 @@ def run_contract(profile_id: str) -> Path:
             raise AssertionError(f"Runtime capability drift requires review: {delta}")
         report["checks"]["registry_names"] = "passed"
         report["checks"]["mcp_discovery"] = "passed"
+        report["search_fetch_identity"] = require_distinct_search_and_fetch(tools)
+        report["checks"]["search_fetch_identity"] = "passed"
+
+        # Validate the negotiated wire schemas before invoking any write tool.
+        # This catches rmcp/engine shape drift while retaining each profile's
+        # independent schema as evidence.
+        report["schema_fingerprints"] = tool_schema_fingerprints(registry["tools"]["items"])
+        report["checks"]["tool_input_schemas"] = "passed"
+
+        # Exercise read-only resources and prompts through the same rmcp
+        # transport used by tools. These calls are profile-specific: every
+        # profile advertises at least one resource and prompt, but their URI
+        # templates and payload shapes differ.
+        resource = registry["resources"]["items"][0]
+        resource_read = process.request("resources/read", {"uri": resource["uri"]})
+        if not isinstance(resource_read.get("contents"), list) or not resource_read["contents"]:
+            raise AssertionError("resources/read returned no contents")
+        report["resource_read"] = resource_read
+        prompt = registry["prompts"]["items"][0]
+        prompt_get = process.request("prompts/get", {"name": prompt["name"], "arguments": {}})
+        if not isinstance(prompt_get.get("messages"), list) or not prompt_get["messages"]:
+            raise AssertionError("prompts/get returned no messages")
+        report["prompt_get"] = prompt_get
+        report["checks"]["resource_prompt_roundtrip"] = "passed"
+
+        # Policy, schema, and upstream RPC failures must stay distinguishable.
+        # No request is retried after an error.
+        denied = process.raw("logging/setLevel", {"level": "debug"})
+        require_control_error(denied, "policy", "disallowed logging/setLevel")
+        # A malformed prompts/get payload is rejected while decoding rmcp's
+        # typed request, before it reaches the engine.
+        malformed = process.raw("prompts/get", [])  # type: ignore[arg-type]
+        require_control_error(malformed, "schema", "malformed prompts/get")
+        # A well-typed resources/read that the engine cannot satisfy is an
+        # upstream JSON-RPC error, not a local policy/schema rejection.
+        # Invalid tool arguments are a separate MCP tool isError path.
+        missing_resource = process.raw(
+            "resources/read", {"uri": "memory://bmdock-missing-resource"}
+        )
+        require_control_error(
+            missing_resource, "rpc_or_transport", "missing resource resources/read"
+        )
+        report["errors"] = {
+            "policy": denied,
+            "schema": malformed,
+            "rpc_or_transport": missing_resource,
+        }
+        report["checks"]["error_categories"] = "passed"
         negative = process.raw("tools/call", {"name": "__bmdock_missing_tool__", "arguments": {}})
         if "error" not in negative and negative.get("result", {}).get("isError") is not True:
             raise AssertionError("Unknown tool did not produce a protocol/tool error")
+        report["errors"]["unknown_tool"] = negative
         report["checks"]["unknown_tool_error"] = "passed"
+        search_as_fetch = process.raw(
+            "tools/call", {"name": "search", "arguments": {"id": "bmdock-missing-fetch-id"}}
+        )
+        fetch_as_search = process.raw(
+            "tools/call", {"name": "fetch", "arguments": {"query": "bmdock-identity"}}
+        )
+        require_failed_tool_call(search_as_fetch, "search invoked with fetch identity")
+        require_failed_tool_call(fetch_as_search, "fetch invoked with search identity")
+        report["search_fetch_identity"]["swapped_calls"] = {
+            "search_with_fetch_id": search_as_fetch,
+            "fetch_with_search_query": fetch_as_search,
+        }
+        report["checks"]["search_fetch_swapped_calls"] = "passed"
 
         def call(name: str, values: dict[str, Any]) -> dict[str, Any]:
             result = process.request("tools/call", {"name": name, "arguments": tool_arguments(tools[name], values)})
@@ -223,6 +429,9 @@ def run_contract(profile_id: str) -> Path:
             "metadata": {"bmdock_custom": {"nested": ["中文", "keep-me"]}},
             "overwrite": False, "output_format": "json",
         })
+        report["write_result_classification"] = classify_tool_result(report["write_result"])
+        if report["write_result_classification"] != "accepted_unverified":
+            raise AssertionError("Write MCP envelope was not classified as accepted_unverified")
         note = wait_note(sandbox / "vault", sentinel)
         first = note.read_text(encoding="utf-8")
         if "bmdock_custom" not in first or "keep-me" not in first or "[[Missing Target]]" not in first:
@@ -248,6 +457,10 @@ def run_contract(profile_id: str) -> Path:
             raise AssertionError("Materialized fixture did not survive a normal shutdown")
         report["checks"]["shutdown_file_observation"] = "passed"
         report["fixture_after_shutdown"] = after_close
+        report["concurrency"] = concurrent_fixture_writes(binary, python, profile_id, env, tools)
+        report["checks"]["concurrent_fixture_writes"] = "passed"
+        report["recovery"] = recovery_boundaries()
+        report["checks"]["recovery_boundaries_recorded"] = "passed"
         report["suite_status"] = "passed"
         print(f"PASS {profile_id}: G0 smoke checks; full G0 gate remains unpassed", flush=True)
     except BaseException as error:

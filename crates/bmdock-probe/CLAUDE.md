@@ -12,7 +12,7 @@ Cargo workspace 唯一成员。开发者 G0 探针：官方 rmcp 处理 MCP 握�
 | 项 | 值 |
 |---|---|
 | 二进制 | `bmdock-probe` → `target/debug|release/bmdock-probe[.exe]` |
-| 源码 | `src/main.rs`（单文件，约 209 行，含 4 个单元测试） |
+| 源码 | `src/main.rs`（单文件，约 220 行，含 5 个单元测试） |
 | 用法 | `bmdock-probe <managed-python> <engine-worker.py> <owned-sandbox>` |
 | 版本 | `--version` 打印 `bmdock-probe {CARGO_PKG_VERSION}` |
 
@@ -80,7 +80,7 @@ ClientInfo：`protocolVersion = "2025-11-25"`，`name = "BMDock-G0"`。
 
 ## 测试
 
-`#[cfg(test)]` 在 `src/main.rs`：未知 method、未知 tool、fixture 写入必须带 `bmdock-fixture`、发现方法放行。由 `just ci` 的 `cargo test --workspace --locked` 运行。4 项。
+`#[cfg(test)]` 在 `src/main.rs`：未知 method（含 raw `callTool`/`call_tool`）、未知 tool、fixture 写入必须带 `bmdock-fixture`、发现方法放行、`search`/`fetch` 作为独立允许工具。由 `just ci` 的 `cargo test --workspace --locked` 运行。5 项。
 
 ## 关键文件
 

@@ -10,7 +10,9 @@ from unittest.mock import patch
 from scripts.core import (PROJECT, classify_tool_result, create_sandbox, fingerprint,
                           inventory_delta, isolated_env, paginate, profile, read_json,
                           run, verify_sandbox, write_json)
-from scripts.probe import redact, tool_arguments
+from scripts.probe import (redact, recovery_boundaries, require_control_error,
+                          require_distinct_search_and_fetch, require_failed_tool_call,
+                          require_protocol_version, tool_arguments, tool_schema_fingerprints)
 from scripts import tasks
 
 
@@ -184,6 +186,18 @@ class ResultTests(unittest.TestCase):
         for kind in ("created", "updated"):
             self.assertEqual(classify_tool_result({"structuredContent": {"kind": kind}}), "accepted_unverified")
 
+    def test_fastmcp_wrapped_action_is_not_disk_verified(self):
+        self.assertEqual(
+            classify_tool_result({"structuredContent": {"result": {"action": "created"}}}),
+            "accepted_unverified",
+        )
+
+    def test_fastmcp_wrapped_rejection_is_not_success(self):
+        self.assertEqual(
+            classify_tool_result({"structuredContent": {"result": {"action": "already_exists"}}}),
+            "rejected",
+        )
+
     def test_rejections_are_not_success(self):
         for kind in ("already_exists", "locked", "target_moved"):
             self.assertEqual(classify_tool_result({"structuredContent": {"kind": kind}}), "rejected")
@@ -199,6 +213,66 @@ class ResultTests(unittest.TestCase):
         tool = {"name": "read", "inputSchema": {"properties": {"new_field": {}}, "required": ["new_field"]}}
         with self.assertRaisesRegex(ValueError, "required"):
             tool_arguments(tool, {"identifier": "x"})
+
+
+class InteropTests(unittest.TestCase):
+    def test_handshake_requires_negotiated_protocol_version(self):
+        self.assertEqual(
+            require_protocol_version({"event": "connected", "server": {"protocolVersion": "2025-11-25"}}),
+            "2025-11-25",
+        )
+        with self.assertRaisesRegex(AssertionError, "protocolVersion"):
+            require_protocol_version({"event": "connected", "server": {"protocolVersion": "2024-11-05"}})
+
+    def test_tool_schema_fingerprints_are_profile_local(self):
+        tools = [
+            {"name": "search", "inputSchema": {"type": "object", "properties": {"query": {}}, "required": ["query"]}},
+            {"name": "fetch", "inputSchema": {"type": "object", "properties": {"id": {}}, "required": ["id"]}},
+        ]
+        fingerprints = tool_schema_fingerprints(tools)
+        self.assertEqual(set(fingerprints), {"search", "fetch"})
+        self.assertNotEqual(fingerprints["search"], fingerprints["fetch"])
+
+    def test_required_field_missing_from_properties_fails_closed(self):
+        with self.assertRaisesRegex(AssertionError, "required field missing"):
+            tool_schema_fingerprints([
+                {"name": "search", "inputSchema": {"type": "object", "properties": {}, "required": ["query"]}},
+            ])
+
+    def test_search_and_fetch_stay_distinct(self):
+        tools = {
+            "search": {"name": "search", "inputSchema": {"properties": {"query": {}}, "required": ["query"]}},
+            "fetch": {"name": "fetch", "inputSchema": {"properties": {"id": {}}, "required": ["id"]}},
+        }
+        identity = require_distinct_search_and_fetch(tools)
+        self.assertEqual(identity["search_required"], ["query"])
+        self.assertEqual(identity["fetch_required"], ["id"])
+
+    def test_aliased_search_fetch_schema_is_rejected(self):
+        schema = {"properties": {"query": {}}, "required": ["query"]}
+        with self.assertRaisesRegex(AssertionError, "identical inputSchema"):
+            require_distinct_search_and_fetch({
+                "search": {"name": "search", "inputSchema": schema},
+                "fetch": {"name": "fetch", "inputSchema": schema},
+            })
+
+    def test_control_errors_are_not_retried_or_collapsed(self):
+        require_control_error({"error": {"kind": "rpc_or_transport"}}, "rpc_or_transport", "missing resource")
+        with self.assertRaisesRegex(AssertionError, "policy"):
+            require_control_error({"error": {"kind": "rpc_or_transport"}}, "policy", "disallowed")
+        require_failed_tool_call({"result": {"isError": True}}, "search as fetch")
+        with self.assertRaisesRegex(AssertionError, "did not fail"):
+            require_failed_tool_call({"result": {"isError": False, "structuredContent": {"result": {"action": "created"}}}}, "fetch")
+        with self.assertRaisesRegex(AssertionError, "control error"):
+            require_failed_tool_call({"error": {"kind": "policy"}}, "search as fetch")
+
+    def test_recovery_boundaries_stay_unverified(self):
+        boundaries = recovery_boundaries()
+        self.assertEqual(
+            set(boundaries),
+            {"lost_response", "cancellation_after_acceptance", "rpc_timeout", "forced_kill", "disk_failure"},
+        )
+        self.assertTrue(all(item["status"] == "UNVERIFIED" for item in boundaries.values()))
 
 
 class CommandTests(unittest.TestCase):

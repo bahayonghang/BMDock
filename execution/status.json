@@ -5,7 +5,7 @@
 "gates":{"G0":{"status":"in_progress"},"G1":{"status":"not_started"},"G2":{"status":"not_started"},"G3":{"status":"not_started"},"G4":{"status":"not_started"},"G5":{"status":"not_started"},"G6":{"status":"not_started"},"G7":{"status":"not_started"}},
 "tasks":[
 {"id":"T01","title":"固定版本并采集完整能力清单","phase":"P0","depends_on":[],"acceptance_ids":["AC01","AC02","AC35","AC36","AC58"],"status":"completed"},
-{"id":"T02","title":"rmcp与官方引擎互操作验证","phase":"P0","depends_on":["T01"],"acceptance_ids":["AC02","AC08","AC16","AC35"],"status":"planned"},
+{"id":"T02","title":"rmcp与官方引擎互操作验证","phase":"P0","depends_on":["T01"],"acceptance_ids":["AC02","AC08","AC16","AC35"],"status":"completed"},
 {"id":"T03","title":"Markdown往返与并发写入验证","phase":"P0","depends_on":["T01","T02"],"acceptance_ids":["AC08","AC10","AC15","AC16","AC17","AC18"],"status":"planned"},
 {"id":"T04","title":"冻结命名、许可方向与架构ADR","phase":"P0","depends_on":["T01","T02","T03"],"acceptance_ids":["AC07","AC54","AC60"],"status":"planned"},
 {"id":"T05","title":"初始化代码骨架与真实依赖锁","phase":"P1","depends_on":["T04"],"acceptance_ids":["AC49","AC55","AC60"],"status":"in_progress"},

@@ -181,6 +181,8 @@ mod tests {
     #[test]
     fn unknown_method_is_denied() {
         assert!(validate_request(&json!({"method": "shell/exec"})).is_err());
+        assert!(validate_request(&json!({"method": "callTool"})).is_err());
+        assert!(validate_request(&json!({"method": "call_tool"})).is_err());
     }
     #[test]
     fn unknown_tool_is_denied() {
@@ -188,6 +190,10 @@ mod tests {
             &json!({"method": "tools/call", "params": {"name": "delete_project"}})
         )
         .is_err());
+        assert!(
+            validate_request(&json!({"method": "tools/call", "params": {"name": "callTool"}}))
+                .is_err()
+        );
     }
     #[test]
     fn fixture_write_requires_explicit_project() {
@@ -201,8 +207,22 @@ mod tests {
             "resources/list",
             "resources/templates/list",
             "prompts/list",
+            "prompts/get",
+            "resources/read",
         ] {
             assert!(validate_request(&json!({"method": method})).is_ok());
         }
+    }
+
+    #[test]
+    fn search_and_fetch_are_distinct_allowed_tools() {
+        assert!(
+            validate_request(&json!({"method": "tools/call", "params": {"name": "search"}}))
+                .is_ok()
+        );
+        assert!(
+            validate_request(&json!({"method": "tools/call", "params": {"name": "fetch"}})).is_ok()
+        );
+        assert!(validate_request(&json!({"method": "logging/setLevel"})).is_err());
     }
 }

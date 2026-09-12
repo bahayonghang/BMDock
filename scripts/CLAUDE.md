@@ -53,9 +53,9 @@
 
 启动 `bmdock-probe` debug 二进制，线程读 stdout JSON 行。`request` 遇 `error` 抛错；`raw` 保留错误供负向测试。`close` 关 stdin，校验 shutdown 事件与 exit 0。`abort` 先给清理预算再 kill。
 
-`run_contract(profile_id)` 流程：校验引擎 HEAD == profile commit → 新 sandbox → worker `inventory` → Probe 握手 → 分页发现 tools/resources/templates/prompts → 与静态 `expected_tools` 比 delta → 未知工具错误 → `list_memory_projects` → `write_note`（中文、自定义 metadata、wiki-link）→ 磁盘 sentinel → `read_note` → 单次 `edit_note` append → 正常关闭后再读文件。报告写到 `artifacts/<profile>.contract.json`，路径经 `redact` 替换为 `<G0_SANDBOX>`。`gate_status` 保持 `not_passed`。
+`run_contract(profile_id)` 流程：校验引擎 HEAD == profile commit → 新 sandbox → worker `inventory` → Probe 握手并断言协商 `protocolVersion` 为 `2025-11-25` → 分页发现 tools/resources/templates/prompts → 与静态 `expected_tools` 比 delta（release 21 / main-preview 27，报告不合并）→ `search`/`fetch` 身份与 inputSchema 指纹 → 读取首个 resource 与 prompt → 区分 `policy` / `schema` / `rpc_or_transport` / 未知工具 `isError` / 互换身份 `isError` → `list_memory_projects` → `write_note` 先标 `accepted_unverified`（中文、自定义 metadata、wiki-link）→ 磁盘 sentinel → `read_note` → 单次 `edit_note` append → 正常关闭后再读文件 → 并发 fixture 写入（T03）与 UNVERIFIED 恢复边界记录。报告写到 `artifacts/<profile>.contract.json`，路径经 `redact` 替换为 `<G0_SANDBOX>`。`gate_status` 保持 `not_passed`。UI 文案不是落盘证据。
 
-7 项 checks：`effective_isolation`、`mcp_discovery`、`registry_names`、`unknown_tool_error`、`create_read_materialize`、`append_once`、`shutdown_file_observation`。
+核心 checks：`effective_isolation`、`handshake`、`mcp_discovery`、`registry_names`、`search_fetch_identity`、`tool_input_schemas`、`resource_prompt_roundtrip`、`error_categories`、`unknown_tool_error`、`search_fetch_swapped_calls`、`create_read_materialize`、`append_once`、`shutdown_file_observation`。丢响应、取消后接受、`timeout_unknown` 现场注入、强杀、磁盘故障保持 `UNVERIFIED`。
 
 ### `engine_worker.py`
 

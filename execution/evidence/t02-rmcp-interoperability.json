@@ -1,0 +1,188 @@
+{
+  "kind": "t02_rmcp_interoperability",
+  "task": "T02",
+  "title": "rmcp与官方引擎互操作验证",
+  "status": "verified_with_scope_limits",
+  "date": "2026-09-12",
+  "product_gate": "G0 remains in_progress",
+  "harness": {
+    "command": "python -m scripts.tasks contract <profile>",
+    "note": "Fixture just contract is valid T02 real-engine evidence for handshake, discovery, resource/prompt reads, error envelopes, and fixture writes. It is not native GUI, Job Object, or real-user-vault evidence.",
+    "profiles_run_separately": true,
+    "just_setup": "not_run"
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "version": "0.23.2",
+      "report": "artifacts/release.contract.json",
+      "report_sha256": "520832e513d3b9142a05cbdee58f2b15ad91a0a6086f256e7f26089a3bc97a6d",
+      "protocol_version": "2025-11-25",
+      "suite_status": "passed",
+      "gate_status": "not_passed",
+      "tools": 21,
+      "prompts": 4,
+      "resources": 1,
+      "resource_templates": 1,
+      "pages": {
+        "tools": 1,
+        "prompts": 1,
+        "resources": 1,
+        "resourceTemplates": 1
+      },
+      "schema_fingerprints": 21,
+      "tool_delta": {"added": [], "missing": []},
+      "write_result_classification": "accepted_unverified",
+      "search_required": ["query"],
+      "fetch_required": ["id"]
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "version": null,
+      "report": "artifacts/main-preview.contract.json",
+      "report_sha256": "2e2ab0489fa1123edca545f842cf67b5659a91a0cd76d39e68d7beedb1fca645",
+      "protocol_version": "2025-11-25",
+      "suite_status": "passed",
+      "gate_status": "not_passed",
+      "tools": 27,
+      "prompts": 4,
+      "resources": 32,
+      "resource_templates": 3,
+      "pages": {
+        "tools": 1,
+        "prompts": 1,
+        "resources": 1,
+        "resourceTemplates": 1
+      },
+      "schema_fingerprints": 27,
+      "tool_delta": {"added": [], "missing": []},
+      "write_result_classification": "accepted_unverified",
+      "search_required": ["query"],
+      "fetch_required": ["id"]
+    }
+  },
+  "checks": [
+    "handshake",
+    "paginated_discovery",
+    "tool_input_schemas",
+    "resource_prompt_roundtrip",
+    "error_categories",
+    "search_fetch_identity",
+    "search_fetch_swapped_calls",
+    "write_accepted_unverified",
+    "disk_materialization",
+    "clean_shutdown"
+  ],
+  "error_categories": {
+    "policy": "logging/setLevel is denied locally before engine dispatch",
+    "schema": "malformed prompts/get params fail rmcp ClientRequest decode",
+    "rpc_or_transport": "resources/read of memory://bmdock-missing-resource returns MCP -32602 via rmcp",
+    "unknown_tool": "__bmdock_missing_tool__ returns a successful RPC envelope with isError true",
+    "invalid_tool_arguments": "not classified as rpc_or_transport; missing or swapped tool args stay MCP tool isError"
+  },
+  "acceptance": {
+    "AC02": {
+      "status": "verified",
+      "claim": "Both immutable profiles completed a real rmcp handshake with negotiated protocolVersion 2025-11-25, paginated tools/resources/templates/prompts discovery, first-resource read, first-prompt get, inputSchema invariants, and distinguishable policy/schema/rpc_or_transport/tool-error envelopes. Suites were invoked separately and reports were not merged.",
+      "evidence": [
+        "scripts/probe.py:run_contract",
+        "crates/bmdock-probe/src/main.rs",
+        "artifacts/release.contract.json",
+        "artifacts/main-preview.contract.json",
+        "docs/VERIFICATION.md"
+      ],
+      "unverified": [
+        "native GUI MCP sessions",
+        "Windows Job Object process grouping",
+        "real-user-vault MCP sessions"
+      ]
+    },
+    "AC08": {
+      "status": "verified_in_fixture",
+      "claim": "Write MCP envelopes are classified accepted_unverified from FastMCP structuredContent.result.action. Disk success is only recorded after wait_note observes the unique sentinel in sandbox/vault Markdown. Policy, schema, rpc_or_transport, tool isError, and unclassified remain distinct. UI copy is not used as persistence proof.",
+      "evidence": [
+        "scripts/core.py:classify_tool_result",
+        "scripts/probe.py:wait_note",
+        "tests/test_core.py:ResultTests",
+        "artifacts/release.contract.json",
+        "artifacts/main-preview.contract.json"
+      ],
+      "unverified": [
+        "desktop UI delayed materialization",
+        "production vault or Cloud disk state",
+        "search index freshness as a success signal"
+      ]
+    },
+    "AC16": {
+      "status": "no_retry_verified_injection_unverified",
+      "claim": "The probe never retries after TimeoutError, wait_note timeout, policy, schema, rpc_or_transport, or tool errors. Rust timeout_unknown emits 'Result unknown. No retry was performed.' and stops the session. Live lost-response, cancel-after-accept, timeout_unknown injection, forced-kill, and disk-failure remain T03.",
+      "evidence": [
+        "scripts/probe.py:Probe.receive",
+        "scripts/probe.py:recovery_boundaries",
+        "crates/bmdock-probe/src/main.rs",
+        "tests/test_core.py:InteropTests.test_recovery_boundaries_stay_unverified"
+      ],
+      "unverified": [
+        "lost_response live injection",
+        "cancellation_after_acceptance live injection",
+        "timeout_unknown live injection",
+        "forced_kill recovery",
+        "disk_failure injection"
+      ]
+    },
+    "AC35": {
+      "status": "verified_in_fixture",
+      "claim": "Runtime tool names match each profile baseline independently (release 21, main-preview 27) with empty inventory_delta. search and fetch remain separate names with distinct required fields (query vs id). Swapped identity calls fail with MCP isError. Dedicated search/fetch are not aliased. Desktop-client negative tests remain out of T02.",
+      "evidence": [
+        "compatibility/profiles.json",
+        "scripts/probe.py:require_distinct_search_and_fetch",
+        "crates/bmdock-probe/src/main.rs",
+        "tests/test_core.py:InteropTests",
+        "artifacts/release.contract.json",
+        "artifacts/main-preview.contract.json"
+      ],
+      "unverified": [
+        "ordinary desktop-client negative tests",
+        "in-product tool execution outside the G0 probe allowlist"
+      ]
+    }
+  },
+  "validation": {
+    "task_validate": {"exit": 0, "result": "passed"},
+    "t02_relevant_unittests": {
+      "command": "python -m unittest tests.test_core.ResultTests tests.test_core.InteropTests tests.test_core.ProfileTests tests.test_cli_inventory.InventoryTests -v",
+      "exit": 0,
+      "ran": 26,
+      "result": "ok"
+    },
+    "unittest_discover": {
+      "exit": 1,
+      "ran": 51,
+      "passed": 50,
+      "errors": 1,
+      "error": "test_repository_phase_order: RuntimeError: A later task was completed before G0"
+    },
+    "scripts_tasks_unit": {
+      "exit": 1,
+      "error": "ERROR: A later task was completed before G0"
+    },
+    "cargo_fmt": {"exit": 0},
+    "cargo_test_workspace_locked_offline": {
+      "exit": 0,
+      "bmdock_probe": 5,
+      "bmdock_app": 14
+    },
+    "cargo_check_workspace_locked_offline": {"exit": 0},
+    "git_diff_check": {"exit": 0},
+    "contract_release": {"exit": 0, "suite_status": "passed"},
+    "contract_main_preview": {"exit": 0, "suite_status": "passed"},
+    "just_setup": "not_run",
+    "npm_build": "skipped_apps_untouched"
+  },
+  "limitations": [
+    "Fixture contract is not native GUI, Job Object, installer, or real-user-vault evidence.",
+    "Lost-response, cancel-after-accept, timeout_unknown live injection, forced-kill, and disk-failure remain T03 UNVERIFIED.",
+    "python -m scripts.tasks unit is blocked by check_source because T06/T07 are completed while G0 is not passed; T02 did not revert those statuses.",
+    "G0 remains unpassed. Dual-profile reports were not merged."
+  ]
+}

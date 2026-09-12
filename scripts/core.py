@@ -156,7 +156,11 @@ def classify_tool_result(result: dict[str, Any]) -> str:
         return "tool_error"
     structured = result.get("structuredContent")
     if isinstance(structured, dict):
-        kind = structured.get("kind")
+        # FastMCP wraps typed tool returns under ``result``.  Accept both the
+        # direct discriminator used by tests and the real wire representation,
+        # while keeping unknown shapes explicitly unclassified.
+        payload = structured.get("result") if isinstance(structured.get("result"), dict) else structured
+        kind = payload.get("kind") or payload.get("action")
         if kind in {"already_exists", "target_moved", "locked"}:
             return "rejected"
         if kind in {"created", "updated"}:
