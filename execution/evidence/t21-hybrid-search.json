@@ -1,0 +1,187 @@
+{
+  "task": "T21",
+  "title": "全文语义混合检索",
+  "status": "accepted_with_limits",
+  "date": "2026-09-12",
+  "host_boundary": "T21 adds typed search_notes with ExplicitRouteArgs plus required query plus optional cursor and page_size. deny_unknown_fields. Extra path/root is schema. Extra id (fetch identity swap) is schema. Missing/empty query is schema. Non-fixture routes and filesystem query-as-path are policy and do not open the library. page_size 0/huge and invalid/repeated cursor are schema. Truncated inventory is unsupported, not success. Search is BMDock-owned fixture lexical matching over FixtureLibrary markdown titles/bodies. It is not raw MCP search/fetch/callTool, not a second database, and not official engine semantic search. Production EmptyLibrary returns empty hits with classified_as empty, not user-vault success. Tests inject FixtureLibrary and observe that hit identifiers match physical files whose exact UTF-8 text contains the query, including Chinese. Hits are permalinks, never filesystem paths. Envelope text is not disk proof. classified_as is disk_verified when hits were confirmed against physical files. Hybrid DTO exposes distinct lexical_score vs semantic_score. semantic_enabled=false. No embedding backend. Official semantic/model remain UNVERIFIED. T23 inspector is not implemented. Dual profiles stay isolated and are not mixed into the search DTO. MCP identity search and call_tool stay denied. T21 does not start Supervisor, add rmcp, or run just contract as proof. just build stays the G0 probe.",
+  "acceptance": {
+    "AC23": {
+      "status": "fixture_lexical_hits_disk_verified",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Full-text / lexical hits come from fixture disk. Envelope text is not disk proof. classified_as is disk_verified when hits were confirmed against physical files whose exact UTF-8 text contains the query, including Chinese. EmptyLibrary is empty hits with classified_as empty, not user-vault success. Hit identifiers are permalinks, not filesystem paths."
+    },
+    "AC24": {
+      "status": "hybrid_dto_lexical_vs_semantic_semantic_disabled",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src/App.tsx",
+        "apps/bmdock-desktop/src/i18n.ts",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "The hybrid DTO exposes distinct lexical_score vs semantic_score. semantic_enabled=false. There is no embedding backend. Official semantic search / model remain UNVERIFIED. T23 inspector is not implemented. Release/main-preview tool counts are not mixed into the search DTO.",
+      "unverified": [
+        "official semantic search",
+        "embedding backend",
+        "T23 search inspector / model state",
+        "official search MCP",
+        "official fetch MCP"
+      ]
+    },
+    "AC25": {
+      "status": "explicit_route_required_non_fixture_policy",
+      "evidence": [
+        "apps/bmdock-desktop/src-tauri/src/ipc.rs",
+        "apps/bmdock-desktop/src/ipc.ts",
+        "apps/bmdock-desktop/src-tauri/src/library.rs",
+        "tests/test_desktop_shell.py",
+        "cargo test --workspace --locked --offline"
+      ],
+      "claim": "Every search_notes call carries explicit workspace+project. Non-fixture is policy and does not open the library. Filesystem query-as-path is policy. Cross-project query without route is schema/policy, not success. Search does not leak other projects or user vaults. catalog cross_project_search_allowed stays false."
+    }
+  },
+  "commands": [
+    {
+      "cmd": "python ./.trellis/scripts/task.py validate 09-12-t21-hybrid-search",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --all -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo test --workspace --locked --offline",
+      "exit": 0,
+      "result": "bmdock-app 138 passed; bmdock-probe 5 passed"
+    },
+    {
+      "cmd": "cargo check --workspace --locked --offline",
+      "exit": 0,
+      "result": "passed with existing T07 Supervisor dead_code warnings on the bmdock-app bin"
+    },
+    {
+      "cmd": "npm run build",
+      "cwd": "apps/bmdock-desktop",
+      "exit": 0,
+      "note": "Used existing node_modules. npm ci was not run this session."
+    },
+    {
+      "cmd": "git diff --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python -m unittest tests.test_desktop_shell -v",
+      "exit": 0,
+      "result": "DesktopShellTests 15 passed"
+    },
+    {
+      "cmd": "python -m scripts.tasks unit",
+      "exit": 1,
+      "result": "A later task was completed before G0 (wrapper fails before unittest discover). Not claimed as passed."
+    },
+    {
+      "cmd": "just contract / just contract-main",
+      "exit": "not_run",
+      "result": "Not used as T21 hybrid-search proof. Probe entries remain independent. Official MCP search/fetch remain UNVERIFIED."
+    },
+    {
+      "cmd": "npm ci",
+      "exit": "not_run"
+    },
+    {
+      "cmd": "native GUI / just tauri-dev interactive",
+      "exit": "not_run",
+      "result": "No native window was launched. Search proof is source plus unit tests on FixtureLibrary."
+    }
+  ],
+  "checks": {
+    "task_validate": "passed",
+    "cargo_fmt": "passed",
+    "cargo_test_workspace_locked_offline": "passed_143_tests",
+    "cargo_check_workspace_locked_offline": "passed_with_t07_dead_code_warnings",
+    "npm_ci": "not_run_this_session",
+    "npm_build": "passed",
+    "python_unittest_desktop_shell": "15_passed",
+    "python_scripts_tasks_unit": "failed_g0_phase_order_expected",
+    "git_diff_check": "passed",
+    "just_build_remains_g0_probe": "unchanged",
+    "just_tauri_dev_and_tauri_build": "unchanged_desktop",
+    "just_contract_and_contract_main": "confirmed_not_executed",
+    "typed_command_count": 21,
+    "typed_search_notes": "allowed",
+    "raw_call_tool": "absent",
+    "mcp_identity_search": "absent",
+    "dangerouslySetInnerHTML": "absent",
+    "supervisor_started_by_t21": false,
+    "rmcp_live_client": "not_added_in_t21",
+    "engine_search": false,
+    "semantic_enabled": false,
+    "official_search_mcp": "UNVERIFIED",
+    "official_fetch_mcp": "UNVERIFIED",
+    "official_semantic_model": "UNVERIFIED",
+    "embedding_backend": "not_implemented",
+    "t23_inspector": "not_implemented",
+    "native_gui_session": "UNVERIFIED",
+    "real_vault": "UNVERIFIED",
+    "fixture_lexical_hits_match_physical_utf8": true,
+    "chinese_query_hits_physical_files": true,
+    "empty_library_search_is_empty_state": true,
+    "truncated_inventory_unsupported": true,
+    "t22_context_preview": "not_implemented",
+    "t24_recall_benchmark": "not_implemented"
+  },
+  "profiles": {
+    "release": {
+      "commit": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "expected_tools": 21
+    },
+    "main-preview": {
+      "commit": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "expected_tools": 27
+    },
+    "mixed": false,
+    "just_contract_run": false
+  },
+  "gates": {
+    "G0": "in_progress",
+    "T05": "completed_unchanged",
+    "T06": "completed_unchanged",
+    "T07": "completed_unchanged",
+    "T08": "completed_unchanged",
+    "T09": "completed_unchanged",
+    "T10": "completed_unchanged",
+    "T11": "completed_unchanged",
+    "T12": "completed_unchanged",
+    "T13": "completed_unchanged",
+    "T14": "completed_unchanged",
+    "T15": "completed_unchanged",
+    "T16": "completed_unchanged",
+    "T17": "completed_unchanged",
+    "T18": "completed_unchanged",
+    "T19": "completed_unchanged",
+    "T20": "completed_unchanged",
+    "T21": "completed"
+  },
+  "scope_limits": [
+    "Search is BMDock-owned fixture lexical matching over markdown titles/bodies, not a second database and not official engine search MCP.",
+    "EmptyLibrary empty hits is empty state, not user-vault success.",
+    "Hit identifiers are permalinks, not filesystem paths.",
+    "Envelope text is not disk proof. classified_as is disk_verified only after physical UTF-8 confirmation.",
+    "lexical_score is distinct from semantic_score. semantic_enabled=false. No embedding backend.",
+    "Official MCP search/fetch remain UNVERIFIED. MCP identity search and call_tool stay denied.",
+    "T23 inspector is not implemented. T24 recall is not this task.",
+    "IPC error union stays policy/schema/unsupported. Dual profiles stay isolated (21 vs 27).",
+    "just build stays scripts.tasks build. just contract* stay probe. just tauri-dev/tauri-build stay desktop.",
+    "python -m scripts.tasks unit remains blocked by check_source while G0 is not passed and T05+ tasks are completed; those statuses were not reverted.",
+    "UI copy, tool lists, compiled exe, cargo test, npm build, and just contract are not native GUI / user-vault / official-semantic proof."
+  ],
+  "rollback": "Remove search_notes from the ipc_invoke union, drop SearchPanel, restore the 20-command allowlist, and leave T20 expand_graph in place. Do not revert T05-T20 status to make unit green."
+}

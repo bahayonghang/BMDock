@@ -324,3 +324,23 @@ AC56：有界宿主展开 + 截断 fail-closed。native GUI、WebView2 会话、
 本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t20-local-graph-expansion` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 134 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 14 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方图谱 / hosted CI 证据；这些仍为 `UNVERIFIED`。
 
 T20 证据与验收映射见 [t20-local-graph-expansion.json](../execution/evidence/t20-local-graph-expansion.json)。`execution/status.json` 仅将 T20 标为 `completed`；未改 T05–T19/G0。
+
+## T21：全文语义混合检索
+
+T21 在现有 `ipc_invoke` 上增加 typed `search_notes`（`ExplicitRouteArgs` + 必填 `query` + optional `cursor` / `page_size`，`deny_unknown_fields`）。额外 `path`/`root` 为 schema。额外 `id`（fetch 身份对调）为 schema。缺/空 query 为 schema。非 fixture 路由或把 query 当成文件系统路径为 policy，且不打开库。`page_size` 0 或过大、非法/重复 cursor 为 schema。截断库存为 unsupported，不是成功。capabilities 精确允许列为 21 个命令。typed `search_notes` 允许；MCP identity `search` 与 `call_tool` 仍拒绝。
+
+检索是 BMDock 自有夹具 Markdown 标题/正文的词法命中，不是第二套数据库，也不是官方引擎语义检索，也不是 raw MCP `search`/`fetch`/`callTool`。测试注入 `FixtureLibrary`，并观察命中标识对应的物理文件精确 UTF-8 文本包含查询（含中文）。命中标识是 permalink，不是文件系统路径。生产 `EmptyLibrary` 返回空 hits 与 empty 观察，不是用户 vault 成功。信封文案不是磁盘证明。
+
+AC23：夹具磁盘词法命中。信封成功不是磁盘证明。核对物理文件后 `classified_as=disk_verified`。空库为空态。
+
+AC24：混合 DTO 分开 `lexical_score` 与 `semantic_score`。`semantic_enabled=false`，无嵌入后端。官方语义/模型仍为 `UNVERIFIED`。未实现 T23 Inspector。未把 release/main-preview 工具数写入检索 DTO。
+
+AC25：每次调用都携带显式 workspace+project。非 fixture 为 policy。检索不泄漏其他项目或用户 vault。缺少路由的跨项目查询是 schema/policy，不是成功。
+
+zh-CN 工作台「检索」区分空态 / 错误 / 就绪，查询输入有 label，结果列出 permalink 与分数。无 `dangerouslySetInnerHTML`。不启动 Supervisor。无新 npm 依赖，无 vis.js。
+
+`just build` 仍为 G0 探针；`just contract*` 仍为探针；`just dev` 保持 T08 的 Tauri 入口。未运行 `just contract` 作为 T21 证明。release（`c0bd87c6`，21 tools）与 main-preview（`3452c821`，27 tools）未混合。
+
+本机 Windows 本轮命令（2026-09-12）：`python ./.trellis/scripts/task.py validate 09-12-t21-hybrid-search` 通过；`cargo fmt --all -- --check`、`cargo test --workspace --locked --offline`（bmdock-app 138 + bmdock-probe 5）和 `cargo check --workspace --locked --offline` 通过（既有 T07 dead_code 警告仍在）；`npm run build`（`apps/bmdock-desktop`，未跑 `npm ci`）通过；`git diff --check` 通过。`python -m unittest tests.test_desktop_shell -v` 15 项通过。`python -m scripts.tasks unit` 以 `A later task was completed before G0` 失败（G0 未 passed，且 T05+ 已 completed，未回退）。未把 UI 文案、工具清单、编译 exe 或 `just contract` 当作 native GUI / 用户 vault / 官方语义检索 / hosted CI 证据；这些仍为 `UNVERIFIED`。
+
+T21 证据与验收映射见 [t21-hybrid-search.json](../execution/evidence/t21-hybrid-search.json)。`execution/status.json` 仅将 T21 标为 `completed`；未改 T05–T20/G0。

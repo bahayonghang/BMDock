@@ -17,6 +17,8 @@ import {
   type RelationDto,
   type GraphPageDto,
   type GraphNodeDto,
+  type SearchPageDto,
+  type SearchHitDto,
   type PreflightDto,
   type ProjectCatalogDto,
   type RestoreResultDto,
@@ -241,6 +243,8 @@ function WorkbenchLibrary({
   const [relationsError, setRelationsError] = useState<WorkbenchError | null>(null);
   const [graph, setGraph] = useState<GraphPageDto | null>(null);
   const [graphError, setGraphError] = useState<WorkbenchError | null>(null);
+  const [search, setSearch] = useState<SearchPageDto | null>(null);
+  const [searchError, setSearchError] = useState<WorkbenchError | null>(null);
   const [crudObservation, setCrudObservation] = useState<{
     identifier: string;
     classified_as: NoteCrudClass;
@@ -257,6 +261,8 @@ function WorkbenchLibrary({
     setRelationsError(null);
     setGraph(null);
     setGraphError(null);
+    setSearch(null);
+    setSearchError(null);
     setCrudObservation(null);
     setError(null);
     void (async () => {
@@ -306,6 +312,7 @@ function WorkbenchLibrary({
           case "note_deleted":
           case "relation_list":
       case "graph_page":
+      case "search_page":
       case "shutdown_begun":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
@@ -438,6 +445,18 @@ function WorkbenchLibrary({
           void loadGraph(identifier, setGraph, setGraphError);
         }}
       />
+      <SearchPanel
+        search={search}
+        error={searchError}
+        onSearch={(query) => {
+          void runSearch(query, setSearch, setSearchError);
+        }}
+        onLoadMore={() => {
+          if (search?.next_cursor) {
+            void loadMoreSearch(search, setSearch, setSearchError);
+          }
+        }}
+      />
       <NoteCrudPanel
         seedIdentifier={note?.identifier ?? null}
         seedTitle={note?.title ?? null}
@@ -508,6 +527,7 @@ async function openNote(
       case "note_moved":
       case "note_deleted":
       case "graph_page":
+      case "search_page":
       case "shutdown_begun":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
@@ -576,6 +596,7 @@ async function loadRelations(
       case "note_moved":
       case "note_deleted":
       case "graph_page":
+      case "search_page":
       case "shutdown_begun":
         setRelations(null);
         setRelationsError({ category: "schema", message: t("unexpectedRelations") });
@@ -677,6 +698,7 @@ async function loadGraph(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "search_page":
       case "shutdown_begun":
         setGraph(null);
         setGraphError(unexpectedGraphResponse());
@@ -745,6 +767,7 @@ async function loadMoreGraph(
       case "note_edited":
       case "note_moved":
       case "note_deleted":
+      case "search_page":
       case "shutdown_begun":
         setGraphError(unexpectedGraphResponse());
         return;
@@ -813,6 +836,7 @@ async function loadMoreTree(
       case "note_deleted":
       case "relation_list":
       case "graph_page":
+      case "search_page":
       case "shutdown_begun":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
@@ -1193,6 +1217,272 @@ function GraphPanel({
   );
 }
 
+function unexpectedSearchResponse(): WorkbenchError {
+  return { category: "schema", message: t("unexpectedSearch") };
+}
+
+function asSearchPage(response: Extract<IpcResponse, { kind: "search_page" }>): SearchPageDto {
+  return {
+    query: response.query,
+    hits: response.hits,
+    next_cursor: response.next_cursor,
+    page: response.page,
+    truncated: response.truncated,
+    observation: response.observation,
+    semantic_enabled: false,
+    engine_search: false,
+    scanned_user_obsidian_vault: false,
+    scanned_user_basic_memory_home: false,
+    files_written: response.files_written,
+  };
+}
+
+function mergeSearchPage(current: SearchPageDto, next: SearchPageDto): SearchPageDto {
+  const hits = [...current.hits];
+  for (const hit of next.hits) {
+    if (!hits.some((existing) => existing.identifier === hit.identifier)) {
+      hits.push(hit);
+    }
+  }
+  return {
+    ...next,
+    hits,
+  };
+}
+
+async function runSearch(
+  query: string,
+  setSearch: (search: SearchPageDto | null) => void,
+  setSearchError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "search_notes",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        query,
+        page_size: TREE_PAGE_SIZE,
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setSearch(null);
+        setSearchError({ category: response.category, message: response.message });
+        return;
+      case "search_page":
+        if (response.truncated) {
+          setSearch(null);
+          setSearchError(unexpectedSearchResponse());
+          return;
+        }
+        setSearchError(null);
+        setSearch(asSearchPage(response));
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "relation_list":
+      case "graph_page":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
+      case "shutdown_begun":
+        setSearch(null);
+        setSearchError(unexpectedSearchResponse());
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setSearch(null);
+    setSearchError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+async function loadMoreSearch(
+  current: SearchPageDto,
+  setSearch: (search: SearchPageDto | null) => void,
+  setSearchError: (error: WorkbenchError | null) => void,
+): Promise<void> {
+  if (!current.next_cursor) {
+    return;
+  }
+  const route = copyFixtureRoute();
+  try {
+    const response = await invokeTyped<IpcResponse>({
+      command: "search_notes",
+      args: {
+        workspace: route.workspace,
+        project: route.project,
+        query: current.query,
+        cursor: current.next_cursor,
+        page_size: TREE_PAGE_SIZE,
+      },
+    });
+    switch (response.kind) {
+      case "error":
+        setSearchError({ category: response.category, message: response.message });
+        return;
+      case "search_page":
+        if (response.truncated) {
+          setSearchError(unexpectedSearchResponse());
+          return;
+        }
+        setSearchError(null);
+        setSearch(mergeSearchPage(current, asSearchPage(response)));
+        return;
+      case "capabilities":
+      case "runtime_state":
+      case "project_selected":
+      case "project_catalog":
+      case "preflight":
+      case "config_discovery":
+      case "tree_page":
+      case "note_read":
+      case "relation_list":
+      case "graph_page":
+      case "backup_catalog":
+      case "fixture_restored":
+      case "windows_runtime":
+      case "draft_saved":
+      case "draft_loaded":
+      case "note_written":
+      case "note_edited":
+      case "note_moved":
+      case "note_deleted":
+      case "shutdown_begun":
+        setSearchError(unexpectedSearchResponse());
+        return;
+      default: {
+        const exhaustive: never = response;
+        return exhaustive;
+      }
+    }
+  } catch (cause) {
+    setSearchError({
+      category: "invoke",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+function SearchPanel({
+  search,
+  error,
+  onSearch,
+  onLoadMore,
+}: {
+  search: SearchPageDto | null;
+  error: WorkbenchError | null;
+  onSearch: (query: string) => void;
+  onLoadMore: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const empty = search === null || search.hits.length === 0;
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error ? t("searchErrorTitle") : empty ? t("searchEmptyTitle") : t("searchReadyTitle");
+  return (
+    <section
+      className="subpanel"
+      data-state={state}
+      aria-labelledby="search-title"
+      role={error ? "alert" : undefined}
+    >
+      <p className="state-badge">{badge}</p>
+      <h3 id="search-title">{heading}</h3>
+      <p>
+        {error ? `${errorCategoryLabel(error.category)}：${error.message}` : empty ? t("searchEmptyBody") : t("searchReadyBody")}
+      </p>
+      <p>{t("searchLexicalNotSemantic")}</p>
+      <p>{t("searchPermalinkNotPath")}</p>
+      <p>{t("searchMcpUnverified")}</p>
+      <form
+        className="search-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const next = query.trim();
+          if (next === "") {
+            return;
+          }
+          onSearch(next);
+        }}
+      >
+        <label htmlFor="search-query">{t("searchQueryLabel")}</label>
+        <input
+          id="search-query"
+          type="text"
+          value={query}
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        <button type="submit" className="action">
+          {t("searchSubmit")}
+        </button>
+      </form>
+      {search ? (
+        <dl className="facts">
+          <div>
+            <dt>{t("searchQueryLabel")}</dt>
+            <dd>{search.query}</dd>
+          </div>
+          <div>
+            <dt>classified_as</dt>
+            <dd data-observation={search.observation.classified_as}>
+              {observationClassLabel(search.observation.classified_as)}
+            </dd>
+          </div>
+          <div>
+            <dt>{t("searchSemanticEnabledLabel")}</dt>
+            <dd>{search.semantic_enabled ? t("searchSemanticOn") : t("searchSemanticOff")}</dd>
+          </div>
+        </dl>
+      ) : null}
+      {search && search.hits.length > 0 ? (
+        <ul className="search-list">
+          {search.hits.map((hit: SearchHitDto) => (
+            <li key={hit.identifier}>
+              <span>{hit.identifier}</span>
+              <span>
+                {t("searchLexicalScore")}: {hit.lexical_score}
+              </span>
+              <span>
+                {t("searchSemanticScore")}: {hit.semantic_score}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {search?.next_cursor ? (
+        <div className="search-actions">
+          <button type="button" className="action" onClick={onLoadMore}>
+            {t("searchLoadMore")}
+          </button>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function isFixtureNoteIdentifier(value: string): boolean {
   const identifier = value.trim();
   if (identifier === "") {
@@ -1536,6 +1826,7 @@ async function applyCrudResponse(
     case "draft_loaded":
     case "relation_list":
       case "graph_page":
+      case "search_page":
       case "shutdown_begun":
       setError(unexpectedCrudResponse());
       return;
@@ -1859,6 +2150,7 @@ async function persistDraft(
       case "note_deleted":
       case "relation_list":
       case "graph_page":
+      case "search_page":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -1932,6 +2224,7 @@ async function reloadDraft(
       case "note_deleted":
       case "relation_list":
       case "graph_page":
+      case "search_page":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -2262,6 +2555,7 @@ function ProjectPanel({
                 case "note_deleted":
                 case "relation_list":
       case "graph_page":
+      case "search_page":
       case "shutdown_begun":
                   setSelectError({
                     category: "schema",
@@ -2581,6 +2875,7 @@ function BackupPanel() {
           case "note_deleted":
           case "relation_list":
       case "graph_page":
+      case "search_page":
       case "shutdown_begun":
             setError(unexpectedBackupResponse());
             setPhase("error");
@@ -2759,6 +3054,7 @@ async function restoreNamedFixture(
       case "note_deleted":
       case "relation_list":
       case "graph_page":
+      case "search_page":
       case "shutdown_begun":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
@@ -2912,6 +3208,7 @@ function WindowsRuntimeCard() {
           case "note_deleted":
           case "relation_list":
       case "graph_page":
+      case "search_page":
       case "shutdown_begun":
             setError(unexpectedWindowsResponse());
             setPhase("error");

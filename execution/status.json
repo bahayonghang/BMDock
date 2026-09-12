@@ -24,7 +24,7 @@
 {"id":"T18","title":"编辑器内容安全与Windows体验","phase":"P3","depends_on":["T14","T15"],"acceptance_ids":["AC21","AC46","AC57"],"status":"completed"},
 {"id":"T19","title":"观察与关系语义面板","phase":"P4","depends_on":["T11","T15"],"acceptance_ids":["AC27","AC28"],"status":"completed"},
 {"id":"T20","title":"局部图谱与渐进展开","phase":"P4","depends_on":["T19","T08"],"acceptance_ids":["AC27","AC29","AC56"],"status":"completed"},
-{"id":"T21","title":"全文语义混合检索","phase":"P4","depends_on":["T10","T06"],"acceptance_ids":["AC23","AC24","AC25"],"status":"planned"},
+{"id":"T21","title":"全文语义混合检索","phase":"P4","depends_on":["T10","T06"],"acceptance_ids":["AC23","AC24","AC25"],"status":"completed"},
 {"id":"T22","title":"上下文预览与近期活动","phase":"P4","depends_on":["T19","T21"],"acceptance_ids":["AC30","AC31"],"status":"planned"},
 {"id":"T23","title":"检索Inspector与模型状态","phase":"P4","depends_on":["T21","T07"],"acceptance_ids":["AC24","AC38","AC41"],"status":"planned"},
 {"id":"T24","title":"中文召回与性能基准","phase":"P4","depends_on":["T20","T21","T23"],"acceptance_ids":["AC26","AC29","AC56"],"status":"planned"},

@@ -15,8 +15,15 @@ pub const SCHEMA_NOTE_IDENTIFIER: &str = "note identifier is required";
 pub const SCHEMA_NOTE_TITLE: &str = "note title is required";
 pub const SCHEMA_NOTE_DESTINATION: &str = "move destination is required";
 pub const SCHEMA_MOVE_SAME_IDENTIFIER: &str = "move destination must differ from identifier";
+pub const SCHEMA_SEARCH_QUERY: &str = "search query is required";
 pub const UNSUPPORTED_TRUNCATED: &str = "truncated inventory is not a success";
 pub const GRAPH_DEPTH: u32 = 1;
+#[cfg(test)]
+pub const LEXICAL_SCORE_TITLE: u32 = 2;
+#[cfg(test)]
+pub const LEXICAL_SCORE_BODY: u32 = 1;
+#[cfg(test)]
+pub const SEMANTIC_SCORE_DISABLED: u32 = 0;
 #[cfg(test)]
 pub const NATIVE_GUI_UNVERIFIED: &str =
     "native window freeze, WebView2 session, installer, and hosted CI remain UNVERIFIED";
@@ -32,9 +39,21 @@ pub const POLICY_FILESYSTEM_IDENTIFIER: &str =
     "Note identifiers are permalinks, not user vault filesystem paths";
 pub const POLICY_FILESYSTEM_DESTINATION: &str =
     "Move destinations are permalinks, not user vault filesystem paths";
+pub const POLICY_FILESYSTEM_QUERY: &str =
+    "Search queries are lexical text, not user vault filesystem paths";
 #[cfg(test)]
 pub const ENGINE_GRAPH_NOT_OWNED: &str =
     "relations are derived from fixture markdown wiki-links, not a second database and not official engine graph MCP";
+#[cfg(test)]
+pub const ENGINE_SEARCH_NOT_OWNED: &str =
+    "search is BMDock-owned fixture lexical matching, not a second database and not official engine search MCP";
+#[cfg(test)]
+pub const SEMANTIC_SEARCH_UNVERIFIED: &str =
+    "official semantic search and embedding backend remain UNVERIFIED";
+#[cfg(test)]
+pub const OFFICIAL_SEARCH_MCP_UNVERIFIED: &str = "official search MCP remains UNVERIFIED";
+#[cfg(test)]
+pub const OFFICIAL_FETCH_MCP_UNVERIFIED: &str = "official fetch MCP remains UNVERIFIED";
 #[cfg(test)]
 pub const RECENT_ACTIVITY_MCP_UNVERIFIED: &str = "official recent_activity MCP remains UNVERIFIED";
 #[cfg(test)]
@@ -269,6 +288,48 @@ pub fn empty_graph_page(identifier: &str) -> GraphPageDto {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SearchHitDto {
+    pub identifier: String,
+    pub lexical_score: u32,
+    pub semantic_score: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SearchPageDto {
+    pub query: String,
+    pub hits: Vec<SearchHitDto>,
+    pub next_cursor: Option<String>,
+    pub page: u32,
+    pub truncated: bool,
+    pub observation: NoteCrudObservationDto,
+    pub semantic_enabled: bool,
+    pub engine_search: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+    pub files_written: bool,
+}
+
+pub fn empty_search_page(query: &str) -> SearchPageDto {
+    SearchPageDto {
+        query: query.to_owned(),
+        hits: Vec::new(),
+        next_cursor: None,
+        page: 1,
+        truncated: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        semantic_enabled: false,
+        engine_search: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+        files_written: false,
+    }
+}
+
 #[cfg(test)]
 pub fn extract_wiki_link_identifiers(body: &str) -> Vec<String> {
     let mut out = Vec::new();
@@ -315,6 +376,20 @@ pub trait NoteLibrary: Send + Sync {
             return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
         }
         Ok(empty_graph_page(identifier))
+    }
+
+    fn search_notes(
+        &self,
+        query: &str,
+        cursor: Option<&str>,
+        page_size: u32,
+    ) -> Result<SearchPageDto, LibraryError> {
+        reject_search_query(query)?;
+        let _ = bound_page_size(Some(page_size))?;
+        if cursor.is_some() {
+            return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        }
+        Ok(empty_search_page(query))
     }
 
     fn write_note(
@@ -537,6 +612,36 @@ impl FixtureLibrary {
             },
         })
     }
+
+    fn collect_lexical_hits(&self, query: &str) -> Result<Vec<SearchHitDto>, LibraryError> {
+        let entries = self.collect_entries()?;
+        let mut hits = Vec::new();
+        for entry in entries {
+            let path = self.resolve_note_path(&entry.identifier)?;
+            let disk = crate::content_safety::read_exact_text(&path)
+                .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+            if !disk.contains(query) {
+                continue;
+            }
+            if looks_like_filesystem_path(&entry.identifier) {
+                return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+            }
+            let title = title_from_markdown(&disk).unwrap_or_else(|| entry.identifier.clone());
+            let mut lexical_score = 0u32;
+            if title.contains(query) {
+                lexical_score = lexical_score.saturating_add(LEXICAL_SCORE_TITLE);
+            }
+            if disk.contains(query) {
+                lexical_score = lexical_score.saturating_add(LEXICAL_SCORE_BODY);
+            }
+            hits.push(SearchHitDto {
+                identifier: entry.identifier,
+                lexical_score,
+                semantic_score: SEMANTIC_SCORE_DISABLED,
+            });
+        }
+        Ok(hits)
+    }
 }
 
 #[cfg(test)]
@@ -659,6 +764,53 @@ impl NoteLibrary for FixtureLibrary {
             scanned_user_basic_memory_home: false,
             files_written: false,
             depth: GRAPH_DEPTH,
+        })
+    }
+
+    fn search_notes(
+        &self,
+        query: &str,
+        cursor: Option<&str>,
+        page_size: u32,
+    ) -> Result<SearchPageDto, LibraryError> {
+        reject_search_query(query)?;
+        let page_size = bound_page_size(Some(page_size))?;
+        let hits = self.collect_lexical_hits(query)?;
+        let offset = parse_offset(cursor, hits.len())?;
+        let size = page_size as usize;
+        let end = offset.saturating_add(size).min(hits.len());
+        let page_hits = hits[offset..end].to_vec();
+        let next_cursor = if end < hits.len() {
+            Some(end.to_string())
+        } else {
+            None
+        };
+        let page = u32::try_from(offset / size)
+            .map_err(|_| LibraryError::schema(SCHEMA_INVALID_CURSOR))?
+            .saturating_add(1);
+        let (classified, disk_verified) = if page_hits.is_empty() {
+            (NoteCrudClass::Empty, false)
+        } else if page_hits.iter().all(|hit| {
+            hit.lexical_score > SEMANTIC_SCORE_DISABLED
+                && hit.semantic_score == SEMANTIC_SCORE_DISABLED
+                && !looks_like_filesystem_path(&hit.identifier)
+        }) {
+            (NoteCrudClass::DiskVerified, true)
+        } else {
+            (NoteCrudClass::AcceptedUnverified, false)
+        };
+        Ok(SearchPageDto {
+            query: query.to_owned(),
+            hits: page_hits,
+            next_cursor,
+            page,
+            truncated: false,
+            observation: crud_observation(classified, disk_verified),
+            semantic_enabled: false,
+            engine_search: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+            files_written: false,
         })
     }
 
@@ -929,6 +1081,40 @@ pub fn accept_graph_page(
     Ok(page)
 }
 
+pub fn accept_search_page(
+    request_cursor: Option<&str>,
+    page: SearchPageDto,
+) -> Result<SearchPageDto, LibraryError> {
+    if page.truncated {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if page.semantic_enabled || page.engine_search {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if page.page == 0 {
+        return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+    }
+    if page.hits.len() > MAX_PAGE_SIZE as usize {
+        return Err(LibraryError::unsupported(UNSUPPORTED_TRUNCATED));
+    }
+    if page
+        .hits
+        .iter()
+        .any(|hit| looks_like_filesystem_path(&hit.identifier))
+    {
+        return Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER));
+    }
+    if let Some(next) = page.next_cursor.as_deref() {
+        if next.is_empty() {
+            return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        }
+        if request_cursor == Some(next) {
+            return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        }
+    }
+    Ok(page)
+}
+
 pub fn reject_filesystem_identifier(identifier: &str) -> Result<(), LibraryError> {
     if looks_like_filesystem_path(identifier) {
         Err(LibraryError::policy(POLICY_FILESYSTEM_IDENTIFIER))
@@ -958,6 +1144,17 @@ pub fn reject_filesystem_destination(destination: &str) -> Result<(), LibraryErr
     }
     if looks_like_filesystem_path(destination) {
         Err(LibraryError::policy(POLICY_FILESYSTEM_DESTINATION))
+    } else {
+        Ok(())
+    }
+}
+
+pub fn reject_search_query(query: &str) -> Result<(), LibraryError> {
+    if query.trim().is_empty() {
+        return Err(LibraryError::schema(SCHEMA_SEARCH_QUERY));
+    }
+    if looks_like_filesystem_path(query) {
+        Err(LibraryError::policy(POLICY_FILESYSTEM_QUERY))
     } else {
         Ok(())
     }
@@ -1261,6 +1458,27 @@ mod tests {
                 depth: GRAPH_DEPTH,
             })
         }
+
+        fn search_notes(
+            &self,
+            query: &str,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<SearchPageDto, LibraryError> {
+            Ok(SearchPageDto {
+                query: query.to_owned(),
+                hits: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: true,
+                observation: crud_observation(NoteCrudClass::Unclassified, false),
+                semantic_enabled: false,
+                engine_search: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+            })
+        }
     }
 
     struct LoopingLibrary;
@@ -1285,6 +1503,31 @@ mod tests {
 
         fn read_note(&self, _identifier: &str) -> Result<NoteReadDto, LibraryError> {
             Err(LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))
+        }
+
+        fn search_notes(
+            &self,
+            query: &str,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<SearchPageDto, LibraryError> {
+            Ok(SearchPageDto {
+                query: query.to_owned(),
+                hits: vec![SearchHitDto {
+                    identifier: "loop".to_owned(),
+                    lexical_score: LEXICAL_SCORE_BODY,
+                    semantic_score: SEMANTIC_SCORE_DISABLED,
+                }],
+                next_cursor: Some("same".to_owned()),
+                page: 1,
+                truncated: false,
+                observation: crud_observation(NoteCrudClass::Unclassified, false),
+                semantic_enabled: false,
+                engine_search: false,
+                scanned_user_obsidian_vault: false,
+                scanned_user_basic_memory_home: false,
+                files_written: false,
+            })
         }
     }
 
@@ -1321,8 +1564,23 @@ mod tests {
         assert!(!graph.engine_graph);
         assert_eq!(graph.observation.classified_as, NoteCrudClass::Empty);
         assert!(!graph.observation.disk_verified);
+        let search = library
+            .search_notes("欢迎", None, DEFAULT_PAGE_SIZE)
+            .unwrap();
+        assert!(search.hits.is_empty());
+        assert_eq!(search.next_cursor, None);
+        assert!(!search.truncated);
+        assert!(!search.semantic_enabled);
+        assert!(!search.engine_search);
+        assert_eq!(search.observation.classified_as, NoteCrudClass::Empty);
+        assert!(!search.observation.disk_verified);
+        assert!(search.observation.envelope_is_not_disk_proof);
         let _ = (
             ENGINE_GRAPH_NOT_OWNED,
+            ENGINE_SEARCH_NOT_OWNED,
+            SEMANTIC_SEARCH_UNVERIFIED,
+            OFFICIAL_SEARCH_MCP_UNVERIFIED,
+            OFFICIAL_FETCH_MCP_UNVERIFIED,
             RECENT_ACTIVITY_MCP_UNVERIFIED,
             BUILD_CONTEXT_MCP_UNVERIFIED,
             NATIVE_GUI_UNVERIFIED,
@@ -1340,6 +1598,22 @@ mod tests {
             .expand_graph("welcome", Some("1"), DEFAULT_PAGE_SIZE)
             .unwrap_err();
         assert_eq!(graph_cursor, LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        let search_cursor = EmptyLibrary
+            .search_notes("欢迎", Some("1"), DEFAULT_PAGE_SIZE)
+            .unwrap_err();
+        assert_eq!(search_cursor, LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        assert_eq!(
+            EmptyLibrary
+                .search_notes("", None, DEFAULT_PAGE_SIZE)
+                .unwrap_err(),
+            LibraryError::schema(SCHEMA_SEARCH_QUERY)
+        );
+        assert_eq!(
+            EmptyLibrary
+                .search_notes(r"C:\Users\someone\vault\note.md", None, DEFAULT_PAGE_SIZE)
+                .unwrap_err(),
+            LibraryError::policy(POLICY_FILESYSTEM_QUERY)
+        );
     }
 
     #[test]
@@ -1425,6 +1699,63 @@ mod tests {
         );
         let follow_loop = follow_tree_pages(&LoopingLibrary, 2).unwrap_err();
         assert_eq!(follow_loop, LibraryError::schema(SCHEMA_INVALID_CURSOR));
+        assert_eq!(
+            accept_search_page(
+                None,
+                TruncatingLibrary.search_notes("欢迎", None, 2).unwrap()
+            )
+            .unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_TRUNCATED)
+        );
+        let looping_search = LoopingLibrary
+            .search_notes("loop", Some("same"), 2)
+            .unwrap();
+        assert_eq!(
+            accept_search_page(Some("same"), looping_search).unwrap_err(),
+            LibraryError::schema(SCHEMA_INVALID_CURSOR)
+        );
+    }
+
+    #[test]
+    fn fixture_lexical_search_hits_match_physical_utf8_including_chinese() {
+        let fixture = TempFixture::create();
+        fixture.write_note(
+            "welcome",
+            "中文夹具笔记",
+            "这是 BMDock 自有夹具正文。参见 [[欢迎]]。",
+        );
+        fixture.write_note("欢迎", "欢迎", "第二篇中文正文，不含检索独有词。");
+        fixture.write_note("alpha", "alpha", "English body without the CJK query.");
+        let library = FixtureLibrary::new(fixture.dir.clone());
+        let page = library.search_notes("欢迎", None, 2).unwrap();
+        assert!(!page.hits.is_empty());
+        assert!(!page.truncated);
+        assert!(!page.semantic_enabled);
+        assert!(!page.engine_search);
+        assert_eq!(page.observation.classified_as, NoteCrudClass::DiskVerified);
+        assert!(page.observation.disk_verified);
+        assert!(page.observation.envelope_is_not_disk_proof);
+        for hit in &page.hits {
+            assert_ne!(hit.lexical_score, hit.semantic_score);
+            assert_eq!(hit.semantic_score, SEMANTIC_SCORE_DISABLED);
+            assert!(hit.lexical_score > SEMANTIC_SCORE_DISABLED);
+            assert!(!looks_like_filesystem_path(&hit.identifier));
+            let path = fixture.dir.join(format!("{}.md", hit.identifier));
+            let disk = fs::read_to_string(&path).unwrap();
+            assert!(
+                disk.contains("欢迎"),
+                "hit permalink must match a physical UTF-8 file that contains the query"
+            );
+        }
+        assert!(page.hits.iter().any(|hit| hit.identifier == "welcome"));
+        assert!(page.hits.iter().any(|hit| hit.identifier == "欢迎"));
+        assert!(!page.hits.iter().any(|hit| hit.identifier == "alpha"));
+        let missed = library
+            .search_notes("独有哨兵词XYZ", None, DEFAULT_PAGE_SIZE)
+            .unwrap();
+        assert!(missed.hits.is_empty());
+        assert_eq!(missed.observation.classified_as, NoteCrudClass::Empty);
+        assert!(!missed.semantic_enabled);
     }
 
     #[test]
