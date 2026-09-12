@@ -49,6 +49,7 @@ import {
   type ShareCatalogDto,
   type HookInspectionDto,
   type ProviderInspectionDto,
+  type RouteInspectionDto,
   type AuditedApiLeafDto,
   type AuditedCliLeafDto,
   type AuditedIpcCommandDto,
@@ -82,7 +83,7 @@ import {
   type ShellLoadState,
 } from "./shell";
 
-const SECTIONS = ["workbench", "runtime", "projects", "preflight", "backups", "import", "extras", "cloud", "sync", "hooks", "providers", "about"] as const;
+const SECTIONS = ["workbench", "runtime", "projects", "preflight", "backups", "import", "extras", "cloud", "sync", "hooks", "providers", "routes", "about"] as const;
 type SectionId = (typeof SECTIONS)[number];
 
 function sectionLabel(id: SectionId): string {
@@ -109,6 +110,8 @@ function sectionLabel(id: SectionId): string {
       return t("navHooks");
     case "providers":
       return t("navProviders");
+    case "routes":
+      return t("navRoutes");
     case "about":
       return t("navAbout");
     default: {
@@ -227,6 +230,8 @@ function SectionBody({
       return <HookPanel />;
     case "providers":
       return <ProviderPanel />;
+    case "routes":
+      return <RoutePanel />;
     case "about":
       return <AboutPanel />;
     default: {
@@ -433,6 +438,7 @@ function WorkbenchLibrary({
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
             setError(unexpectedWorkbenchResponse());
             setPhase("error");
@@ -755,6 +761,7 @@ async function openNote(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setError({ category: "schema", message: t("unexpectedNote") });
         setPhase("error");
@@ -842,6 +849,7 @@ async function loadRelations(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setRelations(null);
         setRelationsError({ category: "schema", message: t("unexpectedRelations") });
@@ -962,6 +970,7 @@ async function loadGraph(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setGraph(null);
         setGraphError(unexpectedGraphResponse());
@@ -1049,6 +1058,7 @@ async function loadMoreGraph(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setGraphError(unexpectedGraphResponse());
         return;
@@ -1136,6 +1146,7 @@ async function loadMoreTree(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setError(unexpectedWorkbenchResponse());
         setPhase("error");
@@ -1616,6 +1627,7 @@ async function runSearch(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setSearch(null);
         setSearchError(unexpectedSearchResponse());
@@ -1703,6 +1715,7 @@ async function loadMoreSearch(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setSearchError(unexpectedSearchResponse());
         return;
@@ -1914,6 +1927,7 @@ async function runInspectSearch(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setInspector(null);
         setInspectorError(unexpectedInspectorResponse());
@@ -2154,6 +2168,7 @@ async function runRecallBenchmark(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setRecall(null);
         setRecallError(unexpectedRecallResponse());
@@ -2384,6 +2399,7 @@ async function runSchemaValidate(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setSchema(null);
         setSchemaError(unexpectedSchemaResponse());
@@ -2624,6 +2640,7 @@ async function loadContextPreview(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setPreview(null);
         setPreviewError(unexpectedPreviewResponse());
@@ -2803,6 +2820,7 @@ async function loadActivity(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setActivity(null);
         setActivityError(unexpectedActivityResponse());
@@ -2889,6 +2907,7 @@ async function loadMoreActivity(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setActivityError(unexpectedActivityResponse());
         return;
@@ -3059,6 +3078,7 @@ async function loadResources(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setResources(null);
         setResourcesError(unexpectedResourceResponse());
@@ -3145,6 +3165,7 @@ async function loadMoreResources(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setResourcesError(unexpectedResourceResponse());
         return;
@@ -3316,6 +3337,7 @@ async function loadPrompts(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setPrompts(null);
         setPromptsError(unexpectedPromptResponse());
@@ -3402,6 +3424,7 @@ async function loadMorePrompts(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setPromptsError(unexpectedPromptResponse());
         return;
@@ -3575,6 +3598,7 @@ async function loadTools(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setTools(null);
         setToolsError(unexpectedToolsResponse());
@@ -3768,6 +3792,7 @@ async function loadCli(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setCli(null);
         setCliError(unexpectedCliResponse());
@@ -3856,6 +3881,7 @@ async function loadMoreCli(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setCliError(unexpectedCliResponse());
         return;
@@ -4067,6 +4093,7 @@ async function loadApiAudit(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setAudit(null);
         setAuditError(unexpectedAuditResponse());
@@ -4577,6 +4604,7 @@ async function applyCrudResponse(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
       setError(unexpectedCrudResponse());
       return;
@@ -4919,6 +4947,7 @@ async function persistDraft(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -5011,6 +5040,7 @@ async function reloadDraft(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         setError(unexpectedDraftResponse());
         return;
@@ -5365,6 +5395,7 @@ function ProjectPanel({
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
                   setSelectError({
                     category: "schema",
@@ -5730,6 +5761,7 @@ function ImportPanel() {
         case "share_catalog":
         case "hook_inspection":
         case "provider_inspection":
+        case "route_inspection":
         case "shutdown_begun":
           setError(unexpectedImportResponse());
           setResult(null);
@@ -5940,6 +5972,7 @@ function ExtrasPanel() {
         case "share_catalog":
         case "hook_inspection":
         case "provider_inspection":
+        case "route_inspection":
         case "shutdown_begun":
           setError(unexpectedExtrasResponse());
           setCatalog(null);
@@ -6047,6 +6080,7 @@ function ExtrasPanel() {
         case "share_catalog":
         case "hook_inspection":
         case "provider_inspection":
+        case "route_inspection":
         case "shutdown_begun":
           setError(unexpectedExtrasResponse());
           setIngested(null);
@@ -6274,6 +6308,7 @@ function CloudPanel() {
         case "share_catalog":
         case "hook_inspection":
         case "provider_inspection":
+        case "route_inspection":
           setError(unexpectedCloudResponse());
           setReport(null);
           setPhase("error");
@@ -6469,6 +6504,7 @@ function SyncPanel() {
         case "share_catalog":
         case "hook_inspection":
         case "provider_inspection":
+        case "route_inspection":
         case "shutdown_begun":
           setError(unexpectedSyncResponse());
           setReport(null);
@@ -6596,6 +6632,7 @@ function SyncPanel() {
         case "sync_inspection":
         case "hook_inspection":
         case "provider_inspection":
+        case "route_inspection":
         case "shutdown_begun":
           setError(unexpectedSyncResponse());
           setReport(null);
@@ -6815,6 +6852,7 @@ function HookPanel() {
         case "sync_inspection":
         case "share_catalog":
         case "provider_inspection":
+        case "route_inspection":
         case "shutdown_begun":
           setError(unexpectedHookResponse());
           setReport(null);
@@ -7041,6 +7079,7 @@ function ProviderPanel() {
         case "sync_inspection":
         case "share_catalog":
         case "hook_inspection":
+        case "route_inspection":
         case "shutdown_begun":
           setError(unexpectedProviderResponse());
           setReport(null);
@@ -7153,6 +7192,248 @@ function ProviderPanel() {
   );
 }
 
+type RouteError = {
+  category: "policy" | "schema" | "unsupported" | "invoke";
+  message: string;
+};
+
+function unexpectedRouteResponse(): RouteError {
+  return { category: "schema", message: t("unexpectedRoutes") };
+}
+
+function RoutePanel() {
+  const [phase, setPhase] = useState<"empty" | "ready" | "error">("empty");
+  const [report, setReport] = useState<RouteInspectionDto | null>(null);
+  const [error, setError] = useState<RouteError | null>(null);
+
+  const loadRoutes = async () => {
+    const route = copyFixtureRoute();
+    try {
+      const response = await invokeTyped<IpcResponse>({
+        command: "inspect_routes",
+        args: {
+          workspace: route.workspace,
+          project: route.project,
+        },
+      });
+      switch (response.kind) {
+        case "error":
+          setError({ category: response.category, message: response.message });
+          setReport(null);
+          setPhase("error");
+          return;
+        case "route_inspection":
+          if (
+            response.cloud_allowed ||
+            response.sync_enabled ||
+            response.sharing_enabled ||
+            response.hooks_enabled ||
+            response.provider_enabled ||
+            response.semantic_enabled ||
+            response.cross_project_search_allowed ||
+            response.full_api_coverage ||
+            response.connected ||
+            response.synced ||
+            response.installed ||
+            response.files_written ||
+            response.route_claimed ||
+            response.live_official_cloud_session ||
+            response.live_official_sync_session ||
+            response.live_official_agent_session ||
+            response.live_provider_session ||
+            response.remote_hosts_contacted ||
+            response.secrets_stored ||
+            response.env_tokens_read ||
+            response.mixed_profiles ||
+            response.engine_routes ||
+            response.official_mcp_inferred ||
+            response.scanned_user_obsidian_vault ||
+            response.routes.length > 0 ||
+            !response.local_offline ||
+            response.present_commands.includes("enable_provider") ||
+            response.present_commands.includes("restore_sync") ||
+            response.present_commands.includes("list_hooks") ||
+            response.present_commands.includes("connect_provider") ||
+            response.present_commands.includes("call_tool")
+          ) {
+            setError(unexpectedRouteResponse());
+            setReport(null);
+            setPhase("error");
+            return;
+          }
+          setError(null);
+          setReport({
+            routes: [],
+            present_commands: response.present_commands,
+            absent_commands: response.absent_commands,
+            cloud_allowed: false,
+            sync_enabled: false,
+            sharing_enabled: false,
+            hooks_enabled: false,
+            provider_enabled: false,
+            semantic_enabled: false,
+            cross_project_search_allowed: false,
+            full_api_coverage: false,
+            connected: false,
+            synced: false,
+            installed: false,
+            files_written: false,
+            route_claimed: false,
+            local_offline: true,
+            live_official_cloud_session: false,
+            live_official_sync_session: false,
+            live_official_agent_session: false,
+            live_provider_session: false,
+            remote_hosts_contacted: false,
+            secrets_stored: false,
+            env_tokens_read: false,
+            mixed_profiles: false,
+            observation: response.observation,
+            engine_routes: false,
+            official_mcp_inferred: false,
+            scanned_user_obsidian_vault: false,
+            scanned_user_basic_memory_home: false,
+          });
+          setPhase("ready");
+          return;
+        case "capabilities":
+        case "runtime_state":
+        case "project_selected":
+        case "project_catalog":
+        case "preflight":
+        case "config_discovery":
+        case "tree_page":
+        case "note_read":
+        case "backup_catalog":
+        case "fixture_restored":
+        case "windows_runtime":
+        case "draft_saved":
+        case "draft_loaded":
+        case "note_written":
+        case "note_edited":
+        case "note_moved":
+        case "note_deleted":
+        case "relation_list":
+        case "graph_page":
+        case "search_page":
+        case "context_preview":
+        case "activity_page":
+        case "search_inspector":
+        case "recall_benchmark":
+        case "schema_validated":
+        case "resource_page":
+        case "prompt_page":
+        case "tool_inspection":
+        case "cli_inventory":
+        case "notes_imported":
+        case "api_audit":
+        case "extras_catalog":
+        case "document_ingested":
+        case "cloud_inspection":
+        case "sync_inspection":
+        case "share_catalog":
+        case "hook_inspection":
+        case "provider_inspection":
+        case "shutdown_begun":
+          setError(unexpectedRouteResponse());
+          setReport(null);
+          setPhase("error");
+          return;
+        default: {
+          const exhaustive: never = response;
+          return exhaustive;
+        }
+      }
+    } catch (cause) {
+      setError({
+        category: "invoke",
+        message: cause instanceof Error ? cause.message : String(cause),
+      });
+      setReport(null);
+      setPhase("error");
+    }
+  };
+
+  const empty = phase === "empty" && !error;
+  const state = error ? "error" : empty ? "empty" : "status";
+  const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
+  const heading = error
+    ? t("routesErrorTitle")
+    : empty
+      ? t("routesEmptyTitle")
+      : t("routesReadyTitle");
+
+  return (
+    <section
+      className="panel"
+      data-state={state}
+      aria-labelledby="routes-title"
+      role={error ? "alert" : undefined}
+    >
+      <p className="state-badge">{badge}</p>
+      <h2 id="routes-title">{heading}</h2>
+      <p>
+        {error
+          ? `${errorCategoryLabel(error.category)}：${error.message}`
+          : empty
+            ? t("routesEmptyBody")
+            : t("routesReadyBody")}
+      </p>
+      <p>{t("routesNotEnabled")}</p>
+      <ul className="policy-list">
+        <li>
+          {t("routesCloudLabel")}：{t("routesNotEnabled")}
+        </li>
+        <li>
+          {t("routesSyncLabel")}：{t("routesNotEnabled")}
+        </li>
+        <li>
+          {t("routesHooksLabel")}：{t("routesNotEnabled")}
+        </li>
+        <li>
+          {t("routesProvidersLabel")}：{t("routesNotEnabled")}
+        </li>
+        <li>
+          {t("routesSearchLabel")}：{t("routesCrossProjectDenied")}
+        </li>
+      </ul>
+      <button type="button" className="action" onClick={() => void loadRoutes()}>
+        {t("routesInspect")}
+      </button>
+      <ul className="policy-list">
+        <li>{t("routesNoVault")}</li>
+        <li>{t("routesNoSecrets")}</li>
+        <li>{t("routesNoRemote")}</li>
+        <li>{t("routesNotOfficial")}</li>
+        <li>
+          {t("routesFilesWrittenLabel")}：
+          {report?.files_written ? t("routesWroteFiles") : t("routesNoWrite")}
+        </li>
+      </ul>
+      {report ? (
+        <ul className="route-list">
+          <li>
+            <span>{t("routesLocalOfflineLabel")}</span>
+            <span>{report.local_offline ? t("routesYes") : t("routesNo")}</span>
+          </li>
+          <li>
+            <span>{t("routesCoverageLabel")}</span>
+            <span>{t("routesCoverageFalse")}</span>
+          </li>
+          <li>
+            <span>{t("routesObservationLabel")}</span>
+            <span>
+              {report.observation.classified_as === "empty"
+                ? t("routesObservationEmpty")
+                : t("routesObservationUnverified")}
+            </span>
+          </li>
+        </ul>
+      ) : null}
+    </section>
+  );
+}
+
 type BackupError = {
   category: "policy" | "schema" | "unsupported" | "invoke";
   message: string;
@@ -7256,6 +7537,7 @@ function BackupPanel() {
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
             setError(unexpectedBackupResponse());
             setPhase("error");
@@ -7453,6 +7735,7 @@ async function restoreNamedFixture(
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
         onError({ category: "schema", message: t("unexpectedRestore") });
         return;
@@ -7625,6 +7908,7 @@ function WindowsRuntimeCard() {
       case "share_catalog":
       case "hook_inspection":
       case "provider_inspection":
+      case "route_inspection":
       case "shutdown_begun":
             setError(unexpectedWindowsResponse());
             setPhase("error");

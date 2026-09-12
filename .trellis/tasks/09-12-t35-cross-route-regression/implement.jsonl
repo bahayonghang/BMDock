@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/guides/index.md", "reason": "加载通用实施与证据边界规范。"}
+{"file": "execution/status.json", "reason": "核对该子任务的阶段、依赖和 acceptance 映射。"}
+{"file": ".trellis/spec/bmdock-probe/backend/index.md", "reason": "沿用现有后端、错误处理和质量检查约束。"}
+{"file": ".trellis/spec/bmdock-probe/backend/typed-ipc-policy.md", "reason": "T35 inspect_routes 允许列、ExplicitRouteArgs 与 fail-closed 错误矩阵。"}
+{"file": ".trellis/tasks/09-12-t35-cross-route-regression/prd.md", "reason": "T35 验收范围 AC25/AC41/AC42/AC43/AC44/AC59。"}

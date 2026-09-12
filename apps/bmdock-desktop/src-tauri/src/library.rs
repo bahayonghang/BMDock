@@ -181,6 +181,28 @@ pub const POLICY_PROVIDER_CREDENTIAL_ROUTE: &str =
     "unauthorized remote, credential, env-token, api-key, or real-vault provider routes are policy and are not opened";
 #[cfg(test)]
 pub const PROVIDER_CLAIMED_FLAG: &str = "provider-claimed";
+pub const ENGINE_ROUTES_NOT_OWNED: &str =
+    "inspect_routes is a BMDock-owned local-only status; it is not a live cloud, sync, agent, or official MCP route catalog";
+#[cfg(test)]
+pub const OFFICIAL_ROUTES_UNVERIFIED: &str =
+    "live official cloud / sync / agent / provider routes remain UNVERIFIED";
+pub const UNSUPPORTED_ROUTE_CLAIMED_NOT_LIVE: &str =
+    "fixture route-claimed flag is unsupported, not success; claiming a cross-project or live remote route is unsupported";
+pub const POLICY_ROUTE_CREDENTIAL_ROUTE: &str =
+    "unauthorized remote, credential, env-token, api-key, or real-vault route claims are policy and are not opened";
+pub const UNSUPPORTED_LIVE_ROUTE_CLAIM: &str =
+    "inspect_routes must not report connected, synced, or installed; claiming live cloud/sync/agent from this command is unsupported";
+pub const UNSUPPORTED_OFFICIAL_MCP_FROM_ALLOWLIST: &str =
+    "typed allowlist is the source of present commands; do not infer official MCP from the allowlist";
+#[cfg(test)]
+pub const ROUTE_CLAIMED_FLAG: &str = "route-claimed";
+pub const ABSENT_ALLOWLIST_COMMANDS: &[&str] = &[
+    "enable_provider",
+    "restore_sync",
+    "list_hooks",
+    "connect_provider",
+    "call_tool",
+];
 pub const PROVIDER_STATUS_UNAVAILABLE: &str = "unavailable";
 pub const BACKEND_TIER_DISABLED: &str = "disabled";
 pub const PROVIDER_OPENAI: &str = "openai";
@@ -244,6 +266,7 @@ pub const ALLOWLISTED_IPC_COMMANDS: &[&str] = &[
     "list_shares",
     "inspect_hooks",
     "inspect_providers",
+    "inspect_routes",
     "preview_context",
     "list_activity",
     "list_backups",
@@ -1920,6 +1943,186 @@ pub fn accept_provider_inspection(
     Ok(report)
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RouteRecordDto {
+    pub workspace: String,
+    pub project: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RouteInspectionDto {
+    pub routes: Vec<RouteRecordDto>,
+    pub present_commands: Vec<String>,
+    pub absent_commands: Vec<String>,
+    pub cloud_allowed: bool,
+    pub sync_enabled: bool,
+    pub sharing_enabled: bool,
+    pub hooks_enabled: bool,
+    pub provider_enabled: bool,
+    pub semantic_enabled: bool,
+    pub cross_project_search_allowed: bool,
+    pub full_api_coverage: bool,
+    pub connected: bool,
+    pub synced: bool,
+    pub installed: bool,
+    pub files_written: bool,
+    pub route_claimed: bool,
+    pub local_offline: bool,
+    pub live_official_cloud_session: bool,
+    pub live_official_sync_session: bool,
+    pub live_official_agent_session: bool,
+    pub live_provider_session: bool,
+    pub remote_hosts_contacted: bool,
+    pub secrets_stored: bool,
+    pub env_tokens_read: bool,
+    pub mixed_profiles: bool,
+    pub observation: NoteCrudObservationDto,
+    pub engine_routes: bool,
+    pub official_mcp_inferred: bool,
+    pub scanned_user_obsidian_vault: bool,
+    pub scanned_user_basic_memory_home: bool,
+}
+
+pub fn empty_route_inspection() -> RouteInspectionDto {
+    RouteInspectionDto {
+        routes: Vec::new(),
+        present_commands: Vec::new(),
+        absent_commands: Vec::new(),
+        cloud_allowed: false,
+        sync_enabled: false,
+        sharing_enabled: false,
+        hooks_enabled: false,
+        provider_enabled: false,
+        semantic_enabled: false,
+        cross_project_search_allowed: false,
+        full_api_coverage: false,
+        connected: false,
+        synced: false,
+        installed: false,
+        files_written: false,
+        route_claimed: false,
+        local_offline: true,
+        live_official_cloud_session: false,
+        live_official_sync_session: false,
+        live_official_agent_session: false,
+        live_provider_session: false,
+        remote_hosts_contacted: false,
+        secrets_stored: false,
+        env_tokens_read: false,
+        mixed_profiles: false,
+        observation: NoteCrudObservationDto {
+            classified_as: NoteCrudClass::Empty,
+            disk_verified: false,
+            envelope_is_not_disk_proof: true,
+        },
+        engine_routes: false,
+        official_mcp_inferred: false,
+        scanned_user_obsidian_vault: false,
+        scanned_user_basic_memory_home: false,
+    }
+}
+
+fn absent_command_is_allowlisted(name: &str) -> bool {
+    ABSENT_ALLOWLIST_COMMANDS.contains(&name)
+        || name == SEARCH_IDENTITY
+        || name == FETCH_IDENTITY
+        || name == CALL_TOOL_IDENTITY
+        || name == "tools/call"
+}
+
+pub fn accept_route_inspection(
+    report: RouteInspectionDto,
+) -> Result<RouteInspectionDto, LibraryError> {
+    if report.scanned_user_obsidian_vault
+        || report.scanned_user_basic_memory_home
+        || report.remote_hosts_contacted
+        || report.secrets_stored
+        || report.env_tokens_read
+    {
+        return Err(LibraryError::policy(POLICY_ROUTE_CREDENTIAL_ROUTE));
+    }
+    if report.engine_routes {
+        return Err(LibraryError::unsupported(ENGINE_ROUTES_NOT_OWNED));
+    }
+    if report.mixed_profiles {
+        return Err(LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES));
+    }
+    if report.official_mcp_inferred
+        || report.full_api_coverage
+        || report
+            .present_commands
+            .iter()
+            .any(|name| absent_command_is_allowlisted(name))
+        || report
+            .absent_commands
+            .iter()
+            .any(|name| !absent_command_is_allowlisted(name) && name != SEARCH_IDENTITY)
+    {
+        return Err(LibraryError::unsupported(
+            UNSUPPORTED_OFFICIAL_MCP_FROM_ALLOWLIST,
+        ));
+    }
+    if report.connected
+        || report.synced
+        || report.installed
+        || report.live_official_cloud_session
+        || report.live_official_sync_session
+        || report.live_official_agent_session
+        || report.live_provider_session
+    {
+        return Err(LibraryError::unsupported(UNSUPPORTED_LIVE_ROUTE_CLAIM));
+    }
+    if report.files_written
+        || report.cloud_allowed
+        || report.sync_enabled
+        || report.sharing_enabled
+        || report.hooks_enabled
+        || report.provider_enabled
+        || report.semantic_enabled
+        || report.cross_project_search_allowed
+        || report.route_claimed
+        || !report.routes.is_empty()
+        || report.observation.disk_verified
+        || report.observation.classified_as == NoteCrudClass::DiskVerified
+    {
+        return Err(LibraryError::unsupported(
+            UNSUPPORTED_ROUTE_CLAIMED_NOT_LIVE,
+        ));
+    }
+    let mut report = report;
+    report.routes.clear();
+    report.present_commands.clear();
+    report.absent_commands.clear();
+    report.cloud_allowed = false;
+    report.sync_enabled = false;
+    report.sharing_enabled = false;
+    report.hooks_enabled = false;
+    report.provider_enabled = false;
+    report.semantic_enabled = false;
+    report.cross_project_search_allowed = false;
+    report.full_api_coverage = false;
+    report.connected = false;
+    report.synced = false;
+    report.installed = false;
+    report.files_written = false;
+    report.route_claimed = false;
+    report.local_offline = true;
+    report.live_official_cloud_session = false;
+    report.live_official_sync_session = false;
+    report.live_official_agent_session = false;
+    report.live_provider_session = false;
+    report.remote_hosts_contacted = false;
+    report.secrets_stored = false;
+    report.env_tokens_read = false;
+    report.mixed_profiles = false;
+    report.engine_routes = false;
+    report.official_mcp_inferred = false;
+    report.observation.envelope_is_not_disk_proof = true;
+    report.observation.disk_verified = false;
+    report.observation.classified_as = NoteCrudClass::Empty;
+    Ok(report)
+}
+
 pub fn accept_import_result(report: ImportResultDto) -> Result<ImportResultDto, LibraryError> {
     if report.engine_import {
         return Err(LibraryError::unsupported(ENGINE_IMPORT_NOT_OWNED));
@@ -2432,6 +2635,10 @@ pub trait NoteLibrary: Send + Sync {
 
     fn inspect_providers(&self) -> Result<ProviderInspectionDto, LibraryError> {
         Ok(empty_provider_inspection())
+    }
+
+    fn inspect_routes(&self) -> Result<RouteInspectionDto, LibraryError> {
+        Ok(empty_route_inspection())
     }
 
     fn write_note(
@@ -3158,6 +3365,30 @@ impl FixtureLibrary {
         crate::content_safety::persist_exact_utf8(
             &path,
             "fixture-provider-claimed-not-live-official-provider-session\n",
+        )
+        .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        Ok(path)
+    }
+
+    fn require_routes_root(&self) -> Result<(), LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        if !self.root.to_string_lossy().contains("bmdock-t35") {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        Ok(())
+    }
+
+    pub fn seed_route_claimed_flag(&self) -> Result<PathBuf, LibraryError> {
+        self.require_routes_root()?;
+        fs::create_dir_all(&self.root)
+            .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
+        let path = self.root.join(ROUTE_CLAIMED_FLAG);
+        if library_root_is_forbidden(&path) {
+            return Err(LibraryError::policy(POLICY_FORBIDDEN_LIBRARY_ROOT));
+        }
+        crate::content_safety::persist_exact_utf8(
+            &path,
+            "fixture-route-claimed-not-cross-project-or-live-remote\n",
         )
         .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
         Ok(path)
@@ -4062,6 +4293,25 @@ impl NoteLibrary for FixtureLibrary {
             ));
         }
         Ok(empty_provider_inspection())
+    }
+
+    fn inspect_routes(&self) -> Result<RouteInspectionDto, LibraryError> {
+        reject_forbidden_library_root(&self.root)?;
+        let flag = self.root.join(ROUTE_CLAIMED_FLAG);
+        if flag.is_symlink() {
+            return Err(LibraryError::policy(POLICY_ROUTE_CREDENTIAL_ROUTE));
+        }
+        if flag.is_file() {
+            if library_root_is_forbidden(&flag)
+                || !self.root.to_string_lossy().contains("bmdock-t35")
+            {
+                return Err(LibraryError::policy(POLICY_ROUTE_CREDENTIAL_ROUTE));
+            }
+            return Err(LibraryError::unsupported(
+                UNSUPPORTED_ROUTE_CLAIMED_NOT_LIVE,
+            ));
+        }
+        Ok(empty_route_inspection())
     }
 
     fn write_note(
@@ -5824,6 +6074,26 @@ mod tests {
         assert!(!providers.cloud_credential_route);
         assert!(!providers.engine_providers);
         assert_eq!(providers.observation.classified_as, NoteCrudClass::Empty);
+        let routes = library.inspect_routes().unwrap();
+        assert!(routes.routes.is_empty());
+        assert!(routes.present_commands.is_empty());
+        assert!(!routes.cloud_allowed);
+        assert!(!routes.sync_enabled);
+        assert!(!routes.sharing_enabled);
+        assert!(!routes.hooks_enabled);
+        assert!(!routes.provider_enabled);
+        assert!(!routes.semantic_enabled);
+        assert!(!routes.cross_project_search_allowed);
+        assert!(!routes.full_api_coverage);
+        assert!(!routes.connected);
+        assert!(!routes.synced);
+        assert!(!routes.installed);
+        assert!(!routes.files_written);
+        assert!(!routes.route_claimed);
+        assert!(routes.local_offline);
+        assert!(!routes.engine_routes);
+        assert!(!routes.official_mcp_inferred);
+        assert_eq!(routes.observation.classified_as, NoteCrudClass::Empty);
         let _ = (
             ENGINE_GRAPH_NOT_OWNED,
             ENGINE_SEARCH_NOT_OWNED,
@@ -5853,6 +6123,8 @@ mod tests {
             OFFICIAL_HOOKS_UNVERIFIED,
             ENGINE_PROVIDERS_NOT_OWNED,
             OFFICIAL_PROVIDERS_UNVERIFIED,
+            ENGINE_ROUTES_NOT_OWNED,
+            OFFICIAL_ROUTES_UNVERIFIED,
             ENGINE_CONTEXT_NOT_OWNED,
             ENGINE_ACTIVITY_NOT_OWNED,
             SEMANTIC_SEARCH_UNVERIFIED,
@@ -7725,6 +7997,127 @@ mod tests {
             SEMANTIC_SEARCH_UNVERIFIED,
             OFFICIAL_SEARCH_MCP_UNVERIFIED,
             OFFICIAL_FETCH_MCP_UNVERIFIED,
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn fixture_route_inspection_is_disabled_and_claimed_flag_is_unsupported() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t35-{nanos}"));
+        fs::create_dir_all(&dir).unwrap();
+        let library = FixtureLibrary::new(dir.clone());
+        let report = library.inspect_routes().unwrap();
+        assert!(report.routes.is_empty());
+        assert!(report.present_commands.is_empty());
+        assert!(!report.cloud_allowed);
+        assert!(!report.sync_enabled);
+        assert!(!report.sharing_enabled);
+        assert!(!report.hooks_enabled);
+        assert!(!report.provider_enabled);
+        assert!(!report.semantic_enabled);
+        assert!(!report.cross_project_search_allowed);
+        assert!(!report.full_api_coverage);
+        assert!(!report.connected);
+        assert!(!report.synced);
+        assert!(!report.installed);
+        assert!(!report.files_written);
+        assert!(!report.route_claimed);
+        assert!(report.local_offline);
+        assert!(!report.live_official_cloud_session);
+        assert!(!report.live_official_sync_session);
+        assert!(!report.live_official_agent_session);
+        assert!(!report.live_provider_session);
+        assert!(!report.engine_routes);
+        assert!(!report.official_mcp_inferred);
+        assert_eq!(report.observation.classified_as, NoteCrudClass::Empty);
+        let flag = library.seed_route_claimed_flag().unwrap();
+        assert!(flag.is_file());
+        let disk = fs::read_to_string(&flag).unwrap();
+        assert!(disk.contains("fixture-route-claimed-not-cross-project"));
+        assert_eq!(
+            library.inspect_routes().unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_ROUTE_CLAIMED_NOT_LIVE)
+        );
+        let claimed = RouteInspectionDto {
+            route_claimed: true,
+            connected: true,
+            ..empty_route_inspection()
+        };
+        assert_eq!(
+            accept_route_inspection(claimed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_LIVE_ROUTE_CLAIM)
+        );
+        let live_routes = RouteInspectionDto {
+            routes: vec![RouteRecordDto {
+                workspace: "other".to_owned(),
+                project: "other-project".to_owned(),
+            }],
+            ..empty_route_inspection()
+        };
+        assert_eq!(
+            accept_route_inspection(live_routes).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_ROUTE_CLAIMED_NOT_LIVE)
+        );
+        let enabled = RouteInspectionDto {
+            cloud_allowed: true,
+            sync_enabled: true,
+            sharing_enabled: true,
+            hooks_enabled: true,
+            provider_enabled: true,
+            semantic_enabled: true,
+            ..empty_route_inspection()
+        };
+        assert_eq!(
+            accept_route_inspection(enabled).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_ROUTE_CLAIMED_NOT_LIVE)
+        );
+        let synced = RouteInspectionDto {
+            synced: true,
+            installed: true,
+            live_official_sync_session: true,
+            live_official_agent_session: true,
+            ..empty_route_inspection()
+        };
+        assert_eq!(
+            accept_route_inspection(synced).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_LIVE_ROUTE_CLAIM)
+        );
+        let mcp = RouteInspectionDto {
+            present_commands: vec!["call_tool".to_owned()],
+            full_api_coverage: true,
+            official_mcp_inferred: true,
+            ..empty_route_inspection()
+        };
+        assert_eq!(
+            accept_route_inspection(mcp).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_OFFICIAL_MCP_FROM_ALLOWLIST)
+        );
+        let credentials = RouteInspectionDto {
+            env_tokens_read: true,
+            secrets_stored: true,
+            remote_hosts_contacted: true,
+            ..empty_route_inspection()
+        };
+        assert_eq!(
+            accept_route_inspection(credentials).unwrap_err(),
+            LibraryError::policy(POLICY_ROUTE_CREDENTIAL_ROUTE)
+        );
+        let mixed = RouteInspectionDto {
+            mixed_profiles: true,
+            ..empty_route_inspection()
+        };
+        assert_eq!(
+            accept_route_inspection(mixed).unwrap_err(),
+            LibraryError::unsupported(UNSUPPORTED_MIXED_PROFILES)
+        );
+        let _ = (
+            ENGINE_ROUTES_NOT_OWNED,
+            OFFICIAL_ROUTES_UNVERIFIED,
+            UNSUPPORTED_ROUTE_CLAIMED_NOT_LIVE,
         );
         let _ = fs::remove_dir_all(&dir);
     }

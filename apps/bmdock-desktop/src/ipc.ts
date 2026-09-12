@@ -95,6 +95,7 @@ export type InspectSyncArgs = ExplicitRouteArgs;
 export type ListSharesArgs = ExplicitRouteArgs;
 export type InspectHooksArgs = ExplicitRouteArgs;
 export type InspectProvidersArgs = ExplicitRouteArgs;
+export type InspectRoutesArgs = ExplicitRouteArgs;
 
 export type PreviewContextArgs = ExplicitRouteArgs & {
   identifier: string;
@@ -167,6 +168,7 @@ export type IpcCommand =
   | { command: "list_shares"; args: ListSharesArgs }
   | { command: "inspect_hooks"; args: InspectHooksArgs }
   | { command: "inspect_providers"; args: InspectProvidersArgs }
+  | { command: "inspect_routes"; args: InspectRoutesArgs }
   | { command: "preview_context"; args: PreviewContextArgs }
   | { command: "list_activity"; args: ListActivityArgs }
   | { command: "list_backups"; args: ExplicitRouteArgs }
@@ -826,6 +828,44 @@ export interface ProviderInspectionDto {
   scanned_user_basic_memory_home: false;
 }
 
+export interface RouteRecordDto {
+  workspace: string;
+  project: string;
+}
+
+export interface RouteInspectionDto {
+  routes: RouteRecordDto[];
+  present_commands: string[];
+  absent_commands: string[];
+  cloud_allowed: false;
+  sync_enabled: false;
+  sharing_enabled: false;
+  hooks_enabled: false;
+  provider_enabled: false;
+  semantic_enabled: false;
+  cross_project_search_allowed: false;
+  full_api_coverage: false;
+  connected: false;
+  synced: false;
+  installed: false;
+  files_written: false;
+  route_claimed: false;
+  local_offline: true;
+  live_official_cloud_session: false;
+  live_official_sync_session: false;
+  live_official_agent_session: false;
+  live_provider_session: false;
+  remote_hosts_contacted: false;
+  secrets_stored: false;
+  env_tokens_read: false;
+  mixed_profiles: false;
+  observation: NoteCrudObservationDto;
+  engine_routes: false;
+  official_mcp_inferred: false;
+  scanned_user_obsidian_vault: false;
+  scanned_user_basic_memory_home: false;
+}
+
 export type DraftClass = "empty" | "disk_verified" | "accepted_unverified" | "unclassified";
 
 export interface DraftObservationDto {
@@ -940,6 +980,7 @@ export type IpcResponse =
   | { kind: "share_catalog" } & ShareCatalogDto
   | { kind: "hook_inspection" } & HookInspectionDto
   | { kind: "provider_inspection" } & ProviderInspectionDto
+  | { kind: "route_inspection" } & RouteInspectionDto
   | { kind: "context_preview" } & ContextPreviewDto
   | { kind: "activity_page" } & ActivityPageDto
   | { kind: "backup_catalog" } & BackupCatalogDto
@@ -1002,6 +1043,7 @@ function assertFixtureCommand(command: IpcCommand): void {
     case "list_shares":
     case "inspect_hooks":
     case "inspect_providers":
+    case "inspect_routes":
     case "preview_context":
     case "list_activity":
     case "list_backups":
@@ -1372,6 +1414,17 @@ export const inspectProviders = () => {
   const route = copyFixtureRoute();
   return invokeTyped<{ kind: "provider_inspection" } & ProviderInspectionDto>({
     command: "inspect_providers",
+    args: {
+      workspace: route.workspace,
+      project: route.project,
+    },
+  });
+};
+
+export const inspectRoutes = () => {
+  const route = copyFixtureRoute();
+  return invokeTyped<{ kind: "route_inspection" } & RouteInspectionDto>({
+    command: "inspect_routes",
     args: {
       workspace: route.workspace,
       project: route.project,

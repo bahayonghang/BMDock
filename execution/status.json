@@ -38,7 +38,7 @@
 {"id":"T32","title":"Cloud同步共享与恢复管理","phase":"P6","depends_on":["T31","T12"],"acceptance_ids":["AC14","AC42","AC43","AC52"],"status":"completed"},
 {"id":"T33","title":"官方Agent集成及hook管理","phase":"P6","depends_on":["T27","T12"],"acceptance_ids":["AC44","AC47"],"status":"completed"},
 {"id":"T34","title":"外部Provider与后端档位验证","phase":"P6","depends_on":["T23","T30","T31"],"acceptance_ids":["AC23","AC24","AC38","AC41","AC48"],"status":"completed"},
-{"id":"T35","title":"条件能力与跨路由回归","phase":"P6","depends_on":["T32","T33","T34"],"acceptance_ids":["AC25","AC41","AC42","AC43","AC44","AC59"],"status":"planned"},
+{"id":"T35","title":"条件能力与跨路由回归","phase":"P6","depends_on":["T32","T33","T34"],"acceptance_ids":["AC25","AC41","AC42","AC43","AC44","AC59"],"status":"completed"},
 {"id":"T36","title":"安全审查SBOM及隐私验收","phase":"P7","depends_on":["T18","T27","T35"],"acceptance_ids":["AC20","AC45","AC46","AC47","AC48","AC54"],"status":"planned"},
 {"id":"T37","title":"安装升级签名与数据恢复链","phase":"P7","depends_on":["T13","T17","T36"],"acceptance_ids":["AC49","AC51","AC52","AC53"],"status":"planned"},
 {"id":"T38","title":"原生安装包及故障回归","phase":"P7","depends_on":["T37","T24"],"acceptance_ids":["AC18","AC50","AC51","AC52","AC55","AC56"],"status":"planned"},

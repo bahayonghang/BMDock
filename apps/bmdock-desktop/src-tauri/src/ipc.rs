@@ -8,9 +8,9 @@ use crate::library::{
     self, ActivityPageDto, ApiAuditDto, CliInventoryDto, CloudInspectionDto, ContextPreviewDto,
     ExtrasCatalogDto, GraphPageDto, HookInspectionDto, ImportResultDto, IngestResultDto,
     NoteDeleteDto, NoteEditDto, NoteLibrary, NoteMoveDto, NoteReadDto, NoteWriteDto, PromptPageDto,
-    ProviderInspectionDto, RecallBenchmarkDto, RelationListDto, ResourcePageDto, SchemaValidateDto,
-    SearchInspectorDto, SearchPageDto, ShareCatalogDto, SyncInspectionDto, ToolInspectionDto,
-    TreePageDto,
+    ProviderInspectionDto, RecallBenchmarkDto, RelationListDto, ResourcePageDto,
+    RouteInspectionDto, SchemaValidateDto, SearchInspectorDto, SearchPageDto, ShareCatalogDto,
+    SyncInspectionDto, ToolInspectionDto, TreePageDto,
 };
 use crate::preflight::{self, ConfigDiscoveryDto, PreflightDto};
 use crate::routing::{self, ExplicitRouteArgs, ProjectCatalogDto, RouteState};
@@ -49,6 +49,7 @@ pub enum IpcCommandName {
     ListShares,
     InspectHooks,
     InspectProviders,
+    InspectRoutes,
     PreviewContext,
     ListActivity,
     ListBackups,
@@ -92,6 +93,7 @@ pub fn allowed_commands() -> Vec<IpcCommandName> {
         IpcCommandName::ListShares,
         IpcCommandName::InspectHooks,
         IpcCommandName::InspectProviders,
+        IpcCommandName::InspectRoutes,
         IpcCommandName::PreviewContext,
         IpcCommandName::ListActivity,
         IpcCommandName::ListBackups,
@@ -621,6 +623,7 @@ pub enum IpcCommand {
     ListShares(ExplicitRouteArgs),
     InspectHooks(ExplicitRouteArgs),
     InspectProviders(ExplicitRouteArgs),
+    InspectRoutes(ExplicitRouteArgs),
     PreviewContext(PreviewContextArgs),
     ListActivity(ListActivityArgs),
     ListBackups(ExplicitRouteArgs),
@@ -706,6 +709,7 @@ pub enum IpcResponse {
     ShareCatalog(ShareCatalogDto),
     HookInspection(HookInspectionDto),
     ProviderInspection(ProviderInspectionDto),
+    RouteInspection(RouteInspectionDto),
     ContextPreview(ContextPreviewDto),
     ActivityPage(ActivityPageDto),
     BackupCatalog(BackupCatalogDto),
@@ -1021,6 +1025,12 @@ pub fn dispatch_with_drain(
                 library::accept_provider_inspection(library.inspect_providers()?)?,
             ))
         }
+        IpcCommand::InspectRoutes(route_args) => {
+            require_explicit_fixture_route(&route_args)?;
+            Ok(IpcResponse::RouteInspection(overlay_route_allowlist(
+                library::accept_route_inspection(library.inspect_routes()?)?,
+            )))
+        }
         IpcCommand::PreviewContext(args) => {
             require_explicit_fixture_route(&args.route())?;
             library::reject_note_identifier(&args.identifier)?;
@@ -1149,6 +1159,25 @@ fn require_explicit_fixture_route(route: &ExplicitRouteArgs) -> Result<(), IpcEr
     })
 }
 
+fn command_name_string(name: IpcCommandName) -> String {
+    serde_json::to_value(name)
+        .ok()
+        .and_then(|value| value.as_str().map(str::to_owned))
+        .unwrap_or_default()
+}
+
+fn overlay_route_allowlist(mut report: library::RouteInspectionDto) -> library::RouteInspectionDto {
+    report.present_commands = allowed_commands()
+        .into_iter()
+        .map(command_name_string)
+        .collect();
+    report.absent_commands = library::ABSENT_ALLOWLIST_COMMANDS
+        .iter()
+        .map(|name| (*name).to_owned())
+        .collect();
+    report
+}
+
 fn refuse_if_draining(drain: &HostDrain) -> Result<(), IpcError> {
     if drain.is_closed() {
         return Err(IpcError {
@@ -1227,6 +1256,7 @@ mod tests {
                 IpcCommandName::ListShares,
                 IpcCommandName::InspectHooks,
                 IpcCommandName::InspectProviders,
+                IpcCommandName::InspectRoutes,
                 IpcCommandName::PreviewContext,
                 IpcCommandName::ListActivity,
                 IpcCommandName::ListBackups,
@@ -1241,14 +1271,14 @@ mod tests {
                 IpcCommandName::BeginShutdown,
             ]
         );
-        assert_eq!(capabilities.commands.len(), 39);
+        assert_eq!(capabilities.commands.len(), 40);
         assert_eq!(
             capabilities.events,
             vec![IpcEventName::RuntimeState, IpcEventName::Policy]
         );
         let json = serde_json::to_value(&IpcResponse::Capabilities(capabilities)).unwrap();
         let commands = json["commands"].as_array().unwrap();
-        assert_eq!(commands.len(), 39);
+        assert_eq!(commands.len(), 40);
         assert!(commands.iter().any(|command| command == "list_projects"));
         assert!(commands.iter().any(|command| command == "select_project"));
         assert!(commands.iter().any(|command| command == "list_tree"));
@@ -1280,6 +1310,7 @@ mod tests {
         assert!(commands
             .iter()
             .any(|command| command == "inspect_providers"));
+        assert!(commands.iter().any(|command| command == "inspect_routes"));
         assert!(commands.iter().any(|command| command == "preview_context"));
         assert!(commands.iter().any(|command| command == "list_activity"));
         assert!(commands.iter().any(|command| command == "list_backups"));
@@ -1302,6 +1333,8 @@ mod tests {
         assert!(!commands.iter().any(|command| command == "enable_provider"));
         assert!(!commands.iter().any(|command| command == "list_providers"));
         assert!(!commands.iter().any(|command| command == "connect_provider"));
+        assert!(!commands.iter().any(|command| command == "restore_sync"));
+        assert!(!commands.iter().any(|command| command == "list_hooks"));
         assert!(!commands.iter().any(|command| command == "tools/call"));
         assert!(!commands.iter().any(|command| command == "schema_infer"));
         assert!(!commands.iter().any(|command| command == "schema_diff"));
@@ -1866,6 +1899,33 @@ mod tests {
             r#"{"command":"inspect_providers","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
         );
         assert!(well_formed_providers.is_ok());
+        let extra_path_on_routes = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_routes","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","path":"C:\\vault"}}"#,
+        );
+        assert!(extra_path_on_routes.is_err());
+        let extra_root_on_routes = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_routes","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","root":"/home/someone/.basic-memory"}}"#,
+        );
+        assert!(extra_root_on_routes.is_err());
+        let extra_token_on_routes = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_routes","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","token":"env-token"}}"#,
+        );
+        assert!(extra_token_on_routes.is_err());
+        let extra_host_on_routes = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_routes","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","host":"https://example.invalid"}}"#,
+        );
+        assert!(extra_host_on_routes.is_err());
+        let extra_api_key_on_routes = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_routes","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture","api_key":"sk-test"}}"#,
+        );
+        assert!(extra_api_key_on_routes.is_err());
+        let routes_without_route =
+            serde_json::from_str::<IpcCommand>(r#"{"command":"inspect_routes","args":{}}"#);
+        assert!(routes_without_route.is_err());
+        let well_formed_routes = serde_json::from_str::<IpcCommand>(
+            r#"{"command":"inspect_routes","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
+        );
+        assert!(well_formed_routes.is_ok());
         let enable_provider = serde_json::from_str::<IpcCommand>(
             r#"{"command":"enable_provider","args":{"workspace":"bmdock-workspace","project":"bmdock-fixture"}}"#,
         );
@@ -2501,6 +2561,10 @@ mod tests {
         fn inspect_providers(
             &self,
         ) -> Result<library::ProviderInspectionDto, library::LibraryError> {
+            panic!("policy rejection must not open the library")
+        }
+
+        fn inspect_routes(&self) -> Result<library::RouteInspectionDto, library::LibraryError> {
             panic!("policy rejection must not open the library")
         }
 
@@ -3408,6 +3472,18 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(providers_route.category, ErrorCategory::Policy);
+        let routes_route = dispatch_with_library(
+            IpcCommand::InspectRoutes(ExplicitRouteArgs {
+                workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
+                project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
+            }),
+            snapshot.clone(),
+            &mut route,
+            &PanicLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(routes_route.category, ErrorCategory::Policy);
         let prompts_route = dispatch_with_library(
             IpcCommand::ListPrompts(ListPromptsArgs {
                 workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
@@ -8360,7 +8436,7 @@ mod tests {
             release.ipc_commands.len(),
             library::ALLOWLISTED_IPC_COMMANDS.len()
         );
-        assert_eq!(release.ipc_commands.len(), 39);
+        assert_eq!(release.ipc_commands.len(), 40);
         assert!(release.ipc_commands.iter().any(|command| {
             command.name == "inspect_api_audit"
                 && command.coverage == library::AuditCoverage::Present
@@ -8369,11 +8445,18 @@ mod tests {
             command.name == "inspect_providers"
                 && command.coverage == library::AuditCoverage::Present
         }));
+        assert!(release.ipc_commands.iter().any(|command| {
+            command.name == "inspect_routes" && command.coverage == library::AuditCoverage::Present
+        }));
         assert!(!release.ipc_commands.iter().any(|command| {
             command.name == library::CALL_TOOL_IDENTITY
                 || command.name == library::SEARCH_IDENTITY
                 || command.name == library::FETCH_IDENTITY
                 || command.name == "tools/call"
+                || command.name == "enable_provider"
+                || command.name == "restore_sync"
+                || command.name == "list_hooks"
+                || command.name == "connect_provider"
         }));
         assert!(!release.full_api_coverage);
         assert!(!release.semantic_enabled);
@@ -10055,6 +10138,636 @@ mod tests {
         let _ = (
             library::ENGINE_PROVIDERS_NOT_OWNED,
             library::OFFICIAL_PROVIDERS_UNVERIFIED,
+        );
+    }
+
+    fn non_fixture_project() -> String {
+        r"C:\Users\someone\Documents\Obsidian".to_owned()
+    }
+
+    fn explicit_route_regression_cases() -> Vec<(&'static str, &'static str, IpcCommand)> {
+        let workspace = crate::routing::OWNED_WORKSPACE_ID.to_owned();
+        let project = non_fixture_project();
+        vec![
+            (
+                "list_tree",
+                "",
+                IpcCommand::ListTree(ListTreeArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    cursor: None,
+                    page_size: None,
+                }),
+            ),
+            (
+                "read_note",
+                r#","identifier":"welcome""#,
+                IpcCommand::ReadNote(ReadNoteArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    identifier: "welcome".to_owned(),
+                }),
+            ),
+            (
+                "list_relations",
+                r#","identifier":"welcome""#,
+                IpcCommand::ListRelations(ListRelationsArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    identifier: "welcome".to_owned(),
+                }),
+            ),
+            (
+                "expand_graph",
+                r#","identifier":"welcome""#,
+                IpcCommand::ExpandGraph(ExpandGraphArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    identifier: "welcome".to_owned(),
+                    cursor: None,
+                    page_size: None,
+                }),
+            ),
+            (
+                "search_notes",
+                r#","query":"欢迎""#,
+                IpcCommand::SearchNotes(SearchNotesArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    query: "欢迎".to_owned(),
+                    cursor: None,
+                    page_size: None,
+                }),
+            ),
+            (
+                "inspect_search",
+                r#","query":"欢迎""#,
+                IpcCommand::InspectSearch(InspectSearchArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    query: "欢迎".to_owned(),
+                    identifier: None,
+                }),
+            ),
+            (
+                "run_recall_benchmark",
+                "",
+                IpcCommand::RunRecallBenchmark(RecallBenchmarkArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    k: None,
+                }),
+            ),
+            (
+                "schema_validate",
+                r#","identifier":"welcome""#,
+                IpcCommand::SchemaValidate(SchemaValidateArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    identifier: "welcome".to_owned(),
+                    schema_id: None,
+                }),
+            ),
+            (
+                "list_resources",
+                "",
+                IpcCommand::ListResources(ListResourcesArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    cursor: None,
+                    page_size: None,
+                }),
+            ),
+            (
+                "list_prompts",
+                "",
+                IpcCommand::ListPrompts(ListPromptsArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    cursor: None,
+                    page_size: None,
+                }),
+            ),
+            (
+                "inspect_tools",
+                r#","profile_id":"release""#,
+                IpcCommand::InspectTools(InspectToolsArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    profile_id: EngineProfile::Release,
+                }),
+            ),
+            (
+                "list_cli_inventory",
+                r#","profile_id":"release""#,
+                IpcCommand::ListCliInventory(ListCliInventoryArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    profile_id: EngineProfile::Release,
+                    cursor: None,
+                    page_size: None,
+                }),
+            ),
+            (
+                "import_notes",
+                r#","source_id":"fixture-welcome""#,
+                IpcCommand::ImportNotes(ImportNotesArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    source_id: "fixture-welcome".to_owned(),
+                }),
+            ),
+            (
+                "inspect_api_audit",
+                r#","profile_id":"release""#,
+                IpcCommand::InspectApiAudit(InspectApiAuditArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    profile_id: EngineProfile::Release,
+                }),
+            ),
+            (
+                "inspect_extras",
+                "",
+                IpcCommand::InspectExtras(InspectExtrasArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    extra_id: None,
+                }),
+            ),
+            (
+                "ingest_document",
+                r#","source_id":"fixture-welcome""#,
+                IpcCommand::IngestDocument(IngestDocumentArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    source_id: "fixture-welcome".to_owned(),
+                }),
+            ),
+            (
+                "inspect_cloud",
+                "",
+                IpcCommand::InspectCloud(ExplicitRouteArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                }),
+            ),
+            (
+                "inspect_sync",
+                "",
+                IpcCommand::InspectSync(ExplicitRouteArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                }),
+            ),
+            (
+                "list_shares",
+                "",
+                IpcCommand::ListShares(ExplicitRouteArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                }),
+            ),
+            (
+                "inspect_hooks",
+                "",
+                IpcCommand::InspectHooks(ExplicitRouteArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                }),
+            ),
+            (
+                "inspect_providers",
+                "",
+                IpcCommand::InspectProviders(ExplicitRouteArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                }),
+            ),
+            (
+                "inspect_routes",
+                "",
+                IpcCommand::InspectRoutes(ExplicitRouteArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                }),
+            ),
+            (
+                "preview_context",
+                r#","identifier":"welcome""#,
+                IpcCommand::PreviewContext(PreviewContextArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    identifier: "welcome".to_owned(),
+                    query: None,
+                }),
+            ),
+            (
+                "list_activity",
+                "",
+                IpcCommand::ListActivity(ListActivityArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    cursor: None,
+                    page_size: None,
+                }),
+            ),
+            (
+                "list_backups",
+                "",
+                IpcCommand::ListBackups(ExplicitRouteArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                }),
+            ),
+            (
+                "restore_fixture",
+                r#","backup_id":"fixture-backup""#,
+                IpcCommand::RestoreFixture(RestoreFixtureArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    backup_id: "fixture-backup".to_owned(),
+                }),
+            ),
+            (
+                "save_draft",
+                r#","identifier":"welcome","body":"hi""#,
+                IpcCommand::SaveDraft(SaveDraftArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    identifier: "welcome".to_owned(),
+                    body: "hi".to_owned(),
+                }),
+            ),
+            (
+                "load_draft",
+                r#","identifier":"welcome""#,
+                IpcCommand::LoadDraft(LoadDraftArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    identifier: "welcome".to_owned(),
+                }),
+            ),
+            (
+                "write_note",
+                r#","identifier":"welcome","title":"hi","body":"body""#,
+                IpcCommand::WriteNote(WriteNoteArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    identifier: "welcome".to_owned(),
+                    title: "hi".to_owned(),
+                    body: "body".to_owned(),
+                }),
+            ),
+            (
+                "edit_note",
+                r#","identifier":"welcome","body":"body""#,
+                IpcCommand::EditNote(EditNoteArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    identifier: "welcome".to_owned(),
+                    body: "body".to_owned(),
+                }),
+            ),
+            (
+                "move_note",
+                r#","identifier":"welcome","destination":"moved""#,
+                IpcCommand::MoveNote(MoveNoteArgs {
+                    workspace: workspace.clone(),
+                    project: project.clone(),
+                    identifier: "welcome".to_owned(),
+                    destination: "moved".to_owned(),
+                }),
+            ),
+            (
+                "delete_note",
+                r#","identifier":"welcome""#,
+                IpcCommand::DeleteNote(DeleteNoteArgs {
+                    workspace,
+                    project,
+                    identifier: "welcome".to_owned(),
+                }),
+            ),
+        ]
+    }
+
+    #[test]
+    fn explicit_route_args_commands_fail_closed_without_opening_library() {
+        let snapshot = idle_snapshot();
+        let inspect_secret_commands = [
+            "inspect_routes",
+            "inspect_cloud",
+            "inspect_sync",
+            "inspect_hooks",
+            "inspect_providers",
+        ];
+        for (command, extra, non_fixture) in explicit_route_regression_cases() {
+            let extra_path = format!(
+                r#"{{"command":"{command}","args":{{"workspace":"bmdock-workspace","project":"bmdock-fixture"{extra},"path":"C:\\vault"}}}}"#
+            );
+            assert!(
+                serde_json::from_str::<IpcCommand>(&extra_path).is_err(),
+                "{command} extra path must be schema"
+            );
+            let extra_root = format!(
+                r#"{{"command":"{command}","args":{{"workspace":"bmdock-workspace","project":"bmdock-fixture"{extra},"root":"/home/someone/.basic-memory"}}}}"#
+            );
+            assert!(
+                serde_json::from_str::<IpcCommand>(&extra_root).is_err(),
+                "{command} extra root must be schema"
+            );
+            let missing = if extra.is_empty() {
+                format!(r#"{{"command":"{command}","args":{{}}}}"#)
+            } else {
+                format!(
+                    r#"{{"command":"{command}","args":{{{}}}}}"#,
+                    extra.trim_start_matches(',')
+                )
+            };
+            assert!(
+                serde_json::from_str::<IpcCommand>(&missing).is_err(),
+                "{command} missing route must be schema"
+            );
+            if inspect_secret_commands.contains(&command) {
+                for field in ["token", "host", "api_key"] {
+                    let extra_secret = format!(
+                        r#"{{"command":"{command}","args":{{"workspace":"bmdock-workspace","project":"bmdock-fixture","{field}":"secret"}}}}"#
+                    );
+                    assert!(
+                        serde_json::from_str::<IpcCommand>(&extra_secret).is_err(),
+                        "{command} extra {field} must be schema"
+                    );
+                }
+            }
+            let mut route = RouteState::default();
+            let error = dispatch_with_library(
+                non_fixture,
+                snapshot.clone(),
+                &mut route,
+                &PanicLibrary,
+                &backups::EmptyBackupStore,
+            )
+            .unwrap_err();
+            assert_eq!(
+                error.category,
+                ErrorCategory::Policy,
+                "{command} non-fixture must be policy"
+            );
+        }
+    }
+
+    #[test]
+    fn inspect_routes_empty_library_is_disabled_not_connected() {
+        let mut route = RouteState::default();
+        let IpcResponse::RouteInspection(report) = dispatch_with_library(
+            IpcCommand::InspectRoutes(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library::EmptyLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(report.routes.is_empty());
+        assert_eq!(report.present_commands.len(), 40);
+        assert!(report
+            .present_commands
+            .iter()
+            .any(|command| command == "inspect_routes"));
+        assert!(report
+            .present_commands
+            .iter()
+            .any(|command| command == "inspect_cloud"));
+        assert!(report
+            .present_commands
+            .iter()
+            .any(|command| command == "inspect_sync"));
+        assert!(report
+            .present_commands
+            .iter()
+            .any(|command| command == "inspect_hooks"));
+        assert!(report
+            .present_commands
+            .iter()
+            .any(|command| command == "inspect_providers"));
+        assert!(report
+            .present_commands
+            .iter()
+            .any(|command| command == "search_notes"));
+        for absent in library::ABSENT_ALLOWLIST_COMMANDS {
+            assert!(report.absent_commands.iter().any(|name| name == absent));
+            assert!(!report.present_commands.iter().any(|name| name == absent));
+        }
+        assert!(!report.present_commands.iter().any(|name| name == "search"
+            || name == "fetch"
+            || name == "call_tool"
+            || name == "tools/call"));
+        assert!(!report.cloud_allowed);
+        assert!(!report.sync_enabled);
+        assert!(!report.sharing_enabled);
+        assert!(!report.hooks_enabled);
+        assert!(!report.provider_enabled);
+        assert!(!report.semantic_enabled);
+        assert!(!report.cross_project_search_allowed);
+        assert!(!report.full_api_coverage);
+        assert!(!report.connected);
+        assert!(!report.synced);
+        assert!(!report.installed);
+        assert!(!report.files_written);
+        assert!(!report.route_claimed);
+        assert!(report.local_offline);
+        assert!(!report.live_official_cloud_session);
+        assert!(!report.live_official_sync_session);
+        assert!(!report.live_official_agent_session);
+        assert!(!report.live_provider_session);
+        assert!(!report.engine_routes);
+        assert!(!report.official_mcp_inferred);
+        assert_eq!(
+            report.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        assert!(!report.observation.disk_verified);
+        assert!(report.observation.envelope_is_not_disk_proof);
+        let json = serde_json::to_value(&IpcResponse::RouteInspection(report)).unwrap();
+        assert_eq!(json["kind"], "route_inspection");
+        assert_eq!(json["cloud_allowed"], false);
+        assert_eq!(json["sync_enabled"], false);
+        assert_eq!(json["hooks_enabled"], false);
+        assert_eq!(json["provider_enabled"], false);
+        assert_eq!(json["semantic_enabled"], false);
+        assert_eq!(json["cross_project_search_allowed"], false);
+        assert_eq!(json["full_api_coverage"], false);
+        assert_eq!(json["connected"], false);
+        assert_eq!(json["synced"], false);
+        assert_eq!(json["installed"], false);
+        assert_eq!(json["files_written"], false);
+        assert!(json["routes"].as_array().unwrap().is_empty());
+        let _ = (
+            library::ENGINE_ROUTES_NOT_OWNED,
+            library::OFFICIAL_ROUTES_UNVERIFIED,
+            library::UNSUPPORTED_LIVE_ROUTE_CLAIM,
+            library::UNSUPPORTED_OFFICIAL_MCP_FROM_ALLOWLIST,
+        );
+    }
+
+    #[test]
+    fn inspect_routes_fixture_stays_disabled_and_claimed_flag_is_unsupported() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("bmdock-t35-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let library = library::FixtureLibrary::new(dir.clone());
+        let mut route = RouteState::default();
+        let IpcResponse::RouteInspection(report) = dispatch_with_library(
+            IpcCommand::InspectRoutes(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap() else {
+            panic!("wrong response variant")
+        };
+        assert!(report.routes.is_empty());
+        assert!(!report.cloud_allowed);
+        assert!(!report.sync_enabled);
+        assert!(!report.hooks_enabled);
+        assert!(!report.provider_enabled);
+        assert!(!report.semantic_enabled);
+        assert!(!report.cross_project_search_allowed);
+        assert!(!report.connected);
+        assert!(!report.synced);
+        assert!(!report.installed);
+        assert!(!report.files_written);
+        assert!(report.local_offline);
+        assert_eq!(
+            report.observation.classified_as,
+            library::NoteCrudClass::Empty
+        );
+        let flag = library.seed_route_claimed_flag().unwrap();
+        assert!(flag.is_file());
+        let disk = std::fs::read_to_string(&flag).unwrap();
+        assert!(disk.contains("fixture-route-claimed-not-cross-project"));
+        let claimed = dispatch_with_library(
+            IpcCommand::InspectRoutes(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &library,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(claimed.category, ErrorCategory::Unsupported);
+        assert_eq!(claimed.message, library::UNSUPPORTED_ROUTE_CLAIMED_NOT_LIVE);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    struct ClaimedRouteLibrary;
+
+    impl NoteLibrary for ClaimedRouteLibrary {
+        fn list_tree(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            Ok(library::TreePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: false,
+            })
+        }
+
+        fn read_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            Err(library::LibraryError::unsupported(
+                library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
+            ))
+        }
+
+        fn inspect_routes(&self) -> Result<library::RouteInspectionDto, library::LibraryError> {
+            Ok(library::RouteInspectionDto {
+                connected: true,
+                synced: true,
+                installed: true,
+                live_official_cloud_session: true,
+                live_official_sync_session: true,
+                live_official_agent_session: true,
+                ..library::empty_route_inspection()
+            })
+        }
+    }
+
+    struct CredentialRouteLibrary;
+
+    impl NoteLibrary for CredentialRouteLibrary {
+        fn list_tree(
+            &self,
+            _cursor: Option<&str>,
+            _page_size: u32,
+        ) -> Result<library::TreePageDto, library::LibraryError> {
+            Ok(library::TreePageDto {
+                entries: Vec::new(),
+                next_cursor: None,
+                page: 1,
+                truncated: false,
+            })
+        }
+
+        fn read_note(
+            &self,
+            _identifier: &str,
+        ) -> Result<library::NoteReadDto, library::LibraryError> {
+            Err(library::LibraryError::unsupported(
+                library::UNSUPPORTED_LIBRARY_UNAVAILABLE,
+            ))
+        }
+
+        fn inspect_routes(&self) -> Result<library::RouteInspectionDto, library::LibraryError> {
+            Ok(library::RouteInspectionDto {
+                env_tokens_read: true,
+                secrets_stored: true,
+                remote_hosts_contacted: true,
+                ..library::empty_route_inspection()
+            })
+        }
+    }
+
+    #[test]
+    fn inspect_routes_claimed_connected_or_env_tokens_are_not_success() {
+        let mut route = RouteState::default();
+        let claimed = dispatch_with_library(
+            IpcCommand::InspectRoutes(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &ClaimedRouteLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(claimed.category, ErrorCategory::Unsupported);
+        assert_eq!(claimed.message, library::UNSUPPORTED_LIVE_ROUTE_CLAIM);
+        let credentials = dispatch_with_library(
+            IpcCommand::InspectRoutes(fixture_cloud_args()),
+            idle_snapshot(),
+            &mut route,
+            &CredentialRouteLibrary,
+            &backups::EmptyBackupStore,
+        )
+        .unwrap_err();
+        assert_eq!(credentials.category, ErrorCategory::Policy);
+        assert_eq!(credentials.message, library::POLICY_ROUTE_CREDENTIAL_ROUTE);
+        let release = EngineProfile::Release;
+        let preview = EngineProfile::MainPreview;
+        assert_eq!(release.commit(), "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048");
+        assert_eq!(preview.commit(), "3452c821d76c083823d020984d71e06904a1ff1e");
+        assert_ne!(release.expected_tools(), preview.expected_tools());
+        let _ = (
+            library::ENGINE_ROUTES_NOT_OWNED,
+            library::OFFICIAL_ROUTES_UNVERIFIED,
         );
     }
 }
