@@ -1,0 +1,99 @@
+{
+  "after_production_prefix_sha256": "50ab293fdd99b0a8ac061f5794111cdebe4f535e73447eda4f1b38dcd6807a27",
+  "after_runtime_binary_sha256": "67dabbe272e5fa193ab51751b67c9281687879b77a53c742df75257c3e6095ea",
+  "after_source_sha256": "4fdeafa79cef422a5c8cfbde483c3067d4d9c0268197623ff679261af9ed0d7c",
+  "all_six_selected_payloads_exact": true,
+  "all_ten_raw_files_byte_identical": true,
+  "before_production_prefix_sha256": "50ab293fdd99b0a8ac061f5794111cdebe4f535e73447eda4f1b38dcd6807a27",
+  "before_runtime_binary_sha256": "67dabbe272e5fa193ab51751b67c9281687879b77a53c742df75257c3e6095ea",
+  "before_source_sha256": "8e9be60973b7696d9ac5f4b213425987419b226f18c652170cfa1be5efb04606",
+  "checks": {
+    "fixture_loading": "The replay test loads only committed tests/fixtures/c01-{profile}-query-replay.json; ignored original receipts are provenance inputs, not runtime test dependencies.",
+    "focused_rust_replay": {
+      "command": "cargo test -p bmdock-app --locked --offline engine_queries::tests::captured_profiles_replay_rank_context_and_activity_without_full_body_projection -- --exact",
+      "exit_code": 0,
+      "filtered_out": 233,
+      "passed": 1
+    },
+    "git_diff_check": {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  },
+  "fixtures": [
+    {
+      "bytes": 32483,
+      "path": "tests/fixtures/c01-main-preview-query-replay.json",
+      "payload_sha256": {
+        "activity": "3da0c5146160ac690d8fcd0e4c0e0feffd551354232e328b7295be4a9e5dbd8a",
+        "context": "b1646fb7d535117f6739c5d7d9dd69345837a7a94311ce0c27c43f809c904de0",
+        "ordering-probe": "8674844ce9b79100335eaf02eb60185c7eb17ba7e4f63e55e8fb4db44ee7ced2"
+      },
+      "payloads_exactly_equal_to_source": true,
+      "profile": "main-preview",
+      "record_ids": [
+        "ordering-probe",
+        "context",
+        "activity"
+      ],
+      "sha256": "46eadd1d55de5ea92cdbc3377d719d42fe3736f3e606d880f3ba4ab20bcc3b1f",
+      "source_path": "execution/evidence/c01-main-preview-contract.json",
+      "source_sha256": "43ef39a310dd8af6d8d5ea5d4a7f926bee1610fb13a57a3f99799ebb40d75c9d"
+    },
+    {
+      "bytes": 32411,
+      "path": "tests/fixtures/c01-release-query-replay.json",
+      "payload_sha256": {
+        "activity": "cc137c275c71ebf06cde628a02d56ad80a532ccc1259e359da6fcd8e2f862ffb",
+        "context": "65f568581ba51890c85b9edd25ba622221cf2e05864489b1f0821bfff50b2b56",
+        "ordering-probe": "92c8f980371120bfb2c69de3ef2c22b81b3bda8c2f3a7c2afd955877ca1e87d7"
+      },
+      "payloads_exactly_equal_to_source": true,
+      "profile": "release",
+      "record_ids": [
+        "ordering-probe",
+        "context",
+        "activity"
+      ],
+      "sha256": "d7fb2d160439aed19ba9c8c9804d1c6997450cf2926d6e21761d480c52f88fb2",
+      "source_path": "execution/evidence/c01-release-contract.json",
+      "source_sha256": "28944815d94c70e0405609ce582033b84259ac00e6e1844e55b58264b662effb"
+    }
+  ],
+  "historical_measurement_boundary": "Do not rewrite old measured source hashes. This receipt bridges only the cfg(test) input-path change: identical production prefix and unchanged previously measured runtime binary; no new performance measurements or release/native claims.",
+  "production_prefix_byte_identical": true,
+  "production_prefix_bytes": 19048,
+  "raw_after": {
+    "execution/evidence/c01-main-preview-contract.json": "43ef39a310dd8af6d8d5ea5d4a7f926bee1610fb13a57a3f99799ebb40d75c9d",
+    "execution/evidence/c01-release-contract.json": "28944815d94c70e0405609ce582033b84259ac00e6e1844e55b58264b662effb",
+    "execution/evidence/c03-main-preview-functional-v2.json": "eb388df337b184c758f757b6f0609f8613be73c570e0542f0cec8cae4b7d03d8",
+    "execution/evidence/c03-main-preview-functional-v3.json": "b83b111f38db6727b71f972acbe99ec1fd58f9ca5cf84712d0494238ce6d98fb",
+    "execution/evidence/c03-main-preview-functional-v4.json": "2a0729e04176607ca2d79613e9a8e37b8d7b1c3095e3b5a528f81a3e40928397",
+    "execution/evidence/c03-main-preview-functional.json": "86893c1c580f461555c8f0817a0efecbb5905af2d4b74b74b0d3be2c0f4a2619",
+    "execution/evidence/c03-release-functional-v2.json": "aeeee4131d00a985f76d75c28fcf843d999cc4da115bf43d9281092623efba6f",
+    "execution/evidence/c03-release-functional-v3.json": "4cb05f75f1aee25c26802bc790e627f710a3dfcbe5760778fc0ea810a7d55900",
+    "execution/evidence/c03-release-functional-v4.json": "b5f90c36c92d5362d4c8d00dcd71641523f9eff50dc2fe757190263dc100f702",
+    "execution/evidence/c03-release-functional.json": "5c11f5a2bb6563400a70981fbe6dc00c1bc7549d80609a270c2d60cc71b3a953"
+  },
+  "raw_before": {
+    "execution/evidence/c01-main-preview-contract.json": "43ef39a310dd8af6d8d5ea5d4a7f926bee1610fb13a57a3f99799ebb40d75c9d",
+    "execution/evidence/c01-release-contract.json": "28944815d94c70e0405609ce582033b84259ac00e6e1844e55b58264b662effb",
+    "execution/evidence/c03-main-preview-functional-v2.json": "eb388df337b184c758f757b6f0609f8613be73c570e0542f0cec8cae4b7d03d8",
+    "execution/evidence/c03-main-preview-functional-v3.json": "b83b111f38db6727b71f972acbe99ec1fd58f9ca5cf84712d0494238ce6d98fb",
+    "execution/evidence/c03-main-preview-functional-v4.json": "2a0729e04176607ca2d79613e9a8e37b8d7b1c3095e3b5a528f81a3e40928397",
+    "execution/evidence/c03-main-preview-functional.json": "86893c1c580f461555c8f0817a0efecbb5905af2d4b74b74b0d3be2c0f4a2619",
+    "execution/evidence/c03-release-functional-v2.json": "aeeee4131d00a985f76d75c28fcf843d999cc4da115bf43d9281092623efba6f",
+    "execution/evidence/c03-release-functional-v3.json": "4cb05f75f1aee25c26802bc790e627f710a3dfcbe5760778fc0ea810a7d55900",
+    "execution/evidence/c03-release-functional-v4.json": "b5f90c36c92d5362d4c8d00dcd71641523f9eff50dc2fe757190263dc100f702",
+    "execution/evidence/c03-release-functional.json": "5c11f5a2bb6563400a70981fbe6dc00c1bc7549d80609a270c2d60cc71b3a953"
+  },
+  "runtime_binary_path": "target/debug/bmdock-app.exe",
+  "runtime_binary_unchanged": true,
+  "schema_version": 1,
+  "single_cfg_test_path_literal_change_only": true,
+  "source_path": "apps/bmdock-desktop/src-tauri/src/engine_queries.rs",
+  "status": "passed",
+  "summary_headers_and_recorded_shutdown_outcomes_verified": true,
+  "test_change_scope": "Only the fixture input path inside cfg(test); production prefix and existing raw receipts must remain byte-identical.",
+  "verified_at": "2026-09-19T04:58:06.232858+00:00"
+}

@@ -1,0 +1,263 @@
+{
+  "command": "python -m scripts.client_queries source --fixture artifacts/client-baseline/c01-corpus-reproducibility-v3/release-large-1mib-1.fixture.json --output execution/evidence/c03-release-large-1mib-source.json --scenario read-full",
+  "completed_at": "2026-09-19T04:34:04.257763+00:00",
+  "corpus_sha256": "8352f06d83fc59b55f26789024d821dd1239660ad248a1c5adfc8716ab0e45af",
+  "engine_sha": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+  "fingerprints_after": {
+    "binary_sha256": "67dabbe272e5fa193ab51751b67c9281687879b77a53c742df75257c3e6095ea",
+    "source_sha256": {
+      "Cargo.lock": "6555b6143b99b0bd80e6e84e5b1da7876d0405b2fda696b97dac11283d384dbf",
+      "apps/bmdock-desktop/src-tauri/Cargo.toml": "84aff460ff75139525781319c84a53ffc1b446fa6e069022ade7caa1996ae4da",
+      "apps/bmdock-desktop/src-tauri/src/engine_queries.rs": "8e9be60973b7696d9ac5f4b213425987419b226f18c652170cfa1be5efb04606",
+      "apps/bmdock-desktop/src-tauri/src/engine_session.rs": "6fd92f9cead1f2a8170925f1ac16fd4310705e56d7aa8ddfecd4ccf7f9668e3a",
+      "apps/bmdock-desktop/src-tauri/src/ipc.rs": "f78be4ce7b1bdbbc69f88e49ca07f97153951c99e7b00dcbec403c4b7ef15190",
+      "apps/bmdock-desktop/src-tauri/src/library.rs": "89d1e9692ff85a0ac0614bb7a4129a32ccf0802e4e634cab42287498fd0bd2b5",
+      "apps/bmdock-desktop/src-tauri/src/main.rs": "a3d4740cb3160375232b03c6bead70290d04eccbf5333f8c36b101a498bb3e8d",
+      "apps/bmdock-desktop/src-tauri/src/query_driver.rs": "cb6791d713d57592fb3a601332eb81c24a2634b67b2bd7af2190d66c19df8880",
+      "apps/bmdock-desktop/src-tauri/src/supervisor.rs": "8fd0f9d84cbe4d3c40802cf23430683dcf947cb4e9e073a221269f150ade9373",
+      "scripts/client_baseline.py": "47c43e4aa1f759bb20d697dff4ac813c84e5ea2155128b5f45e3b3c80f78fb3d",
+      "scripts/client_queries.py": "cfb82b7f5396e1d7ad377c58263cf8c4195a59d26f155638f0c58896a5fdb7e9",
+      "scripts/core.py": "7cccfca3454dd94921b6c826ead752a909b06d352f29a5b6ac6ae67349f216e3",
+      "scripts/engine_worker.py": "41962f516d85c28602640651b6e30233d06f9ea78eab9f519e306adeeb17289f"
+    }
+  },
+  "fingerprints_before": {
+    "binary_sha256": "67dabbe272e5fa193ab51751b67c9281687879b77a53c742df75257c3e6095ea",
+    "source_sha256": {
+      "Cargo.lock": "6555b6143b99b0bd80e6e84e5b1da7876d0405b2fda696b97dac11283d384dbf",
+      "apps/bmdock-desktop/src-tauri/Cargo.toml": "84aff460ff75139525781319c84a53ffc1b446fa6e069022ade7caa1996ae4da",
+      "apps/bmdock-desktop/src-tauri/src/engine_queries.rs": "8e9be60973b7696d9ac5f4b213425987419b226f18c652170cfa1be5efb04606",
+      "apps/bmdock-desktop/src-tauri/src/engine_session.rs": "6fd92f9cead1f2a8170925f1ac16fd4310705e56d7aa8ddfecd4ccf7f9668e3a",
+      "apps/bmdock-desktop/src-tauri/src/ipc.rs": "f78be4ce7b1bdbbc69f88e49ca07f97153951c99e7b00dcbec403c4b7ef15190",
+      "apps/bmdock-desktop/src-tauri/src/library.rs": "89d1e9692ff85a0ac0614bb7a4129a32ccf0802e4e634cab42287498fd0bd2b5",
+      "apps/bmdock-desktop/src-tauri/src/main.rs": "a3d4740cb3160375232b03c6bead70290d04eccbf5333f8c36b101a498bb3e8d",
+      "apps/bmdock-desktop/src-tauri/src/query_driver.rs": "cb6791d713d57592fb3a601332eb81c24a2634b67b2bd7af2190d66c19df8880",
+      "apps/bmdock-desktop/src-tauri/src/supervisor.rs": "8fd0f9d84cbe4d3c40802cf23430683dcf947cb4e9e073a221269f150ade9373",
+      "scripts/client_baseline.py": "47c43e4aa1f759bb20d697dff4ac813c84e5ea2155128b5f45e3b3c80f78fb3d",
+      "scripts/client_queries.py": "cfb82b7f5396e1d7ad377c58263cf8c4195a59d26f155638f0c58896a5fdb7e9",
+      "scripts/core.py": "7cccfca3454dd94921b6c826ead752a909b06d352f29a5b6ac6ae67349f216e3",
+      "scripts/engine_worker.py": "41962f516d85c28602640651b6e30233d06f9ea78eab9f519e306adeeb17289f"
+    }
+  },
+  "fixture_manifest": "artifacts/client-baseline/c01-corpus-reproducibility-v3/release-large-1mib-1.fixture.json",
+  "full_matrix_complete": false,
+  "host_python": "3.14.7",
+  "index_ready_outside_timing": {
+    "attempts": 3,
+    "elapsed_seconds": 1.9692527000006521,
+    "last_observation": {
+      "identifiers": [
+        "corpus/note-00000"
+      ],
+      "pages": [
+        {
+          "has_more": false,
+          "hits": [
+            {
+              "identifier": "corpus/note-00000",
+              "result_kind": "entity",
+              "score": -7.098503320702704e-07
+            }
+          ],
+          "page": 1,
+          "page_size": 50,
+          "total": 1,
+          "total_is_exact": true
+        }
+      ]
+    },
+    "matching_consecutive_observations": 3,
+    "stable_semantics_sha256": "d51c28ba2b51171f9f2ff11432ed33c4c25605f1b649f4a8ebc9e659f4b4d1a5"
+  },
+  "logical_cpus": 24,
+  "measurement_manifest_sha256": "1355aaa365b1298b1d935dfd9d6eab441014fd55a7e84c8dc58cac856fb94844",
+  "mode": "source",
+  "pairs": [],
+  "physical_corpus_unchanged": true,
+  "platform": "Windows-11-10.0.26200-SP0",
+  "profile": "release",
+  "protocol": {
+    "budget_clock": "Python perf_counter_ns before JSONL write through complete parsed response; identical boundaries both lanes",
+    "cold": "Fresh desktop driver and owned engine per lane; indexed corpus reused; OS disk cache uncontrolled",
+    "cold_pairs": 5,
+    "host_load": "Shared development host, background build/test load uncontrolled; no cross-profile speedup claim",
+    "inner_clock": "Rust owner request for direct; production dispatch for adapter; diagnostic only, includes transport/serde",
+    "payload": "Outer reply UTF-8 JSONL bytes and compact response JSON bytes; raw direct envelope may duplicate content",
+    "rss": "Desktop driver process peak working set only; official engine/descendant peak RSS unavailable",
+    "strict_c01_probe_clock_conformance": false,
+    "warm": "One primed desktop owner; alternating paired direct/adapter calls; no application result cache",
+    "warm_pairs": 30
+  },
+  "samples": [],
+  "scale": "large-1mib",
+  "scenario": "read-full",
+  "schema_version": 1,
+  "sessions": [
+    {
+      "ready": {
+        "engine_sha": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+        "event": "ready",
+        "runtime": {
+          "failure": null,
+          "host_drain": "idle",
+          "kind": "runtime_state",
+          "profile": "release",
+          "project": null,
+          "semantic_model_loaded": false,
+          "session_generation": 1,
+          "shutdown": null,
+          "status": "connected"
+        },
+        "session": {
+          "generation": 1,
+          "profile": "release"
+        }
+      },
+      "shutdown": {
+        "id": "6",
+        "outer_elapsed_ms": 1056.495,
+        "outer_reply_bytes": 414,
+        "outer_request_bytes": 32,
+        "shutdown": {
+          "child_exited": true,
+          "exit_code": 0,
+          "forced": false,
+          "timeout_unknown": false,
+          "transport_cancelled": true
+        },
+        "started_at": "2026-09-19T04:34:03.196864+00:00",
+        "stopped": {
+          "failure": null,
+          "host_drain": "idle",
+          "kind": "runtime_state",
+          "profile": "release",
+          "project": null,
+          "semantic_model_loaded": false,
+          "session_generation": 1,
+          "shutdown": {
+            "child_exited": true,
+            "exit_code": 0,
+            "forced": false,
+            "timeout_unknown": false,
+            "transport_cancelled": true
+          },
+          "status": "stopped"
+        }
+      },
+      "started_at": "2026-09-19T04:33:55.974655+00:00",
+      "startup_ms": 4891.0159,
+      "stderr_path": ".work/g0/client-baseline/release-ie7tmi1v/c03-driver-1789792435974666100.stderr.log"
+    }
+  ],
+  "source_and_binary_unchanged": true,
+  "source_fidelity": {
+    "comparison": {
+      "delivered_source_equal": true,
+      "delivered_utf8_bytes": 1048576,
+      "delivered_utf8_sha256": "90dab4582a930cc6f800417e297be7c1d68e72df81b81c388a02a68b5c83ae61",
+      "general_byte_fidelity_claim": false,
+      "source_bytes_equal": true,
+      "upstream_crlf_normalized": false
+    },
+    "events": {
+      "adapter": {
+        "command_count": 1,
+        "driver_session": {
+          "generation": 1,
+          "profile": "release"
+        },
+        "driver_started_at": "2026-09-19T04:33:55.974655+00:00",
+        "elapsed_ms": 102.203,
+        "id": "5",
+        "lane": "adapter",
+        "outer_elapsed_ms": 126.4758,
+        "outer_reply_bytes": 1049089,
+        "outer_request_bytes": 218,
+        "request": {
+          "arguments": {
+            "identifier": "corpus/note-00000",
+            "include_frontmatter": true,
+            "output_format": "json",
+            "project": "bmdock-fixture"
+          },
+          "name": "read_note"
+        },
+        "response": {
+          "storage": "sha256-and-length-after-full-source-comparison"
+        },
+        "response_compact_json_bytes": 1048855,
+        "response_sha256": "292099ab5e93ef28082e54cd729580bf98982e8004077c0b985f6df7e19be604",
+        "started_at": "2026-09-19T04:34:03.045741+00:00",
+        "typed_command": {
+          "args": {
+            "expected_session": {
+              "generation": 1,
+              "profile": "release"
+            },
+            "identifier": "corpus/note-00000",
+            "project": "bmdock-fixture",
+            "workspace": "bmdock-workspace"
+          },
+          "command": "read_note"
+        }
+      },
+      "direct": {
+        "command_count": 1,
+        "driver_session": {
+          "generation": 1,
+          "profile": "release"
+        },
+        "driver_started_at": "2026-09-19T04:33:55.974655+00:00",
+        "elapsed_ms": 146.6215,
+        "id": "4",
+        "lane": "direct",
+        "outer_elapsed_ms": 195.9214,
+        "outer_reply_bytes": 2098224,
+        "outer_request_bytes": 217,
+        "request": {
+          "arguments": {
+            "identifier": "corpus/note-00000",
+            "include_frontmatter": true,
+            "output_format": "json",
+            "project": "bmdock-fixture"
+          },
+          "name": "read_note"
+        },
+        "response": {
+          "storage": "sha256-and-length-after-full-source-comparison"
+        },
+        "response_compact_json_bytes": 2097990,
+        "response_sha256": "30a7cc9892f1218a087be4065e0faad55803edaadd3c9ad02e65d62613a78cdd",
+        "started_at": "2026-09-19T04:34:02.849737+00:00",
+        "typed_command": {
+          "args": {
+            "expected_session": {
+              "generation": 1,
+              "profile": "release"
+            },
+            "identifier": "corpus/note-00000",
+            "project": "bmdock-fixture",
+            "workspace": "bmdock-workspace"
+          },
+          "command": "read_note"
+        }
+      }
+    },
+    "order": [
+      "direct",
+      "adapter"
+    ]
+  },
+  "started_at": "2026-09-19T04:33:55.883712+00:00",
+  "status": "passed",
+  "timing_acceptance": false,
+  "unverified": [
+    "Full 428-cell C01/C03 performance matrix",
+    "Native renderer/typing/IME/UI",
+    "Meaningful pre-optimization UI comparison",
+    "Official engine/descendant peak RSS",
+    "Semantic retrieval (disabled in isolated profiles)",
+    "Controlled quiet-host performance"
+  ],
+  "user_authorized_deferral": "Code and representative benchmarks first; full performance matrix retained for acceptance"
+}

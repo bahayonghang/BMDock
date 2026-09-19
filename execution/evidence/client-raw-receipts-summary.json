@@ -1,0 +1,615 @@
+{
+  "created_at": "2026-09-19T04:56:10.939887+00:00",
+  "hash_method": "SHA-256 of original file bytes; selected-payload hashes use sorted compact UTF-8 JSON values.",
+  "limitations": [
+    "Summary is provenance and selected check outcomes, not a substitute for every raw tool response.",
+    "Historical measured source hashes remain unchanged in original receipts.",
+    "Runtime-equivalence proof for the cfg(test)-only path change is in execution/evidence/c07-replay-portability.json.",
+    "Full matrix, engine-total RSS and native acceptance remain incomplete."
+  ],
+  "policy": "User selected summaries and exact replay subsets for Git; these ten original files remain byte-for-byte local and are excluded by exact gitignore paths.",
+  "raw_file_count": 10,
+  "raw_receipts": [
+    {
+      "bytes": 1587112,
+      "captured_at": "2026-09-19T03:42:57.972604+00:00",
+      "checks": {
+        "record_count": 46,
+        "replay_record_ids": [
+          "ordering-probe",
+          "context",
+          "activity"
+        ],
+        "response_kinds": {
+          "activity": "structured",
+          "chinese_mixed-00": "structured",
+          "chinese_mixed-01": "structured",
+          "chinese_mixed-02": "structured",
+          "chinese_mixed-03": "structured",
+          "chinese_mixed-04": "structured",
+          "chinese_mixed-05": "structured",
+          "chinese_mixed-06": "structured",
+          "chinese_mixed-07": "structured",
+          "chinese_mixed-08": "structured",
+          "chinese_mixed-09": "structured",
+          "context": "structured",
+          "directory-leaf": "structured",
+          "directory-nested": "structured",
+          "directory-root": "structured",
+          "literal-00": "structured",
+          "literal-01": "structured",
+          "literal-02": "structured",
+          "literal-03": "structured",
+          "literal-04": "structured",
+          "literal-05": "structured",
+          "literal-06": "structured",
+          "literal-07": "structured",
+          "literal-08": "structured",
+          "literal-09": "structured",
+          "ordering-probe": "structured",
+          "paraphrase-00": "structured",
+          "paraphrase-01": "structured",
+          "paraphrase-02": "structured",
+          "paraphrase-03": "structured",
+          "paraphrase-04": "structured",
+          "paraphrase-05": "structured",
+          "paraphrase-06": "structured",
+          "paraphrase-07": "structured",
+          "paraphrase-08": "structured",
+          "paraphrase-09": "structured",
+          "projects": "guidance_text",
+          "read-default": "structured",
+          "read-full": "structured",
+          "read-missing": "structured",
+          "search-compact": "structured",
+          "search-empty": "structured",
+          "search-filter": "structured",
+          "search-invalid-page": "tool_error",
+          "search-page-2": "structured",
+          "search-semantic-unavailable": "guidance_text"
+        },
+        "unresolved_required_records": []
+      },
+      "engine_sha": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "evidence_role": "Pinned C01 contract capture; selected exact query replay payloads committed separately",
+      "path": "execution/evidence/c01-main-preview-contract.json",
+      "physical_corpus_unchanged": true,
+      "profile": "main-preview",
+      "sha256": "43ef39a310dd8af6d8d5ea5d4a7f926bee1610fb13a57a3f99799ebb40d75c9d",
+      "status_at_capture": "captured"
+    },
+    {
+      "bytes": 1511227,
+      "captured_at": "2026-09-19T03:42:01.234395+00:00",
+      "checks": {
+        "record_count": 45,
+        "replay_record_ids": [
+          "ordering-probe",
+          "context",
+          "activity"
+        ],
+        "response_kinds": {
+          "activity": "structured",
+          "chinese_mixed-00": "structured",
+          "chinese_mixed-01": "structured",
+          "chinese_mixed-02": "structured",
+          "chinese_mixed-03": "structured",
+          "chinese_mixed-04": "structured",
+          "chinese_mixed-05": "structured",
+          "chinese_mixed-06": "structured",
+          "chinese_mixed-07": "structured",
+          "chinese_mixed-08": "structured",
+          "chinese_mixed-09": "structured",
+          "context": "structured",
+          "directory-leaf": "structured",
+          "directory-nested": "structured",
+          "directory-root": "structured",
+          "literal-00": "structured",
+          "literal-01": "structured",
+          "literal-02": "structured",
+          "literal-03": "structured",
+          "literal-04": "structured",
+          "literal-05": "structured",
+          "literal-06": "structured",
+          "literal-07": "structured",
+          "literal-08": "structured",
+          "literal-09": "structured",
+          "ordering-probe": "structured",
+          "paraphrase-00": "structured",
+          "paraphrase-01": "structured",
+          "paraphrase-02": "structured",
+          "paraphrase-03": "structured",
+          "paraphrase-04": "structured",
+          "paraphrase-05": "structured",
+          "paraphrase-06": "structured",
+          "paraphrase-07": "structured",
+          "paraphrase-08": "structured",
+          "paraphrase-09": "structured",
+          "projects": "guidance_text",
+          "read-default": "structured",
+          "read-full": "structured",
+          "read-missing": "structured",
+          "search-empty": "structured",
+          "search-filter": "structured",
+          "search-invalid-page": "tool_error",
+          "search-page-2": "structured",
+          "search-semantic-unavailable": "guidance_text"
+        },
+        "unresolved_required_records": []
+      },
+      "engine_sha": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "evidence_role": "Pinned C01 contract capture; selected exact query replay payloads committed separately",
+      "path": "execution/evidence/c01-release-contract.json",
+      "physical_corpus_unchanged": true,
+      "profile": "release",
+      "sha256": "28944815d94c70e0405609ce582033b84259ac00e6e1844e55b58264b662effb",
+      "status_at_capture": "captured"
+    },
+    {
+      "bytes": 2235176,
+      "checks": {
+        "filter_only_checked": true,
+        "full_source_comparison": {
+          "delivered_source_equal": true,
+          "delivered_utf8_bytes": 4096,
+          "delivered_utf8_sha256": "5a8e3f0f79d39b47bbf96233a7ace497b3f6f51384662e385eedb8631a0bf90c",
+          "general_byte_fidelity_claim": false,
+          "source_bytes_equal": true,
+          "upstream_crlf_normalized": false
+        },
+        "immutable_page_count": 2,
+        "independent_labels": 30,
+        "journey_checks": [],
+        "normal_shutdown_receipts": 1,
+        "profile_compact_checked": true,
+        "recall_at_10_by_category": {
+          "chinese_mixed": 1.0,
+          "literal": 1.0,
+          "paraphrase": 1.0
+        },
+        "semantic_mcp_command_count": 0,
+        "semantic_unavailable_response": {
+          "category": "unsupported",
+          "kind": "error",
+          "message": "Semantic retrieval is disabled; only text, title and permalink modes are available"
+        },
+        "sessions": 1
+      },
+      "completed_at": "2026-09-19T04:22:39.239117+00:00",
+      "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+      "engine_sha": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "evidence_role": "Historical functional revision; not substituted for final evidence",
+      "full_matrix_complete": false,
+      "measurement_manifest_sha256": "1355aaa365b1298b1d935dfd9d6eab441014fd55a7e84c8dc58cac856fb94844",
+      "native_acceptance": false,
+      "path": "execution/evidence/c03-main-preview-functional-v2.json",
+      "physical_corpus_unchanged": true,
+      "profile": "main-preview",
+      "selected_fingerprints_at_capture": {
+        "binary_sha256": "23c3446783320d4b28677dd42e04d3a72e2af81efde30b8c1bee75974dd1ca3b",
+        "client_queries_source_sha256": "18bc7ca525daf3c00264ca93d42e99d1231f79f16a50da2e45d21009194d08e7",
+        "engine_queries_source_sha256": "8e9be60973b7696d9ac5f4b213425987419b226f18c652170cfa1be5efb04606"
+      },
+      "sha256": "eb388df337b184c758f757b6f0609f8613be73c570e0542f0cec8cae4b7d03d8",
+      "source_and_binary_unchanged_during_capture": true,
+      "started_at": "2026-09-19T04:22:30.194210+00:00",
+      "status_at_capture": "passed"
+    },
+    {
+      "bytes": 2327165,
+      "checks": {
+        "filter_only_checked": true,
+        "full_source_comparison": {
+          "delivered_source_equal": true,
+          "delivered_utf8_bytes": 4096,
+          "delivered_utf8_sha256": "5a8e3f0f79d39b47bbf96233a7ace497b3f6f51384662e385eedb8631a0bf90c",
+          "general_byte_fidelity_claim": false,
+          "source_bytes_equal": true,
+          "upstream_crlf_normalized": false
+        },
+        "immutable_page_count": 2,
+        "independent_labels": 30,
+        "journey_checks": [
+          "activity",
+          "context",
+          "tree_leaf",
+          "tree_root",
+          "tree_selected_note"
+        ],
+        "normal_shutdown_receipts": 1,
+        "profile_compact_checked": true,
+        "recall_at_10_by_category": {
+          "chinese_mixed": 1.0,
+          "literal": 1.0,
+          "paraphrase": 1.0
+        },
+        "semantic_mcp_command_count": 0,
+        "semantic_unavailable_response": {
+          "category": "unsupported",
+          "kind": "error",
+          "message": "Semantic retrieval is disabled; only text, title and permalink modes are available"
+        },
+        "sessions": 1
+      },
+      "completed_at": "2026-09-19T04:27:02.312786+00:00",
+      "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+      "engine_sha": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "evidence_role": "Historical functional revision; not substituted for final evidence",
+      "full_matrix_complete": false,
+      "measurement_manifest_sha256": "1355aaa365b1298b1d935dfd9d6eab441014fd55a7e84c8dc58cac856fb94844",
+      "native_acceptance": false,
+      "path": "execution/evidence/c03-main-preview-functional-v3.json",
+      "physical_corpus_unchanged": true,
+      "profile": "main-preview",
+      "selected_fingerprints_at_capture": {
+        "binary_sha256": "67dabbe272e5fa193ab51751b67c9281687879b77a53c742df75257c3e6095ea",
+        "client_queries_source_sha256": "f5ea7acba5061a47a8ed465896ff4088f5a3a22a7e5184989ba41e3cf0289d77",
+        "engine_queries_source_sha256": "8e9be60973b7696d9ac5f4b213425987419b226f18c652170cfa1be5efb04606"
+      },
+      "sha256": "b83b111f38db6727b71f972acbe99ec1fd58f9ca5cf84712d0494238ce6d98fb",
+      "source_and_binary_unchanged_during_capture": true,
+      "started_at": "2026-09-19T04:26:51.857237+00:00",
+      "status_at_capture": "passed"
+    },
+    {
+      "bytes": 2379786,
+      "checks": {
+        "filter_only_checked": true,
+        "full_source_comparison": {
+          "delivered_source_equal": true,
+          "delivered_utf8_bytes": 4096,
+          "delivered_utf8_sha256": "5a8e3f0f79d39b47bbf96233a7ace497b3f6f51384662e385eedb8631a0bf90c",
+          "general_byte_fidelity_claim": false,
+          "source_bytes_equal": true,
+          "upstream_crlf_normalized": false
+        },
+        "immutable_page_count": 2,
+        "independent_labels": 30,
+        "journey_checks": [
+          "activity",
+          "context",
+          "tree_leaf",
+          "tree_root",
+          "tree_selected_note"
+        ],
+        "normal_shutdown_receipts": 1,
+        "profile_compact_checked": true,
+        "recall_at_10_by_category": {
+          "chinese_mixed": 1.0,
+          "literal": 1.0,
+          "paraphrase": 1.0
+        },
+        "semantic_mcp_command_count": 0,
+        "semantic_unavailable_response": {
+          "category": "unsupported",
+          "kind": "error",
+          "message": "Semantic retrieval is disabled; only text, title and permalink modes are available"
+        },
+        "sessions": 1
+      },
+      "completed_at": "2026-09-19T04:30:24.341932+00:00",
+      "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+      "engine_sha": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "evidence_role": "Final pre-delivery functional receipt",
+      "full_matrix_complete": false,
+      "measurement_manifest_sha256": "1355aaa365b1298b1d935dfd9d6eab441014fd55a7e84c8dc58cac856fb94844",
+      "native_acceptance": false,
+      "path": "execution/evidence/c03-main-preview-functional-v4.json",
+      "physical_corpus_unchanged": true,
+      "profile": "main-preview",
+      "selected_fingerprints_at_capture": {
+        "binary_sha256": "67dabbe272e5fa193ab51751b67c9281687879b77a53c742df75257c3e6095ea",
+        "client_queries_source_sha256": "cfb82b7f5396e1d7ad377c58263cf8c4195a59d26f155638f0c58896a5fdb7e9",
+        "engine_queries_source_sha256": "8e9be60973b7696d9ac5f4b213425987419b226f18c652170cfa1be5efb04606"
+      },
+      "sha256": "2a0729e04176607ca2d79613e9a8e37b8d7b1c3095e3b5a528f81a3e40928397",
+      "source_and_binary_unchanged_during_capture": true,
+      "started_at": "2026-09-19T04:30:14.007185+00:00",
+      "status_at_capture": "passed"
+    },
+    {
+      "bytes": 1723896,
+      "checks": {
+        "filter_only_checked": false,
+        "full_source_comparison": {
+          "delivered_source_equal": true,
+          "delivered_utf8_bytes": 4096,
+          "delivered_utf8_sha256": "5a8e3f0f79d39b47bbf96233a7ace497b3f6f51384662e385eedb8631a0bf90c",
+          "general_byte_fidelity_claim": false,
+          "source_bytes_equal": true,
+          "upstream_crlf_normalized": false
+        },
+        "immutable_page_count": 2,
+        "independent_labels": 30,
+        "journey_checks": [],
+        "normal_shutdown_receipts": 1,
+        "profile_compact_checked": true,
+        "recall_at_10_by_category": {
+          "chinese_mixed": 1.0,
+          "literal": 1.0,
+          "paraphrase": 1.0
+        },
+        "semantic_mcp_command_count": 0,
+        "semantic_unavailable_response": {
+          "category": "unsupported",
+          "kind": "error",
+          "message": "Semantic retrieval is disabled; only text, title and permalink modes are available"
+        },
+        "sessions": 1
+      },
+      "completed_at": "2026-09-19T04:18:07.607773+00:00",
+      "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+      "engine_sha": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "evidence_role": "Historical functional revision; not substituted for final evidence",
+      "full_matrix_complete": false,
+      "measurement_manifest_sha256": "1355aaa365b1298b1d935dfd9d6eab441014fd55a7e84c8dc58cac856fb94844",
+      "native_acceptance": false,
+      "path": "execution/evidence/c03-main-preview-functional.json",
+      "physical_corpus_unchanged": true,
+      "profile": "main-preview",
+      "selected_fingerprints_at_capture": {
+        "binary_sha256": "35eef6b3db2cba7794e31cc268a0fd2074577b6a3fea8811010b8fc1b7e9aaac",
+        "client_queries_source_sha256": "54c4e8d42aa2931bd8ae19d90f8bbd2588e7c2acc89dcfb226b25c71810b9633",
+        "engine_queries_source_sha256": "93c1993071285ee710207177d91d9597bf0c1a42c341d8a501935d630ffe2835"
+      },
+      "sha256": "86893c1c580f461555c8f0817a0efecbb5905af2d4b74b74b0d3be2c0f4a2619",
+      "source_and_binary_unchanged_during_capture": true,
+      "started_at": "2026-09-19T04:17:58.553579+00:00",
+      "status_at_capture": "passed"
+    },
+    {
+      "bytes": 2198684,
+      "checks": {
+        "filter_only_checked": true,
+        "full_source_comparison": {
+          "delivered_source_equal": true,
+          "delivered_utf8_bytes": 4096,
+          "delivered_utf8_sha256": "5a8e3f0f79d39b47bbf96233a7ace497b3f6f51384662e385eedb8631a0bf90c",
+          "general_byte_fidelity_claim": false,
+          "source_bytes_equal": true,
+          "upstream_crlf_normalized": false
+        },
+        "immutable_page_count": 2,
+        "independent_labels": 30,
+        "journey_checks": [],
+        "normal_shutdown_receipts": 1,
+        "profile_compact_checked": true,
+        "recall_at_10_by_category": {
+          "chinese_mixed": 1.0,
+          "literal": 1.0,
+          "paraphrase": 1.0
+        },
+        "semantic_mcp_command_count": 0,
+        "semantic_unavailable_response": {
+          "category": "unsupported",
+          "kind": "error",
+          "message": "Semantic retrieval is disabled; only text, title and permalink modes are available"
+        },
+        "sessions": 1
+      },
+      "completed_at": "2026-09-19T04:22:17.809942+00:00",
+      "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+      "engine_sha": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "evidence_role": "Historical functional revision; not substituted for final evidence",
+      "full_matrix_complete": false,
+      "measurement_manifest_sha256": "1355aaa365b1298b1d935dfd9d6eab441014fd55a7e84c8dc58cac856fb94844",
+      "native_acceptance": false,
+      "path": "execution/evidence/c03-release-functional-v2.json",
+      "physical_corpus_unchanged": true,
+      "profile": "release",
+      "selected_fingerprints_at_capture": {
+        "binary_sha256": "23c3446783320d4b28677dd42e04d3a72e2af81efde30b8c1bee75974dd1ca3b",
+        "client_queries_source_sha256": "18bc7ca525daf3c00264ca93d42e99d1231f79f16a50da2e45d21009194d08e7",
+        "engine_queries_source_sha256": "8e9be60973b7696d9ac5f4b213425987419b226f18c652170cfa1be5efb04606"
+      },
+      "sha256": "aeeee4131d00a985f76d75c28fcf843d999cc4da115bf43d9281092623efba6f",
+      "source_and_binary_unchanged_during_capture": true,
+      "started_at": "2026-09-19T04:22:06.898907+00:00",
+      "status_at_capture": "passed"
+    },
+    {
+      "bytes": 2290531,
+      "checks": {
+        "filter_only_checked": true,
+        "full_source_comparison": {
+          "delivered_source_equal": true,
+          "delivered_utf8_bytes": 4096,
+          "delivered_utf8_sha256": "5a8e3f0f79d39b47bbf96233a7ace497b3f6f51384662e385eedb8631a0bf90c",
+          "general_byte_fidelity_claim": false,
+          "source_bytes_equal": true,
+          "upstream_crlf_normalized": false
+        },
+        "immutable_page_count": 2,
+        "independent_labels": 30,
+        "journey_checks": [
+          "activity",
+          "context",
+          "tree_leaf",
+          "tree_root",
+          "tree_selected_note"
+        ],
+        "normal_shutdown_receipts": 1,
+        "profile_compact_checked": true,
+        "recall_at_10_by_category": {
+          "chinese_mixed": 1.0,
+          "literal": 1.0,
+          "paraphrase": 1.0
+        },
+        "semantic_mcp_command_count": 0,
+        "semantic_unavailable_response": {
+          "category": "unsupported",
+          "kind": "error",
+          "message": "Semantic retrieval is disabled; only text, title and permalink modes are available"
+        },
+        "sessions": 1
+      },
+      "completed_at": "2026-09-19T04:26:44.685513+00:00",
+      "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+      "engine_sha": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "evidence_role": "Historical functional revision; not substituted for final evidence",
+      "full_matrix_complete": false,
+      "measurement_manifest_sha256": "1355aaa365b1298b1d935dfd9d6eab441014fd55a7e84c8dc58cac856fb94844",
+      "native_acceptance": false,
+      "path": "execution/evidence/c03-release-functional-v3.json",
+      "physical_corpus_unchanged": true,
+      "profile": "release",
+      "selected_fingerprints_at_capture": {
+        "binary_sha256": "67dabbe272e5fa193ab51751b67c9281687879b77a53c742df75257c3e6095ea",
+        "client_queries_source_sha256": "f5ea7acba5061a47a8ed465896ff4088f5a3a22a7e5184989ba41e3cf0289d77",
+        "engine_queries_source_sha256": "8e9be60973b7696d9ac5f4b213425987419b226f18c652170cfa1be5efb04606"
+      },
+      "sha256": "4cb05f75f1aee25c26802bc790e627f710a3dfcbe5760778fc0ea810a7d55900",
+      "source_and_binary_unchanged_during_capture": true,
+      "started_at": "2026-09-19T04:26:32.776292+00:00",
+      "status_at_capture": "passed"
+    },
+    {
+      "bytes": 2342721,
+      "checks": {
+        "filter_only_checked": true,
+        "full_source_comparison": {
+          "delivered_source_equal": true,
+          "delivered_utf8_bytes": 4096,
+          "delivered_utf8_sha256": "5a8e3f0f79d39b47bbf96233a7ace497b3f6f51384662e385eedb8631a0bf90c",
+          "general_byte_fidelity_claim": false,
+          "source_bytes_equal": true,
+          "upstream_crlf_normalized": false
+        },
+        "immutable_page_count": 2,
+        "independent_labels": 30,
+        "journey_checks": [
+          "activity",
+          "context",
+          "tree_leaf",
+          "tree_root",
+          "tree_selected_note"
+        ],
+        "normal_shutdown_receipts": 1,
+        "profile_compact_checked": true,
+        "recall_at_10_by_category": {
+          "chinese_mixed": 1.0,
+          "literal": 1.0,
+          "paraphrase": 1.0
+        },
+        "semantic_mcp_command_count": 0,
+        "semantic_unavailable_response": {
+          "category": "unsupported",
+          "kind": "error",
+          "message": "Semantic retrieval is disabled; only text, title and permalink modes are available"
+        },
+        "sessions": 1
+      },
+      "completed_at": "2026-09-19T04:30:09.129700+00:00",
+      "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+      "engine_sha": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "evidence_role": "Final pre-delivery functional receipt",
+      "full_matrix_complete": false,
+      "measurement_manifest_sha256": "1355aaa365b1298b1d935dfd9d6eab441014fd55a7e84c8dc58cac856fb94844",
+      "native_acceptance": false,
+      "path": "execution/evidence/c03-release-functional-v4.json",
+      "physical_corpus_unchanged": true,
+      "profile": "release",
+      "selected_fingerprints_at_capture": {
+        "binary_sha256": "67dabbe272e5fa193ab51751b67c9281687879b77a53c742df75257c3e6095ea",
+        "client_queries_source_sha256": "cfb82b7f5396e1d7ad377c58263cf8c4195a59d26f155638f0c58896a5fdb7e9",
+        "engine_queries_source_sha256": "8e9be60973b7696d9ac5f4b213425987419b226f18c652170cfa1be5efb04606"
+      },
+      "sha256": "b5f90c36c92d5362d4c8d00dcd71641523f9eff50dc2fe757190263dc100f702",
+      "source_and_binary_unchanged_during_capture": true,
+      "started_at": "2026-09-19T04:29:56.456033+00:00",
+      "status_at_capture": "passed"
+    },
+    {
+      "bytes": 1694845,
+      "checks": {
+        "filter_only_checked": false,
+        "full_source_comparison": {
+          "delivered_source_equal": true,
+          "delivered_utf8_bytes": 4096,
+          "delivered_utf8_sha256": "5a8e3f0f79d39b47bbf96233a7ace497b3f6f51384662e385eedb8631a0bf90c",
+          "general_byte_fidelity_claim": false,
+          "source_bytes_equal": true,
+          "upstream_crlf_normalized": false
+        },
+        "immutable_page_count": 2,
+        "independent_labels": 30,
+        "journey_checks": [],
+        "normal_shutdown_receipts": 1,
+        "profile_compact_checked": true,
+        "recall_at_10_by_category": {
+          "chinese_mixed": 1.0,
+          "literal": 1.0,
+          "paraphrase": 1.0
+        },
+        "semantic_mcp_command_count": 0,
+        "semantic_unavailable_response": {
+          "category": "unsupported",
+          "kind": "error",
+          "message": "Semantic retrieval is disabled; only text, title and permalink modes are available"
+        },
+        "sessions": 1
+      },
+      "completed_at": "2026-09-19T04:17:48.129267+00:00",
+      "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+      "engine_sha": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "evidence_role": "Historical functional revision; not substituted for final evidence",
+      "full_matrix_complete": false,
+      "measurement_manifest_sha256": "1355aaa365b1298b1d935dfd9d6eab441014fd55a7e84c8dc58cac856fb94844",
+      "native_acceptance": false,
+      "path": "execution/evidence/c03-release-functional.json",
+      "physical_corpus_unchanged": true,
+      "profile": "release",
+      "selected_fingerprints_at_capture": {
+        "binary_sha256": "35eef6b3db2cba7794e31cc268a0fd2074577b6a3fea8811010b8fc1b7e9aaac",
+        "client_queries_source_sha256": "54c4e8d42aa2931bd8ae19d90f8bbd2588e7c2acc89dcfb226b25c71810b9633",
+        "engine_queries_source_sha256": "93c1993071285ee710207177d91d9597bf0c1a42c341d8a501935d630ffe2835"
+      },
+      "sha256": "5c11f5a2bb6563400a70981fbe6dc00c1bc7549d80609a270c2d60cc71b3a953",
+      "source_and_binary_unchanged_during_capture": true,
+      "started_at": "2026-09-19T04:17:36.766477+00:00",
+      "status_at_capture": "passed"
+    }
+  ],
+  "raw_total_bytes": 20291143,
+  "replay_fixtures": [
+    {
+      "bytes": 32483,
+      "path": "tests/fixtures/c01-main-preview-query-replay.json",
+      "payload_sha256": {
+        "activity": "3da0c5146160ac690d8fcd0e4c0e0feffd551354232e328b7295be4a9e5dbd8a",
+        "context": "b1646fb7d535117f6739c5d7d9dd69345837a7a94311ce0c27c43f809c904de0",
+        "ordering-probe": "8674844ce9b79100335eaf02eb60185c7eb17ba7e4f63e55e8fb4db44ee7ced2"
+      },
+      "payloads_exactly_equal_to_source": true,
+      "profile": "main-preview",
+      "record_ids": [
+        "ordering-probe",
+        "context",
+        "activity"
+      ],
+      "sha256": "46eadd1d55de5ea92cdbc3377d719d42fe3736f3e606d880f3ba4ab20bcc3b1f",
+      "source_path": "execution/evidence/c01-main-preview-contract.json",
+      "source_sha256": "43ef39a310dd8af6d8d5ea5d4a7f926bee1610fb13a57a3f99799ebb40d75c9d"
+    },
+    {
+      "bytes": 32411,
+      "path": "tests/fixtures/c01-release-query-replay.json",
+      "payload_sha256": {
+        "activity": "cc137c275c71ebf06cde628a02d56ad80a532ccc1259e359da6fcd8e2f862ffb",
+        "context": "65f568581ba51890c85b9edd25ba622221cf2e05864489b1f0821bfff50b2b56",
+        "ordering-probe": "92c8f980371120bfb2c69de3ef2c22b81b3bda8c2f3a7c2afd955877ca1e87d7"
+      },
+      "payloads_exactly_equal_to_source": true,
+      "profile": "release",
+      "record_ids": [
+        "ordering-probe",
+        "context",
+        "activity"
+      ],
+      "sha256": "d7fb2d160439aed19ba9c8c9804d1c6997450cf2926d6e21761d480c52f88fb2",
+      "source_path": "execution/evidence/c01-release-contract.json",
+      "source_sha256": "28944815d94c70e0405609ce582033b84259ac00e6e1844e55b58264b662effb"
+    }
+  ],
+  "schema_version": 1
+}

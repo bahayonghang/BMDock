@@ -1,0 +1,189 @@
+{
+  "captured_at": "2026-09-19T03:59:44.481871+00:00",
+  "command": "python -m scripts.client_session release --output execution/evidence/c02-release-session-v2.json",
+  "desktop_binary_sha256": "04892438fbbed4e5c04feb50e4372aa3e6c90618d744b14083964b97b8961e5a",
+  "engine_sha": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+  "physical_corpus_unchanged": true,
+  "platform": "Windows-11-10.0.26200-SP0",
+  "production_command": [
+    "target/debug/bmdock-app",
+    "--session-check",
+    "release",
+    "<GENERATED_SANDBOX>"
+  ],
+  "production_dispatch": {
+    "child_reused": true,
+    "dispatch": "main.rs::dispatch_host",
+    "drain": {
+      "child_killed": false,
+      "classified_as": "idle_not_started",
+      "engine_spawned": true,
+      "files_written": false,
+      "host_drain": "drained",
+      "inflight_unknown": [],
+      "kind": "shutdown_begun",
+      "scanned_user_basic_memory_home": false,
+      "scanned_user_obsidian_vault": false,
+      "shutdown": {
+        "child_exited": false,
+        "exit_code": null,
+        "forced": false,
+        "timeout_unknown": false,
+        "transport_cancelled": false
+      },
+      "supervisor_status": "connected"
+    },
+    "engine_sha": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+    "first": {
+      "body_bytes": 4096,
+      "identifier": "corpus/note-00000",
+      "kind": "note_read",
+      "observation": {
+        "classified_as": "unclassified",
+        "disk_verified": false,
+        "envelope_is_not_disk_proof": true
+      },
+      "session": {
+        "generation": 1,
+        "profile": "release"
+      },
+      "title": "thermalpress 热压温度"
+    },
+    "fixture_readiness_attempts": 5,
+    "nested": {
+      "entries": [
+        {
+          "identifier": "corpus/note-00000",
+          "kind": "note",
+          "title": "thermalpress 热压温度"
+        }
+      ],
+      "kind": "tree_page",
+      "next_cursor": null,
+      "page": 1,
+      "session": {
+        "generation": 1,
+        "profile": "release"
+      },
+      "truncated": false
+    },
+    "root": {
+      "entries": [
+        {
+          "identifier": "group-000",
+          "kind": "directory",
+          "title": "group-000"
+        }
+      ],
+      "kind": "tree_page",
+      "next_cursor": null,
+      "page": 1,
+      "session": {
+        "generation": 1,
+        "profile": "release"
+      },
+      "truncated": false
+    },
+    "runtime": {
+      "failure": null,
+      "host_drain": "drained",
+      "kind": "runtime_state",
+      "profile": "release",
+      "project": null,
+      "semantic_model_loaded": false,
+      "session_generation": 1,
+      "shutdown": null,
+      "status": "connected"
+    },
+    "second": {
+      "body_bytes": 4096,
+      "identifier": "corpus/note-00000",
+      "kind": "note_read",
+      "observation": {
+        "classified_as": "unclassified",
+        "disk_verified": false,
+        "envelope_is_not_disk_proof": true
+      },
+      "session": {
+        "generation": 1,
+        "profile": "release"
+      },
+      "title": "thermalpress 热压温度"
+    },
+    "session": {
+      "generation": 1,
+      "profile": "release"
+    },
+    "shutdown": {
+      "child_exited": true,
+      "exit_code": 0,
+      "forced": false,
+      "timeout_unknown": false,
+      "transport_cancelled": true
+    },
+    "stale": {
+      "category": "policy",
+      "kind": "error",
+      "message": "Read session identity is missing or stale"
+    },
+    "starting": {
+      "failure": null,
+      "host_drain": "idle",
+      "kind": "runtime_state",
+      "profile": "release",
+      "project": null,
+      "semantic_model_loaded": false,
+      "session_generation": 1,
+      "shutdown": null,
+      "status": "starting"
+    },
+    "stopped": {
+      "failure": null,
+      "host_drain": "drained",
+      "kind": "runtime_state",
+      "profile": "release",
+      "project": null,
+      "semantic_model_loaded": false,
+      "session_generation": 1,
+      "shutdown": {
+        "child_exited": true,
+        "exit_code": 0,
+        "forced": false,
+        "timeout_unknown": false,
+        "transport_cancelled": true
+      },
+      "status": "stopped"
+    },
+    "wrong_route": {
+      "category": "policy",
+      "kind": "error",
+      "message": "Only the generated fixture project is allowed"
+    }
+  },
+  "profile": "release",
+  "sandbox_identity": ".work/g0/client-session/release-_izaa8iq",
+  "schema_version": 1,
+  "source_comparison": {
+    "delivered_string_preserved": true,
+    "delivered_utf8_sha256": "5a8e3f0f79d39b47bbf96233a7ace497b3f6f51384662e385eedb8631a0bf90c",
+    "general_byte_fidelity_claim": false,
+    "physical_byte_equality_for_this_fixture": true,
+    "physical_source_sha256": "5a8e3f0f79d39b47bbf96233a7ace497b3f6f51384662e385eedb8631a0bf90c",
+    "upstream_crlf_normalized": false
+  },
+  "source_sha256": {
+    "apps/bmdock-desktop/src-tauri/src/engine_session.rs": "9354df1c56750c5ce59f9c96d52e9d57a896b88cfe88fa6dcda8b5dc4ee8afe8",
+    "apps/bmdock-desktop/src-tauri/src/ipc.rs": "2da3265a9e566ec40997e7d2e88e4c5be8b43bea988d9a15c93b062e10efcb49",
+    "apps/bmdock-desktop/src-tauri/src/main.rs": "5bff8f6dc70e91d7524d2606e6925063ef8d031bf8b2d4fe1689efcbf366ec97",
+    "apps/bmdock-desktop/src-tauri/src/supervisor.rs": "8fd0f9d84cbe4d3c40802cf23430683dcf947cb4e9e073a221269f150ade9373"
+  },
+  "status": "passed",
+  "unverified": [
+    "native GUI",
+    "native window close",
+    "Windows Job Object",
+    "process-tree containment",
+    "forced-kill fault injection",
+    "sleep/resume"
+  ]
+}

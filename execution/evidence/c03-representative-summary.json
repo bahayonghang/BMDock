@@ -1,0 +1,210 @@
+{
+  "c03_ac5": "partial",
+  "clock_boundary": "Matched Python JSONL driver roundtrip; not historical C01 Probe.raw or engine-internal time",
+  "failed_attempts_preserved": [
+    "execution/evidence/c03-release-freshness.json",
+    "execution/evidence/c03-release-freshness-v3.json"
+  ],
+  "final_fingerprints": {
+    "binary_sha256": "67dabbe272e5fa193ab51751b67c9281687879b77a53c742df75257c3e6095ea",
+    "source_sha256": {
+      "Cargo.lock": "6555b6143b99b0bd80e6e84e5b1da7876d0405b2fda696b97dac11283d384dbf",
+      "apps/bmdock-desktop/src-tauri/Cargo.toml": "84aff460ff75139525781319c84a53ffc1b446fa6e069022ade7caa1996ae4da",
+      "apps/bmdock-desktop/src-tauri/src/engine_queries.rs": "8e9be60973b7696d9ac5f4b213425987419b226f18c652170cfa1be5efb04606",
+      "apps/bmdock-desktop/src-tauri/src/engine_session.rs": "6fd92f9cead1f2a8170925f1ac16fd4310705e56d7aa8ddfecd4ccf7f9668e3a",
+      "apps/bmdock-desktop/src-tauri/src/ipc.rs": "f78be4ce7b1bdbbc69f88e49ca07f97153951c99e7b00dcbec403c4b7ef15190",
+      "apps/bmdock-desktop/src-tauri/src/library.rs": "89d1e9692ff85a0ac0614bb7a4129a32ccf0802e4e634cab42287498fd0bd2b5",
+      "apps/bmdock-desktop/src-tauri/src/main.rs": "a3d4740cb3160375232b03c6bead70290d04eccbf5333f8c36b101a498bb3e8d",
+      "apps/bmdock-desktop/src-tauri/src/query_driver.rs": "cb6791d713d57592fb3a601332eb81c24a2634b67b2bd7af2190d66c19df8880",
+      "apps/bmdock-desktop/src-tauri/src/supervisor.rs": "8fd0f9d84cbe4d3c40802cf23430683dcf947cb4e9e073a221269f150ade9373",
+      "scripts/client_baseline.py": "47c43e4aa1f759bb20d697dff4ac813c84e5ea2155128b5f45e3b3c80f78fb3d",
+      "scripts/client_queries.py": "cfb82b7f5396e1d7ad377c58263cf8c4195a59d26f155638f0c58896a5fdb7e9",
+      "scripts/core.py": "7cccfca3454dd94921b6c826ead752a909b06d352f29a5b6ac6ae67349f216e3",
+      "scripts/engine_worker.py": "41962f516d85c28602640651b6e30233d06f9ea78eab9f519e306adeeb17289f"
+    }
+  },
+  "full_matrix_complete": false,
+  "historical_revisions": "functional v1/v2/v3 and release freshness-v2 retain their original fingerprints; current evidence uses exact listed final files",
+  "measurement_scope": "notes-100 literal-00, each profile separately; five cold plus thirty warm paired direct/adapter samples",
+  "native_acceptance": false,
+  "profiles": {
+    "main-preview": {
+      "artifacts": {
+        "freshness": "execution/evidence/c03-main-preview-freshness-v4.json",
+        "functional": "execution/evidence/c03-main-preview-functional-v4.json",
+        "large-1mib": "execution/evidence/c03-main-preview-large-1mib-source.json",
+        "large-5mib": "execution/evidence/c03-main-preview-large-5mib-source.json",
+        "measurement": "execution/evidence/c03-main-preview-literal-00.measure.json"
+      },
+      "engine_sha": "3452c821d76c083823d020984d71e06904a1ff1e",
+      "freshness_restored": true,
+      "freshness_score_deltas": {
+        "delete_refresh": [],
+        "edit_refresh": [
+          0.0
+        ],
+        "rename_refresh": [
+          0.0
+        ]
+      },
+      "independent_labels": 30,
+      "journey_checks": [
+        "activity",
+        "context",
+        "tree_leaf",
+        "tree_root",
+        "tree_selected_note"
+      ],
+      "large_source": {
+        "large-1mib": {
+          "delivered_source_equal": true,
+          "delivered_utf8_bytes": 1048576,
+          "delivered_utf8_sha256": "90dab4582a930cc6f800417e297be7c1d68e72df81b81c388a02a68b5c83ae61",
+          "general_byte_fidelity_claim": false,
+          "source_bytes_equal": true,
+          "upstream_crlf_normalized": false
+        },
+        "large-5mib": {
+          "delivered_source_equal": true,
+          "delivered_utf8_bytes": 5242880,
+          "delivered_utf8_sha256": "d51b45049862b2038cfa04bdc057262e126d7ca644865f6f3a5dc968c04fcf30",
+          "general_byte_fidelity_claim": false,
+          "source_bytes_equal": true,
+          "upstream_crlf_normalized": false
+        }
+      },
+      "measurement": {
+        "budget": {
+          "allowed_overhead_ms": 50.0,
+          "interpretation": "Representative paired driver roundtrip; not old Probe.raw clock or native acceptance",
+          "outer_roundtrip": {
+            "adapter_cold": {
+              "median_ms": 665.0372,
+              "n": 5,
+              "p95_ms": 682.9576
+            },
+            "adapter_warm": {
+              "median_ms": 19.2817,
+              "n": 30,
+              "p95_ms": 23.0867
+            },
+            "direct_cold": {
+              "median_ms": 651.5725,
+              "n": 5,
+              "p95_ms": 674.0308
+            },
+            "direct_warm": {
+              "median_ms": 19.83025,
+              "n": 30,
+              "p95_ms": 24.253
+            }
+          },
+          "overhead_ms": -1.1662999999999997,
+          "strict_c01_probe_clock_conformance": false,
+          "within_frozen_budget": true
+        },
+        "completed_at": "2026-09-19T04:33:30.358670+00:00",
+        "one_mcp_command_per_sample": true,
+        "pairs": 35,
+        "samples": 70,
+        "started_at": "2026-09-19T04:32:17.705703+00:00"
+      },
+      "text_recall_at_10_both_lanes": {
+        "chinese_mixed": 1.0,
+        "literal": 1.0,
+        "paraphrase": 1.0
+      }
+    },
+    "release": {
+      "artifacts": {
+        "freshness": "execution/evidence/c03-release-freshness-v4.json",
+        "functional": "execution/evidence/c03-release-functional-v4.json",
+        "large-1mib": "execution/evidence/c03-release-large-1mib-source.json",
+        "large-5mib": "execution/evidence/c03-release-large-5mib-source.json",
+        "measurement": "execution/evidence/c03-release-literal-00.measure.json"
+      },
+      "engine_sha": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+      "freshness_restored": true,
+      "freshness_score_deltas": {
+        "delete_refresh": [],
+        "edit_refresh": [
+          -0.014787493529005769
+        ],
+        "rename_refresh": [
+          0.0
+        ]
+      },
+      "independent_labels": 30,
+      "journey_checks": [
+        "activity",
+        "context",
+        "tree_leaf",
+        "tree_root",
+        "tree_selected_note"
+      ],
+      "large_source": {
+        "large-1mib": {
+          "delivered_source_equal": true,
+          "delivered_utf8_bytes": 1048576,
+          "delivered_utf8_sha256": "90dab4582a930cc6f800417e297be7c1d68e72df81b81c388a02a68b5c83ae61",
+          "general_byte_fidelity_claim": false,
+          "source_bytes_equal": true,
+          "upstream_crlf_normalized": false
+        },
+        "large-5mib": {
+          "delivered_source_equal": true,
+          "delivered_utf8_bytes": 5242880,
+          "delivered_utf8_sha256": "d51b45049862b2038cfa04bdc057262e126d7ca644865f6f3a5dc968c04fcf30",
+          "general_byte_fidelity_claim": false,
+          "source_bytes_equal": true,
+          "upstream_crlf_normalized": false
+        }
+      },
+      "measurement": {
+        "budget": {
+          "allowed_overhead_ms": 50.0,
+          "interpretation": "Representative paired driver roundtrip; not old Probe.raw clock or native acceptance",
+          "outer_roundtrip": {
+            "adapter_cold": {
+              "median_ms": 791.0327,
+              "n": 5,
+              "p95_ms": 806.1926
+            },
+            "adapter_warm": {
+              "median_ms": 56.1228,
+              "n": 30,
+              "p95_ms": 63.9069
+            },
+            "direct_cold": {
+              "median_ms": 790.7316,
+              "n": 5,
+              "p95_ms": 820.761
+            },
+            "direct_warm": {
+              "median_ms": 48.0508,
+              "n": 30,
+              "p95_ms": 74.1624
+            }
+          },
+          "overhead_ms": -10.255500000000005,
+          "strict_c01_probe_clock_conformance": false,
+          "within_frozen_budget": true
+        },
+        "completed_at": "2026-09-19T04:32:05.586013+00:00",
+        "one_mcp_command_per_sample": true,
+        "pairs": 35,
+        "samples": 70,
+        "started_at": "2026-09-19T04:30:53.863025+00:00"
+      },
+      "text_recall_at_10_both_lanes": {
+        "chinese_mixed": 1.0,
+        "literal": 1.0,
+        "paraphrase": 1.0
+      }
+    }
+  },
+  "rss_boundary": "Desktop driver process peak only; engine/descendant total unavailable",
+  "schema_version": 1,
+  "status": "representative_scope_passed",
+  "user_authorized_deferral": "Full performance matrix retained for later acceptance"
+}

@@ -1,0 +1,182 @@
+{
+  "captured_at": "2026-09-19T03:54:24.486979+00:00",
+  "command": "python -m scripts.client_session main-preview --output execution/evidence/c02-main-preview-session.json",
+  "engine_sha": "3452c821d76c083823d020984d71e06904a1ff1e",
+  "physical_corpus_unchanged": true,
+  "platform": "Windows-11-10.0.26200-SP0",
+  "production_command": [
+    "target/debug/bmdock-app",
+    "--session-check",
+    "main-preview",
+    "<GENERATED_SANDBOX>"
+  ],
+  "production_dispatch": {
+    "child_reused": true,
+    "dispatch": "main.rs::dispatch_host",
+    "drain": {
+      "child_killed": false,
+      "classified_as": "idle_not_started",
+      "engine_spawned": true,
+      "files_written": false,
+      "host_drain": "drained",
+      "inflight_unknown": [],
+      "kind": "shutdown_begun",
+      "scanned_user_basic_memory_home": false,
+      "scanned_user_obsidian_vault": false,
+      "shutdown": {
+        "child_exited": false,
+        "exit_code": null,
+        "forced": false,
+        "timeout_unknown": false,
+        "transport_cancelled": false
+      },
+      "supervisor_status": "connected"
+    },
+    "engine_sha": "3452c821d76c083823d020984d71e06904a1ff1e",
+    "first": {
+      "body_bytes": 4096,
+      "identifier": "corpus/note-00000",
+      "kind": "note_read",
+      "observation": {
+        "classified_as": "unclassified",
+        "disk_verified": false,
+        "envelope_is_not_disk_proof": true
+      },
+      "session": {
+        "generation": 1,
+        "profile": "main-preview"
+      },
+      "title": "thermalpress 热压温度"
+    },
+    "fixture_readiness_attempts": 3,
+    "nested": {
+      "entries": [
+        {
+          "identifier": "corpus/note-00000",
+          "kind": "note",
+          "title": "thermalpress 热压温度"
+        }
+      ],
+      "kind": "tree_page",
+      "next_cursor": null,
+      "page": 1,
+      "session": {
+        "generation": 1,
+        "profile": "main-preview"
+      },
+      "truncated": false
+    },
+    "root": {
+      "entries": [
+        {
+          "identifier": "group-000",
+          "kind": "directory",
+          "title": "group-000"
+        }
+      ],
+      "kind": "tree_page",
+      "next_cursor": null,
+      "page": 1,
+      "session": {
+        "generation": 1,
+        "profile": "main-preview"
+      },
+      "truncated": false
+    },
+    "runtime": {
+      "failure": null,
+      "host_drain": "drained",
+      "kind": "runtime_state",
+      "profile": "main-preview",
+      "project": null,
+      "semantic_model_loaded": false,
+      "session_generation": 1,
+      "shutdown": null,
+      "status": "connected"
+    },
+    "second": {
+      "body_bytes": 4096,
+      "identifier": "corpus/note-00000",
+      "kind": "note_read",
+      "observation": {
+        "classified_as": "unclassified",
+        "disk_verified": false,
+        "envelope_is_not_disk_proof": true
+      },
+      "session": {
+        "generation": 1,
+        "profile": "main-preview"
+      },
+      "title": "thermalpress 热压温度"
+    },
+    "session": {
+      "generation": 1,
+      "profile": "main-preview"
+    },
+    "shutdown": {
+      "child_exited": true,
+      "exit_code": 0,
+      "forced": false,
+      "timeout_unknown": false,
+      "transport_cancelled": true
+    },
+    "stale": {
+      "category": "policy",
+      "kind": "error",
+      "message": "Read session identity is missing or stale"
+    },
+    "starting": {
+      "failure": null,
+      "host_drain": "idle",
+      "kind": "runtime_state",
+      "profile": "main-preview",
+      "project": null,
+      "semantic_model_loaded": false,
+      "session_generation": 1,
+      "shutdown": null,
+      "status": "starting"
+    },
+    "stopped": {
+      "failure": null,
+      "host_drain": "drained",
+      "kind": "runtime_state",
+      "profile": "main-preview",
+      "project": null,
+      "semantic_model_loaded": false,
+      "session_generation": 1,
+      "shutdown": {
+        "child_exited": true,
+        "exit_code": 0,
+        "forced": false,
+        "timeout_unknown": false,
+        "transport_cancelled": true
+      },
+      "status": "stopped"
+    },
+    "wrong_route": {
+      "category": "policy",
+      "kind": "error",
+      "message": "Only the generated fixture project is allowed"
+    }
+  },
+  "profile": "main-preview",
+  "sandbox_identity": ".work/g0/client-session/main-preview-j4spv_vi",
+  "schema_version": 1,
+  "source_comparison": {
+    "delivered_string_preserved": true,
+    "delivered_utf8_sha256": "5a8e3f0f79d39b47bbf96233a7ace497b3f6f51384662e385eedb8631a0bf90c",
+    "general_byte_fidelity_claim": false,
+    "physical_byte_equality_for_this_fixture": true,
+    "physical_source_sha256": "5a8e3f0f79d39b47bbf96233a7ace497b3f6f51384662e385eedb8631a0bf90c",
+    "upstream_crlf_normalized": false
+  },
+  "status": "passed",
+  "unverified": [
+    "native GUI",
+    "native window close",
+    "Windows Job Object",
+    "process-tree containment",
+    "forced-kill fault injection",
+    "sleep/resume"
+  ]
+}

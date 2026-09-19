@@ -1,0 +1,3268 @@
+{
+  "command": "python -m scripts.client_queries freshness --fixture artifacts/client-baseline/c01-corpus-reproducibility-v3/main-preview-notes-100-1.fixture.json --output execution/evidence/c03-main-preview-freshness-v4.json --scenario literal-00",
+  "completed_at": "2026-09-19T04:29:42.248254+00:00",
+  "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+  "disposable_corpus_before": {
+    "files": [
+      {
+        "bytes": 4096,
+        "path": "group-000/item-000/note.md",
+        "sha256": "5a8e3f0f79d39b47bbf96233a7ace497b3f6f51384662e385eedb8631a0bf90c"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-001/note.md",
+        "sha256": "bde6ef16e398ddba56071b854d1b56b47f1079288ab66ed0241df4b908009f90"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-002/note.md",
+        "sha256": "38ec0f912b7fd7143b1a3989ec78584013d820454686b1bacf26beeffc970d01"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-003/note.md",
+        "sha256": "578dcb1c8810f4fb161a28b813503a320f175b7858aacac8d9b53e67a8cc51de"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-004/note.md",
+        "sha256": "35ebd9842c077b3fc41e49b61403f6b37ceb738c20e51c78c48c40f72fa3af14"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-005/note.md",
+        "sha256": "25e6d06e145266a180f058104dd16cc5a7ac0d44d2ae906c9ceed5f8f24f1e78"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-006/note.md",
+        "sha256": "0ed9926d58dfbfb59138c51ca42347f758f8fe5335d03cb63ae267c97c7757ed"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-007/note.md",
+        "sha256": "848efdce0cbdd5e9c980c347e335e4f67d3c82573c31badf81778ceb61e8e494"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-008/note.md",
+        "sha256": "1ae06a3f82dd63e5dad296f1fbef1fab8d27b00aef2b7b22aadbd0232446c8ae"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-009/note.md",
+        "sha256": "2f95a6d4f7a2f808a36d078188f06742cec84f9822f23ad8b1698dc17f35a0f3"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-010/note.md",
+        "sha256": "18da536fe93805913186af024b34bc08b0c5697bd924c0a4ed55203815a21d37"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-011/note.md",
+        "sha256": "a4e16ddb27be81d2ca437cd45b2579d97c075681fe3af244cce71692acc26205"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-012/note.md",
+        "sha256": "19755d7b6dc1116a0053f6fbd97455586ccbdb0baa3011e8bec86b1ffcfbe825"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-013/note.md",
+        "sha256": "bbfce270f5cb6a1c0eb5a1100a061a7224d0bbddbd63a699005bbcebf6d35c45"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-014/note.md",
+        "sha256": "a3b8be90d916074ff14bf9a3882724a3c833327cb6f719f77dd44ba832a5afcc"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-015/note.md",
+        "sha256": "aa365d968ca2f298a5d316c77b02616b4d8346022e89cd775d3b495d6890342f"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-016/note.md",
+        "sha256": "661eb272e047a6b2b8c0b27906c89e5d6a8fc389a512f2d3669a6f586f354af7"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-017/note.md",
+        "sha256": "4dbcf4dcbeb06d7161148747ae903a71cdbf6111ec88f64e0c9ebb9417e97557"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-018/note.md",
+        "sha256": "32d71a5f56cc69d6c837d2d34936ac097ece12f8e742443cd8b84ec481a36456"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-019/note.md",
+        "sha256": "f7e9d918c59510161149cffe378f56a0a8448f9ca3d6e99ce7d1667209b95245"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-020/note.md",
+        "sha256": "f04b47cfb436e773e8afe736e79474c073ddb38488908f922615cc7a7367a667"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-021/note.md",
+        "sha256": "f52cac27c4b27b0bbefc77f11d5d2db50cec8c95fbfc9ebf6afeaaaea79b58e0"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-022/note.md",
+        "sha256": "104ffe8717b475ac6b91828cbc7f26f0bdcf4cdc7dbb44e687ccd08a74bc5b4f"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-023/note.md",
+        "sha256": "fd872d9a201420e415e15935675aa126b1c0b120238cbe8687f1272ec5814a98"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-024/note.md",
+        "sha256": "af75c4bb8082a322e4cd9125d6984d7abd6f5da77ce73e51270d73d6632f177d"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-025/note.md",
+        "sha256": "99b4cae42e4abfce1ec82da7a2b832b9726fb8a50f7dee2b18f65f2615b4643a"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-026/note.md",
+        "sha256": "36c84fda54c9b64f0c27e403a37348b918c73deec44dcce2d58d31775e857b60"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-027/note.md",
+        "sha256": "4975f0e8f2c4b4ed0a7c8d6827f63511fb8d49a19b6e298d062a01c4e946d880"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-028/note.md",
+        "sha256": "5567a32a8ce1894f5abf927517da1d8e604926f3f1b397b9a8fcf643f29e7acf"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-029/note.md",
+        "sha256": "ebb487596fa31a8ec1987a833674bf79f292d467b76fc8203dac0b69021cd79a"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-030/note.md",
+        "sha256": "0d344f394a4765ff360b617bd4f88d909730897684bc15b9d1dc4fa967554922"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-031/note.md",
+        "sha256": "24ee325a23f6647afe3d77413eb49cd10a1159ac6781a0b0a9d8ded0c2283041"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-032/note.md",
+        "sha256": "e7b749122ebe48008f8082e3c25804f9206309e5101b1ac6fb583e7e1c64d68b"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-033/note.md",
+        "sha256": "c301192391480d365b7df35c57b5730b4973505e4ccaf01d23788daf5718d7b5"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-034/note.md",
+        "sha256": "3fd4e2f51f76b158982ea9c09ed75b079dd0795cb23e9f0bc3eb55394d8ec1f5"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-035/note.md",
+        "sha256": "f5d884948e145da1b9617c25c7e1333e28a8e3623a1c23bd57370f932cb32bcd"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-036/note.md",
+        "sha256": "3b139a08dc21ad3c1603c5544f5ba7ac707c24cfbad16ffe0788262461f38171"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-037/note.md",
+        "sha256": "3a0e58ef54e449285ff412017297fc9f7271bc64944a3129ffde1a7728dce2d3"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-038/note.md",
+        "sha256": "2c485fc9b84a6891e626acad0e22f268bf69b0d0468dd0850645fb22d4ee594a"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-039/note.md",
+        "sha256": "9a9664ef16bb20295c608de4fc224aab937644c0fd330ab5447d4df6af4fa10a"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-040/note.md",
+        "sha256": "e2e8fddd4ed1be7825181c9c5cf6227635b86399d86edb7ab28201ad316bee4f"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-041/note.md",
+        "sha256": "2eab4aaf16ae10445e7ba212fba43c77ce6c97f2eca0baa57d4bef7e1ad268a2"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-042/note.md",
+        "sha256": "3abd0264680cd1d145216b4b9b8339fbace36843333f961e6a03c49ee93c99cd"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-043/note.md",
+        "sha256": "5d472d67878ba08f3d18c3006900f6f10f3a1bbda4c5f666f3cebfdb515c1be2"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-044/note.md",
+        "sha256": "ab1f6a46660b5503a2c56ccb1f327f3cd976549c290c5d7acab6ba50bbb86096"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-045/note.md",
+        "sha256": "ff58c93ff444edff241a82aa4ba2bb69c29e1b6b003793d7d13eec64d9ebb5cc"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-046/note.md",
+        "sha256": "ba3032667094593a3e9f5e10e5a48e228b1e72b9a4784cf0a8ad19f1b7431f77"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-047/note.md",
+        "sha256": "22c5a730873252e9fbffba4809a40a3d625298efccc956dba68c228fe8221345"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-048/note.md",
+        "sha256": "3de42aea00bac0d888cc87eb63168fdd9ff510f8b857d52810dbaeee0acdf4a6"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-049/note.md",
+        "sha256": "15e93c1a611ea19ffab85cb61f913fb671bd10cdbb8b8b8887377e2a3220ce45"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-050/note.md",
+        "sha256": "3264f04f62503762d98094c5b4e38fc96f256f06253b17d559e4e6b396d571e7"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-051/note.md",
+        "sha256": "49d85b6500f229fb28995fe9301f7166e32a0a38e19a12014a091f851d80c62e"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-052/note.md",
+        "sha256": "546a57542073288c708ddaaf4e56918b75ed137b24245a6ff2e426cb364f522a"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-053/note.md",
+        "sha256": "643c4cb9681ea0951ac4d277a11e740d255b72108f70a442d28f0ff173b59af0"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-054/note.md",
+        "sha256": "0fb27adb8384032b260d9c3dfb88ce44618bea2657098b833b84704211afbf45"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-055/note.md",
+        "sha256": "405c7eeb7f6462624c2c5ae443e8f11aef23e03770a47a6e00f8142337f5d440"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-056/note.md",
+        "sha256": "3a292ae745e570c82e1e71515a3eb168050da24484898ae919d0898129d17222"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-057/note.md",
+        "sha256": "b25aeb3209f9c766f8fe815a593270a7af15773a83ff25418bb831aa0a509249"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-058/note.md",
+        "sha256": "37668f3d041d5387d30ba26caec4a23d00e9c59ebe864d730054f1b225309d24"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-059/note.md",
+        "sha256": "8d447e09653e0e08fa6601ad25da15be1771a65cf51bc08e6cd46f23e9e10e71"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-060/note.md",
+        "sha256": "8a07ffe4b02a73e65e1771014d0312e62788f20e3edd5323a8545f871d478208"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-061/note.md",
+        "sha256": "22c3f654f854dd4539536fb1ab3767073a481f1c4641304176d5bdf9f854bb06"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-062/note.md",
+        "sha256": "420a26464f15c809fb3a791082fe9e5ea041538e26c4069d9273fde78e0eed06"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-063/note.md",
+        "sha256": "13e208dc09bd0429ada22f7da578d997142f6d0bd967ee3c45f1362121982429"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-064/note.md",
+        "sha256": "6bf4f996ee638da78415ef1a2b6fea5a567ab33f43b6a07aa05b384122b208b3"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-065/note.md",
+        "sha256": "a7ca92202ab1157be9c153d173fc25af6f9b636a723edddfc6f126c259338da7"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-066/note.md",
+        "sha256": "5f55bd9dcce23aa9ba7d0f074d9fc4b2cac54c564be1c8292fc0ac444c92954b"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-067/note.md",
+        "sha256": "e9bf977dbe0d047e173bd8bb9572d1ef1e99f8317346f7d36ef0487d72884e12"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-068/note.md",
+        "sha256": "2ae111a95f496919742bbe24d54df711508b073e266b31bd75831a5fe36a47f9"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-069/note.md",
+        "sha256": "657305f6828847c308835bfc02a7c56402e34c9e8602706d063af44946724b1d"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-070/note.md",
+        "sha256": "e1ea3304ea7ff9d594fb3333a3555cff4edcf0179f7455dd7f5f1ece919f8fce"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-071/note.md",
+        "sha256": "a72a3447ee734eed6320adbdd43f4d9725e8d43944069546fdd0e1f91a224d33"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-072/note.md",
+        "sha256": "0becbc0d8f91fd77cff22dc68fa7516be9f01cf053bc98c7d76d4780d7d19998"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-073/note.md",
+        "sha256": "881980466e65643d821217b2fd8805d87f59c97e7d41079bb2e18764d216de1c"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-074/note.md",
+        "sha256": "f4f35729d693e1a19a80a3e238c2a0a8131747e4a4cfc8b83f71fdbccad42ea6"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-075/note.md",
+        "sha256": "ac5daf48377311e1531e402f6a45588a90111c68ed76a3ce1c14937fa9cea4b6"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-076/note.md",
+        "sha256": "fdacd23cdde8e1d8437ac240735d10d4467ed2e64653693be74275992072a638"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-077/note.md",
+        "sha256": "8f0f0c856c8edf4e38eea0433c781633551e29f87dc9e4d597f831aa59ce448c"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-078/note.md",
+        "sha256": "4fb25f7b33a71fc87ff91d68133e69c879d699f9a3ba6000b0e25378acf9ccee"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-079/note.md",
+        "sha256": "a47582fdd5ca05cf368cf7dab73881a6335484b1635f4239c835dac7a65f9271"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-080/note.md",
+        "sha256": "df92107f4b60adf51646405234c1b4496651b047ec4421b4f263a1018a8bbfdb"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-081/note.md",
+        "sha256": "871604a37317f0017bb982af98a2a661447bec17c6cd65f2cff3962fc0c9d463"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-082/note.md",
+        "sha256": "5a76cd6b2837645915462f6d8c7c24efa604d5100f5b7c8ba9a8a86d9f78d20a"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-083/note.md",
+        "sha256": "40bfa99435a80fc01a30df92081490cd971db7f53525d00e66570c19f2fb245b"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-084/note.md",
+        "sha256": "f0de7e154bb73f458f10b685db807f99da588eb46e033b2fe64a57eb67e805bf"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-085/note.md",
+        "sha256": "9990724fa43a16303976da1c4c6667bc079e7671dd04cc7d9c6e885b9acd3923"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-086/note.md",
+        "sha256": "d92a2c3bbf493ee943d822d14d4a6f4f359a71979ab0047490c5494f2c2ad91c"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-087/note.md",
+        "sha256": "29a634b2d53f2579cbb5679aa69413ebd34814e12ad84562bcc69128e2513ab8"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-088/note.md",
+        "sha256": "8fd58bd7a712b3fd64b5bce5a76ad1cbb19b996a008ab2961e406519de2f4117"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-089/note.md",
+        "sha256": "1ab7a903914b466b9595e941f43c2f52697caec5bcfc185388cd5d0e624bc0e5"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-090/note.md",
+        "sha256": "2e97e7e6a074982610be910f96fe48de8311827bddfc6a2a676690487037d4c3"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-091/note.md",
+        "sha256": "686b6225dce636c21547a92b4352311a18d29c992e27b93784dc60599b995a3a"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-092/note.md",
+        "sha256": "ebb0c6516920be06082096a4da9043509a50a750c8bb58d5e6cfd685dc365168"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-093/note.md",
+        "sha256": "f007d9a67860d8a00757d78ccb61bd6189aec06e43644bf660014cf4220eaf2c"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-094/note.md",
+        "sha256": "7bd6c36c394994f11696c2f0c744c37556ed2f73ca759cc3ae60b7aaa69e9301"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-095/note.md",
+        "sha256": "4f512fc31ca2955176ca6a062fdce4e9677637389dd4977801a1019845cacac9"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-096/note.md",
+        "sha256": "cfdbbfaf8cb323880a3e1c9ef008d68a1483ea69646125d8b8894260ea4de886"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-097/note.md",
+        "sha256": "9df75fa301beb3925fcaa49c9373a8102689e6bf3b9b6859683b728597a36a13"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-098/note.md",
+        "sha256": "102ec9a35407cc192a5d3bfd504df89837a1effe9f0a0b18db004827e9e9f440"
+      },
+      {
+        "bytes": 4096,
+        "path": "group-000/item-099/note.md",
+        "sha256": "8560d41725d491d684fceb88b4fb1e05de60d7174a5c7069b3da96d9e4c0dbb3"
+      }
+    ],
+    "files_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+    "note_count": 100,
+    "total_bytes": 409600
+  },
+  "disposable_corpus_restored": true,
+  "disposable_sandbox": ".work/g0/client-queries/main-preview-_8dzyocl",
+  "engine_sha": "3452c821d76c083823d020984d71e06904a1ff1e",
+  "fingerprints_after": {
+    "binary_sha256": "67dabbe272e5fa193ab51751b67c9281687879b77a53c742df75257c3e6095ea",
+    "source_sha256": {
+      "Cargo.lock": "6555b6143b99b0bd80e6e84e5b1da7876d0405b2fda696b97dac11283d384dbf",
+      "apps/bmdock-desktop/src-tauri/Cargo.toml": "84aff460ff75139525781319c84a53ffc1b446fa6e069022ade7caa1996ae4da",
+      "apps/bmdock-desktop/src-tauri/src/engine_queries.rs": "8e9be60973b7696d9ac5f4b213425987419b226f18c652170cfa1be5efb04606",
+      "apps/bmdock-desktop/src-tauri/src/engine_session.rs": "6fd92f9cead1f2a8170925f1ac16fd4310705e56d7aa8ddfecd4ccf7f9668e3a",
+      "apps/bmdock-desktop/src-tauri/src/ipc.rs": "f78be4ce7b1bdbbc69f88e49ca07f97153951c99e7b00dcbec403c4b7ef15190",
+      "apps/bmdock-desktop/src-tauri/src/library.rs": "89d1e9692ff85a0ac0614bb7a4129a32ccf0802e4e634cab42287498fd0bd2b5",
+      "apps/bmdock-desktop/src-tauri/src/main.rs": "a3d4740cb3160375232b03c6bead70290d04eccbf5333f8c36b101a498bb3e8d",
+      "apps/bmdock-desktop/src-tauri/src/query_driver.rs": "cb6791d713d57592fb3a601332eb81c24a2634b67b2bd7af2190d66c19df8880",
+      "apps/bmdock-desktop/src-tauri/src/supervisor.rs": "8fd0f9d84cbe4d3c40802cf23430683dcf947cb4e9e073a221269f150ade9373",
+      "scripts/client_baseline.py": "47c43e4aa1f759bb20d697dff4ac813c84e5ea2155128b5f45e3b3c80f78fb3d",
+      "scripts/client_queries.py": "cfb82b7f5396e1d7ad377c58263cf8c4195a59d26f155638f0c58896a5fdb7e9",
+      "scripts/core.py": "7cccfca3454dd94921b6c826ead752a909b06d352f29a5b6ac6ae67349f216e3",
+      "scripts/engine_worker.py": "41962f516d85c28602640651b6e30233d06f9ea78eab9f519e306adeeb17289f"
+    }
+  },
+  "fingerprints_before": {
+    "binary_sha256": "67dabbe272e5fa193ab51751b67c9281687879b77a53c742df75257c3e6095ea",
+    "source_sha256": {
+      "Cargo.lock": "6555b6143b99b0bd80e6e84e5b1da7876d0405b2fda696b97dac11283d384dbf",
+      "apps/bmdock-desktop/src-tauri/Cargo.toml": "84aff460ff75139525781319c84a53ffc1b446fa6e069022ade7caa1996ae4da",
+      "apps/bmdock-desktop/src-tauri/src/engine_queries.rs": "8e9be60973b7696d9ac5f4b213425987419b226f18c652170cfa1be5efb04606",
+      "apps/bmdock-desktop/src-tauri/src/engine_session.rs": "6fd92f9cead1f2a8170925f1ac16fd4310705e56d7aa8ddfecd4ccf7f9668e3a",
+      "apps/bmdock-desktop/src-tauri/src/ipc.rs": "f78be4ce7b1bdbbc69f88e49ca07f97153951c99e7b00dcbec403c4b7ef15190",
+      "apps/bmdock-desktop/src-tauri/src/library.rs": "89d1e9692ff85a0ac0614bb7a4129a32ccf0802e4e634cab42287498fd0bd2b5",
+      "apps/bmdock-desktop/src-tauri/src/main.rs": "a3d4740cb3160375232b03c6bead70290d04eccbf5333f8c36b101a498bb3e8d",
+      "apps/bmdock-desktop/src-tauri/src/query_driver.rs": "cb6791d713d57592fb3a601332eb81c24a2634b67b2bd7af2190d66c19df8880",
+      "apps/bmdock-desktop/src-tauri/src/supervisor.rs": "8fd0f9d84cbe4d3c40802cf23430683dcf947cb4e9e073a221269f150ade9373",
+      "scripts/client_baseline.py": "47c43e4aa1f759bb20d697dff4ac813c84e5ea2155128b5f45e3b3c80f78fb3d",
+      "scripts/client_queries.py": "cfb82b7f5396e1d7ad377c58263cf8c4195a59d26f155638f0c58896a5fdb7e9",
+      "scripts/core.py": "7cccfca3454dd94921b6c826ead752a909b06d352f29a5b6ac6ae67349f216e3",
+      "scripts/engine_worker.py": "41962f516d85c28602640651b6e30233d06f9ea78eab9f519e306adeeb17289f"
+    }
+  },
+  "fixture_manifest": "artifacts/client-baseline/c01-corpus-reproducibility-v3/main-preview-notes-100-1.fixture.json",
+  "freshness": {
+    "delete_index_ready": {
+      "attempts": 4,
+      "elapsed_seconds": 1.5821189999987837,
+      "last_observation": {
+        "command_count": 1,
+        "driver_session": {
+          "generation": 1,
+          "profile": "main-preview"
+        },
+        "driver_started_at": "2026-09-19T04:29:13.731144+00:00",
+        "elapsed_ms": 16.5117,
+        "id": "44",
+        "lane": "direct",
+        "outer_elapsed_ms": 16.9422,
+        "outer_reply_bytes": 607,
+        "outer_request_bytes": 311,
+        "request": {
+          "arguments": {
+            "entity_types": [
+              "entity"
+            ],
+            "output_format": "json",
+            "page": 1,
+            "page_size": 50,
+            "project": "bmdock-fixture",
+            "query": "c03freshnessmarker",
+            "search_type": "text"
+          },
+          "name": "search_notes"
+        },
+        "response": {
+          "_meta": {
+            "fastmcp": {
+              "wrap_result": true
+            }
+          },
+          "content": [
+            {
+              "text": "{\"results\":[],\"current_page\":1,\"page_size\":50,\"total\":0,\"total_is_exact\":true,\"has_more\":false}",
+              "type": "text"
+            }
+          ],
+          "isError": false,
+          "structuredContent": {
+            "result": {
+              "current_page": 1,
+              "has_more": false,
+              "page_size": 50,
+              "results": [],
+              "total": 0,
+              "total_is_exact": true
+            }
+          }
+        },
+        "started_at": "2026-09-19T04:29:38.750829+00:00",
+        "typed_command": {
+          "args": {
+            "cursor": null,
+            "expected_session": {
+              "generation": 1,
+              "profile": "main-preview"
+            },
+            "options": {
+              "entity_types": [
+                "entity"
+              ],
+              "mode": "text"
+            },
+            "project": "bmdock-fixture",
+            "query": "c03freshnessmarker",
+            "request_generation": 0,
+            "workspace": "bmdock-workspace"
+          },
+          "command": "search_notes"
+        }
+      },
+      "matching_consecutive_observations": 3,
+      "stable_semantics_sha256": "5a5eb5e373a8198ff93c1428706da60f480fde51dc71a61df50b7b6708b88b68"
+    },
+    "delete_refresh": {
+      "comparison": {
+        "adapter_semantics": {
+          "has_more": false,
+          "hits": [],
+          "page": 1,
+          "page_size": 50,
+          "total": 0,
+          "total_is_exact": true
+        },
+        "ordered_identity_paging_equal": true,
+        "score_boundary": "Mutating-index freshness visibility; consecutive calls are not an atomic score snapshot",
+        "score_deltas_adapter_minus_direct": [],
+        "scores_equal_observed": true,
+        "scores_required_equal": false,
+        "semantics": {
+          "has_more": false,
+          "hits": [],
+          "page": 1,
+          "page_size": 50,
+          "total": 0,
+          "total_is_exact": true
+        }
+      },
+      "events": {
+        "adapter": {
+          "command_count": 1,
+          "driver_session": {
+            "generation": 1,
+            "profile": "main-preview"
+          },
+          "driver_started_at": "2026-09-19T04:29:13.731144+00:00",
+          "elapsed_ms": 14.9897,
+          "id": "46",
+          "lane": "adapter",
+          "outer_elapsed_ms": 15.3322,
+          "outer_reply_bytes": 840,
+          "outer_request_bytes": 312,
+          "request": {
+            "arguments": {
+              "entity_types": [
+                "entity"
+              ],
+              "output_format": "json",
+              "page": 1,
+              "page_size": 50,
+              "project": "bmdock-fixture",
+              "query": "c03freshnessmarker",
+              "search_type": "text"
+            },
+            "name": "search_notes"
+          },
+          "response": {
+            "engine_search": true,
+            "has_more": false,
+            "hits": [],
+            "kind": "search_page",
+            "next_cursor": null,
+            "page": 1,
+            "page_size": 50,
+            "query": "c03freshnessmarker",
+            "request": {
+              "arguments": {
+                "entity_types": [
+                  "entity"
+                ],
+                "output_format": "json",
+                "page": 1,
+                "page_size": 50,
+                "project": "bmdock-fixture",
+                "query": "c03freshnessmarker",
+                "search_type": "text"
+              },
+              "operation": "search_notes",
+              "project": "bmdock-fixture",
+              "request_generation": 3,
+              "session": {
+                "generation": 1,
+                "profile": "main-preview"
+              },
+              "workspace": "bmdock-workspace"
+            },
+            "session": {
+              "generation": 1,
+              "profile": "main-preview"
+            },
+            "total": 0,
+            "total_is_exact": true
+          },
+          "response_compact_json_bytes": 562,
+          "response_sha256": "e3d935fc4e2ed93aa44332730e575ca675a27513ad9dde5bac6909d2a5ae66c7",
+          "started_at": "2026-09-19T04:29:38.805589+00:00",
+          "typed_command": {
+            "args": {
+              "cursor": null,
+              "expected_session": {
+                "generation": 1,
+                "profile": "main-preview"
+              },
+              "options": {
+                "entity_types": [
+                  "entity"
+                ],
+                "mode": "text"
+              },
+              "project": "bmdock-fixture",
+              "query": "c03freshnessmarker",
+              "request_generation": 3,
+              "workspace": "bmdock-workspace"
+            },
+            "command": "search_notes"
+          }
+        },
+        "direct": {
+          "command_count": 1,
+          "driver_session": {
+            "generation": 1,
+            "profile": "main-preview"
+          },
+          "driver_started_at": "2026-09-19T04:29:13.731144+00:00",
+          "elapsed_ms": 37.285,
+          "id": "45",
+          "lane": "direct",
+          "outer_elapsed_ms": 37.6474,
+          "outer_reply_bytes": 606,
+          "outer_request_bytes": 311,
+          "request": {
+            "arguments": {
+              "entity_types": [
+                "entity"
+              ],
+              "output_format": "json",
+              "page": 1,
+              "page_size": 50,
+              "project": "bmdock-fixture",
+              "query": "c03freshnessmarker",
+              "search_type": "text"
+            },
+            "name": "search_notes"
+          },
+          "response": {
+            "_meta": {
+              "fastmcp": {
+                "wrap_result": true
+              }
+            },
+            "content": [
+              {
+                "text": "{\"results\":[],\"current_page\":1,\"page_size\":50,\"total\":0,\"total_is_exact\":true,\"has_more\":false}",
+                "type": "text"
+              }
+            ],
+            "isError": false,
+            "structuredContent": {
+              "result": {
+                "current_page": 1,
+                "has_more": false,
+                "page_size": 50,
+                "results": [],
+                "total": 0,
+                "total_is_exact": true
+              }
+            }
+          },
+          "response_compact_json_bytes": 330,
+          "response_sha256": "6d5b670a00378bcb9aa4e8c6711865e224b433e7a42ef542b90a2394d7168230",
+          "started_at": "2026-09-19T04:29:38.767884+00:00",
+          "typed_command": {
+            "args": {
+              "cursor": null,
+              "expected_session": {
+                "generation": 1,
+                "profile": "main-preview"
+              },
+              "options": {
+                "entity_types": [
+                  "entity"
+                ],
+                "mode": "text"
+              },
+              "project": "bmdock-fixture",
+              "query": "c03freshnessmarker",
+              "request_generation": 3,
+              "workspace": "bmdock-workspace"
+            },
+            "command": "search_notes"
+          }
+        }
+      },
+      "order": [
+        "direct",
+        "adapter"
+      ]
+    },
+    "deleted_note_unavailable": {
+      "command_count": 1,
+      "driver_session": {
+        "generation": 1,
+        "profile": "main-preview"
+      },
+      "driver_started_at": "2026-09-19T04:29:13.731144+00:00",
+      "elapsed_ms": 66.74199999999999,
+      "id": "47",
+      "lane": "adapter",
+      "outer_elapsed_ms": 66.983,
+      "outer_reply_bytes": 341,
+      "outer_request_bytes": 224,
+      "request": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json",
+          "project": "bmdock-fixture"
+        },
+        "name": "read_note"
+      },
+      "response": {
+        "category": "unsupported",
+        "kind": "error",
+        "message": "Official engine could not resolve the read"
+      },
+      "started_at": "2026-09-19T04:29:38.821133+00:00",
+      "typed_command": {
+        "args": {
+          "expected_session": {
+            "generation": 1,
+            "profile": "main-preview"
+          },
+          "identifier": "corpus/note-00000",
+          "project": "bmdock-fixture",
+          "workspace": "bmdock-workspace"
+        },
+        "command": "read_note"
+      }
+    },
+    "edit_index_ready": {
+      "attempts": 13,
+      "elapsed_seconds": 7.623518599997624,
+      "last_observation": {
+        "command_count": 1,
+        "driver_session": {
+          "generation": 1,
+          "profile": "main-preview"
+        },
+        "driver_started_at": "2026-09-19T04:29:13.731144+00:00",
+        "elapsed_ms": 26.7915,
+        "id": "25",
+        "lane": "direct",
+        "outer_elapsed_ms": 27.3818,
+        "outer_reply_bytes": 9425,
+        "outer_request_bytes": 311,
+        "request": {
+          "arguments": {
+            "entity_types": [
+              "entity"
+            ],
+            "output_format": "json",
+            "page": 1,
+            "page_size": 50,
+            "project": "bmdock-fixture",
+            "query": "c03freshnessmarker",
+            "search_type": "text"
+          },
+          "name": "search_notes"
+        },
+        "response": {
+          "_meta": {
+            "fastmcp": {
+              "wrap_result": true
+            }
+          },
+          "content": [
+            {
+              "text": "{\"results\":[{\"title\":\"thermalpress 热压温度\",\"type\":\"entity\",\"score\":-2.769395242306456,\"entity\":\"corpus/note-00000\",\"external_id\":\"8bb51991-4fe3-4839-a9f0-ce2937cdffd7\",\"permalink\":\"corpus/note-00000\",\"content\":\"# thermalpress 热压温度\\r\\nbmdockcorpus seed20260919 identity00000\\r\\n\\r\\n## Observations\\r\\n- [fact] thermalpress: The press temperature controls resin curing. 中文主题：热压温度。\\r\\n\\r\\n## Relations\\r\\n- relates_to [[corpus/note-00001]]\\r\\nneutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral fille\\r\\n\\r\\nc03freshnessmarker\",\"content_length\":3938,\"content_truncated\":false,\"file_path\":\"group-000/item-000/note.md\",\"updated_at\":\"2026-09-19T12:29:26.381102+08:00\",\"metadata\":{\"note_type\":\"note\"},\"entity_id\":1}],\"current_page\":1,\"page_size\":50,\"total\":1,\"total_is_exact\":true,\"has_more\":false}",
+              "type": "text"
+            }
+          ],
+          "isError": false,
+          "structuredContent": {
+            "result": {
+              "current_page": 1,
+              "has_more": false,
+              "page_size": 50,
+              "results": [
+                {
+                  "content": "# thermalpress 热压温度\r\nbmdockcorpus seed20260919 identity00000\r\n\r\n## Observations\r\n- [fact] thermalpress: The press temperature controls resin curing. 中文主题：热压温度。\r\n\r\n## Relations\r\n- relates_to [[corpus/note-00001]]\r\nneutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral fille\r\n\r\nc03freshnessmarker",
+                  "content_length": 3938,
+                  "content_truncated": false,
+                  "entity": "corpus/note-00000",
+                  "entity_id": 1,
+                  "external_id": "8bb51991-4fe3-4839-a9f0-ce2937cdffd7",
+                  "file_path": "group-000/item-000/note.md",
+                  "metadata": {
+                    "note_type": "note"
+                  },
+                  "permalink": "corpus/note-00000",
+                  "score": -2.769395242306456,
+                  "title": "thermalpress 热压温度",
+                  "type": "entity",
+                  "updated_at": "2026-09-19T12:29:26.381102+08:00"
+                }
+              ],
+              "total": 1,
+              "total_is_exact": true
+            }
+          }
+        },
+        "started_at": "2026-09-19T04:29:33.978528+00:00",
+        "typed_command": {
+          "args": {
+            "cursor": null,
+            "expected_session": {
+              "generation": 1,
+              "profile": "main-preview"
+            },
+            "options": {
+              "entity_types": [
+                "entity"
+              ],
+              "mode": "text"
+            },
+            "project": "bmdock-fixture",
+            "query": "c03freshnessmarker",
+            "request_generation": 0,
+            "workspace": "bmdock-workspace"
+          },
+          "command": "search_notes"
+        }
+      },
+      "matching_consecutive_observations": 3,
+      "stable_semantics_sha256": "32cbfdcb725f1943ab86c672ce33669d6ef9c32793a82dec419d01a5ac0c3a42"
+    },
+    "edit_refresh": {
+      "comparison": {
+        "adapter_semantics": {
+          "has_more": false,
+          "hits": [
+            {
+              "identifier": "corpus/note-00000",
+              "result_kind": "entity",
+              "score": -2.769395242306456
+            }
+          ],
+          "page": 1,
+          "page_size": 50,
+          "total": 1,
+          "total_is_exact": true
+        },
+        "ordered_identity_paging_equal": true,
+        "score_boundary": "Mutating-index freshness visibility; consecutive calls are not an atomic score snapshot",
+        "score_deltas_adapter_minus_direct": [
+          0.0
+        ],
+        "scores_equal_observed": true,
+        "scores_required_equal": false,
+        "semantics": {
+          "has_more": false,
+          "hits": [
+            {
+              "identifier": "corpus/note-00000",
+              "result_kind": "entity",
+              "score": -2.769395242306456
+            }
+          ],
+          "page": 1,
+          "page_size": 50,
+          "total": 1,
+          "total_is_exact": true
+        }
+      },
+      "events": {
+        "adapter": {
+          "command_count": 1,
+          "driver_session": {
+            "generation": 1,
+            "profile": "main-preview"
+          },
+          "driver_started_at": "2026-09-19T04:29:13.731144+00:00",
+          "elapsed_ms": 28.3674,
+          "id": "27",
+          "lane": "adapter",
+          "outer_elapsed_ms": 28.756,
+          "outer_reply_bytes": 1461,
+          "outer_request_bytes": 312,
+          "request": {
+            "arguments": {
+              "entity_types": [
+                "entity"
+              ],
+              "output_format": "json",
+              "page": 1,
+              "page_size": 50,
+              "project": "bmdock-fixture",
+              "query": "c03freshnessmarker",
+              "search_type": "text"
+            },
+            "name": "search_notes"
+          },
+          "response": {
+            "engine_search": true,
+            "has_more": false,
+            "hits": [
+              {
+                "category": null,
+                "created_at": null,
+                "excerpt": "# thermalpress 热压温度\r\nbmdockcorpus seed20260919 identity00000\r\n\r\n## Observations\r\n- [fact] thermalpress: The press temperature controls resin curing. 中文主题：热压温度。\r\n\r\n## Relations\r\n- relates_to [[corpus/note-00001]]\r\nneutral filler neutral fill",
+                "file_path": "group-000/item-000/note.md",
+                "from_entity": null,
+                "identifier": "corpus/note-00000",
+                "note_identifier": "8bb51991-4fe3-4839-a9f0-ce2937cdffd7",
+                "relation_type": null,
+                "result_kind": "entity",
+                "score": -2.769395242306456,
+                "title": "thermalpress 热压温度",
+                "to_entity": null,
+                "to_name": null
+              }
+            ],
+            "kind": "search_page",
+            "next_cursor": null,
+            "page": 1,
+            "page_size": 50,
+            "query": "c03freshnessmarker",
+            "request": {
+              "arguments": {
+                "entity_types": [
+                  "entity"
+                ],
+                "output_format": "json",
+                "page": 1,
+                "page_size": 50,
+                "project": "bmdock-fixture",
+                "query": "c03freshnessmarker",
+                "search_type": "text"
+              },
+              "operation": "search_notes",
+              "project": "bmdock-fixture",
+              "request_generation": 1,
+              "session": {
+                "generation": 1,
+                "profile": "main-preview"
+              },
+              "workspace": "bmdock-workspace"
+            },
+            "session": {
+              "generation": 1,
+              "profile": "main-preview"
+            },
+            "total": 1,
+            "total_is_exact": true
+          },
+          "response_compact_json_bytes": 1183,
+          "response_sha256": "b3ae3e2e635df1b5dbc45eb3450c95ca252d6d4ca31fc00232bc396b7242084e",
+          "started_at": "2026-09-19T04:29:34.034395+00:00",
+          "typed_command": {
+            "args": {
+              "cursor": null,
+              "expected_session": {
+                "generation": 1,
+                "profile": "main-preview"
+              },
+              "options": {
+                "entity_types": [
+                  "entity"
+                ],
+                "mode": "text"
+              },
+              "project": "bmdock-fixture",
+              "query": "c03freshnessmarker",
+              "request_generation": 1,
+              "workspace": "bmdock-workspace"
+            },
+            "command": "search_notes"
+          }
+        },
+        "direct": {
+          "command_count": 1,
+          "driver_session": {
+            "generation": 1,
+            "profile": "main-preview"
+          },
+          "driver_started_at": "2026-09-19T04:29:13.731144+00:00",
+          "elapsed_ms": 27.7453,
+          "id": "26",
+          "lane": "direct",
+          "outer_elapsed_ms": 28.3105,
+          "outer_reply_bytes": 9425,
+          "outer_request_bytes": 311,
+          "request": {
+            "arguments": {
+              "entity_types": [
+                "entity"
+              ],
+              "output_format": "json",
+              "page": 1,
+              "page_size": 50,
+              "project": "bmdock-fixture",
+              "query": "c03freshnessmarker",
+              "search_type": "text"
+            },
+            "name": "search_notes"
+          },
+          "response": {
+            "_meta": {
+              "fastmcp": {
+                "wrap_result": true
+              }
+            },
+            "content": [
+              {
+                "text": "{\"results\":[{\"title\":\"thermalpress 热压温度\",\"type\":\"entity\",\"score\":-2.769395242306456,\"entity\":\"corpus/note-00000\",\"external_id\":\"8bb51991-4fe3-4839-a9f0-ce2937cdffd7\",\"permalink\":\"corpus/note-00000\",\"content\":\"# thermalpress 热压温度\\r\\nbmdockcorpus seed20260919 identity00000\\r\\n\\r\\n## Observations\\r\\n- [fact] thermalpress: The press temperature controls resin curing. 中文主题：热压温度。\\r\\n\\r\\n## Relations\\r\\n- relates_to [[corpus/note-00001]]\\r\\nneutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral fille\\r\\n\\r\\nc03freshnessmarker\",\"content_length\":3938,\"content_truncated\":false,\"file_path\":\"group-000/item-000/note.md\",\"updated_at\":\"2026-09-19T12:29:26.381102+08:00\",\"metadata\":{\"note_type\":\"note\"},\"entity_id\":1}],\"current_page\":1,\"page_size\":50,\"total\":1,\"total_is_exact\":true,\"has_more\":false}",
+                "type": "text"
+              }
+            ],
+            "isError": false,
+            "structuredContent": {
+              "result": {
+                "current_page": 1,
+                "has_more": false,
+                "page_size": 50,
+                "results": [
+                  {
+                    "content": "# thermalpress 热压温度\r\nbmdockcorpus seed20260919 identity00000\r\n\r\n## Observations\r\n- [fact] thermalpress: The press temperature controls resin curing. 中文主题：热压温度。\r\n\r\n## Relations\r\n- relates_to [[corpus/note-00001]]\r\nneutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral fille\r\n\r\nc03freshnessmarker",
+                    "content_length": 3938,
+                    "content_truncated": false,
+                    "entity": "corpus/note-00000",
+                    "entity_id": 1,
+                    "external_id": "8bb51991-4fe3-4839-a9f0-ce2937cdffd7",
+                    "file_path": "group-000/item-000/note.md",
+                    "metadata": {
+                      "note_type": "note"
+                    },
+                    "permalink": "corpus/note-00000",
+                    "score": -2.769395242306456,
+                    "title": "thermalpress 热压温度",
+                    "type": "entity",
+                    "updated_at": "2026-09-19T12:29:26.381102+08:00"
+                  }
+                ],
+                "total": 1,
+                "total_is_exact": true
+              }
+            }
+          },
+          "response_compact_json_bytes": 9148,
+          "response_sha256": "c4c4ac6b17922e86734b2d7a732dba26fe939fa037c451b48895b8b87fe361c9",
+          "started_at": "2026-09-19T04:29:34.006027+00:00",
+          "typed_command": {
+            "args": {
+              "cursor": null,
+              "expected_session": {
+                "generation": 1,
+                "profile": "main-preview"
+              },
+              "options": {
+                "entity_types": [
+                  "entity"
+                ],
+                "mode": "text"
+              },
+              "project": "bmdock-fixture",
+              "query": "c03freshnessmarker",
+              "request_generation": 1,
+              "workspace": "bmdock-workspace"
+            },
+            "command": "search_notes"
+          }
+        }
+      },
+      "order": [
+        "direct",
+        "adapter"
+      ]
+    },
+    "edited_full_source": {
+      "comparison": {
+        "delivered_source_equal": true,
+        "delivered_utf8_bytes": 4118,
+        "delivered_utf8_sha256": "6516cbd966741d96bda33c97d303fe2e76278212f6cadafd787f29c98e9b5971",
+        "general_byte_fidelity_claim": false,
+        "source_bytes_equal": true,
+        "upstream_crlf_normalized": false
+      },
+      "events": {
+        "adapter": {
+          "command_count": 1,
+          "driver_session": {
+            "generation": 1,
+            "profile": "main-preview"
+          },
+          "driver_started_at": "2026-09-19T04:29:13.731144+00:00",
+          "elapsed_ms": 46.5945,
+          "id": "29",
+          "lane": "adapter",
+          "outer_elapsed_ms": 46.9527,
+          "outer_reply_bytes": 4643,
+          "outer_request_bytes": 224,
+          "request": {
+            "arguments": {
+              "identifier": "corpus/note-00000",
+              "include_frontmatter": true,
+              "output_format": "json",
+              "project": "bmdock-fixture"
+            },
+            "name": "read_note"
+          },
+          "response": {
+            "storage": "sha256-and-length-after-full-source-comparison"
+          },
+          "response_compact_json_bytes": 4408,
+          "response_sha256": "718208758c33d3b771af4e129262f3ac02107ebb8a056297488ecee82273dab3",
+          "started_at": "2026-09-19T04:29:34.163772+00:00",
+          "typed_command": {
+            "args": {
+              "expected_session": {
+                "generation": 1,
+                "profile": "main-preview"
+              },
+              "identifier": "corpus/note-00000",
+              "project": "bmdock-fixture",
+              "workspace": "bmdock-workspace"
+            },
+            "command": "read_note"
+          }
+        },
+        "direct": {
+          "command_count": 1,
+          "driver_session": {
+            "generation": 1,
+            "profile": "main-preview"
+          },
+          "driver_started_at": "2026-09-19T04:29:13.731144+00:00",
+          "elapsed_ms": 99.54,
+          "id": "28",
+          "lane": "direct",
+          "outer_elapsed_ms": 100.0504,
+          "outer_reply_bytes": 9324,
+          "outer_request_bytes": 223,
+          "request": {
+            "arguments": {
+              "identifier": "corpus/note-00000",
+              "include_frontmatter": true,
+              "output_format": "json",
+              "project": "bmdock-fixture"
+            },
+            "name": "read_note"
+          },
+          "response": {
+            "storage": "sha256-and-length-after-full-source-comparison"
+          },
+          "response_compact_json_bytes": 9092,
+          "response_sha256": "a957eab0163cedffe645efcb125a955a61b8b15cdacf8d57bc6ce0b465dbc059",
+          "started_at": "2026-09-19T04:29:34.063667+00:00",
+          "typed_command": {
+            "args": {
+              "expected_session": {
+                "generation": 1,
+                "profile": "main-preview"
+              },
+              "identifier": "corpus/note-00000",
+              "project": "bmdock-fixture",
+              "workspace": "bmdock-workspace"
+            },
+            "command": "read_note"
+          }
+        }
+      },
+      "order": [
+        "direct",
+        "adapter"
+      ]
+    },
+    "initial_index_ready": {
+      "attempts": 8,
+      "elapsed_seconds": 6.138532900004066,
+      "last_observation": {
+        "identifiers": [
+          "corpus/note-00099",
+          "corpus/note-00011",
+          "corpus/note-00012",
+          "corpus/note-00017",
+          "corpus/note-00018",
+          "corpus/note-00015",
+          "corpus/note-00019",
+          "corpus/note-00020",
+          "corpus/note-00022",
+          "corpus/note-00016",
+          "corpus/note-00014",
+          "corpus/note-00024",
+          "corpus/note-00025",
+          "corpus/note-00021",
+          "corpus/note-00023",
+          "corpus/note-00028",
+          "corpus/note-00030",
+          "corpus/note-00026",
+          "corpus/note-00027",
+          "corpus/note-00031",
+          "corpus/note-00032",
+          "corpus/note-00033",
+          "corpus/note-00036",
+          "corpus/note-00034",
+          "corpus/note-00037",
+          "corpus/note-00029",
+          "corpus/note-00038",
+          "corpus/note-00039",
+          "corpus/note-00040",
+          "corpus/note-00042",
+          "corpus/note-00043",
+          "corpus/note-00035",
+          "corpus/note-00045",
+          "corpus/note-00041",
+          "corpus/note-00046",
+          "corpus/note-00047",
+          "corpus/note-00048",
+          "corpus/note-00050",
+          "corpus/note-00053",
+          "corpus/note-00049",
+          "corpus/note-00051",
+          "corpus/note-00055",
+          "corpus/note-00054",
+          "corpus/note-00059",
+          "corpus/note-00058",
+          "corpus/note-00052",
+          "corpus/note-00060",
+          "corpus/note-00063",
+          "corpus/note-00056",
+          "corpus/note-00064",
+          "corpus/note-00057",
+          "corpus/note-00061",
+          "corpus/note-00068",
+          "corpus/note-00066",
+          "corpus/note-00067",
+          "corpus/note-00062",
+          "corpus/note-00071",
+          "corpus/note-00070",
+          "corpus/note-00065",
+          "corpus/note-00073",
+          "corpus/note-00074",
+          "corpus/note-00076",
+          "corpus/note-00077",
+          "corpus/note-00072",
+          "corpus/note-00075",
+          "corpus/note-00078",
+          "corpus/note-00080",
+          "corpus/note-00082",
+          "corpus/note-00013",
+          "corpus/note-00081",
+          "corpus/note-00079",
+          "corpus/note-00086",
+          "corpus/note-00083",
+          "corpus/note-00084",
+          "corpus/note-00087",
+          "corpus/note-00090",
+          "corpus/note-00085",
+          "corpus/note-00091",
+          "corpus/note-00093",
+          "corpus/note-00092",
+          "corpus/note-00094",
+          "corpus/note-00089",
+          "corpus/note-00095",
+          "corpus/note-00096",
+          "corpus/note-00098",
+          "corpus/note-00097",
+          "corpus/note-00088",
+          "corpus/note-00044",
+          "corpus/note-00069",
+          "corpus/note-00010",
+          "corpus/note-00001",
+          "corpus/note-00003",
+          "corpus/note-00008",
+          "corpus/note-00000",
+          "corpus/note-00007",
+          "corpus/note-00005",
+          "corpus/note-00004",
+          "corpus/note-00006",
+          "corpus/note-00009",
+          "corpus/note-00002"
+        ],
+        "pages": [
+          {
+            "has_more": true,
+            "hits": [
+              {
+                "identifier": "corpus/note-00099",
+                "result_kind": "entity",
+                "score": -7.563746223564955e-07
+              },
+              {
+                "identifier": "corpus/note-00011",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00012",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00017",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00018",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00015",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00019",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00020",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00022",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00016",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00014",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00024",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00025",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00021",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00023",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00028",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00030",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00026",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00027",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00031",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00032",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00033",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00036",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00034",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00037",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00029",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00038",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00039",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00040",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00042",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00043",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00035",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00045",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00041",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00046",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00047",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00048",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00050",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00053",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00049",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00051",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00055",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00054",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00059",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00058",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00052",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00060",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00063",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00056",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00064",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              }
+            ],
+            "page": 1,
+            "page_size": 50,
+            "total": 100,
+            "total_is_exact": true
+          },
+          {
+            "has_more": false,
+            "hits": [
+              {
+                "identifier": "corpus/note-00057",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00061",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00068",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00066",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00067",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00062",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00071",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00070",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00065",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00073",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00074",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00076",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00077",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00072",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00075",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00078",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00080",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00082",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00013",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00081",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00079",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00086",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00083",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00084",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00087",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00090",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00085",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00091",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00093",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00092",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00094",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00089",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00095",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00096",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00098",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00097",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00088",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00044",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00069",
+                "result_kind": "entity",
+                "score": -7.301679888007467e-07
+              },
+              {
+                "identifier": "corpus/note-00010",
+                "result_kind": "entity",
+                "score": -7.181046351537403e-07
+              },
+              {
+                "identifier": "corpus/note-00001",
+                "result_kind": "entity",
+                "score": -7.089539559381549e-07
+              },
+              {
+                "identifier": "corpus/note-00003",
+                "result_kind": "entity",
+                "score": -7.075114452043181e-07
+              },
+              {
+                "identifier": "corpus/note-00008",
+                "result_kind": "entity",
+                "score": -7.075114452043181e-07
+              },
+              {
+                "identifier": "corpus/note-00000",
+                "result_kind": "entity",
+                "score": -7.060747927125049e-07
+              },
+              {
+                "identifier": "corpus/note-00007",
+                "result_kind": "entity",
+                "score": -7.053586521665634e-07
+              },
+              {
+                "identifier": "corpus/note-00005",
+                "result_kind": "entity",
+                "score": -7.053586521665634e-07
+              },
+              {
+                "identifier": "corpus/note-00004",
+                "result_kind": "entity",
+                "score": -7.039307203508969e-07
+              },
+              {
+                "identifier": "corpus/note-00006",
+                "result_kind": "entity",
+                "score": -7.039307203508969e-07
+              },
+              {
+                "identifier": "corpus/note-00009",
+                "result_kind": "entity",
+                "score": -7.039307203508969e-07
+              },
+              {
+                "identifier": "corpus/note-00002",
+                "result_kind": "entity",
+                "score": -7.039307203508969e-07
+              }
+            ],
+            "page": 2,
+            "page_size": 50,
+            "total": 100,
+            "total_is_exact": true
+          }
+        ]
+      },
+      "matching_consecutive_observations": 3,
+      "stable_semantics_sha256": "b4af505c8f83c3a2534423d9d10e16600d975074ba0abcf3121fbf31e6c71e30"
+    },
+    "rename_index_ready": {
+      "attempts": 4,
+      "elapsed_seconds": 1.7192542999982834,
+      "last_observation": {
+        "command_count": 1,
+        "driver_session": {
+          "generation": 1,
+          "profile": "main-preview"
+        },
+        "driver_started_at": "2026-09-19T04:29:13.731144+00:00",
+        "elapsed_ms": 54.2718,
+        "id": "33",
+        "lane": "direct",
+        "outer_elapsed_ms": 54.8312,
+        "outer_reply_bytes": 9350,
+        "outer_request_bytes": 223,
+        "request": {
+          "arguments": {
+            "identifier": "corpus/note-00000",
+            "include_frontmatter": true,
+            "output_format": "json",
+            "project": "bmdock-fixture"
+          },
+          "name": "read_note"
+        },
+        "response": {
+          "_meta": {
+            "fastmcp": {
+              "wrap_result": true
+            }
+          },
+          "content": [
+            {
+              "text": "{\"title\":\"thermalpress 热压温度\",\"permalink\":\"corpus/note-00000\",\"file_path\":\"group-000/item-000/c03-renamed-note.md\",\"content\":\"---\\r\\ntitle: thermalpress 热压温度\\r\\ntype: note\\r\\npermalink: corpus/note-00000\\r\\ntags: [baseline, fixture]\\r\\ncustom_metadata: 保留原始中文\\r\\n---\\r\\n# thermalpress 热压温度\\r\\nbmdockcorpus seed20260919 identity00000\\r\\n\\r\\n## Observations\\r\\n- [fact] thermalpress: The press temperature controls resin curing. 中文主题：热压温度。\\r\\n\\r\\n## Relations\\r\\n- relates_to [[corpus/note-00001]]\\r\\nneutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral fille\\r\\n\\r\\nc03freshnessmarker\\r\\n\",\"frontmatter\":{\"title\":\"thermalpress 热压温度\",\"type\":\"note\",\"permalink\":\"corpus/note-00000\",\"tags\":[\"baseline\",\"fixture\"],\"custom_metadata\":\"保留原始中文\"}}",
+              "type": "text"
+            }
+          ],
+          "isError": false,
+          "structuredContent": {
+            "result": {
+              "content": "---\r\ntitle: thermalpress 热压温度\r\ntype: note\r\npermalink: corpus/note-00000\r\ntags: [baseline, fixture]\r\ncustom_metadata: 保留原始中文\r\n---\r\n# thermalpress 热压温度\r\nbmdockcorpus seed20260919 identity00000\r\n\r\n## Observations\r\n- [fact] thermalpress: The press temperature controls resin curing. 中文主题：热压温度。\r\n\r\n## Relations\r\n- relates_to [[corpus/note-00001]]\r\nneutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral fille\r\n\r\nc03freshnessmarker\r\n",
+              "file_path": "group-000/item-000/c03-renamed-note.md",
+              "frontmatter": {
+                "custom_metadata": "保留原始中文",
+                "permalink": "corpus/note-00000",
+                "tags": [
+                  "baseline",
+                  "fixture"
+                ],
+                "title": "thermalpress 热压温度",
+                "type": "note"
+              },
+              "permalink": "corpus/note-00000",
+              "title": "thermalpress 热压温度"
+            }
+          }
+        },
+        "started_at": "2026-09-19T04:29:35.876574+00:00",
+        "typed_command": {
+          "args": {
+            "expected_session": {
+              "generation": 1,
+              "profile": "main-preview"
+            },
+            "identifier": "corpus/note-00000",
+            "project": "bmdock-fixture",
+            "workspace": "bmdock-workspace"
+          },
+          "command": "read_note"
+        }
+      },
+      "matching_consecutive_observations": 3,
+      "stable_semantics_sha256": "fdb0ddea08657ac7879b736f7c81068a6ce217c6c70e091a8955ff89b63bc538"
+    },
+    "rename_query_settled": {
+      "attempts": 3,
+      "elapsed_seconds": 1.0852293999996618,
+      "last_observation": {
+        "command_count": 1,
+        "driver_session": {
+          "generation": 1,
+          "profile": "main-preview"
+        },
+        "driver_started_at": "2026-09-19T04:29:13.731144+00:00",
+        "elapsed_ms": 28.127200000000002,
+        "id": "36",
+        "lane": "direct",
+        "outer_elapsed_ms": 28.7752,
+        "outer_reply_bytes": 9412,
+        "outer_request_bytes": 311,
+        "request": {
+          "arguments": {
+            "entity_types": [
+              "entity"
+            ],
+            "output_format": "json",
+            "page": 1,
+            "page_size": 50,
+            "project": "bmdock-fixture",
+            "query": "c03freshnessmarker",
+            "search_type": "text"
+          },
+          "name": "search_notes"
+        },
+        "response": {
+          "_meta": {
+            "fastmcp": {
+              "wrap_result": true
+            }
+          },
+          "content": [
+            {
+              "text": "{\"results\":[{\"title\":\"thermalpress 热压温度\",\"type\":\"entity\",\"score\":-2.7627387994615806,\"entity\":\"corpus/note-00000\",\"external_id\":\"8bb51991-4fe3-4839-a9f0-ce2937cdffd7\",\"permalink\":\"corpus/note-00000\",\"content\":\"# thermalpress 热压温度\\nbmdockcorpus seed20260919 identity00000\\n\\n## Observations\\n- [fact] thermalpress: The press temperature controls resin curing. 中文主题：热压温度。\\n\\n## Relations\\n- relates_to [[corpus/note-00001]]\\nneutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral fille\\n\\nc03freshnessmarker\",\"content_length\":3928,\"content_truncated\":false,\"file_path\":\"group-000/item-000/c03-renamed-note.md\",\"updated_at\":\"2026-09-19T12:29:26.381102+08:00\",\"metadata\":{\"note_type\":\"note\"},\"entity_id\":1}],\"current_page\":1,\"page_size\":50,\"total\":1,\"total_is_exact\":true,\"has_more\":false}",
+              "type": "text"
+            }
+          ],
+          "isError": false,
+          "structuredContent": {
+            "result": {
+              "current_page": 1,
+              "has_more": false,
+              "page_size": 50,
+              "results": [
+                {
+                  "content": "# thermalpress 热压温度\nbmdockcorpus seed20260919 identity00000\n\n## Observations\n- [fact] thermalpress: The press temperature controls resin curing. 中文主题：热压温度。\n\n## Relations\n- relates_to [[corpus/note-00001]]\nneutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral fille\n\nc03freshnessmarker",
+                  "content_length": 3928,
+                  "content_truncated": false,
+                  "entity": "corpus/note-00000",
+                  "entity_id": 1,
+                  "external_id": "8bb51991-4fe3-4839-a9f0-ce2937cdffd7",
+                  "file_path": "group-000/item-000/c03-renamed-note.md",
+                  "metadata": {
+                    "note_type": "note"
+                  },
+                  "permalink": "corpus/note-00000",
+                  "score": -2.7627387994615806,
+                  "title": "thermalpress 热压温度",
+                  "type": "entity",
+                  "updated_at": "2026-09-19T12:29:26.381102+08:00"
+                }
+              ],
+              "total": 1,
+              "total_is_exact": true
+            }
+          }
+        },
+        "started_at": "2026-09-19T04:29:36.987864+00:00",
+        "typed_command": {
+          "args": {
+            "cursor": null,
+            "expected_session": {
+              "generation": 1,
+              "profile": "main-preview"
+            },
+            "options": {
+              "entity_types": [
+                "entity"
+              ],
+              "mode": "text"
+            },
+            "project": "bmdock-fixture",
+            "query": "c03freshnessmarker",
+            "request_generation": 0,
+            "workspace": "bmdock-workspace"
+          },
+          "command": "search_notes"
+        }
+      },
+      "matching_consecutive_observations": 3,
+      "stable_semantics_sha256": "bc31569a4635e8de947407ad1a6f414b53f32b8ee730c85095a9d01e8cded30c"
+    },
+    "rename_refresh": {
+      "comparison": {
+        "adapter_semantics": {
+          "has_more": false,
+          "hits": [
+            {
+              "identifier": "corpus/note-00000",
+              "result_kind": "entity",
+              "score": -2.7627387994615806
+            }
+          ],
+          "page": 1,
+          "page_size": 50,
+          "total": 1,
+          "total_is_exact": true
+        },
+        "ordered_identity_paging_equal": true,
+        "score_boundary": "Mutating-index freshness visibility; consecutive calls are not an atomic score snapshot",
+        "score_deltas_adapter_minus_direct": [
+          0.0
+        ],
+        "scores_equal_observed": true,
+        "scores_required_equal": false,
+        "semantics": {
+          "has_more": false,
+          "hits": [
+            {
+              "identifier": "corpus/note-00000",
+              "result_kind": "entity",
+              "score": -2.7627387994615806
+            }
+          ],
+          "page": 1,
+          "page_size": 50,
+          "total": 1,
+          "total_is_exact": true
+        }
+      },
+      "events": {
+        "adapter": {
+          "command_count": 1,
+          "driver_session": {
+            "generation": 1,
+            "profile": "main-preview"
+          },
+          "driver_started_at": "2026-09-19T04:29:13.731144+00:00",
+          "elapsed_ms": 26.2926,
+          "id": "37",
+          "lane": "adapter",
+          "outer_elapsed_ms": 26.6488,
+          "outer_reply_bytes": 1466,
+          "outer_request_bytes": 312,
+          "request": {
+            "arguments": {
+              "entity_types": [
+                "entity"
+              ],
+              "output_format": "json",
+              "page": 1,
+              "page_size": 50,
+              "project": "bmdock-fixture",
+              "query": "c03freshnessmarker",
+              "search_type": "text"
+            },
+            "name": "search_notes"
+          },
+          "response": {
+            "engine_search": true,
+            "has_more": false,
+            "hits": [
+              {
+                "category": null,
+                "created_at": null,
+                "excerpt": "# thermalpress 热压温度\nbmdockcorpus seed20260919 identity00000\n\n## Observations\n- [fact] thermalpress: The press temperature controls resin curing. 中文主题：热压温度。\n\n## Relations\n- relates_to [[corpus/note-00001]]\nneutral filler neutral filler neutr",
+                "file_path": "group-000/item-000/c03-renamed-note.md",
+                "from_entity": null,
+                "identifier": "corpus/note-00000",
+                "note_identifier": "8bb51991-4fe3-4839-a9f0-ce2937cdffd7",
+                "relation_type": null,
+                "result_kind": "entity",
+                "score": -2.7627387994615806,
+                "title": "thermalpress 热压温度",
+                "to_entity": null,
+                "to_name": null
+              }
+            ],
+            "kind": "search_page",
+            "next_cursor": null,
+            "page": 1,
+            "page_size": 50,
+            "query": "c03freshnessmarker",
+            "request": {
+              "arguments": {
+                "entity_types": [
+                  "entity"
+                ],
+                "output_format": "json",
+                "page": 1,
+                "page_size": 50,
+                "project": "bmdock-fixture",
+                "query": "c03freshnessmarker",
+                "search_type": "text"
+              },
+              "operation": "search_notes",
+              "project": "bmdock-fixture",
+              "request_generation": 2,
+              "session": {
+                "generation": 1,
+                "profile": "main-preview"
+              },
+              "workspace": "bmdock-workspace"
+            },
+            "session": {
+              "generation": 1,
+              "profile": "main-preview"
+            },
+            "total": 1,
+            "total_is_exact": true
+          },
+          "response_compact_json_bytes": 1188,
+          "response_sha256": "8618d841d7a8baf9ad57eb0c32405393fd17720029cecc360c3573239b41b9e3",
+          "started_at": "2026-09-19T04:29:37.016757+00:00",
+          "typed_command": {
+            "args": {
+              "cursor": null,
+              "expected_session": {
+                "generation": 1,
+                "profile": "main-preview"
+              },
+              "options": {
+                "entity_types": [
+                  "entity"
+                ],
+                "mode": "text"
+              },
+              "project": "bmdock-fixture",
+              "query": "c03freshnessmarker",
+              "request_generation": 2,
+              "workspace": "bmdock-workspace"
+            },
+            "command": "search_notes"
+          }
+        },
+        "direct": {
+          "command_count": 1,
+          "driver_session": {
+            "generation": 1,
+            "profile": "main-preview"
+          },
+          "driver_started_at": "2026-09-19T04:29:13.731144+00:00",
+          "elapsed_ms": 23.8621,
+          "id": "38",
+          "lane": "direct",
+          "outer_elapsed_ms": 24.403,
+          "outer_reply_bytes": 9401,
+          "outer_request_bytes": 311,
+          "request": {
+            "arguments": {
+              "entity_types": [
+                "entity"
+              ],
+              "output_format": "json",
+              "page": 1,
+              "page_size": 50,
+              "project": "bmdock-fixture",
+              "query": "c03freshnessmarker",
+              "search_type": "text"
+            },
+            "name": "search_notes"
+          },
+          "response": {
+            "_meta": {
+              "fastmcp": {
+                "wrap_result": true
+              }
+            },
+            "content": [
+              {
+                "text": "{\"results\":[{\"title\":\"thermalpress 热压温度\",\"type\":\"entity\",\"score\":-2.7627387994615806,\"entity\":\"corpus/note-00000\",\"external_id\":\"8bb51991-4fe3-4839-a9f0-ce2937cdffd7\",\"permalink\":\"corpus/note-00000\",\"content\":\"# thermalpress 热压温度\\nbmdockcorpus seed20260919 identity00000\\n\\n## Observations\\n- [fact] thermalpress: The press temperature controls resin curing. 中文主题：热压温度。\\n\\n## Relations\\n- relates_to [[corpus/note-00001]]\\nneutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral fille\\n\\nc03freshnessmarker\",\"content_length\":3928,\"content_truncated\":false,\"file_path\":\"group-000/item-000/c03-renamed-note.md\",\"updated_at\":\"2026-09-19T12:29:26.381102+08:00\",\"metadata\":{\"note_type\":\"note\"},\"entity_id\":1}],\"current_page\":1,\"page_size\":50,\"total\":1,\"total_is_exact\":true,\"has_more\":false}",
+                "type": "text"
+              }
+            ],
+            "isError": false,
+            "structuredContent": {
+              "result": {
+                "current_page": 1,
+                "has_more": false,
+                "page_size": 50,
+                "results": [
+                  {
+                    "content": "# thermalpress 热压温度\nbmdockcorpus seed20260919 identity00000\n\n## Observations\n- [fact] thermalpress: The press temperature controls resin curing. 中文主题：热压温度。\n\n## Relations\n- relates_to [[corpus/note-00001]]\nneutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral filler neutral fille\n\nc03freshnessmarker",
+                    "content_length": 3928,
+                    "content_truncated": false,
+                    "entity": "corpus/note-00000",
+                    "entity_id": 1,
+                    "external_id": "8bb51991-4fe3-4839-a9f0-ce2937cdffd7",
+                    "file_path": "group-000/item-000/c03-renamed-note.md",
+                    "metadata": {
+                      "note_type": "note"
+                    },
+                    "permalink": "corpus/note-00000",
+                    "score": -2.7627387994615806,
+                    "title": "thermalpress 热压温度",
+                    "type": "entity",
+                    "updated_at": "2026-09-19T12:29:26.381102+08:00"
+                  }
+                ],
+                "total": 1,
+                "total_is_exact": true
+              }
+            }
+          },
+          "response_compact_json_bytes": 9124,
+          "response_sha256": "e2bc11469d57807b6b5b203dfd51bffb898b28f2f1faffc83dd314189cefaa96",
+          "started_at": "2026-09-19T04:29:37.043471+00:00",
+          "typed_command": {
+            "args": {
+              "cursor": null,
+              "expected_session": {
+                "generation": 1,
+                "profile": "main-preview"
+              },
+              "options": {
+                "entity_types": [
+                  "entity"
+                ],
+                "mode": "text"
+              },
+              "project": "bmdock-fixture",
+              "query": "c03freshnessmarker",
+              "request_generation": 2,
+              "workspace": "bmdock-workspace"
+            },
+            "command": "search_notes"
+          }
+        }
+      },
+      "order": [
+        "adapter",
+        "direct"
+      ]
+    },
+    "renamed_full_source": {
+      "comparison": {
+        "delivered_source_equal": true,
+        "delivered_utf8_bytes": 4118,
+        "delivered_utf8_sha256": "6516cbd966741d96bda33c97d303fe2e76278212f6cadafd787f29c98e9b5971",
+        "general_byte_fidelity_claim": false,
+        "source_bytes_equal": true,
+        "upstream_crlf_normalized": false
+      },
+      "events": {
+        "adapter": {
+          "command_count": 1,
+          "driver_session": {
+            "generation": 1,
+            "profile": "main-preview"
+          },
+          "driver_started_at": "2026-09-19T04:29:13.731144+00:00",
+          "elapsed_ms": 51.1695,
+          "id": "40",
+          "lane": "adapter",
+          "outer_elapsed_ms": 51.5456,
+          "outer_reply_bytes": 4643,
+          "outer_request_bytes": 224,
+          "request": {
+            "arguments": {
+              "identifier": "corpus/note-00000",
+              "include_frontmatter": true,
+              "output_format": "json",
+              "project": "bmdock-fixture"
+            },
+            "name": "read_note"
+          },
+          "response": {
+            "storage": "sha256-and-length-after-full-source-comparison"
+          },
+          "response_compact_json_bytes": 4408,
+          "response_sha256": "718208758c33d3b771af4e129262f3ac02107ebb8a056297488ecee82273dab3",
+          "started_at": "2026-09-19T04:29:37.121762+00:00",
+          "typed_command": {
+            "args": {
+              "expected_session": {
+                "generation": 1,
+                "profile": "main-preview"
+              },
+              "identifier": "corpus/note-00000",
+              "project": "bmdock-fixture",
+              "workspace": "bmdock-workspace"
+            },
+            "command": "read_note"
+          }
+        },
+        "direct": {
+          "command_count": 1,
+          "driver_session": {
+            "generation": 1,
+            "profile": "main-preview"
+          },
+          "driver_started_at": "2026-09-19T04:29:13.731144+00:00",
+          "elapsed_ms": 52.7495,
+          "id": "39",
+          "lane": "direct",
+          "outer_elapsed_ms": 53.226,
+          "outer_reply_bytes": 9350,
+          "outer_request_bytes": 223,
+          "request": {
+            "arguments": {
+              "identifier": "corpus/note-00000",
+              "include_frontmatter": true,
+              "output_format": "json",
+              "project": "bmdock-fixture"
+            },
+            "name": "read_note"
+          },
+          "response": {
+            "storage": "sha256-and-length-after-full-source-comparison"
+          },
+          "response_compact_json_bytes": 9116,
+          "response_sha256": "46af78185f27453591d3ec044e781740063f478282c418d251427ed5556f960c",
+          "started_at": "2026-09-19T04:29:37.068480+00:00",
+          "typed_command": {
+            "args": {
+              "expected_session": {
+                "generation": 1,
+                "profile": "main-preview"
+              },
+              "identifier": "corpus/note-00000",
+              "project": "bmdock-fixture",
+              "workspace": "bmdock-workspace"
+            },
+            "command": "read_note"
+          }
+        }
+      },
+      "order": [
+        "direct",
+        "adapter"
+      ]
+    },
+    "restore_index_ready": {
+      "attempts": 4,
+      "elapsed_seconds": 1.9730037999979686,
+      "last_observation": {
+        "identifiers": [
+          "corpus/note-00099",
+          "corpus/note-00011",
+          "corpus/note-00012",
+          "corpus/note-00013",
+          "corpus/note-00014",
+          "corpus/note-00016",
+          "corpus/note-00018",
+          "corpus/note-00015",
+          "corpus/note-00019",
+          "corpus/note-00017",
+          "corpus/note-00024",
+          "corpus/note-00020",
+          "corpus/note-00022",
+          "corpus/note-00025",
+          "corpus/note-00023",
+          "corpus/note-00026",
+          "corpus/note-00027",
+          "corpus/note-00032",
+          "corpus/note-00031",
+          "corpus/note-00028",
+          "corpus/note-00021",
+          "corpus/note-00034",
+          "corpus/note-00029",
+          "corpus/note-00033",
+          "corpus/note-00038",
+          "corpus/note-00035",
+          "corpus/note-00039",
+          "corpus/note-00040",
+          "corpus/note-00036",
+          "corpus/note-00041",
+          "corpus/note-00044",
+          "corpus/note-00037",
+          "corpus/note-00048",
+          "corpus/note-00043",
+          "corpus/note-00042",
+          "corpus/note-00049",
+          "corpus/note-00047",
+          "corpus/note-00051",
+          "corpus/note-00053",
+          "corpus/note-00050",
+          "corpus/note-00055",
+          "corpus/note-00052",
+          "corpus/note-00045",
+          "corpus/note-00054",
+          "corpus/note-00046",
+          "corpus/note-00059",
+          "corpus/note-00061",
+          "corpus/note-00058",
+          "corpus/note-00060",
+          "corpus/note-00063",
+          "corpus/note-00062",
+          "corpus/note-00065",
+          "corpus/note-00066",
+          "corpus/note-00067",
+          "corpus/note-00064",
+          "corpus/note-00057",
+          "corpus/note-00071",
+          "corpus/note-00056",
+          "corpus/note-00072",
+          "corpus/note-00068",
+          "corpus/note-00069",
+          "corpus/note-00074",
+          "corpus/note-00075",
+          "corpus/note-00073",
+          "corpus/note-00077",
+          "corpus/note-00076",
+          "corpus/note-00078",
+          "corpus/note-00082",
+          "corpus/note-00080",
+          "corpus/note-00079",
+          "corpus/note-00084",
+          "corpus/note-00081",
+          "corpus/note-00086",
+          "corpus/note-00083",
+          "corpus/note-00085",
+          "corpus/note-00089",
+          "corpus/note-00087",
+          "corpus/note-00070",
+          "corpus/note-00088",
+          "corpus/note-00093",
+          "corpus/note-00090",
+          "corpus/note-00094",
+          "corpus/note-00030",
+          "corpus/note-00098",
+          "corpus/note-00092",
+          "corpus/note-00095",
+          "corpus/note-00096",
+          "corpus/note-00097",
+          "corpus/note-00091",
+          "corpus/note-00010",
+          "corpus/note-00001",
+          "corpus/note-00003",
+          "corpus/note-00008",
+          "corpus/note-00000",
+          "corpus/note-00005",
+          "corpus/note-00007",
+          "corpus/note-00002",
+          "corpus/note-00006",
+          "corpus/note-00004",
+          "corpus/note-00009"
+        ],
+        "pages": [
+          {
+            "has_more": true,
+            "hits": [
+              {
+                "identifier": "corpus/note-00099",
+                "result_kind": "entity",
+                "score": -0.5009319876199011
+              },
+              {
+                "identifier": "corpus/note-00011",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00012",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00013",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00014",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00016",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00018",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00015",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00019",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00017",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00024",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00020",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00022",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00025",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00023",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00026",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00027",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00032",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00031",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00028",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00021",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00034",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00029",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00033",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00038",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00035",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00039",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00040",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00036",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00041",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00044",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00037",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00048",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00043",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00042",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00049",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00047",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00051",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00053",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00050",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00055",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00052",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00045",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00054",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00046",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00059",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00061",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00058",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00060",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00063",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              }
+            ],
+            "page": 1,
+            "page_size": 50,
+            "total": 100,
+            "total_is_exact": true
+          },
+          {
+            "has_more": false,
+            "hits": [
+              {
+                "identifier": "corpus/note-00062",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00065",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00066",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00067",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00064",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00057",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00071",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00056",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00072",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00068",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00069",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00074",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00075",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00073",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00077",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00076",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00078",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00082",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00080",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00079",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00084",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00081",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00086",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00083",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00085",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00089",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00087",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00070",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00088",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00093",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00090",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00094",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00030",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00098",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00092",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00095",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00096",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00097",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00091",
+                "result_kind": "entity",
+                "score": -0.47996833264770794
+              },
+              {
+                "identifier": "corpus/note-00010",
+                "result_kind": "entity",
+                "score": -0.4704231774931679
+              },
+              {
+                "identifier": "corpus/note-00001",
+                "result_kind": "entity",
+                "score": -0.4632261443782781
+              },
+              {
+                "identifier": "corpus/note-00003",
+                "result_kind": "entity",
+                "score": -0.4620950051950987
+              },
+              {
+                "identifier": "corpus/note-00008",
+                "result_kind": "entity",
+                "score": -0.4620950051950987
+              },
+              {
+                "identifier": "corpus/note-00000",
+                "result_kind": "entity",
+                "score": -0.4609693767507275
+              },
+              {
+                "identifier": "corpus/note-00005",
+                "result_kind": "entity",
+                "score": -0.4604086164861456
+              },
+              {
+                "identifier": "corpus/note-00007",
+                "result_kind": "entity",
+                "score": -0.4604086164861456
+              },
+              {
+                "identifier": "corpus/note-00002",
+                "result_kind": "entity",
+                "score": -0.4592911789468376
+              },
+              {
+                "identifier": "corpus/note-00006",
+                "result_kind": "entity",
+                "score": -0.4592911789468376
+              },
+              {
+                "identifier": "corpus/note-00004",
+                "result_kind": "entity",
+                "score": -0.4592911789468376
+              },
+              {
+                "identifier": "corpus/note-00009",
+                "result_kind": "entity",
+                "score": -0.4592911789468376
+              }
+            ],
+            "page": 2,
+            "page_size": 50,
+            "total": 100,
+            "total_is_exact": true
+          }
+        ]
+      },
+      "matching_consecutive_observations": 3,
+      "stable_semantics_sha256": "712782f62e8296a6b5dbf0696d8c7ed2db8171673cf3395de0125c19385175d7"
+    },
+    "restored_source": {
+      "comparison": {
+        "delivered_source_equal": true,
+        "delivered_utf8_bytes": 4096,
+        "delivered_utf8_sha256": "5a8e3f0f79d39b47bbf96233a7ace497b3f6f51384662e385eedb8631a0bf90c",
+        "general_byte_fidelity_claim": false,
+        "source_bytes_equal": true,
+        "upstream_crlf_normalized": false
+      },
+      "events": {
+        "adapter": {
+          "command_count": 1,
+          "driver_session": {
+            "generation": 1,
+            "profile": "main-preview"
+          },
+          "driver_started_at": "2026-09-19T04:29:13.731144+00:00",
+          "elapsed_ms": 46.6403,
+          "id": "57",
+          "lane": "adapter",
+          "outer_elapsed_ms": 47.0384,
+          "outer_reply_bytes": 4617,
+          "outer_request_bytes": 224,
+          "request": {
+            "arguments": {
+              "identifier": "corpus/note-00000",
+              "include_frontmatter": true,
+              "output_format": "json",
+              "project": "bmdock-fixture"
+            },
+            "name": "read_note"
+          },
+          "response": {
+            "storage": "sha256-and-length-after-full-source-comparison"
+          },
+          "response_compact_json_bytes": 4382,
+          "response_sha256": "fb5ff120c3d680261966649a03f7d3bf1f47fde529ad738bce6ef7d69d3538d6",
+          "started_at": "2026-09-19T04:29:40.915565+00:00",
+          "typed_command": {
+            "args": {
+              "expected_session": {
+                "generation": 1,
+                "profile": "main-preview"
+              },
+              "identifier": "corpus/note-00000",
+              "project": "bmdock-fixture",
+              "workspace": "bmdock-workspace"
+            },
+            "command": "read_note"
+          }
+        },
+        "direct": {
+          "command_count": 1,
+          "driver_session": {
+            "generation": 1,
+            "profile": "main-preview"
+          },
+          "driver_started_at": "2026-09-19T04:29:13.731144+00:00",
+          "elapsed_ms": 52.4063,
+          "id": "56",
+          "lane": "direct",
+          "outer_elapsed_ms": 52.9869,
+          "outer_reply_bytes": 9270,
+          "outer_request_bytes": 223,
+          "request": {
+            "arguments": {
+              "identifier": "corpus/note-00000",
+              "include_frontmatter": true,
+              "output_format": "json",
+              "project": "bmdock-fixture"
+            },
+            "name": "read_note"
+          },
+          "response": {
+            "storage": "sha256-and-length-after-full-source-comparison"
+          },
+          "response_compact_json_bytes": 9036,
+          "response_sha256": "6ba721a38bd8f716ec3150a518d3efb6027390c0da4048d12bf6de21f013aac3",
+          "started_at": "2026-09-19T04:29:40.862529+00:00",
+          "typed_command": {
+            "args": {
+              "expected_session": {
+                "generation": 1,
+                "profile": "main-preview"
+              },
+              "identifier": "corpus/note-00000",
+              "project": "bmdock-fixture",
+              "workspace": "bmdock-workspace"
+            },
+            "command": "read_note"
+          }
+        }
+      },
+      "order": [
+        "direct",
+        "adapter"
+      ]
+    }
+  },
+  "full_matrix_complete": false,
+  "host_python": "3.14.7",
+  "logical_cpus": 24,
+  "measurement_manifest_sha256": "1355aaa365b1298b1d935dfd9d6eab441014fd55a7e84c8dc58cac856fb94844",
+  "mode": "freshness",
+  "pairs": [],
+  "physical_corpus_unchanged": true,
+  "platform": "Windows-11-10.0.26200-SP0",
+  "profile": "main-preview",
+  "protocol": {
+    "budget_clock": "Python perf_counter_ns before JSONL write through complete parsed response; identical boundaries both lanes",
+    "cold": "Fresh desktop driver and owned engine per lane; indexed corpus reused; OS disk cache uncontrolled",
+    "cold_pairs": 5,
+    "host_load": "Shared development host, background build/test load uncontrolled; no cross-profile speedup claim",
+    "inner_clock": "Rust owner request for direct; production dispatch for adapter; diagnostic only, includes transport/serde",
+    "payload": "Outer reply UTF-8 JSONL bytes and compact response JSON bytes; raw direct envelope may duplicate content",
+    "rss": "Desktop driver process peak working set only; official engine/descendant peak RSS unavailable",
+    "strict_c01_probe_clock_conformance": false,
+    "warm": "One primed desktop owner; alternating paired direct/adapter calls; no application result cache",
+    "warm_pairs": 30
+  },
+  "samples": [],
+  "scale": "notes-100",
+  "scenario": "literal-00",
+  "schema_version": 1,
+  "sessions": [
+    {
+      "ready": {
+        "engine_sha": "3452c821d76c083823d020984d71e06904a1ff1e",
+        "event": "ready",
+        "runtime": {
+          "failure": null,
+          "host_drain": "idle",
+          "kind": "runtime_state",
+          "profile": "main-preview",
+          "project": null,
+          "semantic_model_loaded": false,
+          "session_generation": 1,
+          "shutdown": null,
+          "status": "connected"
+        },
+        "session": {
+          "generation": 1,
+          "profile": "main-preview"
+        }
+      },
+      "shutdown": {
+        "id": "58",
+        "outer_elapsed_ms": 1260.53,
+        "outer_reply_bytes": 420,
+        "outer_request_bytes": 33,
+        "shutdown": {
+          "child_exited": true,
+          "exit_code": 0,
+          "forced": false,
+          "timeout_unknown": false,
+          "transport_cancelled": true
+        },
+        "started_at": "2026-09-19T04:29:40.962871+00:00",
+        "stopped": {
+          "failure": null,
+          "host_drain": "idle",
+          "kind": "runtime_state",
+          "profile": "main-preview",
+          "project": null,
+          "semantic_model_loaded": false,
+          "session_generation": 1,
+          "shutdown": {
+            "child_exited": true,
+            "exit_code": 0,
+            "forced": false,
+            "timeout_unknown": false,
+            "transport_cancelled": true
+          },
+          "status": "stopped"
+        }
+      },
+      "started_at": "2026-09-19T04:29:13.731144+00:00",
+      "startup_ms": 6495.2831,
+      "stderr_path": ".work/g0/client-queries/main-preview-_8dzyocl/c03-driver-1789792153731155000.stderr.log"
+    }
+  ],
+  "source_and_binary_unchanged": true,
+  "started_at": "2026-09-19T04:29:13.506133+00:00",
+  "status": "passed",
+  "unverified": [
+    "Full 428-cell C01/C03 performance matrix",
+    "Native renderer/typing/IME/UI",
+    "Meaningful pre-optimization UI comparison",
+    "Official engine/descendant peak RSS",
+    "Semantic retrieval (disabled in isolated profiles)",
+    "Controlled quiet-host performance"
+  ],
+  "user_authorized_deferral": "Code and representative benchmarks first; full performance matrix retained for acceptance"
+}
