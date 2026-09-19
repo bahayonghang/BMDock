@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+#[cfg(test)]
 use std::{
     collections::BTreeMap,
     path::PathBuf,
@@ -87,6 +88,7 @@ pub struct RuntimeSnapshot {
     pub shutdown: Option<ShutdownReceipt>,
 }
 
+#[cfg(test)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EngineLaunchSpec {
     pub profile: EngineProfile,
@@ -96,16 +98,19 @@ pub struct EngineLaunchSpec {
     pub env: BTreeMap<String, String>,
 }
 
+#[cfg(test)]
 pub trait ChildHandle: Send {
     fn pid(&self) -> Option<u32>;
     fn wait(&mut self, timeout: Duration) -> WaitOutcome;
     fn kill(&mut self) -> bool;
 }
 
+#[cfg(test)]
 pub struct OwnedChild {
     child: Child,
 }
 
+#[cfg(test)]
 impl OwnedChild {
     pub fn spawn(spec: &EngineLaunchSpec) -> std::io::Result<Self> {
         let mut command = Command::new(&spec.program);
@@ -124,12 +129,14 @@ impl OwnedChild {
     }
 }
 
+#[cfg(test)]
 impl Drop for OwnedChild {
     fn drop(&mut self) {
         let _ = self.child.kill();
     }
 }
 
+#[cfg(test)]
 impl ChildHandle for OwnedChild {
     fn pid(&self) -> Option<u32> {
         Some(self.child.id())
@@ -152,15 +159,18 @@ impl ChildHandle for OwnedChild {
     }
 }
 
+#[cfg(test)]
 pub trait Transport: Send {
     fn cancel(&mut self) -> CancelOutcome;
 }
+#[cfg(test)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WaitOutcome {
     Exited(Option<i32>),
     TimedOut,
     Unknown,
 }
+#[cfg(test)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CancelOutcome {
     Cancelled,
@@ -170,6 +180,7 @@ pub enum CancelOutcome {
 
 pub struct Supervisor {
     snapshot: RuntimeSnapshot,
+    #[cfg(test)]
     child: Option<Box<dyn ChildHandle>>,
 }
 
@@ -183,6 +194,7 @@ impl Default for Supervisor {
                 failure: None,
                 shutdown: None,
             },
+            #[cfg(test)]
             child: None,
         }
     }
@@ -193,6 +205,7 @@ impl Supervisor {
         self.snapshot.clone()
     }
 
+    #[cfg(test)]
     fn can_start(&self) -> bool {
         matches!(
             self.snapshot.state,
@@ -200,6 +213,7 @@ impl Supervisor {
         )
     }
 
+    #[cfg(test)]
     pub fn start(
         &mut self,
         spec: EngineLaunchSpec,
@@ -219,6 +233,7 @@ impl Supervisor {
         Ok(())
     }
 
+    #[cfg(test)]
     pub fn spawn(&mut self, spec: EngineLaunchSpec) -> Result<(), FailureKind> {
         if !self.can_start() || spec.program.as_os_str().is_empty() {
             return Err(FailureKind::Policy);
@@ -226,6 +241,7 @@ impl Supervisor {
         let child = OwnedChild::spawn(&spec).map_err(|_| FailureKind::Process)?;
         self.start(spec, Box::new(child))
     }
+    #[cfg(test)]
     pub fn mark_connected(&mut self) -> Result<(), FailureKind> {
         if self.snapshot.state != ConnectionState::Starting {
             return Err(FailureKind::Policy);
@@ -233,6 +249,7 @@ impl Supervisor {
         self.snapshot.state = ConnectionState::Connected;
         Ok(())
     }
+    #[cfg(test)]
     pub fn mark_failed(&mut self, kind: FailureKind) -> Result<(), FailureKind> {
         if !matches!(
             self.snapshot.state,
@@ -244,6 +261,7 @@ impl Supervisor {
         self.snapshot.failure = Some(kind);
         Ok(())
     }
+    #[cfg(test)]
     pub fn shutdown<T: Transport>(
         &mut self,
         transport: &mut T,
@@ -283,6 +301,7 @@ impl Supervisor {
     }
 }
 
+#[cfg(test)]
 impl Drop for Supervisor {
     fn drop(&mut self) {
         if let Some(child) = self.child.as_mut() {

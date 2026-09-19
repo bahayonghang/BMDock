@@ -1,10 +1,16 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { EditSessions, type EditorState } from "./editSessions";
+import { WorkbenchRequests } from "./workbenchRequests";
+import { SearchWindow, restoreSearchFocus } from "./searchWindow";
 import {
   FIXTURE_PROJECT,
   OWNED_KIND,
   TREE_PAGE_SIZE,
+  QUERY_PAGE_SIZE,
+  type SearchOptions,
   copyFixtureRoute,
   invokeTyped,
+  listenTyped,
   type BackupCatalogDto,
   type BackupRecordDto,
   type CapabilitiesDto,
@@ -75,6 +81,8 @@ import {
 import { t } from "./i18n";
 import {
   classifyBody,
+  captureContentDiagnostics,
+  diagnosticIsCurrent,
   type LineEndingClass,
 } from "./contentSafety";
 import {
@@ -149,16 +157,35 @@ function profileLabel(profile: EngineProfile): string {
   }
 }
 
+const EditorContext = createContext<{ sessions: EditSessions; profile: string; selection: Map<string, NoteReadDto>; requests: WorkbenchRequests } | null>(null);
+function useEditorSession(purpose: "draft" | "crud", identifier: string | null, body: string | null, title?: string | null) {
+  const context = useContext(EditorContext);
+  if (!context) throw new Error("Editor sessions require the App owner");
+  const key = JSON.stringify([context.profile, copyFixtureRoute(), identifier ?? "new-note", purpose]);
+  const snapshot = () => context.sessions.get(key, { identifier: identifier ?? "", body: body ?? "", title: title ?? "" });
+  const state = useSyncExternalStore(context.sessions.subscribe, snapshot);
+  return { state, key, patch: (patch: Partial<EditorState>) => context.sessions.update(key, patch),
+    discard: () => context.sessions.discard(key, { identifier: identifier ?? "", body: body ?? "", title: title ?? "" }),
+    run: (work: (submitted: EditorState) => Promise<void>) => context.sessions.run(key, work),
+    draft: (operation: "save_draft" | "load_draft") => context.sessions.draft(key, operation) };
+}
+
 function App() {
+  const [editSessions] = useState(() => new EditSessions());
+  const [selection] = useState(() => new Map<string, NoteReadDto>());
+  const [workbenchRequests] = useState(() => new WorkbenchRequests());
+  const lastProfile = useRef("unconnected");
+  const shellGeneration = useRef(0);
   const [section, setSection] = useState<SectionId>("workbench");
   const [reloadToken, setReloadToken] = useState(0);
   const [load, setLoad] = useState<ShellLoadState>({ phase: "loading" });
 
   useEffect(() => {
     let cancelled = false;
+    const generation = ++shellGeneration.current;
     setLoad({ phase: "loading" });
     void readShellSnapshot().then((next) => {
-      if (!cancelled) {
+      if (!cancelled && generation === shellGeneration.current) {
         setLoad(next);
       }
     });
@@ -167,7 +194,24 @@ function App() {
     };
   }, [reloadToken]);
 
+  useEffect(() => {
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+    void listenTyped("runtime_state", () => {
+      if (disposed) return;
+      ++shellGeneration.current;
+      workbenchRequests.invalidate();
+      setLoad({ phase: "loading" });
+      setReloadToken((value) => value + 1);
+    }).then((stop) => { if (disposed) stop(); else unlisten = stop; }).catch((cause) => {
+      if (!disposed) setLoad({ phase: "error", category: "invoke", message: cause instanceof Error ? cause.message : String(cause) });
+    });
+    return () => { disposed = true; unlisten?.(); };
+  }, []);
+
+  if (load.phase === "ready") lastProfile.current = load.runtime.profile ?? "unconnected";
   return (
+    <EditorContext.Provider value={{ sessions: editSessions, profile: lastProfile.current, selection, requests: workbenchRequests }}>
     <div className="app">
       <a className="skip-link" href="#main">
         {t("skipToMain")}
@@ -182,29 +226,36 @@ function App() {
       <div className="layout">
         <nav aria-label={t("navLabel")}>
           <ul className="nav-list">
-            {SECTIONS.map((id) => (
-              <li key={id}>
-                <button
-                  type="button"
-                  className="nav-button"
-                  aria-current={section === id ? "page" : undefined}
-                  onClick={() => setSection(id)}
-                >
-                  {sectionLabel(id)}
-                </button>
-              </li>
+            {(["workbench", "projects"] as const).map((id) => (
+              <li key={id}><button type="button" className="nav-button" aria-current={section === id ? "page" : undefined}
+                onClick={() => { if (id !== section) workbenchRequests.invalidate(); setSection(id); }}>{sectionLabel(id)}</button></li>
             ))}
           </ul>
+          {[
+            { title: t("navDiagnosticsGroup"), ids: ["runtime", "preflight", "routes", "privacy", "install", "bundle", "help", "release", "about"] as SectionId[] },
+            { title: t("navMaintenanceGroup"), ids: ["backups", "import", "extras", "cloud", "sync", "hooks", "providers"] as SectionId[] },
+          ].map((group) => (
+            <details className="nav-group" key={group.title}>
+              <summary>{group.title}{group.ids.includes(section) ? <span className="active-group"> · {sectionLabel(section)}</span> : null}</summary>
+              <ul className="nav-list">
+                {group.ids.map((id) => (
+                  <li key={id}><button type="button" className="nav-button" aria-current={section === id ? "page" : undefined}
+                    onClick={() => { if (id !== section) workbenchRequests.invalidate(); setSection(id); }}>{sectionLabel(id)}</button></li>
+                ))}
+              </ul>
+            </details>
+          ))}
         </nav>
         <main id="main">
           <SectionBody
             section={section}
             load={load}
-            onRefresh={() => setReloadToken((token) => token + 1)}
+            onRefresh={() => { workbenchRequests.invalidate(); ++shellGeneration.current; setReloadToken((token) => token + 1); }}
           />
         </main>
       </div>
     </div>
+    </EditorContext.Provider>
   );
 }
 
@@ -297,7 +348,7 @@ function WorkbenchPanel({
         </section>
       );
     case "ready":
-      return <WorkbenchLibrary onRefresh={onRefresh} runtimeFailure={load.runtime.failure} />;
+      return <WorkbenchLibrary key={[load.runtime.profile, load.runtime.session_generation].join(":")} onRefresh={onRefresh} runtime={load.runtime} />;
     default: {
       const exhaustive: never = load;
       return exhaustive;
@@ -314,23 +365,67 @@ function unexpectedWorkbenchResponse(): WorkbenchError {
   return { category: "schema", message: t("unexpectedTree") };
 }
 
-function WorkbenchLibrary({
-  onRefresh,
-  runtimeFailure,
-}: {
-  onRefresh: () => void;
-  runtimeFailure: FailureKind | null;
-}) {
+export function DemandPanel({ title, pending, onLoad, children }: { title: string; pending: boolean; onLoad: () => void; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return <details onToggle={(event) => {
+    if (event.target !== event.currentTarget) return;
+    setOpen(event.currentTarget.open);
+    if (event.currentTarget.open) onLoad();
+  }}><summary>{title}</summary>{open ? <>
+    <button type="button" className="action" disabled={pending} onClick={onLoad}>{t("diagnosticLoad")}</button>
+    {pending ? <p role="status">{t("operationPending")}</p> : null}{children}
+  </> : null}</details>;
+}
+
+export function deliverPrimaryNote(note: NoteReadDto | null, resultIdentity: string | null,
+  setNote: (note: NoteReadDto | null) => void, setSelectedResult: (identity: string | null) => void) {
+  setNote(note);
+  if (note) setSelectedResult(resultIdentity);
+}
+
+function WorkbenchLibrary({ onRefresh, runtime }: { onRefresh: () => void; runtime: RuntimeStateDto }) {
+  const editorContext = useContext(EditorContext)!;
+  const [readerMode, setReaderMode] = useState<"read" | "draft">("read");
+  const [directory, setDirectory] = useState("");
+  const runtimeFailure = runtime.failure;
+  const requests = editorContext.requests;
+  const pending = useSyncExternalStore(requests.subscribe, requests.snapshot);
+  useEffect(() => () => requests.invalidate(), [requests]);
+  const expectedSession = runtime.profile !== null && runtime.session_generation !== null
+    ? { profile: runtime.profile, generation: runtime.session_generation } : undefined;
+  const queryGeneration = useRef(0);
+  const invokeRead: typeof invokeTyped = (command) => {
+    if (command.command === "read_note") return invokeTyped({ ...command, args: { ...command.args, expected_session: expectedSession } });
+    if (command.command === "list_tree") return invokeTyped({ ...command, args: { ...command.args, directory: directory || undefined, expected_session: expectedSession } });
+    if (command.command === "search_notes") return invokeTyped({ ...command, args: { ...command.args, expected_session: expectedSession, request_generation: ++queryGeneration.current } });
+    if (command.command === "preview_context") return invokeTyped({ ...command, args: { ...command.args, expected_session: expectedSession, request_generation: ++queryGeneration.current } });
+    if (command.command === "list_activity") return invokeTyped({ ...command, args: { ...command.args, expected_session: expectedSession, request_generation: ++queryGeneration.current } });
+    return invokeTyped(command);
+  };
+  const request = (operation: string, identity: unknown, work: Parameters<WorkbenchRequests["run"]>[2]) => {
+    return requests.run(operation, JSON.stringify([runtime.profile, runtime.session_generation, copyFixtureRoute(), directory, /Search|Tree/.test(operation) ? QUERY_PAGE_SIZE : TREE_PAGE_SIZE, identity]), work);
+  };
+
   const [reloadToken, setReloadToken] = useState(0);
   const [phase, setPhase] = useState<"loading" | "ready" | "empty" | "error">("loading");
   const [entries, setEntries] = useState<TreeEntryDto[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [note, setNote] = useState<NoteReadDto | null>(null);
+  const [note, setNoteState] = useState<NoteReadDto | null>(() => editorContext.selection.get(editorContext.profile) ?? null);
+  const setNote = (next: NoteReadDto | null) => {
+    if (next) editorContext.selection.set(editorContext.profile, next);
+    setNoteState(next);
+  };
   const [relations, setRelations] = useState<RelationListDto | null>(null);
   const [relationsError, setRelationsError] = useState<WorkbenchError | null>(null);
   const [graph, setGraph] = useState<GraphPageDto | null>(null);
   const [graphError, setGraphError] = useState<WorkbenchError | null>(null);
   const [search, setSearch] = useState<SearchPageDto | null>(null);
+  const searchWindow = useRef(new SearchWindow());
+  const searchOptions = useRef<SearchOptions>({});
+  const [selectedResult, setSelectedResult] = useState<string | null>(null);
+  const [relatedOpen, setRelatedOpen] = useState(false);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [mutationsOpen, setMutationsOpen] = useState(false);
   const [searchError, setSearchError] = useState<WorkbenchError | null>(null);
   const [inspector, setInspector] = useState<SearchInspectorDto | null>(null);
   const [inspectorError, setInspectorError] = useState<WorkbenchError | null>(null);
@@ -358,18 +453,22 @@ function WorkbenchLibrary({
     classified_as: NoteCrudClass;
   } | null>(null);
   const [error, setError] = useState<WorkbenchError | null>(null);
+  const [noteError, setNoteError] = useState<WorkbenchError | null>(null);
+  const [pageError, setPageError] = useState<WorkbenchError | null>(null);
 
   useEffect(() => {
+    requests.invalidate();
+    const generation = requests.generation();
     let cancelled = false;
     setPhase("loading");
     setEntries([]);
     setNextCursor(null);
-    setNote(null);
     setRelations(null);
     setRelationsError(null);
     setGraph(null);
     setGraphError(null);
     setSearch(null);
+    searchWindow.current.reset();
     setSearchError(null);
     setInspector(null);
     setInspectorError(null);
@@ -391,114 +490,28 @@ function WorkbenchLibrary({
     setActivityError(null);
     setCrudObservation(null);
     setError(null);
-    void (async () => {
-      try {
-        const route = copyFixtureRoute();
-        const response = await invokeTyped<IpcResponse>({
-          command: "list_tree",
-          args: {
-            workspace: route.workspace,
-            project: route.project,
-            page_size: TREE_PAGE_SIZE,
-          },
-        });
-        if (cancelled) {
-          return;
-        }
-        switch (response.kind) {
-          case "error":
-            setError({ category: response.category, message: response.message });
-            setPhase("error");
-            return;
-          case "tree_page":
-            if (response.truncated) {
-              setError({ category: "schema", message: t("unexpectedTree") });
-              setPhase("error");
-              return;
-            }
-            setEntries(response.entries);
-            setNextCursor(response.next_cursor);
-            setPhase(response.entries.length === 0 ? "empty" : "ready");
-            void loadActivity(setActivity, setActivityError);
-            void loadResources(setResources, setResourcesError);
-            void loadPrompts(setPrompts, setPromptsError);
-            void loadTools(toolProfile, setTools, setToolsError);
-            void loadCli(toolProfile, setCli, setCliError);
-            void loadApiAudit(toolProfile, setAudit, setAuditError);
-            return;
-          case "capabilities":
-          case "runtime_state":
-          case "project_selected":
-          case "project_catalog":
-          case "preflight":
-          case "config_discovery":
-          case "note_read":
-          case "backup_catalog":
-          case "fixture_restored":
-          case "windows_runtime":
-          case "draft_saved":
-          case "draft_loaded":
-          case "note_written":
-          case "note_edited":
-          case "note_moved":
-          case "note_deleted":
-          case "relation_list":
-      case "graph_page":
-      case "search_page":
-      case "context_preview":
-      case "activity_page":
-      case "search_inspector":
-      case "recall_benchmark":
-      case "schema_validated":
-      case "resource_page":
-      case "prompt_page":
-      case "tool_inspection":
-      case "cli_inventory":
-      case "notes_imported":
-      case "api_audit":
-      case "extras_catalog":
-      case "document_ingested":
-      case "cloud_inspection":
-      case "sync_inspection":
-      case "share_catalog":
-      case "hook_inspection":
-      case "provider_inspection":
-      case "route_inspection":
-      case "privacy_inspection":
-      case "install_inspection":
-      case "bundle_inspection":
-      case "help_inspection":
-      case "release_inspection":
-      case "shutdown_begun":
-            setError(unexpectedWorkbenchResponse());
-            setPhase("error");
-            return;
-          default: {
-            const exhaustive: never = response;
-            return exhaustive;
-          }
-        }
-      } catch (cause) {
-        if (!cancelled) {
-          setError({
-            category: "invoke",
-            message: cause instanceof Error ? cause.message : String(cause),
-          });
-          setPhase("error");
-        }
-      }
-    })();
+    setPageError(null);
+    void request("loadTree", [], async ({ current, detailsCurrent }) => {
+      await loadTree(setEntries, setNextCursor, setPhase, setError,
+        editorContext.selection.get(editorContext.profile)?.identifier,
+        (identifier) => { void request("openNote", [identifier], ({ guard, current: noteCurrent, detailsCurrent: noteDetailsCurrent }) =>
+          openNote(identifier, guard(setNote), guard(setRelations), guard(setRelationsError), guard(setGraph), guard(setGraphError), guard(setPreview), guard(setPreviewError), guard(setNoteError), () => {}, noteCurrent, invokeRead, noteDetailsCurrent, false)); },
+        () => !cancelled && generation === requests.generation() && current(),
+        detailsCurrent, invokeRead);
+
+    });
     return () => {
       cancelled = true;
     };
-  }, [reloadToken]);
+  }, [reloadToken, directory]);
 
   useEffect(() => {
-    if (!note?.identifier) {
-      return;
-    }
-    void runSchemaValidate(note.identifier, null, setSchema, setSchemaError);
-  }, [note?.identifier]);
+    if (!relatedOpen || !note || requests.snapshot().includes("openNote")) return;
+    void request("loadContextPreview", [note.identifier], ({ guard }) => loadContextPreview(note.identifier, null, guard(setPreview), guard(setPreviewError), invokeRead));
+    void request("loadGraph", [note.identifier], ({ guard }) => loadGraph(note.identifier, guard(setGraph), guard(setGraphError)));
+    void request("loadRelations", [note.identifier], ({ guard }) => loadRelations(note.identifier, guard(setRelations), guard(setRelationsError)));
+    return () => requests.invalidate("loadContextPreview", "loadGraph", "loadRelations");
+  }, [relatedOpen, note, pending.includes("openNote")]);
 
   const refresh = (
     <button
@@ -513,41 +526,57 @@ function WorkbenchLibrary({
     </button>
   );
 
-  if (phase === "loading") {
-    return (
-      <section className="panel" data-state="status" aria-labelledby="workbench-title" aria-busy="true">
-        <p className="state-badge">{t("statusBadge")}</p>
-        <h2 id="workbench-title">{t("workbenchTitle")}</h2>
-        <p role="status">{t("workbenchLoading")}</p>
-      </section>
-    );
-  }
-
-  if (phase === "error" && error) {
-    return (
-      <section className="panel" data-state="error" aria-labelledby="workbench-error-title" role="alert">
-        <p className="state-badge">{t("errorBadge")}</p>
-        <h2 id="workbench-error-title">{t("workbenchErrorTitle")}</h2>
-        <p>
-          {errorCategoryLabel(error.category)}：{error.message}
-        </p>
-        <p>{t("workbenchErrorBody")}</p>
-        {refresh}
-      </section>
-    );
-  }
-
-  const empty = phase === "empty";
+  const empty = phase !== "loading" && entries.length === 0;
   return (
-    <section
-      className="panel"
-      data-state={empty ? "empty" : "status"}
-      aria-labelledby="workbench-title"
-    >
-      <p className="state-badge">{empty ? t("emptyBadge") : t("statusBadge")}</p>
-      <h2 id="workbench-title">{empty ? t("workbenchEmptyTitle") : t("workbenchReadyTitle")}</h2>
-      <p>{empty ? t("workbenchEmptyBody") : t("workbenchReadyBody")}</p>
-      <h3>{t("workbenchTreeTitle")}</h3>
+    <section className="panel workspace" data-state={phase === "error" ? "error" : empty ? "empty" : "status"} aria-labelledby="workbench-title">
+      <div className="workspace-heading">
+        <div><h2 id="workbench-title">{t("workbenchTitle")}</h2>
+          <p className="workspace-status">{t("workspaceFixtureStatus")} · {runtime.profile ? profileLabel(runtime.profile) : t("statusNotStarted")} · {runtimeStatusLabel(runtime.status)}</p>
+        </div>
+        {refresh}
+      </div>
+      {pending.length > 0 ? <p className="operation-status" role="status" aria-live="polite">{t("operationPending")}</p> : null}
+      <div className="workspace-grid">
+        <section className="workspace-list" aria-labelledby="workspace-list-title" aria-busy={phase === "loading"}>
+      <SearchPanel
+        selectedIdentifier={note?.identifier ?? null}
+        selectedResultIdentifier={selectedResult}
+        onResultFocus={(identifier) => { searchWindow.current.activeResult = identifier; }}
+        pending={pending.includes("runSearch") || pending.includes("loadMoreSearch")}
+        search={search}
+        error={searchError}
+        onSearch={(query, options) => {
+          void request("runSearch", [query, options], ({ guard }) => runSearch(query, guard((page) => {
+            if (!page) return;
+            searchOptions.current = options;
+            setSelectedResult(null);
+            searchWindow.current.reset();
+            setSearch(searchWindow.current.accept(page));
+          }), guard(setSearchError), invokeRead, options));
+        }}
+        onPreview={(identifier, _query, resultIdentity) => {
+          searchWindow.current.activeResult = resultIdentity ?? identifier;
+          void request("openNote", [identifier, resultIdentity ?? identifier], ({ guard, current, detailsCurrent }) => openNote(identifier, guard((next) => deliverPrimaryNote(next, resultIdentity ?? identifier, setNote, setSelectedResult)), guard(setRelations), guard(setRelationsError), guard(setGraph), guard(setGraphError), guard(setPreview), guard(setPreviewError), guard(setNoteError), () => {}, current, invokeRead, detailsCurrent, false));
+        }}
+        previousAvailable={searchWindow.current.previous().available}
+        onPrevious={() => {
+          const previous = searchWindow.current.previous();
+          if (!search || !previous.available) return;
+          void request("loadMoreSearch", [search.query, searchOptions.current, previous.cursor], ({ guard }) => runSearch(search.query, guard((page) => { if (page) setSearch(searchWindow.current.accept(page, previous.cursor)); }), guard(setSearchError), invokeRead, searchOptions.current, previous.cursor));
+        }}
+        onLoadMore={() => {
+          if (!search?.next_cursor) return;
+          const cursor = search.next_cursor;
+          void request("loadMoreSearch", [search.query, searchOptions.current, cursor], ({ guard, current }) => loadMoreSearch(search, guard(setSearch), guard(setSearchError), invokeRead, searchOptions.current, searchWindow.current, current));
+        }}
+      />
+
+          {phase === "loading" ? <p role="status">{t("workbenchLoading")}</p> : null}
+          {error ? <p role="alert">{errorCategoryLabel(error.category)}：{error.message}</p> : null}
+          {empty && !error ? <p>{t("workspaceListEmpty")}</p> : null}
+      <h3 id="workspace-list-title">{t("workbenchTreeTitle")}</h3>
+      <p className="directory-path">{directory || t("workspaceRootDirectory")}</p>
+      {directory ? <button type="button" className="action" onClick={() => { requests.invalidate(); setDirectory(directory.split("/").slice(0, -1).join("/")); }}>{t("workspaceParentDirectory")}</button> : null}
       {empty ? null : (
         <ul className="tree-list">
           {entries.map((entry) => (
@@ -555,24 +584,19 @@ function WorkbenchLibrary({
               <button
                 type="button"
                 className="tree-item"
+                aria-current={note?.identifier === entry.identifier ? "true" : undefined}
+                aria-label={entry.kind === "directory" ? `${entry.title}，${t("workspaceOpenDirectory")}` : entry.title}
                 onClick={() => {
                   if (entry.kind === "note") {
-                    void openNote(
-                      entry.identifier,
-                      setNote,
-                      setRelations,
-                      setRelationsError,
-                      setGraph,
-                      setGraphError,
-                      setPreview,
-                      setPreviewError,
-                      setError,
-                      setPhase,
-                    );
+                    const identifier = entry.note_identifier ?? entry.identifier;
+                    void request("openNote", [identifier, null], ({ guard, current, detailsCurrent }) => openNote(identifier, guard((next) => deliverPrimaryNote(next, null, setNote, setSelectedResult)), guard(setRelations), guard(setRelationsError), guard(setGraph), guard(setGraphError), guard(setPreview), guard(setPreviewError), guard(setNoteError), () => {}, current, invokeRead, detailsCurrent, false));
+                  } else {
+                    requests.invalidate();
+                    setDirectory(entry.identifier);
                   }
                 }}
               >
-                {entry.title}
+                {entry.kind === "directory" ? "▸ " : ""}{entry.title}
               </button>
             </li>
           ))}
@@ -583,13 +607,44 @@ function WorkbenchLibrary({
           type="button"
           className="action"
           onClick={() => {
-            void loadMoreTree(nextCursor, entries, setEntries, setNextCursor, setError, setPhase);
+            void request("loadMoreTree", [nextCursor], ({ guard, current }) => loadMoreTree(nextCursor, entries, guard(setEntries), guard(setNextCursor), guard(setPageError), guard((next) => { if (next !== "error") setPhase(next); }), invokeRead));
           }}
         >
           {t("workbenchLoadMore")}
         </button>
       ) : null}
-      <NotePreview note={note} />
+
+          {pageError ? <p role="alert">{errorCategoryLabel(pageError.category)}：{pageError.message}</p> : null}
+        </section>
+        <section className="workspace-reader" aria-label={t("workspaceReaderRegion")}>
+          <div className="reader-switch" role="group" aria-label={t("workspaceReaderMode")}>
+            <button type="button" className="action" aria-pressed={readerMode === "read"} onClick={() => setReaderMode("read")}>{t("workspaceReadSource")}</button>
+            <button type="button" className="action" aria-pressed={readerMode === "draft"} onClick={() => setReaderMode("draft")}>{t("workspaceEditDraft")}</button>
+          </div>
+          {noteError ? <p role="alert">{errorCategoryLabel(noteError.category)}：{noteError.message}</p> : null}
+          {readerMode === "read" ? <NotePreview note={note} /> : <DraftEditor seedIdentifier={note?.identifier ?? null} seedBody={note?.body ?? null} />}
+          <details className="workspace-related" onToggle={(event) => { if (event.target === event.currentTarget) setRelatedOpen(event.currentTarget.open); }}>
+            <summary>{t("workspaceRelated")}</summary>
+      <RelationPanel relations={relations} error={relationsError} />
+      <GraphPanel
+        graph={graph}
+        error={graphError}
+        onLoadMore={() => {
+          if (graph?.next_cursor) {
+            void request("loadMoreGraph", [graph.identifier, graph.next_cursor, graph.page], ({ guard, current }) => loadMoreGraph(graph, guard(setGraph), guard(setGraphError)));
+          }
+        }}
+        onExpand={(identifier) => {
+          void request("loadGraph", [identifier], ({ guard, current }) => loadGraph(identifier, guard(setGraph), guard(setGraphError)));
+        }}
+      />
+      <ContextPreviewPanel preview={preview} error={previewError} />
+          </details>
+        </section>
+      </div>
+      <details className="workspace-diagnostics" onToggle={(event) => { if (event.target === event.currentTarget) setDiagnosticsOpen(event.currentTarget.open); }}>
+        <summary>{t("workspaceDiagnostics")}</summary>
+        <p>{t("workspaceDiagnosticsHint")}</p>
       <ObservationPanel
         note={note}
         relations={relations}
@@ -597,48 +652,18 @@ function WorkbenchLibrary({
         crudObservation={crudObservation}
         graph={graph}
       />
-      <RelationPanel relations={relations} error={relationsError} />
-      <GraphPanel
-        graph={graph}
-        error={graphError}
-        onLoadMore={() => {
-          if (graph?.next_cursor) {
-            void loadMoreGraph(graph, setGraph, setGraphError);
-          }
-        }}
-        onExpand={(identifier) => {
-          void loadGraph(identifier, setGraph, setGraphError);
-        }}
-      />
-      <SearchPanel
-        search={search}
-        error={searchError}
-        onSearch={(query) => {
-          void runSearch(query, setSearch, setSearchError);
-          void runInspectSearch(query, null, setInspector, setInspectorError);
-        }}
-        onPreview={(identifier, query) => {
-          void loadContextPreview(identifier, query, setPreview, setPreviewError);
-          void runInspectSearch(query, identifier, setInspector, setInspectorError);
-        }}
-        onLoadMore={() => {
-          if (search?.next_cursor) {
-            void loadMoreSearch(search, setSearch, setSearchError);
-          }
-        }}
-      />
       <SearchInspectorPanel
         inspector={inspector}
         error={inspectorError}
         onInspect={(query, identifier) => {
-          void runInspectSearch(query, identifier, setInspector, setInspectorError);
+          void request("runInspectSearch", [query, identifier], ({ guard, current }) => runInspectSearch(query, identifier, guard(setInspector), guard(setInspectorError)));
         }}
       />
       <RecallBenchmarkPanel
         recall={recall}
         error={recallError}
         onRun={(k) => {
-          void runRecallBenchmark(k, setRecall, setRecallError);
+          void request("runRecallBenchmark", [k], ({ guard, current }) => runRecallBenchmark(k, guard(setRecall), guard(setRecallError)));
         }}
       />
       <SchemaWorkbenchPanel
@@ -646,59 +671,78 @@ function WorkbenchLibrary({
         schema={schema}
         error={schemaError}
         onValidate={(identifier, schemaId) => {
-          void runSchemaValidate(identifier, schemaId, setSchema, setSchemaError);
+          void request("runSchemaValidate", [identifier, schemaId], ({ guard, current }) => runSchemaValidate(identifier, schemaId, guard(setSchema), guard(setSchemaError)));
         }}
       />
+      <DemandPanel title={t("diagnosticResources")} pending={pending.includes("loadResources")} onLoad={() => { void request("loadResources", [toolProfile], ({ guard }) => loadResources(guard(setResources), guard(setResourcesError))); }}>
       <ResourceCatalogPanel
         resources={resources}
         error={resourcesError}
         onLoadMore={() => {
           if (resources?.next_cursor) {
-            void loadMoreResources(resources, setResources, setResourcesError);
+            void request("loadMoreResources", [resources.next_cursor, resources.page], ({ guard, current }) => loadMoreResources(resources, guard(setResources), guard(setResourcesError)));
           }
         }}
       />
+      </DemandPanel>
+      <DemandPanel title={t("diagnosticPrompts")} pending={pending.includes("loadPrompts")} onLoad={() => { void request("loadPrompts", [toolProfile], ({ guard }) => loadPrompts(guard(setPrompts), guard(setPromptsError))); }}>
       <PromptCatalogPanel
         prompts={prompts}
         error={promptsError}
         onLoadMore={() => {
           if (prompts?.next_cursor) {
-            void loadMorePrompts(prompts, setPrompts, setPromptsError);
+            void request("loadMorePrompts", [prompts.next_cursor, prompts.page], ({ guard, current }) => loadMorePrompts(prompts, guard(setPrompts), guard(setPromptsError)));
           }
         }}
       />
+      </DemandPanel>
+      <DemandPanel title={t("diagnosticTools")} pending={pending.includes("loadTools")} onLoad={() => { void request("loadTools", [toolProfile], ({ guard }) => loadTools(toolProfile, guard(setTools), guard(setToolsError))); }}>
       <ToolsCenterPanel
         profile={toolProfile}
         tools={tools}
         error={toolsError}
         onProfile={(profile) => {
+          requests.changeDiagnosticProfile();
           setToolProfile(profile);
-          void loadTools(profile, setTools, setToolsError);
-          void loadCli(profile, setCli, setCliError);
-          void loadApiAudit(profile, setAudit, setAuditError);
+          setTools(null);
+          setToolsError(null);
+          setCli(null);
+          setCliError(null);
+          setAudit(null);
+          setAuditError(null);
+          void request("loadTools", [profile], ({ guard, current }) => loadTools(profile, guard(setTools), guard(setToolsError)));
         }}
       />
+      </DemandPanel>
+      <DemandPanel title={t("diagnosticCli")} pending={pending.includes("loadCli")} onLoad={() => { void request("loadCli", [toolProfile], ({ guard }) => loadCli(toolProfile, guard(setCli), guard(setCliError))); }}>
       <CliInventoryPanel
         profile={toolProfile}
         cli={cli}
         error={cliError}
         onLoadMore={() => {
-          if (cli?.next_cursor) {
-            void loadMoreCli(toolProfile, cli, setCli, setCliError);
+          if (cli?.next_cursor && cli.profile_id === toolProfile) {
+            void request("loadMoreCli", [toolProfile, cli.next_cursor, cli.page], ({ guard, current }) => loadMoreCli(toolProfile, cli, guard(setCli), guard(setCliError)));
           }
         }}
       />
+      </DemandPanel>
+      <DemandPanel title={t("diagnosticAudit")} pending={pending.includes("loadApiAudit")} onLoad={() => { void request("loadApiAudit", [toolProfile], ({ guard }) => loadApiAudit(toolProfile, guard(setAudit), guard(setAuditError))); }}>
       <ApiAuditPanel profile={toolProfile} audit={audit} error={auditError} />
-      <ContextPreviewPanel preview={preview} error={previewError} />
+      </DemandPanel>
+      <DemandPanel title={t("diagnosticActivity")} pending={pending.includes("loadActivity")} onLoad={() => { void request("loadActivity", [toolProfile], ({ guard }) => loadActivity(guard(setActivity), guard(setActivityError), invokeRead)); }}>
       <ActivityPanel
         activity={activity}
         error={activityError}
         onLoadMore={() => {
           if (activity?.next_cursor) {
-            void loadMoreActivity(activity, setActivity, setActivityError);
+            void request("loadMoreActivity", [activity.next_cursor, activity.page], ({ guard, current }) => loadMoreActivity(activity, guard(setActivity), guard(setActivityError)));
           }
         }}
       />
+      </DemandPanel>
+
+        <details onToggle={(event) => { if (event.target === event.currentTarget) setMutationsOpen(event.currentTarget.open); }}><summary>{t("workspaceFixtureMutations")}</summary>
+      {diagnosticsOpen && mutationsOpen ?
       <NoteCrudPanel
         seedIdentifier={note?.identifier ?? null}
         seedTitle={note?.title ?? null}
@@ -709,13 +753,53 @@ function WorkbenchLibrary({
           setCrudObservation({ identifier, classified_as });
         }}
       />
-      <DraftEditor seedIdentifier={note?.identifier ?? null} seedBody={note?.body ?? null} />
-      {refresh}
+      : null}
+        </details>
+      </details>
     </section>
   );
 }
 
-async function openNote(
+export async function loadTree(
+  setEntries: (entries: TreeEntryDto[]) => void,
+  setNextCursor: (cursor: string | null) => void,
+  setPhase: (phase: "loading" | "ready" | "empty" | "error") => void,
+  setError: (error: WorkbenchError | null) => void,
+  retainedIdentifier: string | undefined,
+  restoreSelection: (identifier: string) => void,
+  current: () => boolean,
+  detailsCurrent: () => boolean,
+  invoke: typeof invokeTyped = invokeTyped,
+): Promise<boolean> {
+  try {
+    const response = await invoke<IpcResponse>({ command: "list_tree", args: { ...copyFixtureRoute(), page_size: QUERY_PAGE_SIZE } });
+    if (!current()) return false;
+    if (response.kind === "error") {
+      setError({ category: response.category, message: response.message });
+      setPhase("error");
+      return false;
+    }
+    if (response.kind !== "tree_page" || response.truncated) {
+      setError(unexpectedWorkbenchResponse());
+      setPhase("error");
+      return false;
+    }
+    setEntries(response.entries);
+    setNextCursor(response.next_cursor);
+    setError(null);
+    setPhase(response.entries.length === 0 ? "empty" : "ready");
+    // Restoring a retained note must not supersede a newer explicit selection.
+    if (retainedIdentifier && detailsCurrent()) restoreSelection(retainedIdentifier);
+    return true;
+  } catch (cause) {
+    if (!current()) return false;
+    setError({ category: "invoke", message: cause instanceof Error ? cause.message : String(cause) });
+    setPhase("error");
+    return false;
+  }
+}
+
+export async function openNote(
   identifier: string,
   setNote: (note: NoteReadDto | null) => void,
   setRelations: (relations: RelationListDto | null) => void,
@@ -726,10 +810,14 @@ async function openNote(
   setPreviewError: (error: WorkbenchError | null) => void,
   setError: (error: WorkbenchError | null) => void,
   setPhase: (phase: "loading" | "ready" | "empty" | "error") => void,
+  current: () => boolean = () => true,
+  invoke: typeof invokeTyped = invokeTyped,
+  detailsCurrent: () => boolean = current,
+  loadDetails = true,
 ): Promise<void> {
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "read_note",
       args: {
         workspace: route.workspace,
@@ -737,6 +825,7 @@ async function openNote(
         identifier,
       },
     });
+    if (!current()) return;
     switch (response.kind) {
       case "error":
         setError({ category: response.category, message: response.message });
@@ -744,15 +833,27 @@ async function openNote(
         return;
       case "note_read":
         setError(null);
+        if (detailsCurrent()) {
+          setRelations(null);
+          setRelationsError(null);
+          setGraph(null);
+          setGraphError(null);
+          setPreview(null);
+          setPreviewError(null);
+        }
         setNote({
           title: response.title,
           identifier: response.identifier,
           body: response.body,
           observation: response.observation,
+          session: response.session,
         });
-        await loadRelations(identifier, setRelations, setRelationsError);
-        await loadGraph(identifier, setGraph, setGraphError);
-        await loadContextPreview(identifier, null, setPreview, setPreviewError);
+        if (!loadDetails || !detailsCurrent()) return;
+        await loadRelations(identifier, (value) => { if (detailsCurrent()) setRelations(value); }, (value) => { if (detailsCurrent()) setRelationsError(value); }, invoke);
+        if (!detailsCurrent()) return;
+        await loadGraph(identifier, (value) => { if (detailsCurrent()) setGraph(value); }, (value) => { if (detailsCurrent()) setGraphError(value); }, invoke);
+        if (!detailsCurrent()) return;
+        await loadContextPreview(identifier, null, (value) => { if (detailsCurrent()) setPreview(value); }, (value) => { if (detailsCurrent()) setPreviewError(value); }, invoke);
         return;
       case "capabilities":
       case "runtime_state":
@@ -815,14 +916,15 @@ async function openNote(
   }
 }
 
-async function loadRelations(
+export async function loadRelations(
   identifier: string,
   setRelations: (relations: RelationListDto | null) => void,
   setRelationsError: (error: WorkbenchError | null) => void,
+  invoke: typeof invokeTyped = invokeTyped,
 ): Promise<void> {
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "list_relations",
       args: {
         workspace: route.workspace,
@@ -943,14 +1045,15 @@ function mergeGraphPage(current: GraphPageDto, next: GraphPageDto): GraphPageDto
   };
 }
 
-async function loadGraph(
+export async function loadGraph(
   identifier: string,
   setGraph: (graph: GraphPageDto | null) => void,
   setGraphError: (error: WorkbenchError | null) => void,
+  invoke: typeof invokeTyped = invokeTyped,
 ): Promise<void> {
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "expand_graph",
       args: {
         workspace: route.workspace,
@@ -1034,17 +1137,18 @@ async function loadGraph(
   }
 }
 
-async function loadMoreGraph(
+export async function loadMoreGraph(
   current: GraphPageDto,
   setGraph: (graph: GraphPageDto | null) => void,
   setGraphError: (error: WorkbenchError | null) => void,
+  invoke: typeof invokeTyped = invokeTyped,
 ): Promise<void> {
   if (!current.next_cursor) {
     return;
   }
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "expand_graph",
       args: {
         workspace: route.workspace,
@@ -1125,23 +1229,24 @@ async function loadMoreGraph(
   }
 }
 
-async function loadMoreTree(
+export async function loadMoreTree(
   cursor: string,
   current: TreeEntryDto[],
   setEntries: (entries: TreeEntryDto[]) => void,
   setNextCursor: (cursor: string | null) => void,
   setError: (error: WorkbenchError | null) => void,
   setPhase: (phase: "loading" | "ready" | "empty" | "error") => void,
+  invoke: typeof invokeTyped = invokeTyped,
 ): Promise<void> {
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "list_tree",
       args: {
         workspace: route.workspace,
         project: route.project,
         cursor,
-        page_size: TREE_PAGE_SIZE,
+        page_size: QUERY_PAGE_SIZE,
       },
     });
     switch (response.kind) {
@@ -1156,6 +1261,7 @@ async function loadMoreTree(
           return;
         }
         setEntries([...current, ...response.entries]);
+        setError(null);
         setNextCursor(response.next_cursor);
         setPhase(current.length + response.entries.length === 0 ? "empty" : "ready");
         return;
@@ -1237,8 +1343,22 @@ function lineEndingLabel(kind: LineEndingClass): string {
   }
 }
 
-function ContentSafetyFacts({ body, previewId }: { body: string; previewId: string }) {
-  const safety = classifyBody(body);
+export function ContentSafetyFacts({ body, previewId, revision, inspect = classifyBody }: { body: string; previewId: string; revision: string; inspect?: typeof classifyBody }) {
+  const [open, setOpen] = useState(false);
+  const [snapshot, setSnapshot] = useState<{ body: string; revision: string; safety: ReturnType<typeof classifyBody> } | null>(null);
+  const refresh = () => setSnapshot(captureContentDiagnostics(body, revision, inspect));
+  const safety = snapshot?.safety;
+  return <details onToggle={(event) => { setOpen(event.currentTarget.open); if (event.currentTarget.open) refresh(); else setSnapshot(null); }}>
+    <summary>{t("contentSafetyTitle")}</summary>
+    {open && snapshot && safety ? <>
+      <p role="status">{diagnosticIsCurrent(snapshot, revision) ? t("diagnosticCurrent") : t("diagnosticStale")}</p>
+      <button type="button" className="action" onClick={refresh}>{t("diagnosticLoad")}</button>
+      <ContentSafetySnapshot body={snapshot.body} previewId={previewId} safety={safety} />
+    </> : null}
+  </details>;
+}
+
+function ContentSafetySnapshot({ body, previewId, safety }: { body: string; previewId: string; safety: ReturnType<typeof classifyBody> }) {
   return (
     <div className="content-safety">
       <h4 id={`${previewId}-safety`}>{t("contentSafetyTitle")}</h4>
@@ -1285,7 +1405,7 @@ function observationLabel(note: NoteReadDto): string {
   }
 }
 
-function NotePreview({ note }: { note: NoteReadDto | null }) {
+export function NotePreview({ note }: { note: NoteReadDto | null }) {
   if (!note) {
     return (
       <section className="subpanel" data-state="empty" aria-labelledby="note-preview-title">
@@ -1296,14 +1416,14 @@ function NotePreview({ note }: { note: NoteReadDto | null }) {
     );
   }
   return (
-    <section className="subpanel" data-state="status" aria-labelledby="note-preview-title">
-      <p className="state-badge">{t("statusBadge")}</p>
+    <section className="subpanel source-reader" data-state="status" aria-labelledby="note-preview-title">
       <h3 id="note-preview-title">{note.title}</h3>
       <p>
         {t("workbenchIdentifierLabel")}：{note.identifier}
       </p>
-      <p>{observationLabel(note)}</p>
-      <ContentSafetyFacts body={note.body} previewId="note-preview-text" />
+      <p id="source-fidelity" className="source-fidelity">{t("sourceFidelity")}</p>
+      <pre className="note-body source-text" data-preview="text" data-executed="false" tabIndex={0} aria-label={t("workspaceReadSource")} aria-describedby="source-fidelity">{note.body}</pre>
+      <details className="source-provenance"><summary>{t("sourceProvenance")}</summary><p>{observationLabel(note)}</p></details>
     </section>
   );
 }
@@ -1587,6 +1707,7 @@ function unexpectedSearchResponse(): WorkbenchError {
 }
 
 function asSearchPage(response: Extract<IpcResponse, { kind: "search_page" }>): SearchPageDto {
+  if (response.engine_search) return response;
   return {
     query: response.query,
     hits: response.hits,
@@ -1603,43 +1724,39 @@ function asSearchPage(response: Extract<IpcResponse, { kind: "search_page" }>): 
 }
 
 function mergeSearchPage(current: SearchPageDto, next: SearchPageDto): SearchPageDto {
-  const hits = [...current.hits];
-  for (const hit of next.hits) {
-    if (!hits.some((existing) => existing.identifier === hit.identifier)) {
-      hits.push(hit);
-    }
-  }
-  return {
-    ...next,
-    hits,
-  };
+  const window = new SearchWindow();
+  window.accept(current);
+  return window.accept(next, current.next_cursor ?? undefined);
 }
 
-async function runSearch(
+export async function runSearch(
   query: string,
   setSearch: (search: SearchPageDto | null) => void,
   setSearchError: (error: WorkbenchError | null) => void,
+  invoke: typeof invokeTyped = invokeTyped,
+  options?: SearchOptions,
+  cursor?: string,
 ): Promise<void> {
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "search_notes",
       args: {
         workspace: route.workspace,
         project: route.project,
         query,
-        page_size: TREE_PAGE_SIZE,
+        options,
+        cursor,
+        page_size: QUERY_PAGE_SIZE,
       },
     });
     switch (response.kind) {
       case "error":
-        setSearch(null);
         setSearchError({ category: response.category, message: response.message });
         return;
       case "search_page":
-        if (response.truncated) {
-          setSearch(null);
-          setSearchError(unexpectedSearchResponse());
+        if (!response.engine_search && response.truncated) {
+            setSearchError(unexpectedSearchResponse());
           return;
         }
         setSearchError(null);
@@ -1689,7 +1806,6 @@ async function runSearch(
       case "help_inspection":
       case "release_inspection":
       case "shutdown_begun":
-        setSearch(null);
         setSearchError(unexpectedSearchResponse());
         return;
       default: {
@@ -1698,7 +1814,6 @@ async function runSearch(
       }
     }
   } catch (cause) {
-    setSearch(null);
     setSearchError({
       category: "invoke",
       message: cause instanceof Error ? cause.message : String(cause),
@@ -1706,24 +1821,29 @@ async function runSearch(
   }
 }
 
-async function loadMoreSearch(
+export async function loadMoreSearch(
   current: SearchPageDto,
   setSearch: (search: SearchPageDto | null) => void,
   setSearchError: (error: WorkbenchError | null) => void,
+  invoke: typeof invokeTyped = invokeTyped,
+  options?: SearchOptions,
+  window?: SearchWindow,
+  isCurrent: () => boolean = () => true,
 ): Promise<void> {
   if (!current.next_cursor) {
     return;
   }
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "search_notes",
       args: {
         workspace: route.workspace,
         project: route.project,
         query: current.query,
+        options,
         cursor: current.next_cursor,
-        page_size: TREE_PAGE_SIZE,
+        page_size: QUERY_PAGE_SIZE,
       },
     });
     switch (response.kind) {
@@ -1731,12 +1851,13 @@ async function loadMoreSearch(
         setSearchError({ category: response.category, message: response.message });
         return;
       case "search_page":
-        if (response.truncated) {
+        if (!response.engine_search && response.truncated) {
           setSearchError(unexpectedSearchResponse());
           return;
         }
         setSearchError(null);
-        setSearch(mergeSearchPage(current, asSearchPage(response)));
+        if (!isCurrent()) return;
+        setSearch(window ? window.accept(asSearchPage(response), current.next_cursor ?? undefined) : mergeSearchPage(current, asSearchPage(response)));
         return;
       case "capabilities":
       case "runtime_state":
@@ -1797,48 +1918,80 @@ async function loadMoreSearch(
   }
 }
 
-function SearchPanel({
+function splitFilter(value: string): string[] | undefined {
+  const parts = value.split(",").map((part) => part.trim()).filter(Boolean);
+  return parts.length ? parts : undefined;
+}
+
+export function SearchPanel({
+  selectedIdentifier,
+  selectedResultIdentifier,
+  onResultFocus,
+  pending,
   search,
   error,
   onSearch,
   onPreview,
   onLoadMore,
+  onPrevious,
+  previousAvailable = false,
 }: {
+  selectedIdentifier: string | null;
+  selectedResultIdentifier?: string | null;
+  onResultFocus?: (identifier: string) => void;
+  pending: boolean;
   search: SearchPageDto | null;
   error: WorkbenchError | null;
-  onSearch: (query: string) => void;
-  onPreview: (identifier: string, query: string) => void;
+  onSearch: (query: string, options: SearchOptions) => void;
+  onPreview: (identifier: string, query: string, resultIdentity?: string) => void;
+  onPrevious?: () => void;
+  previousAvailable?: boolean;
   onLoadMore: () => void;
 }) {
   const [query, setQuery] = useState("");
-  const empty = search === null || search.hits.length === 0;
+  const [submittedQuery, setSubmittedQuery] = useState("");
+  const [mode, setMode] = useState<"text" | "title" | "permalink">("text");
+  const [tags, setTags] = useState("");
+  const [categories, setCategories] = useState("");
+  const [noteTypes, setNoteTypes] = useState("");
+  const pageControl = useRef<HTMLButtonElement | null>(null);
+  const resultSummary = useRef<HTMLParagraphElement | null>(null);
+  useEffect(() => {
+    const focused = document.activeElement;
+    restoreSearchFocus(pageControl.current, resultSummary.current, focused === null || focused === document.body || focused === document.documentElement);
+    pageControl.current = null;
+  }, [search]);
+  const empty = search !== null && search.hits.length === 0;
   const state = error ? "error" : empty ? "empty" : "status";
   const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
   const heading = error ? t("searchErrorTitle") : empty ? t("searchEmptyTitle") : t("searchReadyTitle");
   return (
     <section
       className="subpanel"
+      aria-busy={pending}
       data-state={state}
       aria-labelledby="search-title"
       role={error ? "alert" : undefined}
     >
+      {pending ? <p role="status">{t("operationPending")}</p> : null}
       <p className="state-badge">{badge}</p>
       <h3 id="search-title">{heading}</h3>
-      <p>
-        {error ? `${errorCategoryLabel(error.category)}：${error.message}` : empty ? t("searchEmptyBody") : t("searchReadyBody")}
+      <p ref={resultSummary} tabIndex={-1}>
+        {error ? `${errorCategoryLabel(error.category)}：${error.message}` : search === null ? t("searchIdle") : empty ? t("searchNoMatchesBrief") : `${t("searchResultsBrief")} (${search.hits.length}/150)`}
       </p>
-      <p>{t("searchLexicalNotSemantic")}</p>
-      <p>{t("searchPermalinkNotPath")}</p>
-      <p>{t("searchMcpUnverified")}</p>
+      <details className="search-explanation"><summary>{t("searchScope")}</summary>
+      <p>{t("searchSupportedScope")}</p>
+      </details>
       <form
         className="search-form"
         onSubmit={(event) => {
           event.preventDefault();
-          const next = query.trim();
-          if (next === "") {
+          const next = query;
+          if (next.trim() === "" && !splitFilter(tags) && !splitFilter(categories) && !splitFilter(noteTypes)) {
             return;
           }
-          onSearch(next);
+          setSubmittedQuery(JSON.stringify([next, mode, tags, categories, noteTypes]));
+          onSearch(next, { mode, tags: splitFilter(tags), categories: splitFilter(categories), note_types: splitFilter(noteTypes) });
         }}
       >
         <label htmlFor="search-query">{t("searchQueryLabel")}</label>
@@ -1850,12 +2003,16 @@ function SearchPanel({
           spellCheck={false}
           onChange={(event) => setQuery(event.target.value)}
         />
-        <button type="submit" className="action">
+        <label>{t("searchMode")}<select value={mode} onChange={(event) => setMode(event.target.value as typeof mode)}><option value="text">{t("searchModeText")}</option><option value="title">{t("searchModeTitle")}</option><option value="permalink">{t("searchModePermalink")}</option></select></label>
+        <label>{t("searchTags")}<input value={tags} onChange={(event) => setTags(event.target.value)} /></label>
+        <label>{t("searchCategories")}<input value={categories} onChange={(event) => setCategories(event.target.value)} /></label>
+        <label>{t("searchNoteTypes")}<input value={noteTypes} onChange={(event) => setNoteTypes(event.target.value)} /></label>
+        <button type="submit" className="action" disabled={pending && JSON.stringify([query, mode, tags, categories, noteTypes]) === submittedQuery}>
           {t("searchSubmit")}
         </button>
       </form>
-      {search ? (
-        <dl className="facts">
+      {search && !search.engine_search ? (
+        <details className="search-explanation"><summary>{t("searchDetails")}</summary><dl className="facts">
           <div>
             <dt>{t("searchQueryLabel")}</dt>
             <dd>{search.query}</dd>
@@ -1870,32 +2027,34 @@ function SearchPanel({
             <dt>{t("searchSemanticEnabledLabel")}</dt>
             <dd>{search.semantic_enabled ? t("searchSemanticOn") : t("searchSemanticOff")}</dd>
           </div>
-        </dl>
+        </dl></details>
       ) : null}
       {search && search.hits.length > 0 ? (
         <ul className="search-list">
-          {search.hits.map((hit: SearchHitDto) => (
-            <li key={hit.identifier}>
-              <button
-                type="button"
-                className="tree-item"
-                onClick={() => onPreview(hit.identifier, search.query)}
-              >
-                {hit.identifier}
+          {search.hits.map((hit) => {
+            const official = "note_identifier" in hit;
+            const identifier = official ? hit.note_identifier : hit.identifier;
+            return <li key={hit.identifier}>
+              <button type="button" className="tree-item" disabled={!identifier}
+                aria-current={(selectedResultIdentifier ? hit.identifier === selectedResultIdentifier : identifier === selectedIdentifier) ? "true" : undefined}
+                onFocus={() => onResultFocus?.(hit.identifier)}
+                onClick={() => { if (identifier) onPreview(identifier, search.query, hit.identifier); }}>
+                {official ? hit.title ?? hit.identifier : hit.identifier}
               </button>
-              <span>
-                {t("searchLexicalScore")}: {hit.lexical_score}
-              </span>
-              <span>
-                {t("searchSemanticScore")}: {hit.semantic_score}
-              </span>
-            </li>
-          ))}
+              {official && hit.excerpt ? <p className="search-snippet">{hit.excerpt}</p> : null}
+              <small>{hit.identifier}</small>
+              {official ? <details className="search-explanation"><summary>{t("searchDetails")}</summary><dl className="facts">
+                <div><dt>{t("searchResultKind")}</dt><dd>{hit.result_kind}</dd></div>
+                <div><dt>{t("searchRawScore")}</dt><dd>{hit.score ?? t("searchNoScore")}</dd></div>
+              </dl></details> : null}
+            </li>;
+          })}
         </ul>
       ) : null}
+      {previousAvailable ? <button type="button" className="action" disabled={pending} onClick={(event) => { pageControl.current = event.currentTarget; onPrevious?.(); }}>{t("searchPrevious")}</button> : null}
       {search?.next_cursor ? (
         <div className="search-actions">
-          <button type="button" className="action" onClick={onLoadMore}>
+          <button type="button" className="action" disabled={pending} onClick={(event) => { pageControl.current = event.currentTarget; onLoadMore(); }}>
             {t("searchLoadMore")}
           </button>
         </div>
@@ -1929,15 +2088,16 @@ function asSearchInspector(
   };
 }
 
-async function runInspectSearch(
+export async function runInspectSearch(
   query: string,
   identifier: string | null,
   setInspector: (inspector: SearchInspectorDto | null) => void,
   setInspectorError: (error: WorkbenchError | null) => void,
+  invoke: typeof invokeTyped = invokeTyped,
 ): Promise<void> {
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "inspect_search",
       args: {
         workspace: route.workspace,
@@ -2177,14 +2337,15 @@ function asRecallBenchmark(
   };
 }
 
-async function runRecallBenchmark(
+export async function runRecallBenchmark(
   k: number | null,
   setRecall: (recall: RecallBenchmarkDto | null) => void,
   setRecallError: (error: WorkbenchError | null) => void,
+  invoke: typeof invokeTyped = invokeTyped,
 ): Promise<void> {
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "run_recall_benchmark",
       args: {
         workspace: route.workspace,
@@ -2411,15 +2572,16 @@ function asSchemaValidate(
   };
 }
 
-async function runSchemaValidate(
+export async function runSchemaValidate(
   identifier: string,
   schemaId: string | null,
   setSchema: (schema: SchemaValidateDto | null) => void,
   setSchemaError: (error: WorkbenchError | null) => void,
+  invoke: typeof invokeTyped = invokeTyped,
 ): Promise<void> {
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "schema_validate",
       args: {
         workspace: route.workspace,
@@ -2643,6 +2805,7 @@ function unexpectedPreviewResponse(): WorkbenchError {
 function asContextPreview(
   response: Extract<IpcResponse, { kind: "context_preview" }>,
 ): ContextPreviewDto {
+  if (response.engine_context) return response;
   return {
     identifier: response.identifier,
     query: response.query,
@@ -2657,15 +2820,16 @@ function asContextPreview(
   };
 }
 
-async function loadContextPreview(
+export async function loadContextPreview(
   identifier: string,
   query: string | null,
   setPreview: (preview: ContextPreviewDto | null) => void,
   setPreviewError: (error: WorkbenchError | null) => void,
+  invoke: typeof invokeTyped = invokeTyped,
 ): Promise<void> {
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "preview_context",
       args: {
         workspace: route.workspace,
@@ -2751,6 +2915,11 @@ function ContextPreviewPanel({
   preview: ContextPreviewDto | null;
   error: WorkbenchError | null;
 }) {
+  if (preview?.engine_context) return <section className="subpanel"><h3>{t("workspaceRelated")}</h3>
+    {error ? <p role="alert">{error.message}</p> : null}
+    {preview.results.map((group) => <article key={group.primary_result.identifier}><h4>{group.primary_result.title ?? group.primary_result.identifier}</h4>
+      <p>{group.primary_result.excerpt}</p><ul>{[...group.observations, ...group.related_results].map((hit) => <li key={hit.identifier}>{hit.title ?? hit.identifier}<p>{hit.excerpt}</p></li>)}</ul></article>)}
+  </section>;
   const empty = preview === null || preview.snippet === "";
   const state = error ? "error" : empty ? "empty" : "status";
   const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
@@ -2814,6 +2983,7 @@ function unexpectedActivityResponse(): WorkbenchError {
 }
 
 function asActivityPage(response: Extract<IpcResponse, { kind: "activity_page" }>): ActivityPageDto {
+  if (response.engine_activity) return response;
   return {
     entries: response.entries,
     next_cursor: response.next_cursor,
@@ -2828,6 +2998,7 @@ function asActivityPage(response: Extract<IpcResponse, { kind: "activity_page" }
 }
 
 function mergeActivityPage(current: ActivityPageDto, next: ActivityPageDto): ActivityPageDto {
+  if (current.engine_activity || next.engine_activity) return next;
   const entries = [...current.entries];
   for (const entry of next.entries) {
     if (!entries.some((existing) => existing.identifier === entry.identifier)) {
@@ -2840,13 +3011,14 @@ function mergeActivityPage(current: ActivityPageDto, next: ActivityPageDto): Act
   };
 }
 
-async function loadActivity(
+export async function loadActivity(
   setActivity: (activity: ActivityPageDto | null) => void,
   setActivityError: (error: WorkbenchError | null) => void,
+  invoke: typeof invokeTyped = invokeTyped,
 ): Promise<void> {
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "list_activity",
       args: {
         workspace: route.workspace,
@@ -2860,7 +3032,7 @@ async function loadActivity(
         setActivityError({ category: response.category, message: response.message });
         return;
       case "activity_page":
-        if (response.truncated) {
+        if (!response.engine_activity && response.truncated) {
           setActivity(null);
           setActivityError(unexpectedActivityResponse());
           return;
@@ -2929,17 +3101,18 @@ async function loadActivity(
   }
 }
 
-async function loadMoreActivity(
+export async function loadMoreActivity(
   current: ActivityPageDto,
   setActivity: (activity: ActivityPageDto | null) => void,
   setActivityError: (error: WorkbenchError | null) => void,
+  invoke: typeof invokeTyped = invokeTyped,
 ): Promise<void> {
   if (!current.next_cursor) {
     return;
   }
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "list_activity",
       args: {
         workspace: route.workspace,
@@ -2953,7 +3126,7 @@ async function loadMoreActivity(
         setActivityError({ category: response.category, message: response.message });
         return;
       case "activity_page":
-        if (response.truncated) {
+        if (!response.engine_activity && response.truncated) {
           setActivityError(unexpectedActivityResponse());
           return;
         }
@@ -3028,6 +3201,9 @@ function ActivityPanel({
   error: WorkbenchError | null;
   onLoadMore: () => void;
 }) {
+  if (activity?.engine_activity) return <section className="subpanel"><h3>{t("activityReadyTitle")}</h3>
+    {error ? <p role="alert">{error.message}</p> : null}<ul>{activity.entries.map((entry) => <li key={entry.identifier}>{entry.title ?? entry.identifier}<p>{entry.excerpt}</p></li>)}</ul><p>{t("activityUnknownTotal")}</p>
+  </section>;
   const empty = activity === null || activity.entries.length === 0;
   const state = error ? "error" : empty ? "empty" : "status";
   const badge = error ? t("errorBadge") : empty ? t("emptyBadge") : t("statusBadge");
@@ -3108,13 +3284,14 @@ function mergeResourcePage(current: ResourcePageDto, next: ResourcePageDto): Res
   };
 }
 
-async function loadResources(
+export async function loadResources(
   setResources: (resources: ResourcePageDto | null) => void,
   setResourcesError: (error: WorkbenchError | null) => void,
+  invoke: typeof invokeTyped = invokeTyped,
 ): Promise<void> {
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "list_resources",
       args: {
         workspace: route.workspace,
@@ -3197,17 +3374,18 @@ async function loadResources(
   }
 }
 
-async function loadMoreResources(
+export async function loadMoreResources(
   current: ResourcePageDto,
   setResources: (resources: ResourcePageDto | null) => void,
   setResourcesError: (error: WorkbenchError | null) => void,
+  invoke: typeof invokeTyped = invokeTyped,
 ): Promise<void> {
   if (!current.next_cursor) {
     return;
   }
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "list_resources",
       args: {
         workspace: route.workspace,
@@ -3377,13 +3555,14 @@ function mergePromptPage(current: PromptPageDto, next: PromptPageDto): PromptPag
   };
 }
 
-async function loadPrompts(
+export async function loadPrompts(
   setPrompts: (prompts: PromptPageDto | null) => void,
   setPromptsError: (error: WorkbenchError | null) => void,
+  invoke: typeof invokeTyped = invokeTyped,
 ): Promise<void> {
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "list_prompts",
       args: {
         workspace: route.workspace,
@@ -3466,17 +3645,18 @@ async function loadPrompts(
   }
 }
 
-async function loadMorePrompts(
+export async function loadMorePrompts(
   current: PromptPageDto,
   setPrompts: (prompts: PromptPageDto | null) => void,
   setPromptsError: (error: WorkbenchError | null) => void,
+  invoke: typeof invokeTyped = invokeTyped,
 ): Promise<void> {
   if (!current.next_cursor) {
     return;
   }
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "list_prompts",
       args: {
         workspace: route.workspace,
@@ -3647,14 +3827,15 @@ function toolAdmissionLabel(admission: ToolAdmission): string {
   }
 }
 
-async function loadTools(
+export async function loadTools(
   profile: EngineProfile,
   setTools: (tools: ToolInspectionDto | null) => void,
   setToolsError: (error: WorkbenchError | null) => void,
+  invoke: typeof invokeTyped = invokeTyped,
 ): Promise<void> {
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "inspect_tools",
       args: {
         workspace: route.workspace,
@@ -3845,14 +4026,15 @@ function mergeCliInventory(current: CliInventoryDto, next: CliInventoryDto): Cli
   };
 }
 
-async function loadCli(
+export async function loadCli(
   profile: EngineProfile,
   setCli: (cli: CliInventoryDto | null) => void,
   setCliError: (error: WorkbenchError | null) => void,
+  invoke: typeof invokeTyped = invokeTyped,
 ): Promise<void> {
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "list_cli_inventory",
       args: {
         workspace: route.workspace,
@@ -3936,18 +4118,23 @@ async function loadCli(
   }
 }
 
-async function loadMoreCli(
+export async function loadMoreCli(
   profile: EngineProfile,
   current: CliInventoryDto,
   setCli: (cli: CliInventoryDto | null) => void,
   setCliError: (error: WorkbenchError | null) => void,
+  invoke: typeof invokeTyped = invokeTyped,
 ): Promise<void> {
+  if (current.profile_id !== profile) {
+    setCliError(unexpectedCliResponse());
+    return;
+  }
   if (!current.next_cursor) {
     return;
   }
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "list_cli_inventory",
       args: {
         workspace: route.workspace,
@@ -3962,7 +4149,7 @@ async function loadMoreCli(
         setCliError({ category: response.category, message: response.message });
         return;
       case "cli_inventory":
-        if (response.truncated || response.executed || response.engine_cli) {
+        if (response.truncated || response.executed || response.engine_cli || response.profile_id !== profile) {
           setCliError(unexpectedCliResponse());
           return;
         }
@@ -4147,14 +4334,15 @@ function capabilityStatusLabel(status: CapabilityStatus): string {
   }
 }
 
-async function loadApiAudit(
+export async function loadApiAudit(
   profile: EngineProfile,
   setAudit: (audit: ApiAuditDto | null) => void,
   setAuditError: (error: WorkbenchError | null) => void,
+  invoke: typeof invokeTyped = invokeTyped,
 ): Promise<void> {
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "inspect_api_audit",
       args: {
         workspace: route.workspace,
@@ -4437,13 +4625,15 @@ function NoteCrudPanel({
   onMutated: () => void;
   onObservation: (identifier: string, classified_as: NoteCrudClass) => void;
 }) {
-  const [identifier, setIdentifier] = useState("");
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [destination, setDestination] = useState("");
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [result, setResult] = useState<NoteCrudResult | null>(null);
-  const [error, setError] = useState<WorkbenchError | null>(null);
+  const editor = useEditorSession("crud", seedIdentifier, seedBody, seedTitle);
+  const { identifier, title, body, destination, confirmDelete, crudResult: result, error, pending } = editor.state;
+  const setIdentifier = (identifier: string) => editor.patch({ identifier });
+  const setTitle = (title: string) => editor.patch({ title });
+  const setBody = (body: string) => editor.patch({ body });
+  const setDestination = (destination: string) => editor.patch({ destination });
+  const setConfirmDelete = (confirmDelete: boolean) => editor.patch({ confirmDelete });
+  const setError = (error: WorkbenchError | null) => editor.patch({ error });
+  const setResult = (crudResult: NoteCrudResult | null) => editor.patch({ crudResult });
 
   const recordResult = (next: NoteCrudResult | null) => {
     setResult(next);
@@ -4452,19 +4642,6 @@ function NoteCrudPanel({
       onObservation(target, next.observation.classified_as);
     }
   };
-
-  useEffect(() => {
-    if (!seedIdentifier) {
-      return;
-    }
-    setIdentifier(seedIdentifier);
-    setTitle(seedTitle ?? "");
-    setBody(seedBody ?? "");
-    setDestination("");
-    setConfirmDelete(false);
-    setResult(null);
-    setError(null);
-  }, [seedIdentifier, seedTitle, seedBody]);
 
   const empty = identifier.trim() === "" && body === "" && result === null && error === null;
   const state = error ? "error" : empty ? "empty" : "status";
@@ -4475,6 +4652,7 @@ function NoteCrudPanel({
 
   return (
     <section className="subpanel" data-state={state} aria-labelledby="note-crud-title" role={error ? "alert" : undefined}>
+      {pending ? <p role="status">{t("operationPending")}</p> : null}
       <p className="state-badge">{badge}</p>
       <h3 id="note-crud-title">{heading}</h3>
       <p>{error ? `${errorCategoryLabel(error.category)}：${error.message}` : empty ? t("crudEmptyBody") : t("crudReadyBody")}</p>
@@ -4499,6 +4677,7 @@ function NoteCrudPanel({
         <label htmlFor="crud-identifier">{t("crudIdentifierLabel")}</label>
         <input
           id="crud-identifier"
+          disabled={pending}
           type="text"
           value={identifier}
           autoComplete="off"
@@ -4532,7 +4711,7 @@ function NoteCrudPanel({
             setError(null);
           }}
         />
-        <ContentSafetyFacts body={body} previewId="crud-preview-text" />
+        <ContentSafetyFacts body={body} revision={JSON.stringify([editor.key, editor.state.revision])} previewId="crud-preview-text" />
         <label htmlFor="crud-destination">{t("crudDestinationLabel")}</label>
         <input
           id="crud-destination"
@@ -4566,9 +4745,9 @@ function NoteCrudPanel({
       <button
         type="button"
         className="action"
-        disabled={!fixtureOk || title.trim() === ""}
+        disabled={pending || runtimeFailure === "timeout_unknown" || !fixtureOk || title.trim() === ""}
         onClick={() => {
-          void runWriteNote(identifier, title, body, recordResult, setError, onMutated);
+          void editor.run(() => runWriteNote(identifier, title, body, recordResult, setError, onMutated));
         }}
       >
         {t("crudWrite")}
@@ -4576,9 +4755,9 @@ function NoteCrudPanel({
       <button
         type="button"
         className="action"
-        disabled={!fixtureOk}
+        disabled={pending || runtimeFailure === "timeout_unknown" || !fixtureOk}
         onClick={() => {
-          void runEditNote(identifier, body, recordResult, setError, onMutated);
+          void editor.run(() => runEditNote(identifier, body, recordResult, setError, onMutated));
         }}
       >
         {t("crudEdit")}
@@ -4586,9 +4765,9 @@ function NoteCrudPanel({
       <button
         type="button"
         className="action"
-        disabled={!fixtureOk || !isFixtureNoteIdentifier(destination)}
+        disabled={pending || runtimeFailure === "timeout_unknown" || !fixtureOk || !isFixtureNoteIdentifier(destination)}
         onClick={() => {
-          void runMoveNote(identifier, destination, recordResult, setIdentifier, setError, onMutated);
+          void editor.run(() => runMoveNote(identifier, destination, recordResult, setIdentifier, setError, onMutated));
         }}
       >
         {t("crudMove")}
@@ -4599,9 +4778,10 @@ function NoteCrudPanel({
           <button
             type="button"
             className="action"
+            disabled={pending || runtimeFailure === "timeout_unknown"}
             onClick={() => {
               setConfirmDelete(false);
-              void runDeleteNote(identifier, recordResult, setError, onMutated);
+              void editor.run(() => runDeleteNote(identifier, recordResult, setError, onMutated));
             }}
           >
             {t("crudDeleteConfirm")}
@@ -4618,12 +4798,15 @@ function NoteCrudPanel({
         <button
           type="button"
           className="action"
-          disabled={!fixtureOk}
+          disabled={pending || runtimeFailure === "timeout_unknown" || !fixtureOk}
           onClick={() => setConfirmDelete(true)}
         >
           {t("crudDelete")}
         </button>
       )}
+      <button type="button" className="action" disabled={pending} onClick={editor.discard}>
+        {t("discardEditorChanges")}
+      </button>
     </section>
   );
 }
@@ -4788,12 +4971,13 @@ async function runWriteNote(
   }
 }
 
-async function runEditNote(
+export async function runEditNote(
   identifier: string,
   body: string,
   setResult: (result: NoteCrudResult | null) => void,
   setError: (error: WorkbenchError | null) => void,
   onMutated: () => void,
+  invoke: typeof invokeTyped = invokeTyped,
 ): Promise<void> {
   if (!isFixtureNoteIdentifier(identifier)) {
     setError({ category: "policy", message: t("crudFixtureOnly") });
@@ -4801,7 +4985,7 @@ async function runEditNote(
   }
   const route = copyFixtureRoute();
   try {
-    const response = await invokeTyped<IpcResponse>({
+    const response = await invoke<IpcResponse>({
       command: "edit_note",
       args: {
         workspace: route.workspace,
@@ -4880,10 +5064,6 @@ async function runDeleteNote(
   }
 }
 
-function unexpectedDraftResponse(): WorkbenchError {
-  return { category: "schema", message: t("unexpectedDraft") };
-}
-
 function draftObservationLabel(result: DraftResultDto): string {
   switch (result.observation.classified_as) {
     case "disk_verified":
@@ -4918,22 +5098,15 @@ function DraftEditor({
   seedIdentifier: string | null;
   seedBody: string | null;
 }) {
-  const [identifier, setIdentifier] = useState("");
-  const [body, setBody] = useState("");
-  const [diskBody, setDiskBody] = useState<string | null>(null);
-  const [result, setResult] = useState<DraftResultDto | null>(null);
-  const [error, setError] = useState<WorkbenchError | null>(null);
-
-  useEffect(() => {
-    if (!seedIdentifier) {
-      return;
-    }
-    setIdentifier(seedIdentifier);
-    setBody(seedBody ?? "");
-    setDiskBody(null);
-    setResult(null);
-    setError(null);
-  }, [seedIdentifier, seedBody]);
+  const editor = useEditorSession("draft", seedIdentifier, seedBody);
+  const [reloadConfirmation, setReloadConfirmation] = useState<string | null>(null);
+  const confirmationIdentity = JSON.stringify([editor.key, editor.state.revision]);
+  const confirmReload = reloadConfirmation === confirmationIdentity;
+  const setConfirmReload = (confirm: boolean) => setReloadConfirmation(confirm ? confirmationIdentity : null);
+  const { identifier, body, diskBody, draftResult: result, error, pending } = editor.state;
+  const setIdentifier = (identifier: string) => editor.patch({ identifier, diskBody: null, draftResult: null });
+  const setBody = (body: string) => { setConfirmReload(false); editor.patch({ body }); };
+  const setError = (error: WorkbenchError | null) => editor.patch({ error });
 
   const dirty = diskBody === null || body !== diskBody;
   const empty = identifier.trim() === "" && body === "" && result === null && error === null;
@@ -4943,6 +5116,7 @@ function DraftEditor({
 
   return (
     <section className="subpanel" data-state={state} aria-labelledby="draft-editor-title" role={error ? "alert" : undefined}>
+      {pending ? <p role="status">{t("operationPending")}</p> : null}
       <p className="state-badge">{badge}</p>
       <h3 id="draft-editor-title">{title}</h3>
       <p>{error ? `${errorCategoryLabel(error.category)}：${error.message}` : empty ? t("draftEmptyBody") : t("draftReadyBody")}</p>
@@ -4950,6 +5124,7 @@ function DraftEditor({
         <label htmlFor="draft-identifier">{t("draftIdentifierLabel")}</label>
         <input
           id="draft-identifier"
+          disabled={pending}
           type="text"
           value={identifier}
           autoComplete="off"
@@ -4970,7 +5145,7 @@ function DraftEditor({
             setError(null);
           }}
         />
-        <ContentSafetyFacts body={body} previewId="draft-preview-text" />
+        <ContentSafetyFacts body={body} revision={JSON.stringify([editor.key, editor.state.revision])} previewId="draft-preview-text" />
       </div>
       <dl className="facts">
         <div>
@@ -4990,9 +5165,9 @@ function DraftEditor({
       <button
         type="button"
         className="action"
-        disabled={identifier.trim() === ""}
+        disabled={pending || identifier.trim() === ""}
         onClick={() => {
-          void persistDraft(identifier, body, setResult, setDiskBody, setBody, setError);
+          void editor.draft("save_draft");
         }}
       >
         {t("draftSave")}
@@ -5000,211 +5175,21 @@ function DraftEditor({
       <button
         type="button"
         className="action"
-        disabled={identifier.trim() === ""}
+        disabled={pending || identifier.trim() === ""}
         onClick={() => {
-          void reloadDraft(identifier, setResult, setDiskBody, setBody, setError);
+          if (dirty && !confirmReload) { setConfirmReload(true); return; }
+          setConfirmReload(false);
+          void editor.draft("load_draft");
         }}
       >
-        {t("draftReload")}
+        {confirmReload ? t("draftReloadConfirm") : t("draftReload")}
+      </button>
+      {confirmReload ? <p role="status">{t("draftReloadWarning")}</p> : null}
+      <button type="button" className="action" disabled={pending} onClick={() => { setConfirmReload(false); editor.discard(); }}>
+        {t("discardEditorChanges")}
       </button>
     </section>
   );
-}
-
-async function persistDraft(
-  identifier: string,
-  body: string,
-  setResult: (result: DraftResultDto | null) => void,
-  setDiskBody: (body: string | null) => void,
-  setBody: (body: string) => void,
-  setError: (error: WorkbenchError | null) => void,
-): Promise<void> {
-  const route = copyFixtureRoute();
-  try {
-    const response = await invokeTyped<IpcResponse>({
-      command: "save_draft",
-      args: {
-        workspace: route.workspace,
-        project: route.project,
-        identifier,
-        body,
-      },
-    });
-    switch (response.kind) {
-      case "error":
-        setError({ category: response.category, message: response.message });
-        return;
-      case "draft_saved":
-        setError(null);
-        setResult({
-          identifier: response.identifier,
-          body: response.body,
-          files_written: response.files_written,
-          engine_persisted: false,
-          scanned_user_obsidian_vault: false,
-          scanned_user_basic_memory_home: false,
-          observation: response.observation,
-        });
-        if (response.observation.disk_verified && !response.engine_persisted) {
-          setDiskBody(response.body);
-          setBody(response.body);
-        }
-        return;
-      case "capabilities":
-      case "runtime_state":
-      case "project_selected":
-      case "project_catalog":
-      case "preflight":
-      case "config_discovery":
-      case "tree_page":
-      case "note_read":
-      case "backup_catalog":
-      case "fixture_restored":
-      case "windows_runtime":
-      case "draft_loaded":
-      case "note_written":
-      case "note_edited":
-      case "note_moved":
-      case "note_deleted":
-      case "relation_list":
-      case "graph_page":
-      case "search_page":
-      case "context_preview":
-      case "activity_page":
-      case "search_inspector":
-      case "recall_benchmark":
-      case "schema_validated":
-      case "resource_page":
-      case "prompt_page":
-      case "tool_inspection":
-      case "cli_inventory":
-      case "notes_imported":
-      case "api_audit":
-      case "extras_catalog":
-      case "document_ingested":
-      case "cloud_inspection":
-      case "sync_inspection":
-      case "share_catalog":
-      case "hook_inspection":
-      case "provider_inspection":
-      case "route_inspection":
-      case "privacy_inspection":
-      case "install_inspection":
-      case "bundle_inspection":
-      case "help_inspection":
-      case "release_inspection":
-      case "shutdown_begun":
-        setError(unexpectedDraftResponse());
-        return;
-      default: {
-        const exhaustive: never = response;
-        return exhaustive;
-      }
-    }
-  } catch (cause) {
-    setError({
-      category: "invoke",
-      message: cause instanceof Error ? cause.message : String(cause),
-    });
-  }
-}
-
-async function reloadDraft(
-  identifier: string,
-  setResult: (result: DraftResultDto | null) => void,
-  setDiskBody: (body: string | null) => void,
-  setBody: (body: string) => void,
-  setError: (error: WorkbenchError | null) => void,
-): Promise<void> {
-  const route = copyFixtureRoute();
-  try {
-    const response = await invokeTyped<IpcResponse>({
-      command: "load_draft",
-      args: {
-        workspace: route.workspace,
-        project: route.project,
-        identifier,
-      },
-    });
-    switch (response.kind) {
-      case "error":
-        setError({ category: response.category, message: response.message });
-        return;
-      case "draft_loaded":
-        setError(null);
-        setResult({
-          identifier: response.identifier,
-          body: response.body,
-          files_written: response.files_written,
-          engine_persisted: false,
-          scanned_user_obsidian_vault: false,
-          scanned_user_basic_memory_home: false,
-          observation: response.observation,
-        });
-        setBody(response.body);
-        if (response.observation.disk_verified && !response.engine_persisted) {
-          setDiskBody(response.body);
-        } else {
-          setDiskBody(null);
-        }
-        return;
-      case "capabilities":
-      case "runtime_state":
-      case "project_selected":
-      case "project_catalog":
-      case "preflight":
-      case "config_discovery":
-      case "tree_page":
-      case "note_read":
-      case "backup_catalog":
-      case "fixture_restored":
-      case "windows_runtime":
-      case "draft_saved":
-      case "note_written":
-      case "note_edited":
-      case "note_moved":
-      case "note_deleted":
-      case "relation_list":
-      case "graph_page":
-      case "search_page":
-      case "context_preview":
-      case "activity_page":
-      case "search_inspector":
-      case "recall_benchmark":
-      case "schema_validated":
-      case "resource_page":
-      case "prompt_page":
-      case "tool_inspection":
-      case "cli_inventory":
-      case "notes_imported":
-      case "api_audit":
-      case "extras_catalog":
-      case "document_ingested":
-      case "cloud_inspection":
-      case "sync_inspection":
-      case "share_catalog":
-      case "hook_inspection":
-      case "provider_inspection":
-      case "route_inspection":
-      case "privacy_inspection":
-      case "install_inspection":
-      case "bundle_inspection":
-      case "help_inspection":
-      case "release_inspection":
-      case "shutdown_begun":
-        setError(unexpectedDraftResponse());
-        return;
-      default: {
-        const exhaustive: never = response;
-        return exhaustive;
-      }
-    }
-  } catch (cause) {
-    setError({
-      category: "invoke",
-      message: cause instanceof Error ? cause.message : String(cause),
-    });
-  }
 }
 
 function RuntimePanel({

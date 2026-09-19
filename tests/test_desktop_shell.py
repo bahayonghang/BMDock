@@ -491,7 +491,10 @@ class DesktopShellTests(unittest.TestCase):
         self.assertNotIn("assert_eq!(capabilities.commands.len(), 13)", rust_ipc)
 
     def test_draft_editor_session_is_not_engine_write(self):
-        app = (ROOT / "apps/bmdock-desktop/src/App.tsx").read_text(encoding="utf-8")
+        app = "\n".join(
+            (ROOT / "apps/bmdock-desktop/src" / name).read_text(encoding="utf-8")
+            for name in ("App.tsx", "editSessions.ts")
+        )
         ipc = (ROOT / "apps/bmdock-desktop/src/ipc.ts").read_text(encoding="utf-8")
         rust_ipc = (ROOT / "apps/bmdock-desktop/src-tauri/src/ipc.rs").read_text(encoding="utf-8")
         drafts = (ROOT / "apps/bmdock-desktop/src-tauri/src/drafts.rs").read_text(encoding="utf-8")
@@ -529,7 +532,10 @@ class DesktopShellTests(unittest.TestCase):
         self.assertIn(".draft-body", styles)
 
     def test_note_crud_is_typed_fixture_only_and_not_raw_call_tool(self):
-        app = (ROOT / "apps/bmdock-desktop/src/App.tsx").read_text(encoding="utf-8")
+        app = "\n".join(
+            (ROOT / "apps/bmdock-desktop/src" / name).read_text(encoding="utf-8")
+            for name in ("App.tsx", "editSessions.ts")
+        )
         ipc = (ROOT / "apps/bmdock-desktop/src/ipc.ts").read_text(encoding="utf-8")
         rust_ipc = (ROOT / "apps/bmdock-desktop/src-tauri/src/ipc.rs").read_text(encoding="utf-8")
         library = (ROOT / "apps/bmdock-desktop/src-tauri/src/library.rs").read_text(encoding="utf-8")

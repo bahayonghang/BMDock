@@ -473,6 +473,8 @@ pub enum TreeEntryKind {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TreeEntryDto {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note_identifier: Option<String>,
     pub identifier: String,
     pub title: String,
     pub kind: TreeEntryKind,
@@ -480,6 +482,8 @@ pub struct TreeEntryDto {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TreePageDto {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session: Option<crate::engine_session::SessionIdentity>,
     pub entries: Vec<TreeEntryDto>,
     pub next_cursor: Option<String>,
     pub page: u32,
@@ -504,6 +508,8 @@ pub struct NoteObservationDto {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct NoteReadDto {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session: Option<crate::engine_session::SessionIdentity>,
     pub title: String,
     pub identifier: String,
     pub body: String,
@@ -3538,6 +3544,7 @@ impl NoteLibrary for EmptyLibrary {
             return Err(LibraryError::schema(SCHEMA_INVALID_CURSOR));
         }
         Ok(TreePageDto {
+            session: None,
             entries: Vec::new(),
             next_cursor: None,
             page: 1,
@@ -3665,6 +3672,7 @@ impl FixtureLibrary {
                 .and_then(|body| title_from_markdown(&body))
                 .unwrap_or_else(|| identifier.clone());
             entries.push(TreeEntryDto {
+                note_identifier: None,
                 identifier,
                 title,
                 kind: TreeEntryKind::Note,
@@ -4551,6 +4559,7 @@ impl NoteLibrary for FixtureLibrary {
             .map_err(|_| LibraryError::schema(SCHEMA_INVALID_CURSOR))?
             .saturating_add(1);
         Ok(TreePageDto {
+            session: None,
             entries: page_entries,
             next_cursor,
             page,
@@ -4564,6 +4573,7 @@ impl NoteLibrary for FixtureLibrary {
             .map_err(|_| LibraryError::unsupported(UNSUPPORTED_LIBRARY_UNAVAILABLE))?;
         let title = title_from_markdown(&disk).unwrap_or_else(|| identifier.to_owned());
         Ok(NoteReadDto {
+            session: None,
             title,
             identifier: identifier.to_owned(),
             body: disk.clone(),
@@ -5616,6 +5626,7 @@ impl NoteLibrary for EnvelopeCrudLibrary {
     fn list_tree(&self, cursor: Option<&str>, page_size: u32) -> Result<TreePageDto, LibraryError> {
         let _ = (cursor, page_size);
         Ok(TreePageDto {
+            session: None,
             entries: Vec::new(),
             next_cursor: None,
             page: 1,
@@ -5625,6 +5636,7 @@ impl NoteLibrary for EnvelopeCrudLibrary {
 
     fn read_note(&self, identifier: &str) -> Result<NoteReadDto, LibraryError> {
         Ok(NoteReadDto {
+            session: None,
             title: identifier.to_owned(),
             identifier: identifier.to_owned(),
             body: "saved".to_owned(),
@@ -6642,7 +6654,9 @@ mod tests {
         ) -> Result<TreePageDto, LibraryError> {
             let _ = (cursor, page_size);
             Ok(TreePageDto {
+                session: None,
                 entries: vec![TreeEntryDto {
+                    note_identifier: None,
                     identifier: "envelope".to_owned(),
                     title: "envelope".to_owned(),
                     kind: TreeEntryKind::Note,
@@ -6655,6 +6669,7 @@ mod tests {
 
         fn read_note(&self, identifier: &str) -> Result<NoteReadDto, LibraryError> {
             Ok(NoteReadDto {
+                session: None,
                 title: identifier.to_owned(),
                 identifier: identifier.to_owned(),
                 body: self.body.clone(),
@@ -6672,7 +6687,9 @@ mod tests {
             _page_size: u32,
         ) -> Result<TreePageDto, LibraryError> {
             Ok(TreePageDto {
+                session: None,
                 entries: vec![TreeEntryDto {
+                    note_identifier: None,
                     identifier: "partial".to_owned(),
                     title: "partial".to_owned(),
                     kind: TreeEntryKind::Note,
@@ -6816,7 +6833,9 @@ mod tests {
             _page_size: u32,
         ) -> Result<TreePageDto, LibraryError> {
             Ok(TreePageDto {
+                session: None,
                 entries: vec![TreeEntryDto {
+                    note_identifier: None,
                     identifier: "loop".to_owned(),
                     title: "loop".to_owned(),
                     kind: TreeEntryKind::Note,

@@ -143,6 +143,10 @@ pub struct ListTreeArgs {
     pub workspace: String,
     pub project: String,
     #[serde(default)]
+    pub directory: Option<String>,
+    #[serde(default)]
+    pub expected_session: Option<crate::engine_session::SessionIdentity>,
+    #[serde(default)]
     pub cursor: Option<String>,
     #[serde(default)]
     pub page_size: Option<u32>,
@@ -163,6 +167,8 @@ pub struct ReadNoteArgs {
     pub workspace: String,
     pub project: String,
     pub identifier: String,
+    #[serde(default)]
+    pub expected_session: Option<crate::engine_session::SessionIdentity>,
 }
 
 impl ReadNoteArgs {
@@ -215,6 +221,12 @@ impl ExpandGraphArgs {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct SearchNotesArgs {
+    #[serde(default)]
+    pub expected_session: Option<crate::engine_session::SessionIdentity>,
+    #[serde(default)]
+    pub request_generation: u32,
+    #[serde(default)]
+    pub options: Box<crate::engine_queries::SearchOptions>,
     pub workspace: String,
     pub project: String,
     pub query: String,
@@ -439,6 +451,16 @@ impl IngestDocumentArgs {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct PreviewContextArgs {
+    #[serde(default)]
+    pub expected_session: Option<crate::engine_session::SessionIdentity>,
+    #[serde(default)]
+    pub request_generation: u32,
+    #[serde(default)]
+    pub options: crate::engine_queries::ContextOptions,
+    #[serde(default)]
+    pub cursor: Option<String>,
+    #[serde(default)]
+    pub page_size: Option<u32>,
     pub workspace: String,
     pub project: String,
     pub identifier: String,
@@ -458,6 +480,12 @@ impl PreviewContextArgs {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct ListActivityArgs {
+    #[serde(default)]
+    pub expected_session: Option<crate::engine_session::SessionIdentity>,
+    #[serde(default)]
+    pub request_generation: u32,
+    #[serde(default)]
+    pub options: crate::engine_queries::ActivityOptions,
     pub workspace: String,
     pub project: String,
     #[serde(default)]
@@ -689,6 +717,7 @@ pub struct RuntimeStateDto {
     pub status: String,
     pub project: Option<String>,
     pub profile: Option<String>,
+    pub session_generation: Option<u32>,
     pub failure: Option<FailureKind>,
     pub shutdown: Option<ShutdownReceipt>,
     pub host_drain: DrainPhase,
@@ -700,7 +729,9 @@ pub struct RuntimeStateDto {
 pub enum IpcResponse {
     Capabilities(CapabilitiesDto),
     RuntimeState(RuntimeStateDto),
-    ProjectSelected { project: &'static str },
+    ProjectSelected {
+        project: &'static str,
+    },
     ProjectCatalog(ProjectCatalogDto),
     Preflight(PreflightDto),
     ConfigDiscovery(ConfigDiscoveryDto),
@@ -709,6 +740,8 @@ pub enum IpcResponse {
     RelationList(RelationListDto),
     GraphPage(GraphPageDto),
     SearchPage(SearchPageDto),
+    #[serde(rename = "search_page")]
+    EngineSearchPage(crate::engine_queries::EngineSearchPageDto),
     SearchInspector(SearchInspectorDto),
     RecallBenchmark(RecallBenchmarkDto),
     SchemaValidated(SchemaValidateDto),
@@ -732,7 +765,11 @@ pub enum IpcResponse {
     HelpInspection(HelpInspectionDto),
     ReleaseInspection(ReleaseInspectionDto),
     ContextPreview(ContextPreviewDto),
+    #[serde(rename = "context_preview")]
+    EngineContext(crate::engine_queries::EngineContextDto),
     ActivityPage(ActivityPageDto),
+    #[serde(rename = "activity_page")]
+    EngineActivity(crate::engine_queries::EngineActivityDto),
     BackupCatalog(BackupCatalogDto),
     FixtureRestored(RestoreResultDto),
     WindowsRuntime(WindowsRuntimeDto),
@@ -1248,6 +1285,7 @@ fn runtime_state(
         status: snapshot.state.as_str().to_owned(),
         project: route.project.clone(),
         profile: snapshot.profile.map(|profile| profile.id().to_owned()),
+        session_generation: None,
         failure: snapshot.failure,
         shutdown: snapshot.shutdown.or_else(|| drain.last_shutdown()),
         host_drain: drain.phase(),
@@ -2826,6 +2864,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -2998,6 +3037,8 @@ mod tests {
 
     fn fixture_tree_args(cursor: Option<&str>, page_size: Option<u32>) -> ListTreeArgs {
         ListTreeArgs {
+            directory: None,
+            expected_session: None,
             workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
             project: FIXTURE_PROJECT.to_owned(),
             cursor: cursor.map(ToOwned::to_owned),
@@ -3007,6 +3048,7 @@ mod tests {
 
     fn fixture_read_args(identifier: &str) -> ReadNoteArgs {
         ReadNoteArgs {
+            expected_session: None,
             workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
             project: FIXTURE_PROJECT.to_owned(),
             identifier: identifier.to_owned(),
@@ -3041,6 +3083,9 @@ mod tests {
         page_size: Option<u32>,
     ) -> SearchNotesArgs {
         SearchNotesArgs {
+            expected_session: None,
+            request_generation: 0,
+            options: Default::default(),
             workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
             project: FIXTURE_PROJECT.to_owned(),
             query: query.to_owned(),
@@ -3077,6 +3122,11 @@ mod tests {
 
     fn fixture_preview_args(identifier: &str, query: Option<&str>) -> PreviewContextArgs {
         PreviewContextArgs {
+            expected_session: None,
+            request_generation: 0,
+            options: Default::default(),
+            cursor: None,
+            page_size: None,
             workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
             project: FIXTURE_PROJECT.to_owned(),
             identifier: identifier.to_owned(),
@@ -3086,6 +3136,9 @@ mod tests {
 
     fn fixture_activity_args(cursor: Option<&str>, page_size: Option<u32>) -> ListActivityArgs {
         ListActivityArgs {
+            expected_session: None,
+            request_generation: 0,
+            options: Default::default(),
             workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
             project: FIXTURE_PROJECT.to_owned(),
             cursor: cursor.map(ToOwned::to_owned),
@@ -3217,6 +3270,8 @@ mod tests {
         let mut route = RouteState::default();
         let tree = dispatch_with_library(
             IpcCommand::ListTree(ListTreeArgs {
+                directory: None,
+                expected_session: None,
                 workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
                 project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
                 cursor: None,
@@ -3231,6 +3286,8 @@ mod tests {
         assert_eq!(tree.category, ErrorCategory::Policy);
         let workspace = dispatch_with_library(
             IpcCommand::ListTree(ListTreeArgs {
+                directory: None,
+                expected_session: None,
                 workspace: "user-home".to_owned(),
                 project: FIXTURE_PROJECT.to_owned(),
                 cursor: None,
@@ -3245,6 +3302,7 @@ mod tests {
         assert_eq!(workspace.category, ErrorCategory::Policy);
         let identifier = dispatch_with_library(
             IpcCommand::ReadNote(ReadNoteArgs {
+                expected_session: None,
                 workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
                 project: FIXTURE_PROJECT.to_owned(),
                 identifier: r"C:\Users\someone\vault\note.md".to_owned(),
@@ -3314,6 +3372,9 @@ mod tests {
         assert_eq!(graph_path.category, ErrorCategory::Policy);
         let search_route = dispatch_with_library(
             IpcCommand::SearchNotes(SearchNotesArgs {
+                expected_session: None,
+                request_generation: 0,
+                options: Default::default(),
                 workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
                 project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
                 query: "欢迎".to_owned(),
@@ -3329,6 +3390,9 @@ mod tests {
         assert_eq!(search_route.category, ErrorCategory::Policy);
         let search_query_path = dispatch_with_library(
             IpcCommand::SearchNotes(SearchNotesArgs {
+                expected_session: None,
+                request_generation: 0,
+                options: Default::default(),
                 workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
                 project: FIXTURE_PROJECT.to_owned(),
                 query: r"C:\Users\someone\vault\note.md".to_owned(),
@@ -3441,6 +3505,11 @@ mod tests {
         assert_eq!(schema_id_path.category, ErrorCategory::Policy);
         let preview_route = dispatch_with_library(
             IpcCommand::PreviewContext(PreviewContextArgs {
+                expected_session: None,
+                request_generation: 0,
+                options: Default::default(),
+                cursor: None,
+                page_size: None,
                 workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
                 project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
                 identifier: "welcome".to_owned(),
@@ -3455,6 +3524,11 @@ mod tests {
         assert_eq!(preview_route.category, ErrorCategory::Policy);
         let preview_path = dispatch_with_library(
             IpcCommand::PreviewContext(PreviewContextArgs {
+                expected_session: None,
+                request_generation: 0,
+                options: Default::default(),
+                cursor: None,
+                page_size: None,
                 workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
                 project: FIXTURE_PROJECT.to_owned(),
                 identifier: r"C:\Users\someone\vault\note.md".to_owned(),
@@ -3469,6 +3543,11 @@ mod tests {
         assert_eq!(preview_path.category, ErrorCategory::Policy);
         let preview_query_path = dispatch_with_library(
             IpcCommand::PreviewContext(PreviewContextArgs {
+                expected_session: None,
+                request_generation: 0,
+                options: Default::default(),
+                cursor: None,
+                page_size: None,
                 workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
                 project: FIXTURE_PROJECT.to_owned(),
                 identifier: "welcome".to_owned(),
@@ -3483,6 +3562,9 @@ mod tests {
         assert_eq!(preview_query_path.category, ErrorCategory::Policy);
         let activity_route = dispatch_with_library(
             IpcCommand::ListActivity(ListActivityArgs {
+                expected_session: None,
+                request_generation: 0,
+                options: Default::default(),
                 workspace: crate::routing::OWNED_WORKSPACE_ID.to_owned(),
                 project: r"C:\Users\someone\Documents\Obsidian".to_owned(),
                 cursor: None,
@@ -5183,6 +5265,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -6378,6 +6461,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -6628,6 +6712,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -6906,6 +6991,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -8437,6 +8523,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -9115,6 +9202,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -9361,6 +9449,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -9414,6 +9503,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -9656,6 +9746,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -9736,6 +9827,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -9780,6 +9872,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -9990,6 +10083,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -10045,6 +10139,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -10255,6 +10350,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -10303,6 +10399,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -10384,6 +10481,8 @@ mod tests {
                 "list_tree",
                 "",
                 IpcCommand::ListTree(ListTreeArgs {
+                    directory: None,
+                    expected_session: None,
                     workspace: workspace.clone(),
                     project: project.clone(),
                     cursor: None,
@@ -10394,6 +10493,7 @@ mod tests {
                 "read_note",
                 r#","identifier":"welcome""#,
                 IpcCommand::ReadNote(ReadNoteArgs {
+                    expected_session: None,
                     workspace: workspace.clone(),
                     project: project.clone(),
                     identifier: "welcome".to_owned(),
@@ -10423,6 +10523,9 @@ mod tests {
                 "search_notes",
                 r#","query":"欢迎""#,
                 IpcCommand::SearchNotes(SearchNotesArgs {
+                    expected_session: None,
+                    request_generation: 0,
+                    options: Default::default(),
                     workspace: workspace.clone(),
                     project: project.clone(),
                     query: "欢迎".to_owned(),
@@ -10627,6 +10730,11 @@ mod tests {
                 "preview_context",
                 r#","identifier":"welcome""#,
                 IpcCommand::PreviewContext(PreviewContextArgs {
+                    expected_session: None,
+                    request_generation: 0,
+                    options: Default::default(),
+                    cursor: None,
+                    page_size: None,
                     workspace: workspace.clone(),
                     project: project.clone(),
                     identifier: "welcome".to_owned(),
@@ -10637,6 +10745,9 @@ mod tests {
                 "list_activity",
                 "",
                 IpcCommand::ListActivity(ListActivityArgs {
+                    expected_session: None,
+                    request_generation: 0,
+                    options: Default::default(),
                     workspace: workspace.clone(),
                     project: project.clone(),
                     cursor: None,
@@ -10969,6 +11080,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -11007,6 +11119,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -11230,6 +11343,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -11266,6 +11380,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -11531,6 +11646,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -11567,6 +11683,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -11838,6 +11955,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -11874,6 +11992,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -12177,6 +12296,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -12212,6 +12332,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -12488,6 +12609,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,
@@ -12523,6 +12645,7 @@ mod tests {
             _page_size: u32,
         ) -> Result<library::TreePageDto, library::LibraryError> {
             Ok(library::TreePageDto {
+                session: None,
                 entries: Vec::new(),
                 next_cursor: None,
                 page: 1,

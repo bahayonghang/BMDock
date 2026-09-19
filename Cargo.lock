@@ -152,10 +152,12 @@ dependencies = [
 name = "bmdock-app"
 version = "0.0.1"
 dependencies = [
+ "rmcp",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
+ "tokio",
 ]
 
 [[package]]

@@ -5,6 +5,7 @@ export const FIXTURE_PROJECT = "bmdock-fixture" as const;
 export const OWNED_WORKSPACE = "bmdock-workspace" as const;
 export const OWNED_KIND = "bmdock_owned" as const;
 export const TREE_PAGE_SIZE = 20 as const;
+export const QUERY_PAGE_SIZE = 50 as const;
 
 export type ExplicitRouteArgs = {
   workspace: typeof OWNED_WORKSPACE;
@@ -16,12 +17,15 @@ export function copyFixtureRoute(): ExplicitRouteArgs {
 }
 
 export type ListTreeArgs = ExplicitRouteArgs & {
+  directory?: string;
+  expected_session?: SessionIdentity;
   cursor?: string;
   page_size?: number;
 };
 
 export type ReadNoteArgs = ExplicitRouteArgs & {
   identifier: string;
+  expected_session?: SessionIdentity;
 };
 
 export type ListRelationsArgs = ExplicitRouteArgs & {
@@ -35,6 +39,9 @@ export type ExpandGraphArgs = ExplicitRouteArgs & {
 };
 
 export type SearchNotesArgs = ExplicitRouteArgs & {
+  expected_session?: SessionIdentity;
+  request_generation?: number;
+  options?: SearchOptions;
   query: string;
   cursor?: string;
   page_size?: number;
@@ -103,11 +110,19 @@ export type InspectHelpArgs = ExplicitRouteArgs;
 export type InspectReleaseArgs = ExplicitRouteArgs;
 
 export type PreviewContextArgs = ExplicitRouteArgs & {
+  expected_session?: SessionIdentity;
+  request_generation?: number;
+  options?: ContextOptions;
+  cursor?: string;
+  page_size?: number;
   identifier: string;
   query?: string;
 };
 
 export type ListActivityArgs = ExplicitRouteArgs & {
+  expected_session?: SessionIdentity;
+  request_generation?: number;
+  options?: ActivityOptions;
   cursor?: string;
   page_size?: number;
 };
@@ -219,6 +234,7 @@ export interface RuntimeStateDto {
   status: RuntimeStatus;
   project: typeof FIXTURE_PROJECT | null;
   profile: EngineProfile | null;
+  session_generation: number | null;
   failure: FailureKind | null;
   shutdown: ShutdownReceipt | null;
   host_drain: DrainPhase;
@@ -312,13 +328,20 @@ export interface ProjectCatalogDto {
 
 export type TreeEntryKind = "note" | "directory";
 
+export interface SessionIdentity {
+  profile: EngineProfile;
+  generation: number;
+}
+
 export interface TreeEntryDto {
+  note_identifier?: string;
   identifier: string;
   title: string;
   kind: TreeEntryKind;
 }
 
 export interface TreePageDto {
+  session?: SessionIdentity;
   entries: TreeEntryDto[];
   next_cursor: string | null;
   page: number;
@@ -334,6 +357,7 @@ export interface NoteObservationDto {
 }
 
 export interface NoteReadDto {
+  session?: SessionIdentity;
   title: string;
   identifier: string;
   body: string;
@@ -390,7 +414,98 @@ export interface SearchHitDto {
   semantic_score: number;
 }
 
-export interface SearchPageDto {
+export type SearchMode = "text" | "title" | "permalink";
+export interface SearchOptions {
+  mode?: SearchMode;
+  entity_types?: string[];
+  note_types?: string[];
+  categories?: string[];
+  tags?: string[];
+  metadata_filters?: Record<string, unknown>;
+  status?: string;
+  after_date?: string;
+  min_similarity?: number;
+  compact?: boolean;
+  valid_at?: string;
+  valid_overlaps?: string;
+  time_kind?: string;
+}
+export interface ContextOptions {
+  depth?: number;
+  max_related?: number;
+  timeframe?: string;
+  compact?: boolean;
+}
+export interface ActivityOptions {
+  types?: string[];
+  depth?: number;
+  timeframe?: string;
+}
+export interface QueryIdentity {
+  session: SessionIdentity;
+  workspace: typeof OWNED_WORKSPACE;
+  project: typeof FIXTURE_PROJECT;
+  operation: "search_notes" | "preview_context" | "list_activity";
+  arguments: Record<string, unknown>;
+  request_generation: number;
+}
+export interface EngineHitDto {
+  result_kind: string;
+  identifier: string;
+  note_identifier: string | null;
+  title: string | null;
+  excerpt: string | null;
+  score: number | null;
+  file_path: string | null;
+  category: string | null;
+  relation_type: string | null;
+  from_entity: string | null;
+  to_entity: string | null;
+  to_name: string | null;
+  created_at: string | null;
+}
+export interface EngineSearchPageDto {
+  engine_search: true;
+  session: SessionIdentity;
+  request: QueryIdentity;
+  query: string;
+  hits: EngineHitDto[];
+  page: number;
+  page_size: number;
+  next_cursor: string | null;
+  has_more: boolean;
+  total: number;
+  total_is_exact: boolean;
+}
+export interface EngineContextDto {
+  engine_context: true;
+  session: SessionIdentity;
+  request: QueryIdentity;
+  identifier: string;
+  results: { primary_result: EngineHitDto; observations: EngineHitDto[]; related_results: EngineHitDto[] }[];
+  metadata: Record<string, unknown>;
+  page: number;
+  page_size: number;
+  next_cursor: string | null;
+  has_more: boolean;
+}
+export interface EngineActivityDto {
+  engine_activity: true;
+  session: SessionIdentity;
+  request: QueryIdentity;
+  entries: EngineHitDto[];
+  page: number;
+  page_size: number;
+  next_cursor: null;
+  has_more: null;
+  total: null;
+  total_is_exact: null;
+}
+export type SearchPageDto = FixtureSearchPageDto | EngineSearchPageDto;
+export type ContextPreviewDto = FixtureContextPreviewDto | EngineContextDto;
+export type ActivityPageDto = FixtureActivityPageDto | EngineActivityDto;
+
+export interface FixtureSearchPageDto {
   query: string;
   hits: SearchHitDto[];
   next_cursor: string | null;
@@ -467,7 +582,7 @@ export interface SchemaValidateDto {
   files_written: false;
 }
 
-export interface ContextPreviewDto {
+export interface FixtureContextPreviewDto {
   identifier: string;
   query: string | null;
   snippet: string;
@@ -485,7 +600,7 @@ export interface ActivityEntryDto {
   observed_mtime: number;
 }
 
-export interface ActivityPageDto {
+export interface FixtureActivityPageDto {
   entries: ActivityEntryDto[];
   next_cursor: string | null;
   page: number;
@@ -1212,6 +1327,7 @@ export interface RuntimeStateEvent {
   status: RuntimeStatus;
   project: string | null;
   profile: EngineProfile | null;
+  session_generation: number | null;
   failure: FailureKind | null;
   shutdown: ShutdownReceipt | null;
   host_drain: DrainPhase;
@@ -1330,20 +1446,22 @@ export const discoverConfig = () =>
     args: {},
   });
 
-export const listTree = (args: { cursor?: string; page_size?: number } = {}) => {
+export const listTree = (args: { directory?: string; cursor?: string; page_size?: number; expected_session?: SessionIdentity } = {}) => {
   const route = copyFixtureRoute();
   return invokeTyped<{ kind: "tree_page" } & TreePageDto>({
     command: "list_tree",
     args: {
       workspace: route.workspace,
       project: route.project,
+      ...(args.directory !== undefined ? { directory: args.directory } : {}),
+      ...(args.expected_session ? { expected_session: args.expected_session } : {}),
       ...(args.cursor ? { cursor: args.cursor } : {}),
-      page_size: args.page_size ?? TREE_PAGE_SIZE,
+      page_size: args.page_size ?? QUERY_PAGE_SIZE,
     },
   });
 };
 
-export const readNote = (identifier: string) => {
+export const readNote = (identifier: string, expected_session?: SessionIdentity) => {
   const route = copyFixtureRoute();
   return invokeTyped<{ kind: "note_read" } & NoteReadDto>({
     command: "read_note",
@@ -1351,6 +1469,7 @@ export const readNote = (identifier: string) => {
       workspace: route.workspace,
       project: route.project,
       identifier,
+      ...(expected_session ? { expected_session } : {}),
     },
   });
 };
@@ -1381,16 +1500,17 @@ export const expandGraph = (args: { identifier: string; cursor?: string; page_si
   });
 };
 
-export const searchNotes = (args: { query: string; cursor?: string; page_size?: number }) => {
+export const searchNotes = (args: Omit<SearchNotesArgs, keyof ExplicitRouteArgs>) => {
   const route = copyFixtureRoute();
   return invokeTyped<{ kind: "search_page" } & SearchPageDto>({
     command: "search_notes",
     args: {
+      ...args,
       workspace: route.workspace,
       project: route.project,
       query: args.query,
       ...(args.cursor ? { cursor: args.cursor } : {}),
-      page_size: args.page_size ?? TREE_PAGE_SIZE,
+      page_size: args.page_size ?? QUERY_PAGE_SIZE,
     },
   });
 };
@@ -1487,28 +1607,31 @@ export const listCliInventory = (
   });
 };
 
-export const previewContext = (args: { identifier: string; query?: string }) => {
+export const previewContext = (args: Omit<PreviewContextArgs, keyof ExplicitRouteArgs>) => {
   const route = copyFixtureRoute();
   return invokeTyped<{ kind: "context_preview" } & ContextPreviewDto>({
     command: "preview_context",
     args: {
+      ...args,
       workspace: route.workspace,
       project: route.project,
       identifier: args.identifier,
+      page_size: args.page_size ?? QUERY_PAGE_SIZE,
       ...(args.query ? { query: args.query } : {}),
     },
   });
 };
 
-export const listActivity = (args: { cursor?: string; page_size?: number } = {}) => {
+export const listActivity = (args: Omit<ListActivityArgs, keyof ExplicitRouteArgs> = {}) => {
   const route = copyFixtureRoute();
   return invokeTyped<{ kind: "activity_page" } & ActivityPageDto>({
     command: "list_activity",
     args: {
+      ...args,
       workspace: route.workspace,
       project: route.project,
       ...(args.cursor ? { cursor: args.cursor } : {}),
-      page_size: args.page_size ?? TREE_PAGE_SIZE,
+      page_size: args.page_size ?? QUERY_PAGE_SIZE,
     },
   });
 };

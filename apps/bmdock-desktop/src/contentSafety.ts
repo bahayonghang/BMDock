@@ -46,3 +46,12 @@ export function classifyBody(body: string): ContentSafetyClass {
     line_endings: classifyLineEndings(body),
   };
 }
+
+/** Synchronous, explicit diagnostics snapshot. Editing does not call this function. */
+export function captureContentDiagnostics(body: string, revision: string, inspect = classifyBody) {
+  return { body, revision, safety: inspect(body) };
+}
+
+export function diagnosticIsCurrent(snapshot: { revision: string }, revision: string): boolean {
+  return snapshot.revision === revision;
+}

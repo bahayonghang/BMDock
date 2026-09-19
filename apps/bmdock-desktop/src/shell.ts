@@ -6,6 +6,7 @@ import {
   type ErrorCategory,
   type FailureKind,
   type IpcResponse,
+  type IpcCommand,
   type PreflightDto,
   type ProjectCatalogDto,
   type RuntimeStateDto,
@@ -28,9 +29,11 @@ export type PreflightLoadState =
   | { phase: "ready"; preflight: PreflightDto; discovery: ConfigDiscoveryDto }
   | { phase: "error"; category: ErrorCategory | "invoke"; message: string };
 
-export async function readShellSnapshot(): Promise<Exclude<ShellLoadState, { phase: "loading" }>> {
+export async function readShellSnapshot(
+  invoke: (command: IpcCommand) => Promise<IpcResponse> = invokeTyped,
+): Promise<Exclude<ShellLoadState, { phase: "loading" }>> {
   try {
-    const capabilitiesResponse = await invokeTyped<IpcResponse>({
+    const capabilitiesResponse = await invoke({
       command: "get_capabilities",
       args: {},
     });
@@ -49,7 +52,7 @@ export async function readShellSnapshot(): Promise<Exclude<ShellLoadState, { pha
       };
     }
 
-    const runtimeResponse = await invokeTyped<IpcResponse>({
+    const runtimeResponse = await invoke({
       command: "get_runtime_state",
       args: {},
     });
@@ -68,7 +71,7 @@ export async function readShellSnapshot(): Promise<Exclude<ShellLoadState, { pha
       };
     }
 
-    const catalogResponse = await invokeTyped<IpcResponse>({
+    const catalogResponse = await invoke({
       command: "list_projects",
       args: {},
     });
@@ -100,6 +103,7 @@ export async function readShellSnapshot(): Promise<Exclude<ShellLoadState, { pha
         status: runtimeResponse.status,
         project: runtimeResponse.project,
         profile: runtimeResponse.profile,
+        session_generation: runtimeResponse.session_generation,
         failure: runtimeResponse.failure,
         shutdown: runtimeResponse.shutdown,
         host_drain: runtimeResponse.host_drain,
