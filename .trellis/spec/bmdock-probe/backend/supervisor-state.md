@@ -1,5 +1,12 @@
 # Engine Supervisor and Runtime State
 
+**Current C02 production boundary:** [Official engine read session](./engine-read-session.md)
+owns the live rmcp service and child. Historical T07 start/spawn/transport seams
+below are now test-only; default snapshots and lifecycle/policy types remain used.
+T17 drain is still receipt-only. Dual-profile generated-fixture headless handshake,
+read reuse and normal close are verified by C02 v2 receipts; native window,
+process-tree and unexecuted fault evidence below remain UNVERIFIED.
+
 This contract records the T07 lifecycle boundary in
 `apps/bmdock-desktop/src-tauri/src/supervisor.rs` and its typed projection in
 `src-tauri/src/ipc.rs` / `apps/bmdock-desktop/src/ipc.ts`. The P0 probe remains

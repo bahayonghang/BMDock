@@ -1,0 +1,7 @@
+{"file":".trellis/tasks/09-19-bmdock-client-optimization/research/contract-boundaries.md","reason":"Focused contract handoff avoids truncating the full IPC spec; load referenced source sections before implementation."}
+{"file":".trellis/spec/bmdock-probe/backend/supervisor-state.md","reason":"Owned lifecycle and distinction between state receipts and live process evidence."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Verify DTO, state and user-visible claims across renderer and host."}
+{"file":".trellis/tasks/09-19-bmdock-client-optimization/research/baseline-and-evidence.md","reason":"Current failed and passed checks and inherited limits."}
+{"file":".trellis/tasks/09-19-bmdock-client-optimization/research/official-and-projects.md","reason":"Pinned official query contracts and source-backed comparison."}
+{"file":".trellis/tasks/09-19-bmdock-client-optimization/research/frontend-audit.md","reason":"Frontend interaction and rendering risks."}
+{"file":".trellis/tasks/09-19-bmdock-client-optimization/research/backend-audit.md","reason":"Production adapter gap and fixture-only complexity."}

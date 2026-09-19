@@ -1,5 +1,18 @@
 # Typed IPC and Fixture Policy
 
+**C03 amendment:** [Official engine queries](./engine-queries.md) governs connected
+search/context/activity discriminated DTOs, supported options, rank/count meaning,
+stable note UUID targets and bounded admission. T21/T22 fixture shapes below
+remain fixture contracts, not interchangeable official responses.
+
+**C02 amendment:** [Official engine read session](./engine-read-session.md)
+is authoritative for connected generated-fixture `list_tree` / `read_note`,
+their required `expected_session`, response session identity, runtime generation,
+and actual lifecycle owner. Older T11 fixture-only and unavailable descriptions
+remain historical test/store contracts. C02 does not activate writes or any
+other feature described by this catalog. Native and real-vault claims remain
+UNVERIFIED; the host-only headless path has separate dual-profile v2 evidence.
+
 This contract describes the T06 Tauri command boundary, the T07
 `get_runtime_state` snapshot projection, the T09 read-only
 `run_preflight` / `discover_config` commands, the T10 explicit

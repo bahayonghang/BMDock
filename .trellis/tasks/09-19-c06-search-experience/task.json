@@ -1,0 +1,50 @@
+{
+  "id": "c06-search-experience",
+  "name": "c06-search-experience",
+  "title": "C06 搜索展示、按需加载与渲染性能",
+  "description": "Make search results actionable, expose supported filters and modes, and defer diagnostics and expensive rendering.",
+  "status": "in_progress",
+  "dev_type": "frontend",
+  "scope": "Make search results actionable, expose supported filters and modes, and defer diagnostics and expensive rendering.",
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-09-19",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "09-19-bmdock-client-optimization",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "planning_only": false,
+    "delivery_approval": {
+      "date": "2026-09-19",
+      "user_instruction": "按逻辑拆分提交本轮修改，推送并归档已完成的任务，然后给出完成后续任务的prompt",
+      "scope": "Commit and push current-session changes only; archive only fully accepted children C02 and C04; preserve other tasks and unrelated files.",
+      "large_receipts": "User chose summaries and gitignore for the ten raw JSON files larger than 1 MB; retain originals locally."
+    },
+    "affected_package": "apps/bmdock-desktop",
+    "depends_on": [
+      "09-19-c03-query-execution",
+      "09-19-c04-interaction-correctness",
+      "09-19-c05-workspace-layout"
+    ],
+    "parent_requirements": [
+      "R6"
+    ],
+    "source_revision": "251c74b",
+    "implementation_approved": true,
+    "approval": {
+      "date": "2026-09-19",
+      "user_instruction": "设计没有问题，继续",
+      "scope": "Implement approved C01-C07 plan; no commit, push, archive, new dependencies, native UI operation, or real-vault onboarding."
+    }
+  }
+}

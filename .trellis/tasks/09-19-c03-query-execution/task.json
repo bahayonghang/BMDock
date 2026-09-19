@@ -1,0 +1,48 @@
+{
+  "id": "c03-query-execution",
+  "name": "c03-query-execution",
+  "title": "C03 查询调度、分页与索引性能",
+  "description": "Preserve official ranking and pagination, bound response work, and remove host lock contention from read execution.",
+  "status": "in_progress",
+  "dev_type": "backend",
+  "scope": "Preserve official ranking and pagination, bound response work, and remove host lock contention from read execution.",
+  "package": null,
+  "priority": "P1",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-09-19",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "09-19-bmdock-client-optimization",
+  "relatedFiles": [],
+  "notes": "2026-09-19 user chose code and representative baselines first; the full 428-cell matrix is deferred as pending acceptance, with original thresholds and incomplete status preserved.",
+  "meta": {
+    "planning_only": false,
+    "delivery_approval": {
+      "date": "2026-09-19",
+      "user_instruction": "按逻辑拆分提交本轮修改，推送并归档已完成的任务，然后给出完成后续任务的prompt",
+      "scope": "Commit and push current-session changes only; archive only fully accepted children C02 and C04; preserve other tasks and unrelated files.",
+      "large_receipts": "User chose summaries and gitignore for the ten raw JSON files larger than 1 MB; retain originals locally."
+    },
+    "affected_package": "apps/bmdock-desktop",
+    "depends_on": [
+      "09-19-c02-engine-read-session"
+    ],
+    "parent_requirements": [
+      "R3"
+    ],
+    "source_revision": "251c74b",
+    "implementation_approved": true,
+    "approval": {
+      "date": "2026-09-19",
+      "user_instruction": "设计没有问题，继续",
+      "scope": "Implement approved C01-C07 plan; no commit, push, archive, new dependencies, native UI operation, or real-vault onboarding."
+    }
+  }
+}

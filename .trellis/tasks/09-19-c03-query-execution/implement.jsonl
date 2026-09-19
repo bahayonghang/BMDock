@@ -1,0 +1,6 @@
+{"file":".trellis/spec/bmdock-probe/backend/supervisor-state.md","reason":"Owned lifecycle, short state lock, bounded close and explicit distinction from receipt-only T17 drain"}
+{"file":".trellis/tasks/09-19-bmdock-client-optimization/research/contract-boundaries.md","reason":"Focused contract handoff avoids truncating the full IPC spec; load referenced source sections before implementation."}
+{"file":".trellis/tasks/09-19-bmdock-client-optimization/research/backend-audit.md","reason":"Current production empty adapters and test-only query algorithm boundaries"}
+{"file":".trellis/tasks/09-19-bmdock-client-optimization/research/official-and-projects.md","reason":"Pinned structured payload caveats, ranking, exactness, full-note reads and profile-specific capabilities"}
+{"file": ".trellis/spec/bmdock-probe/backend/engine-read-session.md", "reason": "Current production owner and precise error/lifecycle semantics"}
+{"file": ".trellis/spec/bmdock-probe/backend/engine-queries.md", "reason": "Current indexed query semantics, identity and admission contract"}

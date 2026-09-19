@@ -1,0 +1,7 @@
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Coordinate route, DTO, errors and evidence ownership."}
+{"file":".trellis/tasks/09-19-bmdock-client-optimization/research/contract-boundaries.md","reason":"Focused contract handoff avoids truncating the full IPC spec; load referenced source sections before implementation."}
+{"file":".trellis/tasks/09-19-bmdock-client-optimization/research/frontend-audit.md","reason":"Source-backed frontend findings and independent acceptance scenarios."}
+{"file":".trellis/tasks/09-19-bmdock-client-optimization/research/official-and-projects.md","reason":"Confirmed official engine semantics and bounded project comparisons."}
+{"file": ".trellis/spec/bmdock-probe/backend/workbench-interactions.md", "reason": "Preserve C04 request and retained editor ownership"}
+{"file": ".trellis/spec/bmdock-probe/backend/client-workspace.md", "reason": "Preserve reviewed C05 layout, safe-source and native-evidence boundaries"}
+{"file": ".trellis/spec/bmdock-probe/backend/client-search-experience.md", "reason": "Preserve C06 query identities, bounded cursor window, demand loading and revision-bound diagnostics"}
