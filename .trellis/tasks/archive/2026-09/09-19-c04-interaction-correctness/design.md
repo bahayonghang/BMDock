@@ -7,7 +7,7 @@
 - apps/bmdock-desktop/src/App.tsx:5048 — draft acknowledgement replaces visible body.
 - apps/bmdock-desktop/src-tauri/src/main.rs:77 and apps/bmdock-desktop/src-tauri/src/drafts.rs:58 — production uses EmptyDraftStore; save returns unsupported.
 
-Parent research: ../09-19-bmdock-client-optimization/research/frontend-audit.md. Follow parent design.md D2/D4 and the finalized official-and-projects.md for cross-layer contracts. Source conclusions are not native acceptance.
+Parent research: ../../../09-19-bmdock-client-optimization/research/frontend-audit.md. Follow parent design.md D2/D4 and the finalized official-and-projects.md for cross-layer contracts. Source conclusions are not native acceptance.
 
 ## Mechanisms, requirements and acceptance mapping
 ### M1

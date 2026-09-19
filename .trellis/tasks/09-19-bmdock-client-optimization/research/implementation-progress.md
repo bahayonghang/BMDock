@@ -34,6 +34,19 @@ eligible; the parent and C01/C03/C05/C06/C07 remain open. Ten large raw JSON
 receipts are retained locally and ignored at the user's request; committed
 compact summaries and replay fixtures preserve portable verification inputs.
 
+## Committed delivery and archived children
+
+The approved work was split into four local commits: `3986f64` (baseline/probe),
+`1e64708` (coordinated desktop frontend/backend), `bd4c6da` (session/query evidence),
+and `b75bd15` (Trellis specs/tasks and continuation prompt). The destination is
+`origin/main`; remote synchronization is verified after the closeout commits.
+
+C02 and C04 are now completed and archived under `.trellis/tasks/archive/2026-09/`.
+Their original task IDs remain in the parent's seven-child list. Parent, C01,
+C03, C05, C06 and active C07 remain `in_progress`; full/native acceptance is
+not closed by the archive. Exact raw-file exclusions, compact fixtures and the
+test-only source-hash change passed the independent C07 delivery review.
+
 ## Execution history and dependency handoffs
 
 - C01: harness and independent review complete. Six accepted v3 reports contain

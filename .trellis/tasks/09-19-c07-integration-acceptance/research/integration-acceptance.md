@@ -207,3 +207,18 @@ fixtures. Production code is unchanged, but the whole-file source hash differs
 from the measured snapshot. Packaging verification and the runtime-prefix/hash
 comparison are recorded in `research/delivery-review.md`; do not assert every
 historical whole-file fingerprint equals the delivered revision.
+
+## Authorized closeout
+
+Work commits are `3986f64`, `1e64708`, `bd4c6da` and `b75bd15`, covering baseline,
+coordinated desktop code, query/session verification and Trellis documents.
+C02/C04 were archived with `task.py archive --no-commit` under
+`.trellis/tasks/archive/2026-09/`; their relocation and this closeout are committed
+separately. Their parent links remain intact. Parent/C01/C03/C05/C06/C07 stay
+open, with C07 still active. The user authorized normal push to `origin/main`;
+the coordinator verifies the remote after the final journal commit.
+
+The ten ignored raw files remain local, not deleted. Six preexisting untracked
+files remain outside the commit scope. The continuation prompt is
+`../09-19-bmdock-client-optimization/research/continuation-prompt.md` relative to
+the C07 task directory. It covers the remaining native and full-matrix work.
