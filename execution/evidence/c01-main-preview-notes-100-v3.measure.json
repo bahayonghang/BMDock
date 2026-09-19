@@ -1,0 +1,2994 @@
+{
+  "clock": "Host perf_counter_ns around one Probe.raw; separate startup/readiness; no EmptyLibrary speedup",
+  "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+  "engine_sha": "3452c821d76c083823d020984d71e06904a1ff1e",
+  "finished_at": "2026-09-19T03:52:07.350046+00:00",
+  "host_load": "Shared developer host; OS caches and unrelated background load uncontrolled; UTC sample timestamps permit overlap audit",
+  "index": {
+    "attempts": 8,
+    "elapsed_ms": 5436.602900001162,
+    "identity_set_sha256": "5dfbb3a8ede345beb384ba6064c7e3c3d59c122da48e955c7649d9f8bc536022",
+    "indexed_note_count": 100,
+    "method": "Complete bmdockcorpus entity identity set through official paginated search",
+    "status": "ready"
+  },
+  "manifest_sha256": "1355aaa365b1298b1d935dfd9d6eab441014fd55a7e84c8dc58cac856fb94844",
+  "measured_at": "2026-09-19T03:50:12.358536+00:00",
+  "paired_desktop_runs": "unavailable",
+  "physical_corpus_unchanged": true,
+  "preparation_shutdown": {
+    "event": "shutdown",
+    "materialization": "not_proven_by_process_exit",
+    "process": {
+      "exitCode": 0,
+      "forced": false
+    },
+    "sdkClosed": true
+  },
+  "profile": "main-preview",
+  "samples": [
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 1301.7478,
+      "engine_peak_rss": {
+        "bytes": 5074944,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 1,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9054,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "cold",
+      "probe_peak_rss": {
+        "bytes": 10428416,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "f1bc3d14be963fea4925cc8c33820a85aac7f958d6f1c9aa3069222692579a45",
+      "sample": 1,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:50:36.604657+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 963.9719,
+      "engine_peak_rss": {
+        "bytes": 5070848,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 2,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9054,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "cold",
+      "probe_peak_rss": {
+        "bytes": 10465280,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "f1bc3d14be963fea4925cc8c33820a85aac7f958d6f1c9aa3069222692579a45",
+      "sample": 2,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:50:46.124630+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 940.9136,
+      "engine_peak_rss": {
+        "bytes": 5074944,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 3,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9054,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "cold",
+      "probe_peak_rss": {
+        "bytes": 10387456,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "f1bc3d14be963fea4925cc8c33820a85aac7f958d6f1c9aa3069222692579a45",
+      "sample": 3,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:50:55.497601+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 1038.1917,
+      "engine_peak_rss": {
+        "bytes": 5074944,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 4,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9054,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "cold",
+      "probe_peak_rss": {
+        "bytes": 10424320,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "f1bc3d14be963fea4925cc8c33820a85aac7f958d6f1c9aa3069222692579a45",
+      "sample": 4,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:04.589018+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 840.312,
+      "engine_peak_rss": {
+        "bytes": 5074944,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 5,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9054,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "cold",
+      "probe_peak_rss": {
+        "bytes": 10407936,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "f1bc3d14be963fea4925cc8c33820a85aac7f958d6f1c9aa3069222692579a45",
+      "sample": 5,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:12.615671+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 106.3582,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9054,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10534912,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "105a79a7c46597ddef1cb19d59a79a6961370f180f6f2983ae0c9b60616954be",
+      "sample": 1,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:21.041626+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 60.2854,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9054,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10551296,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "b75458f489351d4d2c4ac017a1ad1648b1c8a25995963cc9e057fa6141f94828",
+      "sample": 2,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:21.148507+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 56.898,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9054,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10551296,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "d3629a5d0aa25517206e989eca0e72890b5d360dba408f1d5e4deec934f6e3f1",
+      "sample": 3,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:21.209352+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 55.9568,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9054,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10559488,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "06b0e1408e33b2419eeb5ecdad8469718d3b68879d196cab5643365e7b2b184b",
+      "sample": 4,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:21.266865+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 53.6849,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9054,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10567680,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "22b018ba2fe4ed98dd29cc1ad679622e3b00e7ea54eb32e19a1916bd99075718",
+      "sample": 5,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:21.323336+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 47.2074,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9054,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10567680,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "194a6e423069e9a0e3229e9e6564fc0c817e6df6467cbb0770d8939d5a38401c",
+      "sample": 6,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:21.377585+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 52.0966,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9054,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10698752,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "d3e5a0e53adb2b0a4ee54d2d6811a8b58d1c63f30e9a17507ed3967affd2d524",
+      "sample": 7,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:21.425681+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 56.1064,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9054,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10698752,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "736a9882f596f06c74b6f63287ab1c950b25693a83d29b2033e6902c3240990d",
+      "sample": 8,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:21.478315+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 52.7171,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10706944,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "a02b5a8c9ebc72eb36e7041adcbcf4b1941e10a3f12894b4567daf296eb92744",
+      "sample": 9,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:21.534846+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 56.3336,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10711040,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "b1939484c0d103c9e5b3e4d476a70303649a4b706ae75071450d117041772177",
+      "sample": 10,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:21.588018+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 58.6131,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10715136,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "dea868b72137b25aeb8137aa688a310fe8b46f5db0033ccdf00c92a0c3bda750",
+      "sample": 11,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:21.644864+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 57.4552,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10715136,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "e3edbdf83dd4e5bbe6c46f124371ac6181237d824cb6d908cef2b4956348e92b",
+      "sample": 12,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:21.704040+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 55.9722,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10715136,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "3323046eff47a17d139c7697d5a689c598fcc728d874fe21078117c49ce6a4cb",
+      "sample": 13,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:21.761920+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 53.2761,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10715136,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "a8b916d54d508eea9745ae5d0c64fe4f29adf7232f1613fa5286291c00491321",
+      "sample": 14,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:21.818397+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 53.9313,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10715136,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "8f402d91aaebbcc3281054461d5b0d8a3ddaa723e5732447e1ceb1064593956f",
+      "sample": 15,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:21.872186+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 57.6643,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10715136,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "545634ab50f29aa5a6b9c00872c9092ceef3afca60ddf17e352e2de078b827dd",
+      "sample": 16,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:21.926726+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 53.1153,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10715136,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "5c5349ad86d218004c4eceec0428db620c7d0b6430b49299e067c9e2bf0e93b3",
+      "sample": 17,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:21.984833+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 48.54,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10715136,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "02237f59ece30500b13dd1c80719c2fab8d224dadfbd7950bb1108f0dea46ea8",
+      "sample": 18,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:22.038450+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 49.0403,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10715136,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "9617071ff3c98f7685248fc4f395dcfd08c7f9456b00639cd9c8467385b2f648",
+      "sample": 19,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:22.087433+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 49.9571,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10715136,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "c004f6f6469df499ddb523807837b34767b6b29644052350e5b78f24295038a5",
+      "sample": 20,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:22.136970+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 55.3819,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10715136,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "2fae5898b38fa90c783da01f7e2c09d1406827a879bb29be88d5d94da75f242a",
+      "sample": 21,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:22.187415+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 49.4901,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10715136,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "a0cfac770c2cbefbcf06f3d33bcf270fec07d1027e17f1d5992afd437e126d37",
+      "sample": 22,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:22.243304+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 52.136,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10715136,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "57ca593f30c7cdadb1eb87b346a46d2705ea0d5f998b05f27381340b87113c70",
+      "sample": 23,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:22.293246+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 50.0119,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10715136,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "d81e9f17e38f2aec38acb80176069ad1121c71bd7e111f505ac1bb9309de6edf",
+      "sample": 24,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:22.345783+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 49.3743,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10715136,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "43f1a63b656dcb698ee2ff566dad29c3bf708ac67958c9e8e6fd29428612abb7",
+      "sample": 25,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:22.396584+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 48.1167,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10715136,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "d74bc701f85023ff8a243578f8a0922ea57c2652b11abf47e0d0cca8930ea2e7",
+      "sample": 26,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:22.446445+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 48.9476,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10715136,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "70efb6fc61ae2d69df8a099164bc4de2152eb627bf5be0f65afda61a55e899b8",
+      "sample": 27,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:22.495015+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 46.6365,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10715136,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "e0bc1de6bcad72c8008711473afa11977c5be7076c5519ca1276cf461f1d6f51",
+      "sample": 28,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:22.544436+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 52.1608,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10715136,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "0a1c69f493aaf3ba93df4e1ae30f6ced1b90f5c015238d88a3bf36d6567d93e1",
+      "sample": 29,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:22.591492+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "content_utf8_bytes": 4096,
+      "elapsed_ms": 50.1497,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "read_note",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 6,
+        "workspace": "generated-client-baseline"
+      },
+      "payload_bytes": 9055,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10715136,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "0da3dd27d73ced9810e447673c68659901b334dc36394119f12042d66eaf97df",
+      "sample": 30,
+      "scenario": "read-full",
+      "started_at": "2026-09-19T03:51:22.644235+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 691.1257,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 7,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9058,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "cold",
+      "probe_peak_rss": {
+        "bytes": 10440704,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "b8e7093995e5824c6d3db92229f80895a565862b4ba84ea8a515869fc62dd128",
+      "result_count": 1,
+      "sample": 1,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:51:30.247889+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 770.5861,
+      "engine_peak_rss": {
+        "bytes": 5079040,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 8,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9058,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "cold",
+      "probe_peak_rss": {
+        "bytes": 10559488,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "b8e7093995e5824c6d3db92229f80895a565862b4ba84ea8a515869fc62dd128",
+      "result_count": 1,
+      "sample": 2,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:51:37.258052+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 781.9553,
+      "engine_peak_rss": {
+        "bytes": 5070848,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 9,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9058,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "cold",
+      "probe_peak_rss": {
+        "bytes": 10579968,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "b8e7093995e5824c6d3db92229f80895a565862b4ba84ea8a515869fc62dd128",
+      "result_count": 1,
+      "sample": 3,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:51:44.422217+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 732.6944,
+      "engine_peak_rss": {
+        "bytes": 5074944,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 10,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9058,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "cold",
+      "probe_peak_rss": {
+        "bytes": 10530816,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "b8e7093995e5824c6d3db92229f80895a565862b4ba84ea8a515869fc62dd128",
+      "result_count": 1,
+      "sample": 4,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:51:51.313752+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 714.6625,
+      "engine_peak_rss": {
+        "bytes": 5070848,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 11,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9058,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "cold",
+      "probe_peak_rss": {
+        "bytes": 10477568,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "b8e7093995e5824c6d3db92229f80895a565862b4ba84ea8a515869fc62dd128",
+      "result_count": 1,
+      "sample": 5,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:51:58.234561+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 39.8393,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9058,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10584064,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "debd5bdffd9d4fb3a028cc273a81e01a135f265de3bdade552d0bf37fd4cbc91",
+      "result_count": 1,
+      "sample": 1,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.380329+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 53.2877,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9058,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10588160,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "3b6b0bd9c923ad0672942a4b49046fce3e0251b945d0203ab977c7cbba872d07",
+      "result_count": 1,
+      "sample": 2,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.420682+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 24.9437,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9058,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10588160,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "e1a8f2e3951ea6a377eabf538aa80257d08090d9090a88a219eb541a0d8e0502",
+      "result_count": 1,
+      "sample": 3,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.474361+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 23.5818,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9058,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10588160,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "f2d6f7aad0209e5da7dcca77f21b7a66485e400bd31dad360c32ada78052ecff",
+      "result_count": 1,
+      "sample": 4,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.499715+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 22.3171,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9058,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10653696,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "798cfe5d57750cb8d7f364ffa74a405decd61d4cab96e632099436d98cc4a110",
+      "result_count": 1,
+      "sample": 5,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.523809+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 20.2566,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9058,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10653696,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "c83cf986260472344ba6d98598be61044d0b95927d3d9798e98ed9e0f5aaf583",
+      "result_count": 1,
+      "sample": 6,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.546555+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 46.2053,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9058,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10653696,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "46b80d2c70986c24bc09557facd2fa4eaec7d833d148ce16bcfbd70cfc4d9202",
+      "result_count": 1,
+      "sample": 7,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.567293+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 41.6984,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9058,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10653696,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "d0aa1907b4aa73564e06a353c979122307bfd1e2bc2d1a1d802299840b19d63b",
+      "result_count": 1,
+      "sample": 8,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.613909+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 20.8618,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10653696,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "273ef03d4f183f10f1c12527f7dd3df7dc55505e2a5a05c3db0fa02bf2a68bdd",
+      "result_count": 1,
+      "sample": 9,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.656395+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 20.9778,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10653696,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "3335c8a1dd0c49aafcda2b0b3392e52248b927b293f184667cfc5ae377b5f964",
+      "result_count": 1,
+      "sample": 10,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.677710+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 18.258,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10653696,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "44c5c85b38afb13c3e1ae4d9543437c9b44a6f4361eea05b6091e662fbfb6156",
+      "result_count": 1,
+      "sample": 11,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.699106+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 19.9334,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10653696,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "22af01eb5ea420f398e8577ec180f2174bb19d44d974b3ffabf5d82362f9e987",
+      "result_count": 1,
+      "sample": 12,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.717753+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 20.5828,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10653696,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "618b683719a76bf31134533ad3814dde590324b50b1b09859b1026299eaa542f",
+      "result_count": 1,
+      "sample": 13,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.738066+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 37.9585,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10653696,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "89ade7f50fd5fd2ec69ee3a1206d145d64889ce183755f128585ae023baeed79",
+      "result_count": 1,
+      "sample": 14,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.759095+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 23.7663,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10653696,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "91ef42051c7489641cad15586735d38a15d78acdfc86abe8a308e5cfd46490da",
+      "result_count": 1,
+      "sample": 15,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.797527+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 21.374,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10653696,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "21a6453f6d740d8df04f06cdede18107f530413e478edd0a99d8892f0b3a90ac",
+      "result_count": 1,
+      "sample": 16,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.821779+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 18.0143,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10653696,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "9d1de1b887c512dd39269c7b0cd32b5a6b1a62537cdbf59c568caedf3a6d4885",
+      "result_count": 1,
+      "sample": 17,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.843518+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 17.7407,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10657792,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "c5f8b46a1811d0a2676696e0695919204fe7a3efba26983915c3afab416c6f2c",
+      "result_count": 1,
+      "sample": 18,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.861904+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 18.0584,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10657792,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "05b66ba3efb2e4be2f94368c223277d186c6cd9923ffe0612c33315eed5be4c6",
+      "result_count": 1,
+      "sample": 19,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.880054+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 22.398,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10657792,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "3552c1ee73d7e1d2ecbfe661fb6d21bf979e18c62e9b7ce226cb003b5a55ebb0",
+      "result_count": 1,
+      "sample": 20,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.898528+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 18.7277,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10657792,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "8817b82c254a0c4834297ec98a897b0ac789b2b21eee9982fa55878768a4e055",
+      "result_count": 1,
+      "sample": 21,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.921285+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 18.0572,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10657792,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "5e67ef1a9acea7f9233d201ee7ef867a5c6e4ab5a309e92e1b25b1a54166b7d5",
+      "result_count": 1,
+      "sample": 22,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.940390+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 18.356,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10657792,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "ef252ccfe9dbd81fb120386fe34c51d6298591b6df034101f57a0ac3a824a2cf",
+      "result_count": 1,
+      "sample": 23,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.958864+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 37.527,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10657792,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "51f490c0f48c89085d65fb966de15841486b7a85d32e6741703b7d37124d3496",
+      "result_count": 1,
+      "sample": 24,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:05.977589+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 49.0074,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10657792,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "eb98b9cb5fc8cdec24fb8cab233348518e8f725094bd638a0be151d2314e086f",
+      "result_count": 1,
+      "sample": 25,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:06.015509+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 43.2464,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10670080,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "3988ac84af25a6e97b4f4c5699eb2e8105cd7f76925a45dc67180e481941a492",
+      "result_count": 1,
+      "sample": 26,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:06.064975+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 23.98,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10670080,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "8bcf4e4b2e399d229b818afeecaa3d1c12624b0366ea7f1b5798d29ce907d074",
+      "result_count": 1,
+      "sample": 27,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:06.108612+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 31.3635,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10670080,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "96e99dfd4ae30df221e7ac67db7ca61c68e988675b6a533d037f6b0345375503",
+      "result_count": 1,
+      "sample": 28,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:06.132990+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 30.7387,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10670080,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "8d1c43a903c35e06e5bc8db5ce1d596fb606da0a3d01ee57475da6248fcbbd40",
+      "result_count": 1,
+      "sample": 29,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:06.164733+00:00",
+      "valid": true
+    },
+    {
+      "command_count": 1,
+      "elapsed_ms": 20.6296,
+      "engine_peak_rss": {
+        "bytes": 5083136,
+        "method": "PeakWorkingSetSize"
+      },
+      "identity": {
+        "arguments": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "corpus_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+        "operation": "search_notes",
+        "profile": "main-preview",
+        "project": "bmdock-fixture",
+        "session_generation": 12,
+        "workspace": "generated-client-baseline"
+      },
+      "ordered_identifiers": [
+        "corpus/note-00000"
+      ],
+      "payload_bytes": 9059,
+      "payload_size_method": "UTF-8 compact JSON reserialization, not pipe byte count",
+      "phase": "warm",
+      "probe_peak_rss": {
+        "bytes": 10670080,
+        "method": "PeakWorkingSetSize"
+      },
+      "response_kind": "structured",
+      "response_sha256": "eaf64ef692d2eda95e1dcff947080717a368a1e4e617a6a82c81ffa7117733c9",
+      "result_count": 1,
+      "sample": 30,
+      "scenario": "literal-00",
+      "started_at": "2026-09-19T03:52:06.196299+00:00",
+      "valid": true
+    }
+  ],
+  "scale": "notes-100",
+  "selected_scenarios": [
+    "read-full",
+    "literal-00"
+  ],
+  "sessions": [
+    {
+      "generation": 1,
+      "phase": "cold",
+      "shutdown": {
+        "event": "shutdown",
+        "materialization": "not_proven_by_process_exit",
+        "process": {
+          "exitCode": 0,
+          "forced": false
+        },
+        "sdkClosed": true
+      },
+      "startup_ms": 10309.1444
+    },
+    {
+      "generation": 2,
+      "phase": "cold",
+      "shutdown": {
+        "event": "shutdown",
+        "materialization": "not_proven_by_process_exit",
+        "process": {
+          "exitCode": 0,
+          "forced": false
+        },
+        "sdkClosed": true
+      },
+      "startup_ms": 6390.6617
+    },
+    {
+      "generation": 3,
+      "phase": "cold",
+      "shutdown": {
+        "event": "shutdown",
+        "materialization": "not_proven_by_process_exit",
+        "process": {
+          "exitCode": 0,
+          "forced": false
+        },
+        "sdkClosed": true
+      },
+      "startup_ms": 6712.2784
+    },
+    {
+      "generation": 4,
+      "phase": "cold",
+      "shutdown": {
+        "event": "shutdown",
+        "materialization": "not_proven_by_process_exit",
+        "process": {
+          "exitCode": 0,
+          "forced": false
+        },
+        "sdkClosed": true
+      },
+      "startup_ms": 6478.6223
+    },
+    {
+      "generation": 5,
+      "phase": "cold",
+      "shutdown": {
+        "event": "shutdown",
+        "materialization": "not_proven_by_process_exit",
+        "process": {
+          "exitCode": 0,
+          "forced": false
+        },
+        "sdkClosed": true
+      },
+      "startup_ms": 5524.9614
+    },
+    {
+      "generation": 6,
+      "phase": "warm",
+      "shutdown": {
+        "event": "shutdown",
+        "materialization": "not_proven_by_process_exit",
+        "process": {
+          "exitCode": 0,
+          "forced": false
+        },
+        "sdkClosed": true
+      },
+      "startup_ms": 5234.3956
+    },
+    {
+      "generation": 7,
+      "phase": "cold",
+      "shutdown": {
+        "event": "shutdown",
+        "materialization": "not_proven_by_process_exit",
+        "process": {
+          "exitCode": 0,
+          "forced": false
+        },
+        "sdkClosed": true
+      },
+      "startup_ms": 6069.8609
+    },
+    {
+      "generation": 8,
+      "phase": "cold",
+      "shutdown": {
+        "event": "shutdown",
+        "materialization": "not_proven_by_process_exit",
+        "process": {
+          "exitCode": 0,
+          "forced": false
+        },
+        "sdkClosed": true
+      },
+      "startup_ms": 5127.9348
+    },
+    {
+      "generation": 9,
+      "phase": "cold",
+      "shutdown": {
+        "event": "shutdown",
+        "materialization": "not_proven_by_process_exit",
+        "process": {
+          "exitCode": 0,
+          "forced": false
+        },
+        "sdkClosed": true
+      },
+      "startup_ms": 5162.7481
+    },
+    {
+      "generation": 10,
+      "phase": "cold",
+      "shutdown": {
+        "event": "shutdown",
+        "materialization": "not_proven_by_process_exit",
+        "process": {
+          "exitCode": 0,
+          "forced": false
+        },
+        "sdkClosed": true
+      },
+      "startup_ms": 4857.0203
+    },
+    {
+      "generation": 11,
+      "phase": "cold",
+      "shutdown": {
+        "event": "shutdown",
+        "materialization": "not_proven_by_process_exit",
+        "process": {
+          "exitCode": 0,
+          "forced": false
+        },
+        "sdkClosed": true
+      },
+      "startup_ms": 4822.1334
+    },
+    {
+      "generation": 12,
+      "phase": "warm",
+      "shutdown": {
+        "event": "shutdown",
+        "materialization": "not_proven_by_process_exit",
+        "process": {
+          "exitCode": 0,
+          "forced": false
+        },
+        "sdkClosed": true
+      },
+      "startup_ms": 4526.9415
+    }
+  ],
+  "status": "measured_selected_scenarios",
+  "summary": {
+    "literal-00/cold": {
+      "median_ms": 732.6944,
+      "n": 5,
+      "p95_ms": 781.9553
+    },
+    "literal-00/warm": {
+      "median_ms": 22.35755,
+      "n": 30,
+      "p95_ms": 49.0074
+    },
+    "read-full/cold": {
+      "median_ms": 963.9719,
+      "n": 5,
+      "p95_ms": 1301.7478
+    },
+    "read-full/warm": {
+      "median_ms": 52.9162,
+      "n": 30,
+      "p95_ms": 60.2854
+    }
+  },
+  "unmeasured_scenarios": [
+    "literal-01",
+    "literal-02",
+    "literal-03",
+    "literal-04",
+    "literal-05",
+    "literal-06",
+    "literal-07",
+    "literal-08",
+    "literal-09",
+    "chinese_mixed-00",
+    "chinese_mixed-01",
+    "chinese_mixed-02",
+    "chinese_mixed-03",
+    "chinese_mixed-04",
+    "chinese_mixed-05",
+    "chinese_mixed-06",
+    "chinese_mixed-07",
+    "chinese_mixed-08",
+    "chinese_mixed-09",
+    "paraphrase-00",
+    "paraphrase-01",
+    "paraphrase-02",
+    "paraphrase-03",
+    "paraphrase-04",
+    "paraphrase-05",
+    "paraphrase-06",
+    "paraphrase-07",
+    "paraphrase-08",
+    "paraphrase-09",
+    "ordering-probe",
+    "search-page-2",
+    "context",
+    "activity"
+  ]
+}

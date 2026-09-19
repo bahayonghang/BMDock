@@ -1,0 +1,42 @@
+{
+  "clock": "Host perf_counter_ns around one Probe.raw; separate startup/readiness; no EmptyLibrary speedup",
+  "corpus_sha256": "2167af9fc774946f414e174a07708bc79fb58842f16ddd1c47751c646fda0b0e",
+  "engine_sha": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048",
+  "failure": {
+    "message": "Probe exited; see engine.stderr.log",
+    "type": "EOFError"
+  },
+  "finished_at": "2026-09-19T03:54:38.788591+00:00",
+  "host_load": "Shared developer host; OS caches and unrelated background load uncontrolled; UTC sample timestamps permit overlap audit",
+  "index": {
+    "attempts": 3,
+    "elapsed_ms": 3924.716699999408,
+    "identity_set_sha256": "98f63b4d574dab543e2e23aa29bc2c72532e9e14a0e88e0b18beb9eb9ddef70c",
+    "indexed_note_count": 1,
+    "method": "Complete bmdockcorpus entity identity set through official paginated search",
+    "status": "ready"
+  },
+  "manifest_sha256": "1355aaa365b1298b1d935dfd9d6eab441014fd55a7e84c8dc58cac856fb94844",
+  "measured_at": "2026-09-19T03:54:10.136924+00:00",
+  "paired_desktop_runs": "unavailable",
+  "physical_corpus_unchanged": true,
+  "preparation_shutdown": {
+    "event": "shutdown",
+    "materialization": "not_proven_by_process_exit",
+    "process": {
+      "exitCode": 0,
+      "forced": false
+    },
+    "sdkClosed": true
+  },
+  "profile": "release",
+  "samples": [],
+  "scale": "large-5mib",
+  "selected_scenarios": [
+    "read-full"
+  ],
+  "sessions": [],
+  "status": "incomplete",
+  "summary": {},
+  "unmeasured_scenarios": []
+}

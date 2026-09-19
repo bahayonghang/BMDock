@@ -27,3 +27,15 @@ apps/bmdock-desktop/src-tauri/gen/
 apps/bmdock-desktop/*.tsbuildinfo
 apps/bmdock-desktop/vite.config.js
 apps/bmdock-desktop/vite.config.d.ts
+
+# Large raw client receipts retained locally; commit compact summaries/fixtures.
+/execution/evidence/c01-main-preview-contract.json
+/execution/evidence/c01-release-contract.json
+/execution/evidence/c03-main-preview-functional-v2.json
+/execution/evidence/c03-main-preview-functional-v3.json
+/execution/evidence/c03-main-preview-functional-v4.json
+/execution/evidence/c03-main-preview-functional.json
+/execution/evidence/c03-release-functional-v2.json
+/execution/evidence/c03-release-functional-v3.json
+/execution/evidence/c03-release-functional-v4.json
+/execution/evidence/c03-release-functional.json

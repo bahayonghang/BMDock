@@ -1,0 +1,17 @@
+{
+  "observation_date": "2026-09-19",
+  "scope": "C01 representative Windows direct-MCP baseline samples",
+  "status": "owned_process_rss_observed_engine_total_unverified",
+  "method": "Read-only Win32_Process query restricted to active engine_worker.py Python processes; no processes modified",
+  "observed_chain": [
+    {"pid": 80428, "parent_pid": 52732, "executable": "main-preview/.venv/Scripts/python.exe", "role": "probe-owned virtualenv launcher"},
+    {"pid": 80548, "parent_pid": 80428, "executable": "managed CPython 3.12.12/python.exe", "role": "actual engine worker descendant"}
+  ],
+  "field_interpretation": {
+    "probe_peak_rss": "Per-process peak working set of the owned Rust probe",
+    "engine_peak_rss": "Per-process peak working set of the probe connected.childPid, observed on Windows as the virtualenv launcher; this is not full Python engine RSS",
+    "engine_worker_peak_rss": "UNVERIFIED: not sampled in existing representative records",
+    "engine_process_tree_peak_rss": "UNVERIFIED: not measured; individual process high-water marks must not be summed and called a simultaneous tree peak"
+  },
+  "acceptance": "Raw recorded numbers remain observations of their direct PIDs. They do not close full engine memory acceptance or establish native process-tree cleanup. No zero or total-memory estimate is substituted."
+}

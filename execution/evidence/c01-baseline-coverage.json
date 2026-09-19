@@ -1,0 +1,3864 @@
+{
+  "cells": [
+    {
+      "observed_valid_samples": 5,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "large-1mib",
+      "scenario": "read-full",
+      "status": "measured"
+    },
+    {
+      "observed_valid_samples": 30,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "large-1mib",
+      "scenario": "read-full",
+      "status": "measured"
+    },
+    {
+      "observed_valid_samples": 5,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "large-5mib",
+      "scenario": "read-full",
+      "status": "measured"
+    },
+    {
+      "observed_valid_samples": 30,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "large-5mib",
+      "scenario": "read-full",
+      "status": "measured"
+    },
+    {
+      "observed_valid_samples": 5,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "read-full",
+      "status": "measured"
+    },
+    {
+      "observed_valid_samples": 30,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "read-full",
+      "status": "measured"
+    },
+    {
+      "observed_valid_samples": 5,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "literal-00",
+      "status": "measured"
+    },
+    {
+      "observed_valid_samples": 30,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "literal-00",
+      "status": "measured"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "literal-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "literal-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "literal-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "literal-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "literal-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "literal-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "literal-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "literal-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "literal-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "literal-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "literal-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "literal-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "literal-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "literal-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "literal-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "literal-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "literal-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "literal-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "paraphrase-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "paraphrase-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "paraphrase-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "paraphrase-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "paraphrase-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "paraphrase-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "paraphrase-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "paraphrase-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "paraphrase-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "paraphrase-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "paraphrase-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "paraphrase-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "paraphrase-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "paraphrase-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "paraphrase-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "paraphrase-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "paraphrase-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "paraphrase-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "paraphrase-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "paraphrase-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "ordering-probe",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "ordering-probe",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "search-page-2",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "search-page-2",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "context",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "context",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "activity",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "activity",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "read-full",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "read-full",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "literal-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "literal-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "literal-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "literal-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "literal-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "literal-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "literal-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "literal-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "literal-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "literal-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "literal-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "literal-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "literal-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "literal-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "literal-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "literal-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "literal-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "literal-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "literal-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "literal-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "ordering-probe",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "ordering-probe",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "search-page-2",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "search-page-2",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "context",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "context",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "activity",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "activity",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "read-full",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "read-full",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "literal-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "literal-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "literal-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "literal-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "literal-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "literal-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "literal-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "literal-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "literal-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "literal-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "literal-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "literal-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "literal-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "literal-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "literal-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "literal-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "literal-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "literal-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "literal-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "literal-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "ordering-probe",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "ordering-probe",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "search-page-2",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "search-page-2",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "context",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "context",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "main-preview",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "activity",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "main-preview",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "activity",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 5,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "large-1mib",
+      "scenario": "read-full",
+      "status": "measured"
+    },
+    {
+      "observed_valid_samples": 30,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "large-1mib",
+      "scenario": "read-full",
+      "status": "measured"
+    },
+    {
+      "observed_valid_samples": 5,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "large-5mib",
+      "scenario": "read-full",
+      "status": "measured"
+    },
+    {
+      "observed_valid_samples": 30,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "large-5mib",
+      "scenario": "read-full",
+      "status": "measured"
+    },
+    {
+      "observed_valid_samples": 5,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "read-full",
+      "status": "measured"
+    },
+    {
+      "observed_valid_samples": 30,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "read-full",
+      "status": "measured"
+    },
+    {
+      "observed_valid_samples": 5,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "literal-00",
+      "status": "measured"
+    },
+    {
+      "observed_valid_samples": 30,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "literal-00",
+      "status": "measured"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "literal-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "literal-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "literal-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "literal-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "literal-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "literal-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "literal-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "literal-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "literal-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "literal-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "literal-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "literal-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "literal-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "literal-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "literal-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "literal-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "literal-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "literal-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "chinese_mixed-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "paraphrase-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "paraphrase-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "paraphrase-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "paraphrase-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "paraphrase-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "paraphrase-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "paraphrase-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "paraphrase-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "paraphrase-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "paraphrase-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "paraphrase-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "paraphrase-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "paraphrase-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "paraphrase-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "paraphrase-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "paraphrase-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "paraphrase-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "paraphrase-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "paraphrase-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "paraphrase-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "ordering-probe",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "ordering-probe",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "search-page-2",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "search-page-2",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "context",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "context",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-100",
+      "scenario": "activity",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-100",
+      "scenario": "activity",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "read-full",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "read-full",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "literal-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "literal-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "literal-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "literal-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "literal-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "literal-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "literal-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "literal-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "literal-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "literal-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "literal-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "literal-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "literal-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "literal-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "literal-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "literal-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "literal-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "literal-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "literal-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "literal-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "chinese_mixed-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "paraphrase-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "ordering-probe",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "ordering-probe",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "search-page-2",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "search-page-2",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "context",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "context",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-1000",
+      "scenario": "activity",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-1000",
+      "scenario": "activity",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "read-full",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "read-full",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "literal-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "literal-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "literal-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "literal-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "literal-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "literal-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "literal-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "literal-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "literal-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "literal-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "literal-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "literal-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "literal-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "literal-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "literal-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "literal-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "literal-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "literal-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "literal-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "literal-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "chinese_mixed-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-00",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-01",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-02",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-03",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-04",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-05",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-06",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-07",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-08",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "paraphrase-09",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "ordering-probe",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "ordering-probe",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "search-page-2",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "search-page-2",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "context",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "context",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "cold",
+      "profile": "release",
+      "required_samples": 5,
+      "scale": "notes-10000",
+      "scenario": "activity",
+      "status": "missing"
+    },
+    {
+      "observed_valid_samples": 0,
+      "phase": "warm",
+      "profile": "release",
+      "required_samples": 30,
+      "scale": "notes-10000",
+      "scenario": "activity",
+      "status": "missing"
+    }
+  ],
+  "created_at": "2026-09-19T04:01:13.213060+00:00",
+  "full_matrix_complete": false,
+  "manifest_sha256": "1355aaa365b1298b1d935dfd9d6eab441014fd55a7e84c8dc58cac856fb94844",
+  "measured_cells": 16,
+  "native_ui": "unavailable",
+  "paired_desktop": "unavailable",
+  "semantic": "unavailable",
+  "total_cells": 428
+}

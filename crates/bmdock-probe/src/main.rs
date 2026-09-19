@@ -42,6 +42,9 @@ fn validate_request(request: &Value) -> Result<()> {
                 | "read_note"
                 | "read_content"
                 | "search_notes"
+                | "list_directory"
+                | "build_context"
+                | "recent_activity"
                 | "write_note"
                 | "edit_note"
                 | "search"
@@ -224,5 +227,22 @@ mod tests {
             validate_request(&json!({"method": "tools/call", "params": {"name": "fetch"}})).is_ok()
         );
         assert!(validate_request(&json!({"method": "logging/setLevel"})).is_err());
+    }
+
+    #[test]
+    fn client_baseline_directory_context_and_activity_reads_are_allowed() {
+        for name in ["list_directory", "build_context", "recent_activity"] {
+            assert!(validate_request(&json!({
+                "method": "tools/call",
+                "params": {"name": name, "arguments": {"project": "bmdock-fixture"}}
+            }))
+            .is_ok());
+        }
+        for name in ["delete_note", "move_note", "delete_project", "callTool"] {
+            assert!(validate_request(&json!({
+                "method": "tools/call", "params": {"name": name}
+            }))
+            .is_err());
+        }
     }
 }

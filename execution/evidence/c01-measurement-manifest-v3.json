@@ -1,0 +1,2281 @@
+{
+  "availability": {
+    "desktop_adapter": {
+      "reason": "C02/C03 integration and paired interleaving are required",
+      "status": "unavailable"
+    },
+    "engine_internal_time": {
+      "reason": "Direct MCP clock includes owned probe/stdio/JSON overhead",
+      "status": "unavailable"
+    },
+    "native_ui": {
+      "reason": "Native UI not exercised; empty desktop is not a performance baseline",
+      "status": "unavailable"
+    },
+    "semantic": {
+      "reason": "Isolated G0 profiles disable embeddings; no model/provider activation authorized",
+      "status": "unavailable"
+    }
+  },
+  "budgets": {
+    "adapter_overhead": "adapter warm p95 - direct MCP warm p95 <= max(50 ms, 0.25 * direct MCP p95)",
+    "meaningful_ui": "candidate warm p95 <= 1.10 * meaningful pre-optimization UI warm p95",
+    "primary_max_rows": 150,
+    "primary_page_size": 50
+  },
+  "corpus_recipe_version": 2,
+  "estimator": {
+    "median": "statistics.median",
+    "p95": "sorted[ceil(0.95*n)-1]",
+    "warm_p95_rank": 29
+  },
+  "frozen_at": "2026-09-19T03:46:02.340933+00:00",
+  "machine": {
+    "host_python": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+    "logical_cpus": 24,
+    "machine": "AMD64",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "probe_binary_sha256": "4cf8f84937bd162b5eb45129e81e4708ca02c60e137eabeefb922bdcde0f0b3a",
+    "processor": "Intel64 Family 6 Model 198 Stepping 2, GenuineIntel"
+  },
+  "measurement_boundary": "Host perf_counter_ns around one Probe.raw; separate startup/readiness; no EmptyLibrary speedup",
+  "ordering_probe": {
+    "best_identity": "Last corpus index (alphabetically last permalink)",
+    "independent_of_thirty_gold_queries": true,
+    "query": "orderingprobe",
+    "weak_distractor_index": 20
+  },
+  "profiles": {
+    "main-preview": "3452c821d76c083823d020984d71e06904a1ff1e",
+    "release": "c0bd87c6d5a4a58034b1d6c8c5018e443b0bd048"
+  },
+  "queries": [
+    {
+      "category": "literal",
+      "expected_identifiers": [
+        "corpus/note-00000"
+      ],
+      "id": "literal-00",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "thermalpress"
+    },
+    {
+      "category": "literal",
+      "expected_identifiers": [
+        "corpus/note-00001"
+      ],
+      "id": "literal-01",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "moisturesensor"
+    },
+    {
+      "category": "literal",
+      "expected_identifiers": [
+        "corpus/note-00002"
+      ],
+      "id": "literal-02",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "conveyorspeed"
+    },
+    {
+      "category": "literal",
+      "expected_identifiers": [
+        "corpus/note-00003"
+      ],
+      "id": "literal-03",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "gluebalance"
+    },
+    {
+      "category": "literal",
+      "expected_identifiers": [
+        "corpus/note-00004"
+      ],
+      "id": "literal-04",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "steamboiler"
+    },
+    {
+      "category": "literal",
+      "expected_identifiers": [
+        "corpus/note-00005"
+      ],
+      "id": "literal-05",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "bearingvibration"
+    },
+    {
+      "category": "literal",
+      "expected_identifiers": [
+        "corpus/note-00006"
+      ],
+      "id": "literal-06",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "qualitydensity"
+    },
+    {
+      "category": "literal",
+      "expected_identifiers": [
+        "corpus/note-00007"
+      ],
+      "id": "literal-07",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "energyrecovery"
+    },
+    {
+      "category": "literal",
+      "expected_identifiers": [
+        "corpus/note-00008"
+      ],
+      "id": "literal-08",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "dryerkiln"
+    },
+    {
+      "category": "literal",
+      "expected_identifiers": [
+        "corpus/note-00009"
+      ],
+      "id": "literal-09",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "processdelay"
+    },
+    {
+      "category": "chinese_mixed",
+      "expected_identifiers": [
+        "corpus/note-00000"
+      ],
+      "id": "chinese_mixed-00",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "热压温度"
+    },
+    {
+      "category": "chinese_mixed",
+      "expected_identifiers": [
+        "corpus/note-00001"
+      ],
+      "id": "chinese_mixed-01",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "含水率"
+    },
+    {
+      "category": "chinese_mixed",
+      "expected_identifiers": [
+        "corpus/note-00002"
+      ],
+      "id": "chinese_mixed-02",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "输送速度"
+    },
+    {
+      "category": "chinese_mixed",
+      "expected_identifiers": [
+        "corpus/note-00003"
+      ],
+      "id": "chinese_mixed-03",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "施胶量"
+    },
+    {
+      "category": "chinese_mixed",
+      "expected_identifiers": [
+        "corpus/note-00004"
+      ],
+      "id": "chinese_mixed-04",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "蒸汽锅炉"
+    },
+    {
+      "category": "chinese_mixed",
+      "expected_identifiers": [
+        "corpus/note-00005"
+      ],
+      "id": "chinese_mixed-05",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "轴承振动"
+    },
+    {
+      "category": "chinese_mixed",
+      "expected_identifiers": [
+        "corpus/note-00006"
+      ],
+      "id": "chinese_mixed-06",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "板材密度"
+    },
+    {
+      "category": "chinese_mixed",
+      "expected_identifiers": [
+        "corpus/note-00007"
+      ],
+      "id": "chinese_mixed-07",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "余热回收"
+    },
+    {
+      "category": "chinese_mixed",
+      "expected_identifiers": [
+        "corpus/note-00008"
+      ],
+      "id": "chinese_mixed-08",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "干燥窑"
+    },
+    {
+      "category": "chinese_mixed",
+      "expected_identifiers": [
+        "corpus/note-00009"
+      ],
+      "id": "chinese_mixed-09",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "过程时滞"
+    },
+    {
+      "category": "paraphrase",
+      "expected_identifiers": [
+        "corpus/note-00000"
+      ],
+      "id": "paraphrase-00",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "How does heat affect resin curing?"
+    },
+    {
+      "category": "paraphrase",
+      "expected_identifiers": [
+        "corpus/note-00001"
+      ],
+      "id": "paraphrase-01",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "Which instrument measures water in wood?"
+    },
+    {
+      "category": "paraphrase",
+      "expected_identifiers": [
+        "corpus/note-00002"
+      ],
+      "id": "paraphrase-02",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "How long does a board remain on the belt?"
+    },
+    {
+      "category": "paraphrase",
+      "expected_identifiers": [
+        "corpus/note-00003"
+      ],
+      "id": "paraphrase-03",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "What trades adhesive expense against bonding strength?"
+    },
+    {
+      "category": "paraphrase",
+      "expected_identifiers": [
+        "corpus/note-00004"
+      ],
+      "id": "paraphrase-04",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "Where does the factory obtain heating steam?"
+    },
+    {
+      "category": "paraphrase",
+      "expected_identifiers": [
+        "corpus/note-00005"
+      ],
+      "id": "paraphrase-05",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "What signal can warn of worn rotating equipment?"
+    },
+    {
+      "category": "paraphrase",
+      "expected_identifiers": [
+        "corpus/note-00006"
+      ],
+      "id": "paraphrase-06",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "Which mass per volume measure describes panel quality?"
+    },
+    {
+      "category": "paraphrase",
+      "expected_identifiers": [
+        "corpus/note-00007"
+      ],
+      "id": "paraphrase-07",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "How can waste heat reduce fuel purchases?"
+    },
+    {
+      "category": "paraphrase",
+      "expected_identifiers": [
+        "corpus/note-00008"
+      ],
+      "id": "paraphrase-08",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "Which stage removes water before the press?"
+    },
+    {
+      "category": "paraphrase",
+      "expected_identifiers": [
+        "corpus/note-00009"
+      ],
+      "id": "paraphrase-09",
+      "judgment": "Authored topic-to-note relevance; independent of returned hits",
+      "query": "Why can a control adjustment take time to appear?"
+    }
+  ],
+  "query_labels_sha256": "25b8450136041dac32c77413faec97019b44b2c938d3e6221bcda91f13f9f333",
+  "rss_boundary": "OS process peak working set/high-water RSS since process start, sampled after response; not per-request allocation",
+  "samples": {
+    "cold": 5,
+    "cold_definition": "Restart engine/probe for each scenario sample; index retained; OS disk cache uncontrolled",
+    "warm": 30,
+    "warm_definition": "One primed, index-ready process for all 30 observations of a scenario"
+  },
+  "scales": {
+    "large-1mib": {
+      "note_count": 1,
+      "target_note_bytes": 1048576
+    },
+    "large-5mib": {
+      "note_count": 1,
+      "target_note_bytes": 5242880
+    },
+    "notes-100": {
+      "note_count": 100,
+      "target_note_bytes": 4096
+    },
+    "notes-1000": {
+      "note_count": 1000,
+      "target_note_bytes": 4096
+    },
+    "notes-10000": {
+      "note_count": 10000,
+      "target_note_bytes": 4096
+    }
+  },
+  "scenarios": {
+    "large-1mib": [
+      {
+        "args": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "id": "read-full",
+        "tool": "read_note"
+      }
+    ],
+    "large-5mib": [
+      {
+        "args": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "id": "read-full",
+        "tool": "read_note"
+      }
+    ],
+    "notes-100": [
+      {
+        "args": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "id": "read-full",
+        "tool": "read_note"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "id": "literal-00",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "moisturesensor",
+          "search_type": "text"
+        },
+        "id": "literal-01",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "conveyorspeed",
+          "search_type": "text"
+        },
+        "id": "literal-02",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "gluebalance",
+          "search_type": "text"
+        },
+        "id": "literal-03",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "steamboiler",
+          "search_type": "text"
+        },
+        "id": "literal-04",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "bearingvibration",
+          "search_type": "text"
+        },
+        "id": "literal-05",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "qualitydensity",
+          "search_type": "text"
+        },
+        "id": "literal-06",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "energyrecovery",
+          "search_type": "text"
+        },
+        "id": "literal-07",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "dryerkiln",
+          "search_type": "text"
+        },
+        "id": "literal-08",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "processdelay",
+          "search_type": "text"
+        },
+        "id": "literal-09",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "热压温度",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-00",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "含水率",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-01",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "输送速度",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-02",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "施胶量",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-03",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "蒸汽锅炉",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-04",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "轴承振动",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-05",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "板材密度",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-06",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "余热回收",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-07",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "干燥窑",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-08",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "过程时滞",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-09",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "How does heat affect resin curing?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-00",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "Which instrument measures water in wood?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-01",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "How long does a board remain on the belt?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-02",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "What trades adhesive expense against bonding strength?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-03",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "Where does the factory obtain heating steam?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-04",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "What signal can warn of worn rotating equipment?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-05",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "Which mass per volume measure describes panel quality?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-06",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "How can waste heat reduce fuel purchases?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-07",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "Which stage removes water before the press?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-08",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "Why can a control adjustment take time to appear?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-09",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "orderingprobe",
+          "search_type": "text"
+        },
+        "id": "ordering-probe",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 2,
+          "page_size": 50,
+          "query": "bmdockcorpus",
+          "search_type": "text"
+        },
+        "id": "search-page-2",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "depth": 1,
+          "max_related": 20,
+          "output_format": "json",
+          "page_size": 50,
+          "timeframe": "2026-01-01",
+          "url": "memory://corpus/note-00010"
+        },
+        "id": "context",
+        "tool": "build_context"
+      },
+      {
+        "args": {
+          "output_format": "json",
+          "page_size": 50,
+          "timeframe": "2026-01-01",
+          "type": "entity"
+        },
+        "id": "activity",
+        "tool": "recent_activity"
+      }
+    ],
+    "notes-1000": [
+      {
+        "args": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "id": "read-full",
+        "tool": "read_note"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "id": "literal-00",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "moisturesensor",
+          "search_type": "text"
+        },
+        "id": "literal-01",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "conveyorspeed",
+          "search_type": "text"
+        },
+        "id": "literal-02",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "gluebalance",
+          "search_type": "text"
+        },
+        "id": "literal-03",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "steamboiler",
+          "search_type": "text"
+        },
+        "id": "literal-04",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "bearingvibration",
+          "search_type": "text"
+        },
+        "id": "literal-05",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "qualitydensity",
+          "search_type": "text"
+        },
+        "id": "literal-06",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "energyrecovery",
+          "search_type": "text"
+        },
+        "id": "literal-07",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "dryerkiln",
+          "search_type": "text"
+        },
+        "id": "literal-08",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "processdelay",
+          "search_type": "text"
+        },
+        "id": "literal-09",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "热压温度",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-00",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "含水率",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-01",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "输送速度",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-02",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "施胶量",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-03",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "蒸汽锅炉",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-04",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "轴承振动",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-05",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "板材密度",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-06",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "余热回收",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-07",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "干燥窑",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-08",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "过程时滞",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-09",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "How does heat affect resin curing?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-00",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "Which instrument measures water in wood?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-01",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "How long does a board remain on the belt?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-02",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "What trades adhesive expense against bonding strength?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-03",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "Where does the factory obtain heating steam?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-04",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "What signal can warn of worn rotating equipment?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-05",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "Which mass per volume measure describes panel quality?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-06",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "How can waste heat reduce fuel purchases?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-07",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "Which stage removes water before the press?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-08",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "Why can a control adjustment take time to appear?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-09",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "orderingprobe",
+          "search_type": "text"
+        },
+        "id": "ordering-probe",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 2,
+          "page_size": 50,
+          "query": "bmdockcorpus",
+          "search_type": "text"
+        },
+        "id": "search-page-2",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "depth": 1,
+          "max_related": 20,
+          "output_format": "json",
+          "page_size": 50,
+          "timeframe": "2026-01-01",
+          "url": "memory://corpus/note-00010"
+        },
+        "id": "context",
+        "tool": "build_context"
+      },
+      {
+        "args": {
+          "output_format": "json",
+          "page_size": 50,
+          "timeframe": "2026-01-01",
+          "type": "entity"
+        },
+        "id": "activity",
+        "tool": "recent_activity"
+      }
+    ],
+    "notes-10000": [
+      {
+        "args": {
+          "identifier": "corpus/note-00000",
+          "include_frontmatter": true,
+          "output_format": "json"
+        },
+        "id": "read-full",
+        "tool": "read_note"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "thermalpress",
+          "search_type": "text"
+        },
+        "id": "literal-00",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "moisturesensor",
+          "search_type": "text"
+        },
+        "id": "literal-01",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "conveyorspeed",
+          "search_type": "text"
+        },
+        "id": "literal-02",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "gluebalance",
+          "search_type": "text"
+        },
+        "id": "literal-03",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "steamboiler",
+          "search_type": "text"
+        },
+        "id": "literal-04",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "bearingvibration",
+          "search_type": "text"
+        },
+        "id": "literal-05",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "qualitydensity",
+          "search_type": "text"
+        },
+        "id": "literal-06",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "energyrecovery",
+          "search_type": "text"
+        },
+        "id": "literal-07",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "dryerkiln",
+          "search_type": "text"
+        },
+        "id": "literal-08",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "processdelay",
+          "search_type": "text"
+        },
+        "id": "literal-09",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "热压温度",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-00",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "含水率",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-01",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "输送速度",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-02",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "施胶量",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-03",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "蒸汽锅炉",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-04",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "轴承振动",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-05",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "板材密度",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-06",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "余热回收",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-07",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "干燥窑",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-08",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "过程时滞",
+          "search_type": "text"
+        },
+        "id": "chinese_mixed-09",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "How does heat affect resin curing?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-00",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "Which instrument measures water in wood?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-01",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "How long does a board remain on the belt?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-02",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "What trades adhesive expense against bonding strength?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-03",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "Where does the factory obtain heating steam?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-04",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "What signal can warn of worn rotating equipment?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-05",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "Which mass per volume measure describes panel quality?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-06",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "How can waste heat reduce fuel purchases?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-07",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "Which stage removes water before the press?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-08",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "Why can a control adjustment take time to appear?",
+          "search_type": "text"
+        },
+        "id": "paraphrase-09",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 1,
+          "page_size": 50,
+          "query": "orderingprobe",
+          "search_type": "text"
+        },
+        "id": "ordering-probe",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "entity_types": [
+            "entity"
+          ],
+          "output_format": "json",
+          "page": 2,
+          "page_size": 50,
+          "query": "bmdockcorpus",
+          "search_type": "text"
+        },
+        "id": "search-page-2",
+        "tool": "search_notes"
+      },
+      {
+        "args": {
+          "depth": 1,
+          "max_related": 20,
+          "output_format": "json",
+          "page_size": 50,
+          "timeframe": "2026-01-01",
+          "url": "memory://corpus/note-00010"
+        },
+        "id": "context",
+        "tool": "build_context"
+      },
+      {
+        "args": {
+          "output_format": "json",
+          "page_size": 50,
+          "timeframe": "2026-01-01",
+          "type": "entity"
+        },
+        "id": "activity",
+        "tool": "recent_activity"
+      }
+    ]
+  },
+  "schema_version": 1,
+  "seed": 20260919,
+  "typing": {
+    "clock": "input-event timestamp to first presented frame containing updated text",
+    "edits": 30,
+    "insertions": {
+      "large-1mib": {
+        "coordinate_basis": "textarea API value: CRLF and CR normalized to LF; physical source unchanged",
+        "reset": "Restore the same immutable fixture outside every measured insertion interval",
+        "samples": [
+          {
+            "character": "a",
+            "is_composing": false,
+            "position": "beginning",
+            "sample": 1,
+            "utf16_offset": 512
+          },
+          {
+            "character": "b",
+            "is_composing": false,
+            "position": "beginning",
+            "sample": 2,
+            "utf16_offset": 512
+          },
+          {
+            "character": "c",
+            "is_composing": false,
+            "position": "beginning",
+            "sample": 3,
+            "utf16_offset": 512
+          },
+          {
+            "character": "d",
+            "is_composing": false,
+            "position": "beginning",
+            "sample": 4,
+            "utf16_offset": 512
+          },
+          {
+            "character": "e",
+            "is_composing": false,
+            "position": "beginning",
+            "sample": 5,
+            "utf16_offset": 512
+          },
+          {
+            "character": "f",
+            "is_composing": false,
+            "position": "beginning",
+            "sample": 6,
+            "utf16_offset": 512
+          },
+          {
+            "character": "g",
+            "is_composing": false,
+            "position": "beginning",
+            "sample": 7,
+            "utf16_offset": 512
+          },
+          {
+            "character": "h",
+            "is_composing": false,
+            "position": "beginning",
+            "sample": 8,
+            "utf16_offset": 512
+          },
+          {
+            "character": "i",
+            "is_composing": false,
+            "position": "beginning",
+            "sample": 9,
+            "utf16_offset": 512
+          },
+          {
+            "character": "j",
+            "is_composing": false,
+            "position": "beginning",
+            "sample": 10,
+            "utf16_offset": 512
+          },
+          {
+            "character": "a",
+            "is_composing": false,
+            "position": "middle",
+            "sample": 11,
+            "utf16_offset": 524256
+          },
+          {
+            "character": "b",
+            "is_composing": false,
+            "position": "middle",
+            "sample": 12,
+            "utf16_offset": 524256
+          },
+          {
+            "character": "c",
+            "is_composing": false,
+            "position": "middle",
+            "sample": 13,
+            "utf16_offset": 524256
+          },
+          {
+            "character": "d",
+            "is_composing": false,
+            "position": "middle",
+            "sample": 14,
+            "utf16_offset": 524256
+          },
+          {
+            "character": "e",
+            "is_composing": false,
+            "position": "middle",
+            "sample": 15,
+            "utf16_offset": 524256
+          },
+          {
+            "character": "f",
+            "is_composing": false,
+            "position": "middle",
+            "sample": 16,
+            "utf16_offset": 524256
+          },
+          {
+            "character": "g",
+            "is_composing": false,
+            "position": "middle",
+            "sample": 17,
+            "utf16_offset": 524256
+          },
+          {
+            "character": "h",
+            "is_composing": false,
+            "position": "middle",
+            "sample": 18,
+            "utf16_offset": 524256
+          },
+          {
+            "character": "i",
+            "is_composing": false,
+            "position": "middle",
+            "sample": 19,
+            "utf16_offset": 524256
+          },
+          {
+            "character": "j",
+            "is_composing": false,
+            "position": "middle",
+            "sample": 20,
+            "utf16_offset": 524256
+          },
+          {
+            "character": "a",
+            "is_composing": false,
+            "position": "end",
+            "sample": 21,
+            "utf16_offset": 1048511
+          },
+          {
+            "character": "b",
+            "is_composing": false,
+            "position": "end",
+            "sample": 22,
+            "utf16_offset": 1048511
+          },
+          {
+            "character": "c",
+            "is_composing": false,
+            "position": "end",
+            "sample": 23,
+            "utf16_offset": 1048511
+          },
+          {
+            "character": "d",
+            "is_composing": false,
+            "position": "end",
+            "sample": 24,
+            "utf16_offset": 1048511
+          },
+          {
+            "character": "e",
+            "is_composing": false,
+            "position": "end",
+            "sample": 25,
+            "utf16_offset": 1048511
+          },
+          {
+            "character": "f",
+            "is_composing": false,
+            "position": "end",
+            "sample": 26,
+            "utf16_offset": 1048511
+          },
+          {
+            "character": "g",
+            "is_composing": false,
+            "position": "end",
+            "sample": 27,
+            "utf16_offset": 1048511
+          },
+          {
+            "character": "h",
+            "is_composing": false,
+            "position": "end",
+            "sample": 28,
+            "utf16_offset": 1048511
+          },
+          {
+            "character": "i",
+            "is_composing": false,
+            "position": "end",
+            "sample": 29,
+            "utf16_offset": 1048511
+          },
+          {
+            "character": "j",
+            "is_composing": false,
+            "position": "end",
+            "sample": 30,
+            "utf16_offset": 1048511
+          }
+        ],
+        "source_utf16_length": 1048528,
+        "source_utf8_bytes": 1048576,
+        "textarea_api_utf16_length": 1048513
+      },
+      "large-5mib": {
+        "coordinate_basis": "textarea API value: CRLF and CR normalized to LF; physical source unchanged",
+        "reset": "Restore the same immutable fixture outside every measured insertion interval",
+        "samples": [
+          {
+            "character": "a",
+            "is_composing": false,
+            "position": "beginning",
+            "sample": 1,
+            "utf16_offset": 512
+          },
+          {
+            "character": "b",
+            "is_composing": false,
+            "position": "beginning",
+            "sample": 2,
+            "utf16_offset": 512
+          },
+          {
+            "character": "c",
+            "is_composing": false,
+            "position": "beginning",
+            "sample": 3,
+            "utf16_offset": 512
+          },
+          {
+            "character": "d",
+            "is_composing": false,
+            "position": "beginning",
+            "sample": 4,
+            "utf16_offset": 512
+          },
+          {
+            "character": "e",
+            "is_composing": false,
+            "position": "beginning",
+            "sample": 5,
+            "utf16_offset": 512
+          },
+          {
+            "character": "f",
+            "is_composing": false,
+            "position": "beginning",
+            "sample": 6,
+            "utf16_offset": 512
+          },
+          {
+            "character": "g",
+            "is_composing": false,
+            "position": "beginning",
+            "sample": 7,
+            "utf16_offset": 512
+          },
+          {
+            "character": "h",
+            "is_composing": false,
+            "position": "beginning",
+            "sample": 8,
+            "utf16_offset": 512
+          },
+          {
+            "character": "i",
+            "is_composing": false,
+            "position": "beginning",
+            "sample": 9,
+            "utf16_offset": 512
+          },
+          {
+            "character": "j",
+            "is_composing": false,
+            "position": "beginning",
+            "sample": 10,
+            "utf16_offset": 512
+          },
+          {
+            "character": "a",
+            "is_composing": false,
+            "position": "middle",
+            "sample": 11,
+            "utf16_offset": 2621408
+          },
+          {
+            "character": "b",
+            "is_composing": false,
+            "position": "middle",
+            "sample": 12,
+            "utf16_offset": 2621408
+          },
+          {
+            "character": "c",
+            "is_composing": false,
+            "position": "middle",
+            "sample": 13,
+            "utf16_offset": 2621408
+          },
+          {
+            "character": "d",
+            "is_composing": false,
+            "position": "middle",
+            "sample": 14,
+            "utf16_offset": 2621408
+          },
+          {
+            "character": "e",
+            "is_composing": false,
+            "position": "middle",
+            "sample": 15,
+            "utf16_offset": 2621408
+          },
+          {
+            "character": "f",
+            "is_composing": false,
+            "position": "middle",
+            "sample": 16,
+            "utf16_offset": 2621408
+          },
+          {
+            "character": "g",
+            "is_composing": false,
+            "position": "middle",
+            "sample": 17,
+            "utf16_offset": 2621408
+          },
+          {
+            "character": "h",
+            "is_composing": false,
+            "position": "middle",
+            "sample": 18,
+            "utf16_offset": 2621408
+          },
+          {
+            "character": "i",
+            "is_composing": false,
+            "position": "middle",
+            "sample": 19,
+            "utf16_offset": 2621408
+          },
+          {
+            "character": "j",
+            "is_composing": false,
+            "position": "middle",
+            "sample": 20,
+            "utf16_offset": 2621408
+          },
+          {
+            "character": "a",
+            "is_composing": false,
+            "position": "end",
+            "sample": 21,
+            "utf16_offset": 5242815
+          },
+          {
+            "character": "b",
+            "is_composing": false,
+            "position": "end",
+            "sample": 22,
+            "utf16_offset": 5242815
+          },
+          {
+            "character": "c",
+            "is_composing": false,
+            "position": "end",
+            "sample": 23,
+            "utf16_offset": 5242815
+          },
+          {
+            "character": "d",
+            "is_composing": false,
+            "position": "end",
+            "sample": 24,
+            "utf16_offset": 5242815
+          },
+          {
+            "character": "e",
+            "is_composing": false,
+            "position": "end",
+            "sample": 25,
+            "utf16_offset": 5242815
+          },
+          {
+            "character": "f",
+            "is_composing": false,
+            "position": "end",
+            "sample": 26,
+            "utf16_offset": 5242815
+          },
+          {
+            "character": "g",
+            "is_composing": false,
+            "position": "end",
+            "sample": 27,
+            "utf16_offset": 5242815
+          },
+          {
+            "character": "h",
+            "is_composing": false,
+            "position": "end",
+            "sample": 28,
+            "utf16_offset": 5242815
+          },
+          {
+            "character": "i",
+            "is_composing": false,
+            "position": "end",
+            "sample": 29,
+            "utf16_offset": 5242815
+          },
+          {
+            "character": "j",
+            "is_composing": false,
+            "position": "end",
+            "sample": 30,
+            "utf16_offset": 5242815
+          }
+        ],
+        "source_utf16_length": 5242832,
+        "source_utf8_bytes": 5242880,
+        "textarea_api_utf16_length": 5242817
+      }
+    },
+    "native_evidence_owner": "C06; C07 integrates the same-revision receipt",
+    "native_p95_ms": {
+      "large-1mib": 50,
+      "large-5mib": 100
+    },
+    "operation": "Committed single-character edit after note display; record IME commitment",
+    "positions": {
+      "beginning": 10,
+      "end": 10,
+      "middle": 10
+    },
+    "protocol_path": ".trellis/tasks/09-19-bmdock-client-optimization/research/native-input-latency-protocol.md",
+    "protocol_sha256": "f5b982e4fde37c4c152b3014787517f05b34bec34f128da0e9f65d43d06210b3",
+    "trace_method": "Actual Tauri WebView CDP trace: backdated committed-input User Timing mark, changed-text paint/commit flow, matching successful native presentation feedback; qualified CDP/ETW frame and clock correlation, no rAF substitute"
+  }
+}

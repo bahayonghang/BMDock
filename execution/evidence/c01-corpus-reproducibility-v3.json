@@ -1,0 +1,137 @@
+{
+  "corpora": [
+    {
+      "files_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+      "fixture_manifests": [
+        "artifacts/client-baseline/c01-corpus-reproducibility-v3/release-notes-100-1.fixture.json",
+        "artifacts/client-baseline/c01-corpus-reproducibility-v3/release-notes-100-2.fixture.json"
+      ],
+      "labels_sha256": "25b8450136041dac32c77413faec97019b44b2c938d3e6221bcda91f13f9f333",
+      "note_count": 100,
+      "profile": "release",
+      "reproduced": true,
+      "scale": "notes-100",
+      "total_bytes": 409600
+    },
+    {
+      "files_sha256": "dc349efe2d470642cb5f992eeaeb89ebf8c8ee6f409bdf0d56383292571ddfbf",
+      "fixture_manifests": [
+        "artifacts/client-baseline/c01-corpus-reproducibility-v3/release-notes-1000-1.fixture.json",
+        "artifacts/client-baseline/c01-corpus-reproducibility-v3/release-notes-1000-2.fixture.json"
+      ],
+      "labels_sha256": "25b8450136041dac32c77413faec97019b44b2c938d3e6221bcda91f13f9f333",
+      "note_count": 1000,
+      "profile": "release",
+      "reproduced": true,
+      "scale": "notes-1000",
+      "total_bytes": 4096000
+    },
+    {
+      "files_sha256": "4cfddc94e248b1fbe8dd57718996bf9c866dd4a9a287b20bc42106cda9d0b402",
+      "fixture_manifests": [
+        "artifacts/client-baseline/c01-corpus-reproducibility-v3/release-notes-10000-1.fixture.json",
+        "artifacts/client-baseline/c01-corpus-reproducibility-v3/release-notes-10000-2.fixture.json"
+      ],
+      "labels_sha256": "25b8450136041dac32c77413faec97019b44b2c938d3e6221bcda91f13f9f333",
+      "note_count": 10000,
+      "profile": "release",
+      "reproduced": true,
+      "scale": "notes-10000",
+      "total_bytes": 40960000
+    },
+    {
+      "files_sha256": "8352f06d83fc59b55f26789024d821dd1239660ad248a1c5adfc8716ab0e45af",
+      "fixture_manifests": [
+        "artifacts/client-baseline/c01-corpus-reproducibility-v3/release-large-1mib-1.fixture.json",
+        "artifacts/client-baseline/c01-corpus-reproducibility-v3/release-large-1mib-2.fixture.json"
+      ],
+      "labels_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "note_count": 1,
+      "profile": "release",
+      "reproduced": true,
+      "scale": "large-1mib",
+      "total_bytes": 1048576
+    },
+    {
+      "files_sha256": "2167af9fc774946f414e174a07708bc79fb58842f16ddd1c47751c646fda0b0e",
+      "fixture_manifests": [
+        "artifacts/client-baseline/c01-corpus-reproducibility-v3/release-large-5mib-1.fixture.json",
+        "artifacts/client-baseline/c01-corpus-reproducibility-v3/release-large-5mib-2.fixture.json"
+      ],
+      "labels_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "note_count": 1,
+      "profile": "release",
+      "reproduced": true,
+      "scale": "large-5mib",
+      "total_bytes": 5242880
+    },
+    {
+      "files_sha256": "ac7aba9c85e98bea62338c30aaa3e02a3b688ca261c8f3eb94b3b67d757817b3",
+      "fixture_manifests": [
+        "artifacts/client-baseline/c01-corpus-reproducibility-v3/main-preview-notes-100-1.fixture.json",
+        "artifacts/client-baseline/c01-corpus-reproducibility-v3/main-preview-notes-100-2.fixture.json"
+      ],
+      "labels_sha256": "25b8450136041dac32c77413faec97019b44b2c938d3e6221bcda91f13f9f333",
+      "note_count": 100,
+      "profile": "main-preview",
+      "reproduced": true,
+      "scale": "notes-100",
+      "total_bytes": 409600
+    },
+    {
+      "files_sha256": "dc349efe2d470642cb5f992eeaeb89ebf8c8ee6f409bdf0d56383292571ddfbf",
+      "fixture_manifests": [
+        "artifacts/client-baseline/c01-corpus-reproducibility-v3/main-preview-notes-1000-1.fixture.json",
+        "artifacts/client-baseline/c01-corpus-reproducibility-v3/main-preview-notes-1000-2.fixture.json"
+      ],
+      "labels_sha256": "25b8450136041dac32c77413faec97019b44b2c938d3e6221bcda91f13f9f333",
+      "note_count": 1000,
+      "profile": "main-preview",
+      "reproduced": true,
+      "scale": "notes-1000",
+      "total_bytes": 4096000
+    },
+    {
+      "files_sha256": "4cfddc94e248b1fbe8dd57718996bf9c866dd4a9a287b20bc42106cda9d0b402",
+      "fixture_manifests": [
+        "artifacts/client-baseline/c01-corpus-reproducibility-v3/main-preview-notes-10000-1.fixture.json",
+        "artifacts/client-baseline/c01-corpus-reproducibility-v3/main-preview-notes-10000-2.fixture.json"
+      ],
+      "labels_sha256": "25b8450136041dac32c77413faec97019b44b2c938d3e6221bcda91f13f9f333",
+      "note_count": 10000,
+      "profile": "main-preview",
+      "reproduced": true,
+      "scale": "notes-10000",
+      "total_bytes": 40960000
+    },
+    {
+      "files_sha256": "8352f06d83fc59b55f26789024d821dd1239660ad248a1c5adfc8716ab0e45af",
+      "fixture_manifests": [
+        "artifacts/client-baseline/c01-corpus-reproducibility-v3/main-preview-large-1mib-1.fixture.json",
+        "artifacts/client-baseline/c01-corpus-reproducibility-v3/main-preview-large-1mib-2.fixture.json"
+      ],
+      "labels_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "note_count": 1,
+      "profile": "main-preview",
+      "reproduced": true,
+      "scale": "large-1mib",
+      "total_bytes": 1048576
+    },
+    {
+      "files_sha256": "2167af9fc774946f414e174a07708bc79fb58842f16ddd1c47751c646fda0b0e",
+      "fixture_manifests": [
+        "artifacts/client-baseline/c01-corpus-reproducibility-v3/main-preview-large-5mib-1.fixture.json",
+        "artifacts/client-baseline/c01-corpus-reproducibility-v3/main-preview-large-5mib-2.fixture.json"
+      ],
+      "labels_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "note_count": 1,
+      "profile": "main-preview",
+      "reproduced": true,
+      "scale": "large-5mib",
+      "total_bytes": 5242880
+    }
+  ],
+  "created_at": "2026-09-19T03:46:06.865988+00:00",
+  "manifest_sha256": "1355aaa365b1298b1d935dfd9d6eab441014fd55a7e84c8dc58cac856fb94844",
+  "status": "reproduced"
+}

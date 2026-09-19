@@ -3,7 +3,7 @@
 > [仓库根](../../CLAUDE.md) › `crates/bmdock-probe`
 > 上次扫描：2026-09-09 13:16 +08:00
 
-Cargo workspace 唯一成员。开发者 G0 探针：官方 rmcp 处理 MCP 握手与 framing；本 crate 持有子进程、白名单控制面、关闭证据。`publish = false`。
+Cargo workspace 的开发者 G0 探针成员（另有桌面 app）。官方 rmcp 处理 MCP 握手与 framing；本 crate 持有子进程、白名单控制面、关闭证据。`publish = false`。
 
 **禁止**把本控制通道暴露为桌面 IPC。
 
@@ -12,7 +12,7 @@ Cargo workspace 唯一成员。开发者 G0 探针：官方 rmcp 处理 MCP 握�
 | 项 | 值 |
 |---|---|
 | 二进制 | `bmdock-probe` → `target/debug|release/bmdock-probe[.exe]` |
-| 源码 | `src/main.rs`（单文件，约 220 行，含 5 个单元测试） |
+| 源码 | `src/main.rs`（单文件，含 6 个单元测试） |
 | 用法 | `bmdock-probe <managed-python> <engine-worker.py> <owned-sandbox>` |
 | 版本 | `--version` 打印 `bmdock-probe {CARGO_PKG_VERSION}` |
 
@@ -50,6 +50,7 @@ stdin JSON 请求：`{id, method, params}`。stdout JSON 行：`{event: connecte
 
 - `list_memory_projects`
 - `read_note` / `read_content` / `search_notes` / `search` / `fetch`
+- `list_directory` / `build_context` / `recent_activity`（C01 隔离 fixture 只读契约采集）
 - `write_note` / `edit_note`（`arguments.project` 必须为 `"bmdock-fixture"`）
 - `__bmdock_missing_tool__`（负向测试）
 
@@ -80,7 +81,7 @@ ClientInfo：`protocolVersion = "2025-11-25"`，`name = "BMDock-G0"`。
 
 ## 测试
 
-`#[cfg(test)]` 在 `src/main.rs`：未知 method（含 raw `callTool`/`call_tool`）、未知 tool、fixture 写入必须带 `bmdock-fixture`、发现方法放行、`search`/`fetch` 作为独立允许工具。由 `just ci` 的 `cargo test --workspace --locked` 运行。5 项。
+`#[cfg(test)]` 在 `src/main.rs`：未知 method（含 raw `callTool`/`call_tool`）、未知 tool、fixture 写入必须带 `bmdock-fixture`、发现方法放行、`search`/`fetch` 作为独立允许工具、C01 上下文/活动只读调用及写入工具拒绝。由 `just ci` 的 `cargo test --workspace --locked` 运行。6 项。
 
 ## 关键文件
 
